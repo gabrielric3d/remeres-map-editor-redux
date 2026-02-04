@@ -97,7 +97,7 @@ public:
 		g_layout.LoadPerspective();
 	}
 
-	void CreateLoadBar(wxString message, bool canCancel = false) {
+	void CreateLoadBar(const wxString& message, bool canCancel = false) {
 		g_loading.CreateLoadBar(message, canCancel);
 	}
 	void SetLoadScale(int32_t from, int32_t to) {
@@ -145,7 +145,7 @@ protected:
 	}
 
 public:
-	void SetTitle(wxString newtitle) {
+	void SetTitle(const wxString& newtitle) {
 		g_status.SetTitle(newtitle);
 	}
 	void UpdateTitle() {
@@ -153,7 +153,7 @@ public:
 	}
 	void UpdateMenus();
 	void ShowToolbar(ToolBarID id, bool show);
-	void SetStatusText(wxString text) {
+	void SetStatusText(const wxString& text) {
 		g_status.SetStatusText(text);
 	}
 

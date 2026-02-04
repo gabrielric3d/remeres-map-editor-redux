@@ -23,7 +23,7 @@ LoadingManager::~LoadingManager() {
 	DestroyLoadBar();
 }
 
-void LoadingManager::CreateLoadBar(wxString message, bool canCancel) {
+void LoadingManager::CreateLoadBar(const wxString& message, bool canCancel) {
 	progressText = message;
 
 	progressFrom = 0;
