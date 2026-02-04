@@ -176,7 +176,7 @@ wxWindow* PropertiesWindow::createContainerPanel(wxWindow* parent) {
 }
 
 wxWindow* PropertiesWindow::createAttributesPanel(wxWindow* parent) {
-	wxPanel* panel = newd wxPanel(parent, wxID_ANY);
+	wxPanel* panel = newd wxPanel(parent, ITEM_PROPERTIES_ADVANCED_TAB);
 	wxSizer* topSizer = newd wxBoxSizer(wxVERTICAL);
 
 	attributesGrid = newd wxGrid(panel, ITEM_PROPERTIES_ADVANCED_TAB, wxDefaultPosition, wxSize(-1, 160));
@@ -243,17 +243,35 @@ void PropertiesWindow::OnResize(wxSizeEvent& evt) {
 }
 
 void PropertiesWindow::OnNotebookPageChanged(wxNotebookEvent& evt) {
+	int old_selection = evt.GetOldSelection();
+	if (old_selection != wxNOT_FOUND) {
+		wxWindow* old_page = notebook->GetPage(old_selection);
+		switch (old_page->GetId()) {
+			case ITEM_PROPERTIES_GENERAL_TAB: {
+				saveGeneralPanel();
+				break;
+			}
+			case ITEM_PROPERTIES_CONTAINER_TAB: {
+				saveContainerPanel();
+				break;
+			}
+			case ITEM_PROPERTIES_ADVANCED_TAB: {
+				saveAttributesPanel();
+				break;
+			}
+			default:
+				break;
+		}
+	}
+
 	wxWindow* page = notebook->GetCurrentPage();
-
-	// TODO: Save
-
 	switch (page->GetId()) {
 		case ITEM_PROPERTIES_GENERAL_TAB: {
-			// currentPanel = createGeneralPanel(page);
+			updateGeneralPanel();
 			break;
 		}
 		case ITEM_PROPERTIES_ADVANCED_TAB: {
-			// currentPanel = createAttributesPanel(page);
+			updateAttributesPanel();
 			break;
 		}
 		default:
@@ -272,12 +290,50 @@ void PropertiesWindow::saveGeneralPanel() {
 	}
 }
 
+void PropertiesWindow::updateGeneralPanel() {
+	if (!edit_item) {
+		return;
+	}
+	if (count_field) {
+		count_field->SetValue(edit_item->getCount());
+	}
+	if (action_id_field) {
+		action_id_field->SetValue(edit_item->getActionID());
+	}
+	if (unique_id_field) {
+		unique_id_field->SetValue(edit_item->getUniqueID());
+	}
+	if (tier_field) {
+		tier_field->SetValue(edit_item->getTier());
+	}
+}
+
 void PropertiesWindow::saveContainerPanel() {
 	////
 }
 
 void PropertiesWindow::saveAttributesPanel() {
 	AttributeService::saveAttributesFromGrid(edit_item, attributesGrid);
+}
+
+void PropertiesWindow::updateAttributesPanel() {
+	if (!edit_item || !attributesGrid) {
+		return;
+	}
+
+	if (attributesGrid->GetNumberRows() > 0) {
+		attributesGrid->DeleteRows(0, attributesGrid->GetNumberRows());
+	}
+
+	ItemAttributeMap attrs = edit_item->getAttributes();
+	if (attrs.empty()) {
+		return;
+	}
+	attributesGrid->AppendRows(attrs.size());
+	int i = 0;
+	for (ItemAttributeMap::iterator aiter = attrs.begin(); aiter != attrs.end(); ++aiter, ++i) {
+		AttributeService::setGridValue(attributesGrid, i, aiter->first, aiter->second);
+	}
 }
 
 void PropertiesWindow::OnGridValueChanged(wxGridEvent& event) {

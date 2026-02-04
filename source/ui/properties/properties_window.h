@@ -50,6 +50,7 @@ protected:
 	// Simple pane
 	wxWindow* createGeneralPanel(wxWindow* parent);
 	void saveGeneralPanel();
+	void updateGeneralPanel();
 
 	// Container pane
 	std::vector<ContainerItemButton*> container_items;
@@ -60,6 +61,7 @@ protected:
 	wxGrid* attributesGrid;
 	wxWindow* createAttributesPanel(wxWindow* parent);
 	void saveAttributesPanel();
+	void updateAttributesPanel();
 	void SetGridValue(wxGrid* grid, int rowIndex, std::string name, const ItemAttribute& attr);
 
 protected:
