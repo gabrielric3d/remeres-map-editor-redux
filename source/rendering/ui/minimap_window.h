@@ -23,10 +23,6 @@
 
 struct NVGcontext;
 
-struct NVGDeleter {
-	void operator()(NVGcontext* nvg) const;
-};
-
 class MinimapDrawer;
 class MinimapWindow : public wxGLCanvas {
 public:
@@ -47,7 +43,7 @@ protected:
 	std::unique_ptr<MinimapDrawer> drawer;
 	wxTimer update_timer;
 	std::unique_ptr<wxGLContext> context;
-	std::unique_ptr<NVGcontext, NVGDeleter> nvg;
+	NVGcontext* nvg = nullptr;
 };
 
 #endif

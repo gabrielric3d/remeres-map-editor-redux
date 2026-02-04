@@ -43,17 +43,10 @@ static wxGLAttributes& GetCoreProfileAttributes() {
 	return vAttrs;
 }
 
-void NVGDeleter::operator()(NVGcontext* nvg) const {
-	if (nvg) {
-		nvgDeleteGL3(nvg);
-	}
-}
-
 MinimapWindow::MinimapWindow(wxWindow* parent) :
 	wxGLCanvas(parent, GetCoreProfileAttributes(), wxID_ANY, wxDefaultPosition, wxSize(205, 130)),
 	update_timer(this),
-	context(nullptr),
-	nvg(nullptr, NVGDeleter()) {
+	context(nullptr) {
 	spdlog::info("MinimapWindow::MinimapWindow - Creating context");
 	context = std::make_unique<wxGLContext>(this);
 	if (!context->IsOK()) {
@@ -74,7 +67,7 @@ MinimapWindow::MinimapWindow(wxWindow* parent) :
 MinimapWindow::~MinimapWindow() {
 	if (context && nvg) {
 		SetCurrent(*context);
-		nvg.reset();
+		nvgDeleteGL3(nvg);
 	}
 }
 
@@ -120,9 +113,7 @@ void MinimapWindow::OnPaint(wxPaintEvent& event) {
 	}
 
 	if (!nvg) {
-		// Minimap uses a separate NanoVG context to avoid state interference with the main
-		// TextRenderer, as the minimap window has its own GL context and lifecycle.
-		nvg.reset(nvgCreateGL3(NVG_ANTIALIAS | NVG_STENCIL_STROKES));
+		nvg = nvgCreateGL3(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
 	}
 
 	if (!g_gui.IsEditorOpen()) {
@@ -138,27 +129,26 @@ void MinimapWindow::OnPaint(wxPaintEvent& event) {
 	drawer->Draw(dc, GetSize(), editor, canvas);
 
 	// Glass Overlay
-	NVGcontext* vg = nvg.get();
-	if (vg) {
+	if (nvg) {
 		int w, h;
 		GetClientSize(&w, &h);
-		nvgBeginFrame(vg, w, h, 1.0f);
+		nvgBeginFrame(nvg, w, h, 1.0f);
 
 		// Subtle glass border
-		nvgBeginPath(vg);
-		nvgRoundedRect(vg, 1.5f, 1.5f, w - 3.0f, h - 3.0f, 4.0f);
-		nvgStrokeColor(vg, nvgRGBA(255, 255, 255, 60));
-		nvgStrokeWidth(vg, 2.0f);
-		nvgStroke(vg);
+		nvgBeginPath(nvg);
+		nvgRoundedRect(nvg, 1.5f, 1.5f, w - 3.0f, h - 3.0f, 4.0f);
+		nvgStrokeColor(nvg, nvgRGBA(255, 255, 255, 60));
+		nvgStrokeWidth(nvg, 2.0f);
+		nvgStroke(nvg);
 
 		// Inner glow
-		NVGpaint glow = nvgBoxGradient(vg, 0, 0, w, h, 4.0f, 20.0f, nvgRGBA(255, 255, 255, 10), nvgRGBA(0, 0, 0, 40));
-		nvgBeginPath(vg);
-		nvgRoundedRect(vg, 0, 0, w, h, 4.0f);
-		nvgFillPaint(vg, glow);
-		nvgFill(vg);
+		NVGpaint glow = nvgBoxGradient(nvg, 0, 0, w, h, 4.0f, 20.0f, nvgRGBA(255, 255, 255, 10), nvgRGBA(0, 0, 0, 40));
+		nvgBeginPath(nvg);
+		nvgRoundedRect(nvg, 0, 0, w, h, 4.0f);
+		nvgFillPaint(nvg, glow);
+		nvgFill(nvg);
 
-		nvgEndFrame(vg);
+		nvgEndFrame(nvg);
 	}
 
 	SwapBuffers();
