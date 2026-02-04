@@ -20,6 +20,9 @@
 
 #include "map/position.h"
 
+#include <functional>
+#include <unordered_map>
+
 class Waypoint {
 public:
 	std::string name;
@@ -30,6 +33,16 @@ using WaypointMap = std::map<std::string, Waypoint*>;
 
 class Waypoints {
 	Map& map;
+
+	struct PositionHasher {
+		std::size_t operator()(const Position& p) const {
+			std::size_t h = 0;
+			h ^= std::hash<int>{}(p.x) + 0x9e3779b9 + (h << 6) + (h >> 2);
+			h ^= std::hash<int>{}(p.y) + 0x9e3779b9 + (h << 6) + (h >> 2);
+			h ^= std::hash<int>{}(p.z) + 0x9e3779b9 + (h << 6) + (h >> 2);
+			return h;
+		}
+	};
 
 public:
 	Waypoints(Map& map) :
@@ -46,6 +59,8 @@ public:
 	void removeWaypoint(std::string name);
 
 	WaypointMap waypoints;
+	using WaypointByPosMap = std::unordered_multimap<Position, Waypoint*, PositionHasher>;
+	WaypointByPosMap waypoints_by_pos;
 
 	WaypointMap::iterator begin() {
 		return waypoints.begin();

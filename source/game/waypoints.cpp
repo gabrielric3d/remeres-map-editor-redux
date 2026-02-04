@@ -29,7 +29,10 @@ void Waypoints::addWaypoint(Waypoint* wp) {
 		}
 		t->getLocation()->increaseWaypointCount();
 	}
-	waypoints.insert(std::make_pair(as_lower_str(wp->name), wp));
+	auto res = waypoints.insert(std::make_pair(as_lower_str(wp->name), wp));
+	if (res.second) {
+		waypoints_by_pos.emplace(wp->pos, wp);
+	}
 }
 
 Waypoint* Waypoints::getWaypoint(std::string name) {
@@ -45,12 +48,9 @@ Waypoint* Waypoints::getWaypoint(TileLocation* location) {
 	if (!location) {
 		return nullptr;
 	}
-	// TODO find waypoint by position hash.
-	for (WaypointMap::iterator it = waypoints.begin(); it != waypoints.end(); it++) {
-		Waypoint* waypoint = it->second;
-		if (waypoint && waypoint->pos == location->position) {
-			return waypoint;
-		}
+	auto it = waypoints_by_pos.find(location->position);
+	if (it != waypoints_by_pos.end()) {
+		return it->second;
 	}
 	return nullptr;
 }
@@ -61,6 +61,16 @@ void Waypoints::removeWaypoint(std::string name) {
 	if (iter == waypoints.end()) {
 		return;
 	}
+
+	Waypoint* wp = iter->second;
+	auto range = waypoints_by_pos.equal_range(wp->pos);
+	for (auto it = range.first; it != range.second; ++it) {
+		if (it->second == wp) {
+			waypoints_by_pos.erase(it);
+			break;
+		}
+	}
+
 	delete iter->second;
 	waypoints.erase(iter);
 }
