@@ -24,6 +24,8 @@
 #include <sstream>
 #include <algorithm>
 #include <unordered_set>
+#include <memory>
+#include <unordered_map>
 #include <spdlog/spdlog.h>
 
 Map::Map() :
@@ -166,14 +168,64 @@ bool Map::convert(MapVersion to, bool showdialog) {
 	return true;
 }
 
+namespace {
+
+struct TrieNode {
+	std::unordered_map<uint16_t, std::unique_ptr<TrieNode>> children;
+	const ConversionMap::MTM::value_type* entry = nullptr;
+};
+
+class ConversionTrie {
+public:
+	void insert(const ConversionMap::MTM::value_type& entry) {
+		TrieNode* current = &root;
+		for (uint16_t id : entry.first) {
+			auto& child = current->children[id];
+			if (!child) {
+				child = std::make_unique<TrieNode>();
+			}
+			current = child.get();
+		}
+		current->entry = &entry;
+	}
+
+	const ConversionMap::MTM::value_type* findLongestPrefix(const std::vector<uint16_t>& key) const {
+		const TrieNode* current = &root;
+		const ConversionMap::MTM::value_type* lastMatch = nullptr;
+
+		if (current->entry) {
+			lastMatch = current->entry;
+		}
+
+		for (uint16_t id : key) {
+			auto it = current->children.find(id);
+			if (it == current->children.end()) {
+				break;
+			}
+			current = it->second.get();
+			if (current->entry) {
+				lastMatch = current->entry;
+			}
+		}
+		return lastMatch;
+	}
+
+private:
+	TrieNode root;
+};
+
+} // namespace
+
 bool Map::convert(const ConversionMap& rm, bool showdialog) {
 	if (showdialog) {
 		g_gui.CreateLoadBar("Converting map ...");
 	}
 
 	std::map<const std::vector<uint16_t>*, std::unordered_set<uint16_t>> mtm_lookups;
+	ConversionTrie trie;
 	for (const auto& entry : rm.mtm) {
 		mtm_lookups.emplace(&entry.first, std::unordered_set<uint16_t>(entry.first.begin(), entry.first.end()));
+		trie.insert(entry);
 	}
 
 	uint64_t tiles_done = 0;
@@ -204,21 +256,13 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 
 		std::sort(id_list.begin(), id_list.end());
 
-		ConversionMap::MTM::const_iterator cfmtm = rm.mtm.end();
-
-		while (id_list.size()) {
-			cfmtm = rm.mtm.find(id_list);
-			if (cfmtm != rm.mtm.end()) {
-				break;
-			}
-			id_list.pop_back();
-		}
+		const ConversionMap::MTM::value_type* match = trie.findLongestPrefix(id_list);
 
 		// Keep track of how many items have been inserted at the bottom
 		size_t inserted_items = 0;
 
-		if (cfmtm != rm.mtm.end()) {
-			const std::vector<uint16_t>& v = cfmtm->first;
+		if (match) {
+			const std::vector<uint16_t>& v = match->first;
 			const auto& ids_to_remove = mtm_lookups.at(&v);
 
 			if (tile->ground && ids_to_remove.contains(tile->ground->getID())) {
@@ -235,7 +279,7 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 			});
 			tile->items.erase(part_iter, tile->items.end());
 
-			const std::vector<uint16_t>& new_items = cfmtm->second;
+			const std::vector<uint16_t>& new_items = match->second;
 			for (std::vector<uint16_t>::const_iterator iit = new_items.begin(); iit != new_items.end(); ++iit) {
 				Item* item = Item::Create(*iit);
 				if (item->isGroundTile()) {
