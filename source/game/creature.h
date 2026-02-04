@@ -35,7 +35,7 @@ IMPLEMENT_INCREMENT_OP(Direction)
 class Creature {
 public:
 	Creature(CreatureType* ctype);
-	Creature(std::string type_name);
+	Creature(const std::string& type_name);
 	~Creature();
 
 	// Static conversions

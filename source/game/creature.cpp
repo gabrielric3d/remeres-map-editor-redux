@@ -26,7 +26,7 @@ Creature::Creature(CreatureType* ctype) :
 	}
 }
 
-Creature::Creature(std::string ctype_name) :
+Creature::Creature(const std::string& ctype_name) :
 	type_name(ctype_name), direction(SOUTH), spawntime(0), saved(false), selected(false) {
 	////
 }
