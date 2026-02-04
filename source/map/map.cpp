@@ -64,7 +64,7 @@ Map::~Map() {
 	////
 }
 
-bool Map::open(const std::string file) {
+bool Map::open(const std::string& file) {
 	if (file == filename) {
 		return true; // Do not reopen ourselves!
 	}
