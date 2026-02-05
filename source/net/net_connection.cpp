@@ -38,6 +38,9 @@ void NetworkMessage::expand(const size_t length) {
 template <>
 std::string NetworkMessage::read<std::string>() {
 	const uint16_t length = read<uint16_t>();
+	if (position + length > buffer.size()) {
+		throw std::out_of_range("NetworkMessage::read<string>: Buffer underflow");
+	}
 	char* strBuffer = reinterpret_cast<char*>(&buffer[position]);
 	position += length;
 	return std::string(strBuffer, length);

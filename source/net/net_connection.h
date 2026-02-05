@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <thread>
 #include <mutex>
+#include <stdexcept>
 
 struct NetworkMessage {
 	NetworkMessage();
@@ -35,6 +36,9 @@ struct NetworkMessage {
 	//
 	template <typename T>
 	T read() {
+		if (position + sizeof(T) > buffer.size()) {
+			throw std::out_of_range("NetworkMessage::read: Buffer underflow");
+		}
 		T& value = *reinterpret_cast<T*>(&buffer[position]);
 		position += sizeof(T);
 		return value;
