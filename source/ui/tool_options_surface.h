@@ -32,6 +32,7 @@ public:
 	void SetPaletteType(PaletteType type);
 	void UpdateBrushSize(BrushShape shape, int size); // Called when size changes externally (e.g. shortcuts)
 	void ReloadSettings();
+	void OnSysColourChanged(wxSysColourChangedEvent& event);
 
 private:
 	// -- Logic --
@@ -81,6 +82,7 @@ private:
 	bool lock_doors = false;
 
 	// Internal Helpers
+	void InitColours();
 	void RebuildLayout();
 	void DrawToolIcon(wxDC& dc, const ToolRect& tr);
 	void DrawSlider(wxDC& dc, const wxRect& rect, const wxString& label, int value, int min, int max, bool active);

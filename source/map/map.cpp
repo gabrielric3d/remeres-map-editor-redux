@@ -489,7 +489,7 @@ SpawnList Map::getSpawnList(Tile* where) {
 			int cached_node_x = -1;
 			int cached_node_y = -1;
 
-			auto getTileFast = [&](int tx, int ty) -> Tile* {
+			auto getTileFast = [z, &cached_node, &cached_node_x, &cached_node_y, this](int tx, int ty) -> Tile* {
 				int nx = tx >> SpatialHashGrid::NODE_SHIFT;
 				int ny = ty >> SpatialHashGrid::NODE_SHIFT;
 
@@ -504,7 +504,7 @@ SpawnList Map::getSpawnList(Tile* where) {
 					if (floor) {
 						constexpr int MASK = (1 << SpatialHashGrid::NODE_SHIFT) - 1;
 						constexpr int WIDTH = (1 << SpatialHashGrid::NODE_SHIFT);
-						return floor->locs[(tx & MASK) * WIDTH + (ty & MASK)].get();
+						return floor->locs[(ty & MASK) * WIDTH + (tx & MASK)].get();
 					}
 				}
 				return nullptr;

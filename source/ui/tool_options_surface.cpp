@@ -17,17 +17,7 @@ ToolOptionsSurface::ToolOptionsSurface(wxWindow* parent) : wxControl(parent, wxI
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
 	m_animTimer.SetOwner(this);
 
-	// Initialize GDI Objects
-	m_highlightBrush = wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT).ChangeLightness(180));
-	m_transparentBrush = wxBrush(wxColour(200, 200, 200, 100));
-	m_highlightPen = wxPen(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT));
-	m_borderPen = wxPen(wxColour(100, 100, 100));
-	m_transparentPen = *wxTRANSPARENT_PEN;
-
-	m_highlightSolidBrush = wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT));
-	m_trackBrush = wxBrush(wxColour(200, 200, 200));
-	m_thumbBrush = wxBrush(wxColour(50, 50, 50));
-	m_checkboxBorderPen = wxPen(wxColour(150, 150, 150));
+	InitColours();
 
 	Bind(wxEVT_PAINT, &ToolOptionsSurface::OnPaint, this);
 	Bind(wxEVT_ERASE_BACKGROUND, &ToolOptionsSurface::OnEraseBackground, this);
@@ -37,6 +27,7 @@ ToolOptionsSurface::ToolOptionsSurface(wxWindow* parent) : wxControl(parent, wxI
 	Bind(wxEVT_LEAVE_WINDOW, &ToolOptionsSurface::OnLeave, this);
 	Bind(wxEVT_SIZE, &ToolOptionsSurface::OnSize, this);
 	Bind(wxEVT_TIMER, &ToolOptionsSurface::OnTimer, this);
+	Bind(wxEVT_SYS_COLOUR_CHANGED, &ToolOptionsSurface::OnSysColourChanged, this);
 }
 
 ToolOptionsSurface::~ToolOptionsSurface() {
@@ -485,4 +476,22 @@ void ToolOptionsSurface::SelectBrush(Brush* brush) {
 	active_brush = brush;
 	g_brush_manager.SelectBrush(brush);
 	Refresh();
+}
+void ToolOptionsSurface::OnSysColourChanged(wxSysColourChangedEvent& event) {
+	InitColours();
+	Refresh();
+	event.Skip();
+}
+
+void ToolOptionsSurface::InitColours() {
+	m_highlightBrush = wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT).ChangeLightness(180));
+	m_transparentBrush = wxBrush(wxColour(200, 200, 200, 100));
+	m_highlightPen = wxPen(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT));
+	m_borderPen = wxPen(wxColour(100, 100, 100));
+	m_transparentPen = *wxTRANSPARENT_PEN;
+
+	m_highlightSolidBrush = wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT));
+	m_trackBrush = wxBrush(wxColour(200, 200, 200));
+	m_thumbBrush = wxBrush(wxColour(50, 50, 50));
+	m_checkboxBorderPen = wxPen(wxColour(150, 150, 150));
 }

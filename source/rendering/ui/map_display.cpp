@@ -145,7 +145,27 @@ MapCanvas::MapCanvas(MapWindow* parent, Editor& editor, int* attriblist) :
 	Bind(wxEVT_ERASE_BACKGROUND, &MapCanvas::OnEraseBackground, this);
 }
 
-MapCanvas::~MapCanvas() = default;
+MapCanvas::~MapCanvas() {
+	Unbind(wxEVT_KEY_DOWN, &MapCanvas::OnKeyDown, this);
+	Unbind(wxEVT_KEY_UP, &MapCanvas::OnKeyUp, this);
+
+	// Mouse events
+	Unbind(wxEVT_MOTION, &MapCanvas::OnMouseMove, this);
+	Unbind(wxEVT_LEFT_UP, &MapCanvas::OnMouseLeftRelease, this);
+	Unbind(wxEVT_LEFT_DOWN, &MapCanvas::OnMouseLeftClick, this);
+	Unbind(wxEVT_LEFT_DCLICK, &MapCanvas::OnMouseLeftDoubleClick, this);
+	Unbind(wxEVT_MIDDLE_DOWN, &MapCanvas::OnMouseCenterClick, this);
+	Unbind(wxEVT_MIDDLE_UP, &MapCanvas::OnMouseCenterRelease, this);
+	Unbind(wxEVT_RIGHT_DOWN, &MapCanvas::OnMouseRightClick, this);
+	Unbind(wxEVT_RIGHT_UP, &MapCanvas::OnMouseRightRelease, this);
+	Unbind(wxEVT_MOUSEWHEEL, &MapCanvas::OnWheel, this);
+	Unbind(wxEVT_ENTER_WINDOW, &MapCanvas::OnGainMouse, this);
+	Unbind(wxEVT_LEAVE_WINDOW, &MapCanvas::OnLoseMouse, this);
+
+	// Drawing events
+	Unbind(wxEVT_PAINT, &MapCanvas::OnPaint, this);
+	Unbind(wxEVT_ERASE_BACKGROUND, &MapCanvas::OnEraseBackground, this);
+}
 
 void MapCanvas::Refresh() {
 	if (refresh_watch.Time() > g_settings.getInteger(Config::HARD_REFRESH_RATE)) {

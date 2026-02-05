@@ -61,8 +61,8 @@ Floor::Floor(int sx, int sy, int z) {
 	sy = sy & ~3;
 
 	for (int i = 0; i < MAP_LAYERS; ++i) {
-		locs[i].position.x = sx + (i >> 2);
-		locs[i].position.y = sy + (i & 3);
+		locs[i].position.x = sx + (i & 3);
+		locs[i].position.y = sy + (i >> 2);
 		locs[i].position.z = z;
 	}
 }
@@ -197,12 +197,12 @@ TileLocation* MapNode::getTile(int x, int y, int z) {
 	if (!f) {
 		return nullptr;
 	}
-	return &f->locs[(x & 3) * 4 + (y & 3)];
+	return &f->locs[(y & 3) * 4 + (x & 3)];
 }
 
 TileLocation* MapNode::createTile(int x, int y, int z) {
 	Floor* f = createFloor(x, y, z);
-	return &f->locs[(x & 3) * 4 + (y & 3)];
+	return &f->locs[(y & 3) * 4 + (x & 3)];
 }
 
 Tile* MapNode::setTile(int x, int y, int z, Tile* newtile) {
@@ -211,7 +211,7 @@ Tile* MapNode::setTile(int x, int y, int z, Tile* newtile) {
 	int offset_x = x & 3;
 	int offset_y = y & 3;
 
-	TileLocation* tmp = &f->locs[offset_x * 4 + offset_y];
+	TileLocation* tmp = &f->locs[offset_y * 4 + offset_x];
 	Tile* oldtile = tmp->tile;
 	tmp->tile = newtile;
 
@@ -230,7 +230,7 @@ void MapNode::clearTile(int x, int y, int z) {
 	int offset_x = x & 3;
 	int offset_y = y & 3;
 
-	TileLocation* tmp = &f->locs[offset_x * 4 + offset_y];
+	TileLocation* tmp = &f->locs[offset_y * 4 + offset_x];
 	delete tmp->tile;
 	tmp->tile = map.allocator(tmp);
 }

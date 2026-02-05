@@ -75,7 +75,7 @@ TileLocation* BaseMap::getTileL(int x, int y, int z) {
 	if (leaf) {
 		Floor* floor = leaf->getFloor(z);
 		if (floor) {
-			return &floor->locs[(x & 3) * 4 + (y & 3)];
+			return &floor->locs[(y & 3) * 4 + (x & 3)];
 		}
 	}
 
@@ -104,7 +104,7 @@ TileLocation* BaseMap::createTileL(int x, int y, int z) {
 	uint32_t offsetX = x & 3;
 	uint32_t offsetY = y & 3;
 
-	return &floor->locs[offsetX * 4 + offsetY];
+	return &floor->locs[offsetY * 4 + offsetX];
 }
 
 TileLocation* BaseMap::createTileL(const Position& pos) {
