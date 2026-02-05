@@ -28,6 +28,8 @@
 void MapStatusUpdater::Update(Editor& editor, int map_x, int map_y, int map_z) {
 	wxString ss;
 	ss << "x: " << map_x << " y:" << map_y << " z:" << map_z;
+	int zoom = static_cast<int>(g_gui.GetCurrentZoom() * 100);
+	ss << " (Zoom: " << zoom << "%)";
 	g_gui.root->SetStatusText(ss, 2);
 
 	ss = "";

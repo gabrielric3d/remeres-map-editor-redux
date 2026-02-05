@@ -117,6 +117,7 @@ void GUI::SetSelectionMode() {
 
 	tabbook->OnSwitchEditorMode(SELECTION_MODE);
 	mode = SELECTION_MODE;
+	SetStatusText("Switched to Selection Mode");
 }
 
 void GUI::SetDrawingMode() {
@@ -151,6 +152,7 @@ void GUI::SetDrawingMode() {
 
 	tabbook->OnSwitchEditorMode(DRAWING_MODE);
 	mode = DRAWING_MODE;
+	SetStatusText("Switched to Drawing Mode");
 }
 
 void GUI::RefreshView() {
@@ -189,6 +191,7 @@ void GUI::PreparePaste() {
 }
 void GUI::StartPasting() {
 	g_editors.StartPasting();
+	SetStatusText("Click to paste (Esc to cancel)");
 }
 void GUI::EndPasting() {
 	g_editors.EndPasting();

@@ -259,7 +259,7 @@ void ToolOptionsSurface::DrawToolIcon(wxDC& dc, const ToolRect& tr) {
 	// Border
 	dc.SetBrush(*wxTRANSPARENT_BRUSH);
 	if (is_selected) {
-		dc.SetPen(wxPen(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT)));
+		dc.SetPen(wxPen(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT), 3));
 	} else {
 		dc.SetPen(wxPen(wxColour(100, 100, 100)));
 	}
@@ -348,13 +348,30 @@ void ToolOptionsSurface::OnMouse(wxMouseEvent& evt) {
 	interactables.hover_preview = false;
 	interactables.hover_lock = false;
 
+	// Tooltips
+	wxString tooltip;
+
 	// Tools
 	for (const auto& tr : tool_rects) {
 		if (tr.rect.Contains(m_hoverPos)) {
 			hover_brush = tr.brush;
-			// Tooltip handling could go here (delayed)
+			tooltip = tr.tooltip;
 			break;
 		}
+	}
+
+	if (interactables.size_slider_rect.Contains(m_hoverPos)) {
+		tooltip = "Adjust brush size";
+	} else if (interactables.thickness_slider_rect.Contains(m_hoverPos)) {
+		tooltip = "Adjust brush thickness";
+	} else if (interactables.preview_check_rect.Contains(m_hoverPos)) {
+		tooltip = "Toggle auto-border preview";
+	} else if (interactables.lock_check_rect.Contains(m_hoverPos)) {
+		tooltip = "Lock doors to prevent accidental opening";
+	}
+
+	if (GetToolTipText() != tooltip) {
+		SetToolTip(tooltip);
 	}
 
 	// Sliders Interaction

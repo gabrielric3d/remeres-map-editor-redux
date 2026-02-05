@@ -35,6 +35,18 @@ MapTab::MapTab(MapTabbook* aui, Editor* editor) :
 	iref->editor = editor;
 	iref->owner_count = 1;
 
+	iref->editor->onStateChange = []() {
+		g_gui.UpdateTitle();
+	};
+
+	iref->editor->selection.onSelectionChange = [](size_t count) {
+		if (count > 0) {
+			g_gui.SetStatusText(wxString::Format("Selection: %d items", (int)count));
+		} else {
+			g_gui.SetStatusText("Ready");
+		}
+	};
+
 	spdlog::info("MapTab created (New Editor) [Tab={}]", (void*)this);
 
 	aui->AddTab(this, true);

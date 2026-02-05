@@ -189,7 +189,7 @@ void EditorManager::SaveCurrentMap(FileName fileName, bool showdialog) {
 			EditorPersistence::saveMap(*editor, fileName, showdialog);
 
 			if (!editor->map.hasChanged()) {
-				g_status.SetStatusText("Map saved successfully.");
+				g_status.SetStatusText("Map saved successfully at " + wxDateTime::Now().FormatTime());
 			}
 
 			const std::string& path = editor->map.getFilename();

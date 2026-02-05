@@ -22,6 +22,7 @@
 #include "rendering/ui/map_display.h"
 #include "ui/map_window.h"
 #include "ui/gui.h"
+#include "ui/dialog_util.h"
 #include "editor/hotkey_manager.h"
 #include "editor/editor.h"
 #include "brushes/brush.h"
@@ -76,8 +77,27 @@ void KeyboardHandler::OnKeyDown(MapCanvas* canvas, wxKeyEvent& event) {
 			break;
 		}
 		case WXK_DELETE: {
+			if (canvas->editor.selection.size() > 50) {
+				if (DialogUtil::PopupDialog("Delete Selection", wxString::Format("Are you sure you want to delete %d items?", (int)canvas->editor.selection.size()), wxYES | wxNO) != wxID_YES) {
+					break;
+				}
+			}
 			canvas->editor.destroySelection();
 			g_gui.RefreshView();
+			break;
+		}
+		case WXK_ESCAPE: {
+			if (g_gui.IsPasting()) {
+				g_gui.EndPasting();
+				g_gui.SetStatusText("Pasting cancelled");
+				g_gui.RefreshView();
+			} else if (g_gui.IsSelectionMode() && canvas->editor.selection.size() > 0) {
+				canvas->editor.selection.start();
+				canvas->editor.selection.clear();
+				canvas->editor.selection.finish();
+				canvas->editor.selection.updateSelectionCount();
+				g_gui.RefreshView();
+			}
 			break;
 		}
 		case 'z':
