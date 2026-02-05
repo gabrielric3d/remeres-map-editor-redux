@@ -22,10 +22,10 @@ class RMERecipe(ConanFile):
         self.requires("spdlog/1.15.0")
 
         # Qt dependency replacing wxWidgets
-        self.requires("qt/6.8.1")
+        self.requires("qt/6.7.3")
 
         if self.settings.os == "Linux":
-            self.requires("xkbcommon/1.6.0")
+            self.requires("xkbcommon/1.6.0", override=True)
 
     def layout(self):
         cmake_layout(self)
