@@ -4,6 +4,7 @@
 #include "app/settings.h"
 #include "palette/palette_window.h" // For PaletteWindow dynamic_casts
 #include "palette/controls/virtual_brush_grid.h"
+#include "palette/controls/virtual_brush_list_box.h"
 #include <spdlog/spdlog.h>
 #include <wx/wrapsizer.h>
 
@@ -75,7 +76,7 @@ void BrushPanel::LoadContents() {
 			break;
 		case BRUSHLIST_LISTBOX:
 		case BRUSHLIST_TEXT_LISTBOX:
-			brushbox = newd BrushListBox(this, tileset);
+			brushbox = newd VirtualBrushListBox(this, tileset);
 			break;
 		default:
 			break;

@@ -3,8 +3,8 @@
 
 #include "app/main.h"
 #include <wx/wx.h>
-#include <wx/vlbox.h>
 #include <vector>
+#include "ui/dialogs/virtual_find_list.h"
 
 class Brush;
 
@@ -17,25 +17,6 @@ public:
 	~KeyForwardingTextCtrl() { }
 
 	void OnKeyDown(wxKeyEvent&);
-};
-
-class FindDialogListBox : public wxVListBox {
-public:
-	FindDialogListBox(wxWindow* parent, wxWindowID id);
-	~FindDialogListBox();
-
-	void Clear();
-	void SetNoMatches();
-	void AddBrush(Brush*);
-	Brush* GetSelectedBrush();
-
-	void OnDrawItem(wxDC& dc, const wxRect& rect, size_t index) const;
-	wxCoord OnMeasureItem(size_t index) const;
-
-protected:
-	bool cleared;
-	bool no_matches;
-	std::vector<Brush*> brushlist;
 };
 
 class FindDialog : public wxDialog {
@@ -63,7 +44,7 @@ protected:
 	virtual void OnClickListInternal(wxCommandEvent&) = 0;
 	virtual void OnClickOKInternal() = 0;
 
-	FindDialogListBox* item_list;
+	VirtualFindList* item_list;
 	KeyForwardingTextCtrl* search_field;
 	wxTimer idle_input_timer;
 	const Brush* result_brush;
