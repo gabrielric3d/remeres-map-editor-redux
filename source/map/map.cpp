@@ -236,14 +236,21 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 			tile->items.erase(part_iter, tile->items.end());
 
 			const std::vector<uint16_t>& new_items = cfmtm->second;
+			std::vector<Item*> items_to_add;
+			items_to_add.reserve(new_items.size());
+
 			for (std::vector<uint16_t>::const_iterator iit = new_items.begin(); iit != new_items.end(); ++iit) {
 				Item* item = Item::Create(*iit);
 				if (item->isGroundTile()) {
 					tile->ground = item;
 				} else {
-					tile->items.insert(tile->items.begin(), item);
-					++inserted_items;
+					items_to_add.push_back(item);
 				}
+			}
+			if (!items_to_add.empty()) {
+				std::reverse(items_to_add.begin(), items_to_add.end());
+				tile->items.insert(tile->items.begin(), items_to_add.begin(), items_to_add.end());
+				inserted_items += items_to_add.size();
 			}
 		}
 
@@ -256,6 +263,9 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 				tile->ground = nullptr;
 
 				const std::vector<uint16_t>& v = cfstm->second;
+				std::vector<Item*> items_to_add;
+				items_to_add.reserve(v.size());
+
 				// conversions << "Converted " << tile->getX() << ":" << tile->getY() << ":" << tile->getZ() << " " << id << " -> ";
 				for (std::vector<uint16_t>::const_iterator iit = v.begin(); iit != v.end(); ++iit) {
 					Item* item = Item::Create(*iit);
@@ -265,11 +275,15 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 						item->setUniqueID(uid);
 						tile->addItem(item);
 					} else {
-						tile->items.insert(tile->items.begin(), item);
-						++inserted_items;
+						items_to_add.push_back(item);
 					}
 				}
 				// conversions << std::endl;
+				if (!items_to_add.empty()) {
+					std::reverse(items_to_add.begin(), items_to_add.end());
+					tile->items.insert(tile->items.begin(), items_to_add.begin(), items_to_add.end());
+					inserted_items += items_to_add.size();
+				}
 			}
 		}
 
@@ -283,10 +297,16 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 
 				replace_item_iter = tile->items.erase(replace_item_iter);
 				const std::vector<uint16_t>& v = cf->second;
+
+				std::vector<Item*> items_to_add;
+				items_to_add.reserve(v.size());
 				for (std::vector<uint16_t>::const_iterator iit = v.begin(); iit != v.end(); ++iit) {
-					replace_item_iter = tile->items.insert(replace_item_iter, Item::Create(*iit));
+					items_to_add.push_back(Item::Create(*iit));
 					// conversions << "Converted " << tile->getX() << ":" << tile->getY() << ":" << tile->getZ() << " " << id << " -> " << *iit << std::endl;
-					++replace_item_iter;
+				}
+				if (!items_to_add.empty()) {
+					replace_item_iter = tile->items.insert(replace_item_iter, items_to_add.begin(), items_to_add.end());
+					replace_item_iter += items_to_add.size();
 				}
 			} else {
 				++replace_item_iter;
@@ -430,9 +450,23 @@ bool Map::addSpawn(Tile* tile) {
 		int end_x = tile->getX() + spawn->getSize();
 		int end_y = tile->getY() + spawn->getSize();
 
+		MapNode* cached_node = nullptr;
+		int cached_nx = -1, cached_ny = -1;
+
+		auto createTileFast = [&](int x, int y) -> TileLocation* {
+			int nx = x >> SpatialHashGrid::NODE_SHIFT;
+			int ny = y >> SpatialHashGrid::NODE_SHIFT;
+			if (nx != cached_nx || ny != cached_ny) {
+				cached_node = grid.getLeafForce(x, y);
+				cached_nx = nx;
+				cached_ny = ny;
+			}
+			return cached_node->createTile(x, y, z);
+		};
+
 		for (int y = start_y; y <= end_y; ++y) {
 			for (int x = start_x; x <= end_x; ++x) {
-				TileLocation* ctile_loc = createTileL(x, y, z);
+				TileLocation* ctile_loc = createTileFast(x, y);
 				ctile_loc->increaseSpawnCount();
 			}
 		}
@@ -452,9 +486,26 @@ void Map::removeSpawnInternal(Tile* tile) {
 	int end_x = tile->getX() + spawn->getSize();
 	int end_y = tile->getY() + spawn->getSize();
 
+	MapNode* cached_node = nullptr;
+	int cached_nx = -1, cached_ny = -1;
+
+	auto getTileLocFast = [&](int x, int y) -> TileLocation* {
+		int nx = x >> SpatialHashGrid::NODE_SHIFT;
+		int ny = y >> SpatialHashGrid::NODE_SHIFT;
+		if (nx != cached_nx || ny != cached_ny) {
+			cached_node = grid.getLeaf(x, y);
+			cached_nx = nx;
+			cached_ny = ny;
+		}
+		if (cached_node) {
+			return cached_node->getTile(x, y, z);
+		}
+		return nullptr;
+	};
+
 	for (int y = start_y; y <= end_y; ++y) {
 		for (int x = start_x; x <= end_x; ++x) {
-			TileLocation* ctile_loc = getTileL(x, y, z);
+			TileLocation* ctile_loc = getTileLocFast(x, y);
 			if (ctile_loc != nullptr && ctile_loc->getSpawnCount() > 0) {
 				ctile_loc->decreaseSpawnCount();
 			}
@@ -484,14 +535,33 @@ SpawnList Map::getSpawnList(Tile* where) {
 			int z = where->getZ();
 			int start_x = where->getX() - 1, end_x = where->getX() + 1;
 			int start_y = where->getY() - 1, end_y = where->getY() + 1;
+
+			MapNode* cached_node = nullptr;
+			int cached_nx = -1, cached_ny = -1;
+
+			auto getTileFast = [&](int x, int y) -> Tile* {
+				int nx = x >> SpatialHashGrid::NODE_SHIFT;
+				int ny = y >> SpatialHashGrid::NODE_SHIFT;
+				if (nx != cached_nx || ny != cached_ny) {
+					cached_node = grid.getLeaf(x, y);
+					cached_nx = nx;
+					cached_ny = ny;
+				}
+				if (cached_node) {
+					TileLocation* loc = cached_node->getTile(x, y, z);
+					return loc ? loc->get() : nullptr;
+				}
+				return nullptr;
+			};
+
 			while (found != tile_loc->getSpawnCount()) {
 				for (int x = start_x; x <= end_x; ++x) {
-					Tile* tile = getTile(x, start_y, z);
+					Tile* tile = getTileFast(x, start_y);
 					if (tile && tile->spawn) {
 						list.push_back(tile->spawn);
 						++found;
 					}
-					tile = getTile(x, end_y, z);
+					tile = getTileFast(x, end_y);
 					if (tile && tile->spawn) {
 						list.push_back(tile->spawn);
 						++found;
@@ -499,12 +569,12 @@ SpawnList Map::getSpawnList(Tile* where) {
 				}
 
 				for (int y = start_y + 1; y < end_y; ++y) {
-					Tile* tile = getTile(start_x, y, z);
+					Tile* tile = getTileFast(start_x, y);
 					if (tile && tile->spawn) {
 						list.push_back(tile->spawn);
 						++found;
 					}
-					tile = getTile(end_x, y, z);
+					tile = getTileFast(end_x, y);
 					if (tile && tile->spawn) {
 						list.push_back(tile->spawn);
 						++found;

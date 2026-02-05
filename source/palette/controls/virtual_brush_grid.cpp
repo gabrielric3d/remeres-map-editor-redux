@@ -10,10 +10,11 @@
 
 #include <spdlog/spdlog.h>
 
-VirtualBrushGrid::VirtualBrushGrid(wxWindow* parent, const TilesetCategory* _tileset, RenderSize rsz) :
+VirtualBrushGrid::VirtualBrushGrid(wxWindow* parent, const TilesetCategory* _tileset, BrushListType type) :
 	NanoVGCanvas(parent, wxID_ANY, wxVSCROLL | wxWANTS_CHARS),
 	BrushBoxInterface(_tileset),
-	icon_size(rsz),
+	list_type(type),
+	icon_size(RENDER_SIZE_32x32),
 	selected_index(-1),
 	hover_index(-1),
 	columns(1),
@@ -21,14 +22,21 @@ VirtualBrushGrid::VirtualBrushGrid(wxWindow* parent, const TilesetCategory* _til
 	padding(4),
 	m_animTimer(new wxTimer(this)) {
 
-	if (icon_size == RENDER_SIZE_16x16) {
+	if (list_type == BRUSHLIST_SMALL_ICONS) {
+		icon_size = RENDER_SIZE_16x16;
 		item_size = 18;
-	} else {
+	} else if (list_type == BRUSHLIST_LARGE_ICONS) {
+		icon_size = RENDER_SIZE_32x32;
 		item_size = 34; // 32 + border
+	} else {
+		// List modes
+		icon_size = RENDER_SIZE_32x32;
+		item_size = 32; // height
 	}
 
 	Bind(wxEVT_LEFT_DOWN, &VirtualBrushGrid::OnMouseDown, this);
 	Bind(wxEVT_MOTION, &VirtualBrushGrid::OnMotion, this);
+	Bind(wxEVT_KEY_DOWN, &VirtualBrushGrid::OnKeyDown, this);
 	Bind(wxEVT_TIMER, &VirtualBrushGrid::OnTimer, this);
 
 	UpdateLayout();
@@ -45,11 +53,17 @@ void VirtualBrushGrid::UpdateLayout() {
 		width = 200; // Default
 	}
 
-	columns = std::max(1, (width - padding) / (item_size + padding));
-	int rows = (static_cast<int>(tileset->size()) + columns - 1) / columns;
-	int contentHeight = rows * (item_size + padding) + padding;
-
-	UpdateScrollbar(contentHeight);
+	if (list_type == BRUSHLIST_LISTBOX || list_type == BRUSHLIST_TEXT_LISTBOX) {
+		columns = 1;
+		// item_size is height
+		int contentHeight = static_cast<int>(tileset->size()) * item_size + padding * 2;
+		UpdateScrollbar(contentHeight);
+	} else {
+		columns = std::max(1, (width - padding) / (item_size + padding));
+		int rows = (static_cast<int>(tileset->size()) + columns - 1) / columns;
+		int contentHeight = rows * (item_size + padding) + padding;
+		UpdateScrollbar(contentHeight);
+	}
 }
 
 wxSize VirtualBrushGrid::DoGetBestClientSize() const {
@@ -151,17 +165,27 @@ int VirtualBrushGrid::GetOrCreateBrushTexture(NVGcontext* vg, Brush* brush) {
 
 void VirtualBrushGrid::OnNanoVGPaint(NVGcontext* vg, int width, int height) {
 	// Update layout if needed
-	int newCols = std::max(1, (width - padding) / (item_size + padding));
-	if (newCols != columns) {
-		columns = newCols;
-		int rows = (static_cast<int>(tileset->size()) + columns - 1) / columns;
-		int contentHeight = rows * (item_size + padding) + padding;
-		UpdateScrollbar(contentHeight);
+	if (list_type == BRUSHLIST_LISTBOX || list_type == BRUSHLIST_TEXT_LISTBOX) {
+		columns = 1;
+	} else {
+		int newCols = std::max(1, (width - padding) / (item_size + padding));
+		if (newCols != columns) {
+			columns = newCols;
+			int rows = (static_cast<int>(tileset->size()) + columns - 1) / columns;
+			int contentHeight = rows * (item_size + padding) + padding;
+			UpdateScrollbar(contentHeight);
+		}
 	}
 
 	// Calculate visible range
 	int scrollPos = GetScrollPosition();
-	int rowHeight = item_size + padding;
+	int rowHeight;
+	if (list_type == BRUSHLIST_LISTBOX || list_type == BRUSHLIST_TEXT_LISTBOX) {
+		rowHeight = item_size;
+	} else {
+		rowHeight = item_size + padding;
+	}
+
 	int startRow = scrollPos / rowHeight;
 	int endRow = (scrollPos + height + rowHeight - 1) / rowHeight + 1;
 
@@ -180,49 +204,62 @@ void VirtualBrushGrid::DrawBrushItem(NVGcontext* vg, int i, const wxRect& rect) 
 	float w = static_cast<float>(rect.width);
 	float h = static_cast<float>(rect.height);
 
-	// Shadow / Glow
-	if (i == selected_index) {
-		// Glow for selected
-		NVGpaint shadowPaint = nvgBoxGradient(vg, x, y, w, h, 4.0f, 10.0f, nvgRGBA(100, 150, 255, 128), nvgRGBA(0, 0, 0, 0));
-		nvgBeginPath(vg);
-		nvgRect(vg, x - 10, y - 10, w + 20, h + 20);
-		nvgRoundedRect(vg, x, y, w, h, 4.0f);
-		nvgPathWinding(vg, NVG_HOLE);
-		nvgFillPaint(vg, shadowPaint);
-		nvgFill(vg);
-	} else if (i == hover_index) {
-		// Subtle shadow/glow for hover
-		NVGpaint shadowPaint = nvgBoxGradient(vg, x, y + 2, w, h, 4.0f, 6.0f, nvgRGBA(0, 0, 0, 64), nvgRGBA(0, 0, 0, 0));
-		nvgBeginPath(vg);
-		nvgRect(vg, x - 5, y - 5, w + 10, h + 10);
-		nvgRoundedRect(vg, x, y, w, h, 4.0f);
-		nvgPathWinding(vg, NVG_HOLE);
-		nvgFillPaint(vg, shadowPaint);
-		nvgFill(vg);
-	}
+	bool is_list = (list_type == BRUSHLIST_LISTBOX || list_type == BRUSHLIST_TEXT_LISTBOX);
 
-	// Card background
-	nvgBeginPath(vg);
-	nvgRoundedRect(vg, x, y, w, h, 4.0f);
-
-	if (i == selected_index) {
-		nvgFillColor(vg, nvgRGBA(80, 100, 120, 255));
-	} else if (i == hover_index) {
-		nvgFillColor(vg, nvgRGBA(70, 70, 75, 255));
+	// Background
+	if (is_list) {
+		if (i == selected_index) {
+			nvgBeginPath(vg);
+			nvgRect(vg, x, y, w, h);
+			nvgFillColor(vg, nvgRGBA(100, 150, 255, 128));
+			nvgFill(vg);
+		} else if (i == hover_index) {
+			nvgBeginPath(vg);
+			nvgRect(vg, x, y, w, h);
+			nvgFillColor(vg, nvgRGBA(255, 255, 255, 32));
+			nvgFill(vg);
+		}
 	} else {
-		// Normal - dark card with subtle gradient
-		NVGpaint bgPaint = nvgLinearGradient(vg, x, y, x, y + h, nvgRGBA(60, 60, 65, 255), nvgRGBA(50, 50, 55, 255));
-		nvgFillPaint(vg, bgPaint);
-	}
-	nvgFill(vg);
+		// Grid mode: Card style
+		// Shadow / Glow
+		if (i == selected_index) {
+			NVGpaint shadowPaint = nvgBoxGradient(vg, x, y, w, h, 4.0f, 10.0f, nvgRGBA(100, 150, 255, 128), nvgRGBA(0, 0, 0, 0));
+			nvgBeginPath(vg);
+			nvgRect(vg, x - 10, y - 10, w + 20, h + 20);
+			nvgRoundedRect(vg, x, y, w, h, 4.0f);
+			nvgPathWinding(vg, NVG_HOLE);
+			nvgFillPaint(vg, shadowPaint);
+			nvgFill(vg);
+		} else if (i == hover_index) {
+			NVGpaint shadowPaint = nvgBoxGradient(vg, x, y + 2, w, h, 4.0f, 6.0f, nvgRGBA(0, 0, 0, 64), nvgRGBA(0, 0, 0, 0));
+			nvgBeginPath(vg);
+			nvgRect(vg, x - 5, y - 5, w + 10, h + 10);
+			nvgRoundedRect(vg, x, y, w, h, 4.0f);
+			nvgPathWinding(vg, NVG_HOLE);
+			nvgFillPaint(vg, shadowPaint);
+			nvgFill(vg);
+		}
 
-	// Selection border
-	if (i == selected_index) {
 		nvgBeginPath(vg);
-		nvgRoundedRect(vg, x + 0.5f, y + 0.5f, w - 1.0f, h - 1.0f, 4.0f);
-		nvgStrokeColor(vg, nvgRGBA(100, 180, 255, 255));
-		nvgStrokeWidth(vg, 2.0f);
-		nvgStroke(vg);
+		nvgRoundedRect(vg, x, y, w, h, 4.0f);
+
+		if (i == selected_index) {
+			nvgFillColor(vg, nvgRGBA(80, 100, 120, 255));
+		} else if (i == hover_index) {
+			nvgFillColor(vg, nvgRGBA(70, 70, 75, 255));
+		} else {
+			NVGpaint bgPaint = nvgLinearGradient(vg, x, y, x, y + h, nvgRGBA(60, 60, 65, 255), nvgRGBA(50, 50, 55, 255));
+			nvgFillPaint(vg, bgPaint);
+		}
+		nvgFill(vg);
+
+		if (i == selected_index) {
+			nvgBeginPath(vg);
+			nvgRoundedRect(vg, x + 0.5f, y + 0.5f, w - 1.0f, h - 1.0f, 4.0f);
+			nvgStrokeColor(vg, nvgRGBA(100, 180, 255, 255));
+			nvgStrokeWidth(vg, 2.0f);
+			nvgStroke(vg);
+		}
 	}
 
 	// Draw brush sprite
@@ -230,21 +267,51 @@ void VirtualBrushGrid::DrawBrushItem(NVGcontext* vg, int i, const wxRect& rect) 
 	if (brush) {
 		int tex = GetOrCreateBrushTexture(vg, brush);
 		if (tex > 0) {
-			int iconSize = item_size - 4;
+			int iconSize;
+			if (is_list) {
+				iconSize = 32;
+			} else {
+				iconSize = item_size - 4;
+			}
+
 			int iconX = rect.x + 2;
-			int iconY = rect.y + 2;
+			int iconY = is_list ? (rect.y + (rect.height - iconSize) / 2) : (rect.y + 2);
 
 			NVGpaint imgPaint = nvgImagePattern(vg, static_cast<float>(iconX), static_cast<float>(iconY), static_cast<float>(iconSize), static_cast<float>(iconSize), 0.0f, tex, 1.0f);
 
 			nvgBeginPath(vg);
-			nvgRoundedRect(vg, static_cast<float>(iconX), static_cast<float>(iconY), static_cast<float>(iconSize), static_cast<float>(iconSize), 3.0f);
+			if (is_list) {
+				nvgRect(vg, static_cast<float>(iconX), static_cast<float>(iconY), static_cast<float>(iconSize), static_cast<float>(iconSize));
+			} else {
+				nvgRoundedRect(vg, static_cast<float>(iconX), static_cast<float>(iconY), static_cast<float>(iconSize), static_cast<float>(iconSize), 3.0f);
+			}
 			nvgFillPaint(vg, imgPaint);
 			nvgFill(vg);
+		}
+
+		// Text for list mode
+		if (is_list) {
+			nvgFontSize(vg, 14.0f);
+			nvgFontFace(vg, "sans");
+			nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
+
+			if (i == selected_index) {
+				nvgFillColor(vg, nvgRGBA(255, 255, 255, 255));
+			} else {
+				nvgFillColor(vg, nvgRGBA(0, 0, 0, 255));
+			}
+
+			nvgText(vg, x + 40.0f, y + h / 2.0f, brush->getName().c_str(), nullptr);
 		}
 	}
 }
 
 wxRect VirtualBrushGrid::GetItemRect(int index) const {
+	if (list_type == BRUSHLIST_LISTBOX || list_type == BRUSHLIST_TEXT_LISTBOX) {
+		int w = GetClientSize().x;
+		return wxRect(0, index * item_size + padding, w, item_size);
+	}
+
 	int row = index / columns;
 	int col = index % columns;
 
@@ -260,6 +327,14 @@ int VirtualBrushGrid::HitTest(int x, int y) const {
 	int scrollPos = GetScrollPosition();
 	int realY = y + scrollPos;
 	int realX = x;
+
+	if (list_type == BRUSHLIST_LISTBOX || list_type == BRUSHLIST_TEXT_LISTBOX) {
+		int index = (realY - padding) / item_size;
+		if (index >= 0 && index < static_cast<int>(tileset->size())) {
+			return index;
+		}
+		return -1;
+	}
 
 	int col = (realX - padding) / (item_size + padding);
 	int row = (realY - padding) / (item_size + padding);
@@ -281,25 +356,106 @@ int VirtualBrushGrid::HitTest(int x, int y) const {
 	return -1;
 }
 
+void VirtualBrushGrid::SetSelection(int index, bool notify) {
+	if (index < 0 || index >= static_cast<int>(tileset->size())) {
+		return;
+	}
+
+	if (selected_index != index) {
+		selected_index = index;
+		EnsureVisible(selected_index);
+		Refresh();
+
+		if (notify) {
+			// Notify GUI - find PaletteWindow parent
+			wxWindow* w = GetParent();
+			while (w) {
+				PaletteWindow* pw = dynamic_cast<PaletteWindow*>(w);
+				if (pw) {
+					g_gui.ActivatePalette(pw);
+					break;
+				}
+				w = w->GetParent();
+			}
+			g_gui.SelectBrush(tileset->brushlist[selected_index], tileset->getType());
+		}
+	}
+}
+
+void VirtualBrushGrid::EnsureVisible(int index) {
+	if (index < 0 || index >= static_cast<int>(tileset->size())) {
+		return;
+	}
+
+	wxRect rect = GetItemRect(index);
+	int scrollPos = GetScrollPosition();
+	int clientHeight = GetClientSize().y;
+
+	if (rect.y < scrollPos) {
+		SetScrollPosition(rect.y - padding);
+	} else if (rect.y + rect.height > scrollPos + clientHeight) {
+		SetScrollPosition(rect.y + rect.height - clientHeight + padding);
+	}
+}
+
 void VirtualBrushGrid::OnMouseDown(wxMouseEvent& event) {
 	int index = HitTest(event.GetX(), event.GetY());
-	if (index != -1 && index != selected_index) {
-		selected_index = index;
-
-		// Notify GUI - find PaletteWindow parent
-		wxWindow* w = GetParent();
-		while (w) {
-			PaletteWindow* pw = dynamic_cast<PaletteWindow*>(w);
-			if (pw) {
-				g_gui.ActivatePalette(pw);
-				break;
-			}
-			w = w->GetParent();
-		}
-
-		g_gui.SelectBrush(tileset->brushlist[selected_index], tileset->getType());
-		Refresh();
+	if (index != -1) {
+		SetSelection(index, true);
 	}
+	SetFocus();
+}
+
+void VirtualBrushGrid::OnKeyDown(wxKeyEvent& event) {
+	if (tileset->size() == 0) {
+		event.Skip();
+		return;
+	}
+
+	int new_index = selected_index;
+	int count = static_cast<int>(tileset->size());
+	int page_size = std::max(1, (GetClientSize().y - padding) / (item_size + padding) * columns);
+
+	switch (event.GetKeyCode()) {
+		case WXK_UP:
+			if (selected_index == -1) new_index = 0;
+			else new_index -= columns;
+			break;
+		case WXK_DOWN:
+			if (selected_index == -1) new_index = 0;
+			else new_index += columns;
+			break;
+		case WXK_LEFT:
+			if (selected_index == -1) new_index = 0;
+			else new_index -= 1;
+			break;
+		case WXK_RIGHT:
+			if (selected_index == -1) new_index = 0;
+			else new_index += 1;
+			break;
+		case WXK_HOME:
+			new_index = 0;
+			break;
+		case WXK_END:
+			new_index = count - 1;
+			break;
+		case WXK_PAGEUP:
+			if (selected_index == -1) new_index = 0;
+			else new_index -= page_size;
+			break;
+		case WXK_PAGEDOWN:
+			if (selected_index == -1) new_index = 0;
+			else new_index += page_size;
+			break;
+		default:
+			event.Skip();
+			return;
+	}
+
+	if (new_index < 0) new_index = 0;
+	if (new_index >= count) new_index = count - 1;
+
+	SetSelection(new_index, true);
 }
 
 void VirtualBrushGrid::OnMotion(wxMouseEvent& event) {
@@ -348,20 +504,7 @@ Brush* VirtualBrushGrid::GetSelectedBrush() const {
 bool VirtualBrushGrid::SelectBrush(const Brush* brush) {
 	for (size_t i = 0; i < tileset->size(); ++i) {
 		if (tileset->brushlist[i] == brush) {
-			selected_index = static_cast<int>(i);
-
-			// Ensure visible
-			wxRect rect = GetItemRect(selected_index);
-			int scrollPos = GetScrollPosition();
-			int clientHeight = GetClientSize().y;
-
-			if (rect.y < scrollPos) {
-				SetScrollPosition(rect.y - padding);
-			} else if (rect.y + rect.height > scrollPos + clientHeight) {
-				SetScrollPosition(rect.y + rect.height - clientHeight + padding);
-			}
-
-			Refresh();
+			SetSelection(static_cast<int>(i), false);
 			return true;
 		}
 	}
