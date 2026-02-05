@@ -87,53 +87,10 @@ bool Map::open(const std::string file) {
 	has_changed = false;
 
 	wxFileName fn = wxstr(file);
-	filename = fn.GetFullPath().mb_str(wxConvUTF8);
-	name = fn.GetFullName().mb_str(wxConvUTF8);
+    // Qt port: use toStdString()
+	filename = fn.GetFullPath().toStdString();
+	name = fn.GetFullName(); // returns std::string in my wrapper
 
-	// convert(getReplacementMapClassic(), true);
-
-#if 0 // This will create a replacement map out of one of SO's template files
-	std::ofstream out("templateshit.cpp");
-	out << "\tConversionMap replacement_map;\n";
-	int count = 0;
-	out << "\tstd::vector<uint16_t> veckey, vecval;\n\n";
-
-	for(int x = 20; ; x += 2) {
-		int y = 22;
-		Tile* old = getTile(x, y, GROUND_LAYER);
-		if(old) {
-			y -= 2;
-			Tile* new_ = getTile(x, y, GROUND_LAYER);
-			if(new_) {
-				if(old->ground || old->items.size()) {
-					out << "\tvecval.clear();\n";
-					if(new_->ground)
-						out << "\tvecval.push_back(" << new_->ground->getID() << ");\n";
-					for(ItemVector::iterator iter = new_->items.begin(); iter != new_->items.end(); ++iter)
-						out << "\tvecval.push_back(" << (*iter)->getID() << ");\n";
-
-					if(old->ground && old->items.empty()) // Single item
-						out << "\treplacement_map.stm[" << old->ground->getID() << "] = vecval;\n\n";
-					else if(old->ground == nullptr && old->items.size() == 1) // Single item
-						out << "\treplacement_map.stm[" << old->items.front()->getID() << "] = vecval;\n\n";
-					else {
-						// Many items
-						out << "\tveckey.clear();\n";
-						if(old->ground)
-							out << "\tveckey.push_back(" << old->ground->getID() << ");\n";
-						for(ItemVector::iterator iter = old->items.begin(); iter != old->items.end(); ++iter)
-							out << "\tveckey.push_back(" << (*iter)->getID() << ");\n";
-						out << "\tstd::sort(veckey.begin(), veckey.end());\n";
-						out << "\treplacement_map.mtm[veckey] = vecval;\n\n";
-					}
-				}
-			}
-		} else {
-			break;
-		}
-	}
-	out.close();
-#endif
 	return true;
 }
 
@@ -145,22 +102,6 @@ bool Map::convert(MapVersion to, bool showdialog) {
 		return true;
 	}
 
-	/* TODO
-
-	if(to.otbm == MAP_OTBM_4 && to.client < CLIENT_VERSION_850)
-		return false;
-
-	/* Legacy conversion logic removed */
-#if 0
-	if(mapVersion.client >= CLIENT_VERSION_760 && to.client < CLIENT_VERSION_760)
-		convert(getReplacementMapFrom760To740(), showdialog);
-
-	if(mapVersion.client < CLIENT_VERSION_810 && to.client >= CLIENT_VERSION_810)
-		convert(getReplacementMapFrom800To810(), showdialog);
-
-	if(mapVersion.client == CLIENT_VERSION_854_BAD && to.client >= CLIENT_VERSION_854)
-		convert(getReplacementMapFrom854To854(), showdialog);
-#endif
 	mapVersion = to;
 
 	return true;
@@ -226,7 +167,7 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 				tile->ground = nullptr;
 			}
 
-			auto part_iter = std::stable_partition(tile->items.begin(), tile->items.end(), [&ids_to_remove](Item* item) {
+			auto part_iter = std::stable_partition(tile->items.begin(), tile->items.end(), [](Item* item) {
 				return !ids_to_remove.contains(item->getID());
 			});
 

@@ -1,19 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 // This file is part of Remere's Map Editor
 //////////////////////////////////////////////////////////////////////
-// Remere's Map Editor is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Remere's Map Editor is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
-//////////////////////////////////////////////////////////////////////
 
 #ifndef RME_COMMONS_H_
 #define RME_COMMONS_H_
@@ -26,6 +13,7 @@
 #include <iomanip>
 #include <string>
 #include <string_view>
+#include <QtGui/QColor>
 
 //
 inline bool testFlags(size_t flags, size_t test) {
@@ -46,15 +34,15 @@ int ws2i(wxString s);
 double ws2f(wxString s);
 
 inline wxString wxstr(std::string_view sv) {
-	return wxString::FromUTF8(sv.data(), sv.length());
+	return QString::fromUtf8(sv.data(), sv.length());
 }
 
 inline wxString wxstr(const std::string& str) {
-	return wxString::FromUTF8(str.c_str(), str.length());
+	return QString::fromUtf8(str.c_str(), str.length());
 }
 
 inline wxString wxstr(const char* str) {
-	return wxString::FromUTF8(str);
+	return QString::fromUtf8(str);
 }
 
 // replaces all instances of sought in str with replacement
@@ -88,7 +76,9 @@ bool posFromClipboard(Position& position, const int mapWidth = MAP_MAX_WIDTH, co
 // Returns 'yes' if the defined value is true or 'no' if it is false.
 wxString b2yn(bool v);
 
-wxColor colorFromEightBit(int color);
+QColor colorFromEightBit(int color);
+// Compat typedef
+using wxColor = QColor;
 
 // Standard math functions
 template <class T>

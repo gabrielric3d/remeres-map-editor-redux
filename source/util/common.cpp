@@ -1,19 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 // This file is part of Remere's Map Editor
 //////////////////////////////////////////////////////////////////////
-// Remere's Map Editor is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Remere's Map Editor is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
-//////////////////////////////////////////////////////////////////////
 
 #include "app/main.h"
 
@@ -25,6 +12,8 @@
 #include <random>
 #include <regex>
 #include <algorithm>
+#include <QtGui/QClipboard>
+#include <QtGui/QGuiApplication>
 
 // random generator
 std::mt19937& getRandomGenerator() {
@@ -65,31 +54,23 @@ double s2f(const std::string s) {
 }
 
 wxString i2ws(const int _i) {
-	wxString str;
-	str << _i;
-	return str;
+	return QString::number(_i);
 }
 
 wxString f2ws(const double _d) {
-	wxString str;
-	str << _d;
-	return str;
+	return QString::number(_d);
 }
 
 int ws2i(const wxString s) {
-	long _i;
-	if (s.ToLong(&_i)) {
-		return int(_i);
-	}
-	return 0;
+    bool ok;
+    int val = s.toInt(&ok);
+	return ok ? val : 0;
 }
 
 double ws2f(const wxString s) {
-	double _d;
-	if (s.ToDouble(&_d)) {
-		return _d;
-	}
-	return 0.0;
+    bool ok;
+    double val = s.toDouble(&ok);
+	return ok ? val : 0.0;
 }
 
 void replaceString(std::string& str, std::string_view sought, std::string_view replacement) {
@@ -150,34 +131,22 @@ int random(int high) {
 }
 
 std::wstring string2wstring(const std::string& utf8string) {
-	wxString s(utf8string.c_str(), wxConvUTF8);
-	return std::wstring((const wchar_t*)s.c_str());
+    return QString::fromStdString(utf8string).toStdWString();
 }
 
 std::string wstring2string(const std::wstring& widestring) {
-	wxString s(widestring.c_str());
-	return std::string((const char*)s.mb_str(wxConvUTF8));
+    return QString::fromStdWString(widestring).toStdString();
 }
 
 bool posFromClipboard(Position& position, const int mapWidth /* = MAP_MAX_WIDTH */, const int mapHeight /* = MAP_MAX_HEIGHT */) {
-	if (!wxTheClipboard->Open()) {
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    QString text = clipboard->text();
+
+	if (text.isEmpty()) {
 		return false;
 	}
 
-	if (!wxTheClipboard->IsSupported(wxDF_TEXT)) {
-		wxTheClipboard->Close();
-		return false;
-	}
-
-	wxTextDataObject data;
-	wxTheClipboard->GetData(data);
-
-	std::string input = data.GetText().ToStdString();
-	if (input.empty()) {
-		wxTheClipboard->Close();
-		return false;
-	}
-
+    std::string input = text.toStdString();
 	bool done = false;
 	std::smatch matches;
 	static const std::regex expression = std::regex(R"(.*?(\d+).*?(\d+).*?(\d+).*?)", std::regex_constants::ECMAScript);
@@ -197,7 +166,6 @@ bool posFromClipboard(Position& position, const int mapWidth /* = MAP_MAX_WIDTH 
 		} catch (const std::out_of_range&) { }
 	}
 
-	wxTheClipboard->Close();
 	return done;
 }
 
@@ -205,12 +173,12 @@ wxString b2yn(bool value) {
 	return value ? "Yes" : "No";
 }
 
-wxColor colorFromEightBit(int color) {
+QColor colorFromEightBit(int color) {
 	if (color <= 0 || color >= 216) {
-		return wxColor(0, 0, 0);
+		return QColor(0, 0, 0);
 	}
 	const uint8_t red = (uint8_t)(int(color / 36) % 6 * 51);
 	const uint8_t green = (uint8_t)(int(color / 6) % 6 * 51);
 	const uint8_t blue = (uint8_t)(color % 6 * 51);
-	return wxColor(red, green, blue);
+	return QColor(red, green, blue);
 }

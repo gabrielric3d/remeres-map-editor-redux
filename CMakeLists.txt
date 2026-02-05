@@ -36,16 +36,9 @@ if(WIN32)
 endif()
 find_package(Boost 1.34.0 COMPONENTS thread system REQUIRED)
 
-find_package(wxWidgets COMPONENTS html aui gl adv core net base REQUIRED)
-
+find_package(Qt6 COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets REQUIRED)
 
 find_package(ZLIB REQUIRED)
-
-
-# wxWidgets_USE_FILE is set by vcpkg/system wxWidgets, but empty with Conan
-if(wxWidgets_USE_FILE)
-	include(${wxWidgets_USE_FILE})
-endif()
 
 find_package(glad CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -65,7 +58,7 @@ if(NOT nanovg_FOUND)
 endif()
 
 include(source/CMakeLists.txt)
-# WIN32 is required for wxWidgets app entry point (WinMain)
+# WIN32 is required for app entry point
 if(WIN32)
 	add_executable(rme WIN32 ${rme_H} ${rme_SRC})
 else()
@@ -74,17 +67,11 @@ endif()
 
 set_target_properties(rme PROPERTIES CXX_STANDARD 20)
 set_target_properties(rme PROPERTIES CXX_STANDARD_REQUIRED ON)
-target_compile_definitions(rme PRIVATE WXWIN_COMPATIBILITY_3_3 NANOVG_GL3)
+target_compile_definitions(rme PRIVATE NANOVG_GL3)
 
 
-# Link against wxWidgets (works with both vcpkg and Conan)
-if(TARGET wxWidgets::wxWidgets)
-	# Conan provides a single wxWidgets::wxWidgets target
-	target_link_libraries(rme PRIVATE wxWidgets::wxWidgets)
-else()
-	# vcpkg/system provides wxWidgets_LIBRARIES variable
-	target_link_libraries(rme PRIVATE ${wxWidgets_LIBRARIES})
-endif()
+# Link against Qt6
+target_link_libraries(rme PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets)
 
 # Include directories (for legacy find modules)
 target_include_directories(rme PRIVATE
@@ -108,8 +95,6 @@ if(TARGET LibArchive::LibArchive)
 else()
 	target_link_libraries(rme PRIVATE ${LibArchive_LIBRARIES})
 endif()
-
-
 
 if(TARGET ZLIB::ZLIB)
 	target_link_libraries(rme PRIVATE ZLIB::ZLIB)
