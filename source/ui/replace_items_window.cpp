@@ -145,12 +145,12 @@ void ReplaceItemsListBox::OnDrawItem(wxDC& dc, const wxRect& rect, size_t index)
 
 	if (IsSelected(index)) {
 		if (HasFocus()) {
-			dc.SetTextForeground(wxColor(0xFF, 0xFF, 0xFF));
+			dc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHTTEXT));
 		} else {
-			dc.SetTextForeground(wxColor(0x00, 0x00, 0xFF));
+			dc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_HOTLIGHT));
 		}
 	} else {
-		dc.SetTextForeground(wxColor(0x00, 0x00, 0x00));
+		dc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 	}
 }
 
@@ -176,54 +176,54 @@ ReplaceItemsDialog::ReplaceItemsDialog(wxWindow* parent, bool selectionOnly) :
 	list = new ReplaceItemsListBox(this);
 	list->SetMinSize(wxSize(480, 320));
 
-	list_sizer->Add(list, 0, wxALL | wxEXPAND, 5);
-	sizer->Add(list_sizer, 1, wxALL | wxEXPAND, 5);
+	list_sizer->Add(list, wxSizerFlags().Expand().Border(wxALL, 5));
+	sizer->Add(list_sizer, wxSizerFlags(1).Expand().Border(wxALL, 5));
 
 	wxBoxSizer* items_sizer = new wxBoxSizer(wxHORIZONTAL);
 	items_sizer->SetMinSize(wxSize(-1, 40));
 
 	replace_button = new ReplaceItemsButton(this);
-	items_sizer->Add(replace_button, 0, wxALL, 5);
+	items_sizer->Add(replace_button, wxSizerFlags().Border(wxALL, 5));
 
 	wxBitmap bitmap = wxArtProvider::GetBitmap(ART_POSITION_GO, wxART_TOOLBAR, wxSize(16, 16));
 	arrow_bitmap = new wxStaticBitmap(this, wxID_ANY, bitmap);
-	items_sizer->Add(arrow_bitmap, 0, wxTOP, 15);
+	items_sizer->Add(arrow_bitmap, wxSizerFlags().Border(wxTOP, 15));
 
 	with_button = new ReplaceItemsButton(this);
-	items_sizer->Add(with_button, 0, wxALL, 5);
+	items_sizer->Add(with_button, wxSizerFlags().Border(wxALL, 5));
 
-	items_sizer->Add(0, 0, 1, wxEXPAND, 5);
+	items_sizer->AddStretchSpacer(1);
 
 	progress = new wxGauge(this, wxID_ANY, 100);
 	progress->SetValue(0);
-	items_sizer->Add(progress, 0, wxALL, 5);
+	items_sizer->Add(progress, wxSizerFlags().Border(wxALL, 5));
 
-	sizer->Add(items_sizer, 1, wxALL | wxEXPAND, 5);
+	sizer->Add(items_sizer, wxSizerFlags(1).Expand().Border(wxALL, 5));
 
 	wxBoxSizer* buttons_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-	add_button = new wxButton(this, wxID_ANY, wxT("Add"));
+	add_button = new wxButton(this, wxID_ANY, "Add");
 	add_button->SetToolTip("Add replacement rule to list");
 	add_button->Enable(false);
-	buttons_sizer->Add(add_button, 0, wxALL, 5);
+	buttons_sizer->Add(add_button, wxSizerFlags().Border(wxALL, 5));
 
-	remove_button = new wxButton(this, wxID_ANY, wxT("Remove"));
+	remove_button = new wxButton(this, wxID_ANY, "Remove");
 	remove_button->SetToolTip("Remove selected rule");
 	remove_button->Enable(false);
-	buttons_sizer->Add(remove_button, 0, wxALL, 5);
+	buttons_sizer->Add(remove_button, wxSizerFlags().Border(wxALL, 5));
 
-	buttons_sizer->Add(0, 0, 1, wxEXPAND, 5);
+	buttons_sizer->AddStretchSpacer(1);
 
-	execute_button = new wxButton(this, wxID_ANY, wxT("Execute"));
+	execute_button = new wxButton(this, wxID_ANY, "Execute");
 	execute_button->SetToolTip("Execute all replacement rules");
 	execute_button->Enable(false);
-	buttons_sizer->Add(execute_button, 0, wxALL, 5);
+	buttons_sizer->Add(execute_button, wxSizerFlags().Border(wxALL, 5));
 
-	close_button = new wxButton(this, wxID_ANY, wxT("Close"));
+	close_button = new wxButton(this, wxID_ANY, "Close");
 	close_button->SetToolTip("Close this window");
-	buttons_sizer->Add(close_button, 0, wxALL, 5);
+	buttons_sizer->Add(close_button, wxSizerFlags().Border(wxALL, 5));
 
-	sizer->Add(buttons_sizer, 1, wxALL | wxLEFT | wxRIGHT | wxSHAPED, 5);
+	sizer->Add(buttons_sizer, wxSizerFlags(1).Shaped().Border(wxALL, 5));
 
 	SetSizer(sizer);
 	Layout();

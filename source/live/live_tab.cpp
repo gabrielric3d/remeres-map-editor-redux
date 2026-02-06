@@ -31,7 +31,7 @@ public:
 		wxGrid(parent, id, pos, size) { }
 	virtual ~myGrid() { }
 
-	void DrawCellHighlight(wxDC& dc, const wxGridCellAttr* attr) {
+	void DrawCellHighlight(wxDC& dc, const wxGridCellAttr* attr) override {
 		// wxGrid::DrawCellHighlight(dc, attr);
 	}
 
@@ -39,10 +39,6 @@ public:
 };
 
 IMPLEMENT_CLASS(myGrid, wxGrid)
-
-BEGIN_EVENT_TABLE(LiveLogTab, wxPanel)
-EVT_TEXT(LIVE_CHAT_TEXTBOX, LiveLogTab::OnChat)
-END_EVENT_TABLE()
 
 LiveLogTab::LiveLogTab(MapTabbook* aui, LiveSocket* server) :
 	EditorTab(),
@@ -52,7 +48,7 @@ LiveLogTab::LiveLogTab(MapTabbook* aui, LiveSocket* server) :
 	wxSizer* topsizer = newd wxBoxSizer(wxVERTICAL);
 
 	wxPanel* splitter = newd wxPanel(this);
-	topsizer->Add(splitter, 1, wxEXPAND);
+	topsizer->Add(splitter, wxSizerFlags(1).Expand());
 
 	// Setup left panel
 	wxPanel* left_pane = newd wxPanel(splitter);
@@ -72,29 +68,30 @@ LiveLogTab::LiveLogTab(MapTabbook* aui, LiveSocket* server) :
 	log->EnableEditing(false);
 
 	log->SetColLabelValue(0, "Time");
-	log->SetColMinimalWidth(0, 60);
-	log->SetColSize(0, 60);
+	log->SetColMinimalWidth(0, FromDIP(60));
+	log->SetColSize(0, FromDIP(60));
 	log->SetColLabelValue(1, "User");
-	log->SetColMinimalWidth(1, 100);
-	log->SetColSize(1, 100);
+	log->SetColMinimalWidth(1, FromDIP(100));
+	log->SetColSize(1, FromDIP(100));
 	log->SetColLabelValue(2, "Message");
-	log->SetColMinimalWidth(2, 100);
-	log->SetColSize(2, 100);
+	log->SetColMinimalWidth(2, FromDIP(100));
+	log->SetColSize(2, FromDIP(100));
 
-	log->Connect(wxEVT_SIZE, wxSizeEventHandler(LiveLogTab::OnResizeChat), nullptr, this);
+	log->Bind(wxEVT_SIZE, &LiveLogTab::OnResizeChat, this);
 
-	left_sizer->Add(log, 1, wxEXPAND);
+	left_sizer->Add(log, wxSizerFlags(1).Expand());
 
 	input = newd wxTextCtrl(left_pane, LIVE_CHAT_TEXTBOX, wxEmptyString, wxDefaultPosition, wxDefaultSize);
-	left_sizer->Add(input, 0, wxEXPAND);
+	input->Bind(wxEVT_TEXT, &LiveLogTab::OnChat, this);
+	left_sizer->Add(input, wxSizerFlags(0).Expand());
 
-	input->Connect(wxEVT_SET_FOCUS, wxFocusEventHandler(LiveLogTab::OnSelectChatbox), nullptr, this);
-	input->Connect(wxEVT_KILL_FOCUS, wxFocusEventHandler(LiveLogTab::OnDeselectChatbox), nullptr, this);
+	input->Bind(wxEVT_SET_FOCUS, &LiveLogTab::OnSelectChatbox, this);
+	input->Bind(wxEVT_KILL_FOCUS, &LiveLogTab::OnDeselectChatbox, this);
 
 	left_pane->SetSizerAndFit(left_sizer);
 
 	// Setup right panel
-	user_list = newd myGrid(splitter, wxID_ANY, wxDefaultPosition, wxSize(280, 100));
+	user_list = newd myGrid(splitter, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(280), FromDIP(100)));
 	user_list->CreateGrid(5, 3);
 	user_list->DisableDragRowSize();
 	user_list->DisableDragColSize();
@@ -102,11 +99,11 @@ LiveLogTab::LiveLogTab(MapTabbook* aui, LiveSocket* server) :
 	user_list->SetRowLabelSize(0);
 
 	user_list->SetColLabelValue(0, "");
-	user_list->SetColSize(0, 24);
+	user_list->SetColSize(0, FromDIP(24));
 	user_list->SetColLabelValue(1, "#");
-	user_list->SetColSize(1, 36);
+	user_list->SetColSize(1, FromDIP(36));
 	user_list->SetColLabelValue(2, "Name");
-	user_list->SetColSize(2, 200);
+	user_list->SetColSize(2, FromDIP(200));
 
 	// user_list->GetGridWindow()->
 
