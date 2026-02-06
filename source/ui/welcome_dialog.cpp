@@ -3,77 +3,11 @@
 #include "app/settings.h"
 #include "app/preferences.h"
 #include "ui/controls/modern_button.h"
+#include "ui/controls/recent_files_view.h"
 #include <wx/dcbuffer.h>
 #include <wx/statline.h>
 
 wxDEFINE_EVENT(WELCOME_DIALOG_ACTION, wxCommandEvent);
-
-// Helper for recent files
-class RecentFileItem : public wxPanel {
-public:
-	RecentFileItem(wxWindow* parent, const wxString& path, const wxString& date) :
-		wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE),
-		m_path(path), m_date(date), m_isHover(false), m_isPressed(false) {
-		SetCursor(wxCursor(wxCURSOR_HAND));
-		SetMinSize(wxSize(-1, FromDIP(45))); // Slightly more compact
-
-		Bind(wxEVT_PAINT, &RecentFileItem::OnPaint, this);
-		Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent&) { m_isHover = true; Refresh(); });
-		Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent&) { m_isHover = false; m_isPressed = false; Refresh(); });
-		Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent&) { m_isPressed = true; Refresh(); });
-		Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& evt) {
-			if (m_isPressed) {
-				m_isPressed = false;
-				Refresh();
-				wxCommandEvent event(wxEVT_BUTTON, GetId());
-				event.SetString(m_path); // Pass the path with the event
-				event.SetEventObject(this);
-				GetEventHandler()->ProcessEvent(event);
-			}
-		});
-	}
-
-	wxSize DoGetBestClientSize() const override {
-		return wxSize(FromDIP(300), FromDIP(50));
-	}
-
-	void OnPaint(wxPaintEvent& evt) {
-		wxAutoBufferedPaintDC dc(this);
-		wxSize size = GetClientSize();
-
-		// Background - Extremely subtle for "Quiet" UI
-		wxColour bg = GetParent()->GetBackgroundColour();
-		if (m_isPressed) {
-			bg = wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT).ChangeLightness(115);
-		} else if (m_isHover) {
-			bg = wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT).ChangeLightness(105);
-		}
-
-		dc.SetBrush(wxBrush(bg));
-		dc.SetPen(*wxTRANSPARENT_PEN);
-		dc.DrawRectangle(size);
-
-		// Boundaries removed for cleaner list feel (Implied via spacing)
-
-		wxFileName fn(m_path);
-		wxString filename = fn.GetFullName();
-		wxString fpath = fn.GetPath();
-
-		dc.SetFont(GetFont().Bold()); // Standard weight bold, not Larger
-		dc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
-		dc.DrawText(filename, FromDIP(12), FromDIP(6));
-
-		dc.SetFont(GetFont().Smaller());
-		dc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
-		dc.DrawText(fpath, FromDIP(12), FromDIP(24));
-	}
-
-private:
-	wxString m_path;
-	wxString m_date;
-	bool m_isHover = false;
-	bool m_isPressed = false;
-};
 
 // Main Panel Class
 class WelcomeDialog::WelcomePanel : public wxPanel {
@@ -132,21 +66,10 @@ public:
 		recentTitle->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		contentSizer->Add(recentTitle, 0, wxLEFT | wxTOP | wxBOTTOM, FromDIP(15));
 
-		// Scrollable list
-		wxScrolledWindow* scroll = new wxScrolledWindow(content, wxID_ANY);
-		scroll->SetScrollRate(0, 10);
-		wxBoxSizer* listSizer = new wxBoxSizer(wxVERTICAL);
-
-		for (const auto& file : recentFiles) {
-			RecentFileItem* item = new RecentFileItem(scroll, file, "");
-			listSizer->Add(item, 0, wxEXPAND | wxBOTTOM, 1);
-
-			// Bind event to parent dialog handler
-			item->Bind(wxEVT_BUTTON, &WelcomeDialog::OnRecentFileClicked, parent);
-		}
-
-		scroll->SetSizer(listSizer);
-		contentSizer->Add(scroll, 1, wxEXPAND);
+		// Recent Files View (NanoVG)
+		RecentFilesView* recentView = new RecentFilesView(content, recentFiles);
+		recentView->Bind(wxEVT_BUTTON, &WelcomeDialog::OnRecentFileClicked, parent);
+		contentSizer->Add(recentView, 1, wxEXPAND);
 
 		// Anchored Footer for Startup Toggle
 		wxPanel* footer = new wxPanel(content);
