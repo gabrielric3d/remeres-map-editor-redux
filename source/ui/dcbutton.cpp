@@ -26,25 +26,36 @@
 IMPLEMENT_DYNAMIC_CLASS(DCButton, wxPanel)
 
 DCButton::DCButton() :
-	wxPanel(nullptr, wxID_ANY, wxDefaultPosition, wxSize(36, 36)),
+	wxPanel(nullptr, wxID_ANY, wxDefaultPosition, wxDefaultSize),
 	type(DC_BTN_NORMAL),
 	state(false),
 	size(RENDER_SIZE_16x16),
 	sprite(nullptr),
 	overlay(nullptr) {
+	SetSize(FromDIP(wxSize(36, 36)));
+	SetMinSize(FromDIP(wxSize(36, 36)));
 	Bind(wxEVT_PAINT, &DCButton::OnPaint, this);
 	Bind(wxEVT_LEFT_DOWN, &DCButton::OnClick, this);
 	SetSprite(0);
 }
 
 DCButton::DCButton(wxWindow* parent, wxWindowID id, wxPoint pos, int type, RenderSize sz, int sprite_id) :
-	wxPanel(parent, id, pos, (sz == RENDER_SIZE_64x64 ? wxSize(68, 68) : sz == RENDER_SIZE_32x32 ? wxSize(36, 36)
-																								 : wxSize(20, 20))),
+	wxPanel(parent, id, pos, wxDefaultSize),
 	type(type),
 	state(false),
 	size(sz),
 	sprite(nullptr),
 	overlay(nullptr) {
+	wxSize s;
+	if (sz == RENDER_SIZE_64x64) {
+		s = wxSize(68, 68);
+	} else if (sz == RENDER_SIZE_32x32) {
+		s = wxSize(36, 36);
+	} else {
+		s = wxSize(20, 20);
+	}
+	SetSize(FromDIP(s));
+	SetMinSize(FromDIP(s));
 	Bind(wxEVT_PAINT, &DCButton::OnPaint, this);
 	Bind(wxEVT_LEFT_DOWN, &DCButton::OnClick, this);
 	SetSprite(sprite_id);
@@ -105,14 +116,14 @@ void DCButton::OnPaint(wxPaintEvent& event) {
 	wxPen* light_shadow_pen = wxThePenList->FindOrCreatePen(wxColor(0x80, 0x80, 0x80), 1, wxSOLID);
 	wxPen* shadow_pen = wxThePenList->FindOrCreatePen(wxColor(0x40, 0x40, 0x40), 1, wxSOLID);
 
-	int size_x = 20, size_y = 20;
+	int size_x = FromDIP(20), size_y = FromDIP(20);
 
 	if (size == RENDER_SIZE_16x16) {
-		size_x = 20;
-		size_y = 20;
+		size_x = FromDIP(20);
+		size_y = FromDIP(20);
 	} else if (size == RENDER_SIZE_32x32) {
-		size_x = 36;
-		size_y = 36;
+		size_x = FromDIP(36);
+		size_y = FromDIP(36);
 	}
 
 	pdc.SetBrush(*wxBLACK);
