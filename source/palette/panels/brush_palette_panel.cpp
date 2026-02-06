@@ -10,13 +10,6 @@
 // Brush Palette Panel
 // A common class for terrain/doodad/item/raw palette
 
-BEGIN_EVENT_TABLE(BrushPalettePanel, PalettePanel)
-EVT_BUTTON(wxID_ADD, BrushPalettePanel::OnClickAddItemToTileset)
-EVT_BUTTON(wxID_NEW, BrushPalettePanel::OnClickAddTileset)
-EVT_CHOICEBOOK_PAGE_CHANGING(wxID_ANY, BrushPalettePanel::OnSwitchingPage)
-EVT_CHOICEBOOK_PAGE_CHANGED(wxID_ANY, BrushPalettePanel::OnPageChanged)
-END_EVENT_TABLE()
-
 BrushPalettePanel::BrushPalettePanel(wxWindow* parent, const TilesetContainer& tilesets, TilesetCategoryType category, wxWindowID id) :
 	PalettePanel(parent, id),
 	palette_type(category),
@@ -54,6 +47,11 @@ BrushPalettePanel::BrushPalettePanel(wxWindow* parent, const TilesetContainer& t
 	SetSizerAndFit(topsizer);
 
 	choicebook = tmp_choicebook;
+
+	Bind(wxEVT_BUTTON, &BrushPalettePanel::OnClickAddItemToTileset, this, wxID_ADD);
+	Bind(wxEVT_BUTTON, &BrushPalettePanel::OnClickAddTileset, this, wxID_NEW);
+	Bind(wxEVT_CHOICEBOOK_PAGE_CHANGING, &BrushPalettePanel::OnSwitchingPage, this, wxID_ANY);
+	Bind(wxEVT_CHOICEBOOK_PAGE_CHANGED, &BrushPalettePanel::OnPageChanged, this, wxID_ANY);
 }
 
 BrushPalettePanel::~BrushPalettePanel() {

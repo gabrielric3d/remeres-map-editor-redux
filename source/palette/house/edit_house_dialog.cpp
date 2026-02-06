@@ -15,12 +15,6 @@
 
 #include <sstream>
 
-BEGIN_EVENT_TABLE(EditHouseDialog, wxDialog)
-EVT_SET_FOCUS(EditHouseDialog::OnFocusChange)
-EVT_BUTTON(wxID_OK, EditHouseDialog::OnClickOK)
-EVT_BUTTON(wxID_CANCEL, EditHouseDialog::OnClickCancel)
-END_EVENT_TABLE()
-
 EditHouseDialog::EditHouseDialog(wxWindow* parent, Map* map, House* house) :
 	wxDialog(parent, wxID_ANY, "House Properties", wxDefaultPosition, wxSize(250, 160)),
 	map(map),
@@ -103,6 +97,10 @@ EditHouseDialog::EditHouseDialog(wxWindow* parent, Map* map, House* house) :
 	buttonsSizer->Add(newd wxButton(this, wxID_OK, "OK"), wxSizerFlags(1).Center().Border(wxTOP | wxBOTTOM, 10));
 	buttonsSizer->Add(newd wxButton(this, wxID_CANCEL, "Cancel"), wxSizerFlags(1).Center().Border(wxTOP | wxBOTTOM, 10));
 	topsizer->Add(buttonsSizer, wxSizerFlags(0).Center().Border(wxLEFT | wxRIGHT, 20));
+
+	Bind(wxEVT_SET_FOCUS, &EditHouseDialog::OnFocusChange, this);
+	Bind(wxEVT_BUTTON, &EditHouseDialog::OnClickOK, this, wxID_OK);
+	Bind(wxEVT_BUTTON, &EditHouseDialog::OnClickCancel, this, wxID_CANCEL);
 
 	SetSizerAndFit(topsizer);
 }
