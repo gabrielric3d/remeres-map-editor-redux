@@ -33,15 +33,12 @@
 // ============================================================================
 // Palette Panel
 
-BEGIN_EVENT_TABLE(PalettePanel, wxPanel)
-EVT_TIMER(PALETTE_DELAYED_REFRESH_TIMER, WaypointPalettePanel::OnRefreshTimer)
-END_EVENT_TABLE()
-
 PalettePanel::PalettePanel(wxWindow* parent, wxWindowID id, long style) :
 	wxPanel(parent, id, wxDefaultPosition, wxDefaultSize, style),
 	refresh_timer(this, PALETTE_DELAYED_REFRESH_TIMER),
 	last_brush_size(0) {
-	////
+
+	Bind(wxEVT_TIMER, &PalettePanel::OnRefreshTimer, this, PALETTE_DELAYED_REFRESH_TIMER);
 }
 
 PalettePanel::~PalettePanel() {
