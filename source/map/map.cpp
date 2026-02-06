@@ -137,6 +137,45 @@ bool Map::open(const std::string file) {
 	return true;
 }
 
+namespace {
+struct ConversionTrie {
+	struct Node {
+		std::map<uint16_t, std::unique_ptr<Node>> children;
+		const std::pair<const std::vector<uint16_t>, std::vector<uint16_t>>* entry = nullptr;
+	};
+	std::unique_ptr<Node> root = std::make_unique<Node>();
+
+	void insert(const std::pair<const std::vector<uint16_t>, std::vector<uint16_t>>& entry) {
+		Node* current = root.get();
+		for (uint16_t id : entry.first) {
+			auto& child = current->children[id];
+			if (!child) {
+				child = std::make_unique<Node>();
+			}
+			current = child.get();
+		}
+		current->entry = &entry;
+	}
+
+	const std::pair<const std::vector<uint16_t>, std::vector<uint16_t>>* findLongestPrefix(const std::vector<uint16_t>& input) const {
+		const Node* current = root.get();
+		const std::pair<const std::vector<uint16_t>, std::vector<uint16_t>>* last_match = nullptr;
+
+		for (uint16_t id : input) {
+			auto it = current->children.find(id);
+			if (it == current->children.end()) {
+				break;
+			}
+			current = it->second.get();
+			if (current->entry) {
+				last_match = current->entry;
+			}
+		}
+		return last_match;
+	}
+};
+} // namespace
+
 bool Map::convert(MapVersion to, bool showdialog) {
 	if (mapVersion.client == to.client) {
 		// Only OTBM version differs
@@ -172,7 +211,9 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 	}
 
 	std::map<const std::vector<uint16_t>*, std::unordered_set<uint16_t>> mtm_lookups;
+	ConversionTrie trie;
 	for (const auto& entry : rm.mtm) {
+		trie.insert(entry);
 		mtm_lookups.emplace(&entry.first, std::unordered_set<uint16_t>(entry.first.begin(), entry.first.end()));
 	}
 
@@ -204,21 +245,13 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 
 		std::sort(id_list.begin(), id_list.end());
 
-		ConversionMap::MTM::const_iterator cfmtm = rm.mtm.end();
-
-		while (id_list.size()) {
-			cfmtm = rm.mtm.find(id_list);
-			if (cfmtm != rm.mtm.end()) {
-				break;
-			}
-			id_list.pop_back();
-		}
+		const auto* match = trie.findLongestPrefix(id_list);
 
 		// Keep track of how many items have been inserted at the bottom
 		size_t inserted_items = 0;
 
-		if (cfmtm != rm.mtm.end()) {
-			const std::vector<uint16_t>& v = cfmtm->first;
+		if (match) {
+			const std::vector<uint16_t>& v = match->first;
 			const auto& ids_to_remove = mtm_lookups.at(&v);
 
 			if (tile->ground && ids_to_remove.contains(tile->ground->getID())) {
@@ -235,7 +268,7 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 			});
 			tile->items.erase(part_iter, tile->items.end());
 
-			const std::vector<uint16_t>& new_items = cfmtm->second;
+			const std::vector<uint16_t>& new_items = match->second;
 			for (std::vector<uint16_t>::const_iterator iit = new_items.begin(); iit != new_items.end(); ++iit) {
 				Item* item = Item::Create(*iit);
 				if (item->isGroundTile()) {
@@ -430,10 +463,24 @@ bool Map::addSpawn(Tile* tile) {
 		int end_x = tile->getX() + spawn->getSize();
 		int end_y = tile->getY() + spawn->getSize();
 
+		MapNode* cached_node = nullptr;
+		int cached_nx = -1;
+		int cached_ny = -1;
+
 		for (int y = start_y; y <= end_y; ++y) {
+			int ny = y >> SpatialHashGrid::NODE_SHIFT;
 			for (int x = start_x; x <= end_x; ++x) {
-				TileLocation* ctile_loc = createTileL(x, y, z);
-				ctile_loc->increaseSpawnCount();
+				int nx = x >> SpatialHashGrid::NODE_SHIFT;
+				if (nx != cached_nx || ny != cached_ny) {
+					cached_node = grid.getLeafForce(x, y);
+					cached_nx = nx;
+					cached_ny = ny;
+				}
+
+				if (cached_node) {
+					TileLocation* ctile_loc = cached_node->createTile(x, y, z);
+					ctile_loc->increaseSpawnCount();
+				}
 			}
 		}
 		spawns.addSpawn(tile);
@@ -452,11 +499,25 @@ void Map::removeSpawnInternal(Tile* tile) {
 	int end_x = tile->getX() + spawn->getSize();
 	int end_y = tile->getY() + spawn->getSize();
 
+	MapNode* cached_node = nullptr;
+	int cached_nx = -1;
+	int cached_ny = -1;
+
 	for (int y = start_y; y <= end_y; ++y) {
+		int ny = y >> SpatialHashGrid::NODE_SHIFT;
 		for (int x = start_x; x <= end_x; ++x) {
-			TileLocation* ctile_loc = getTileL(x, y, z);
-			if (ctile_loc != nullptr && ctile_loc->getSpawnCount() > 0) {
-				ctile_loc->decreaseSpawnCount();
+			int nx = x >> SpatialHashGrid::NODE_SHIFT;
+			if (nx != cached_nx || ny != cached_ny) {
+				cached_node = grid.getLeaf(x, y);
+				cached_nx = nx;
+				cached_ny = ny;
+			}
+
+			if (cached_node) {
+				TileLocation* ctile_loc = cached_node->getTile(x, y, z);
+				if (ctile_loc != nullptr && ctile_loc->getSpawnCount() > 0) {
+					ctile_loc->decreaseSpawnCount();
+				}
 			}
 		}
 	}
@@ -484,14 +545,34 @@ SpawnList Map::getSpawnList(Tile* where) {
 			int z = where->getZ();
 			int start_x = where->getX() - 1, end_x = where->getX() + 1;
 			int start_y = where->getY() - 1, end_y = where->getY() + 1;
+
+			MapNode* cached_node = nullptr;
+			int cached_nx = -1;
+			int cached_ny = -1;
+
+			auto getTileFast = [&](int x, int y) -> Tile* {
+				int nx = x >> SpatialHashGrid::NODE_SHIFT;
+				int ny = y >> SpatialHashGrid::NODE_SHIFT;
+				if (nx != cached_nx || ny != cached_ny) {
+					cached_node = grid.getLeaf(x, y);
+					cached_nx = nx;
+					cached_ny = ny;
+				}
+				if (cached_node) {
+					TileLocation* loc = cached_node->getTile(x, y, z);
+					return loc ? loc->get() : nullptr;
+				}
+				return nullptr;
+			};
+
 			while (found != tile_loc->getSpawnCount()) {
 				for (int x = start_x; x <= end_x; ++x) {
-					Tile* tile = getTile(x, start_y, z);
+					Tile* tile = getTileFast(x, start_y);
 					if (tile && tile->spawn) {
 						list.push_back(tile->spawn);
 						++found;
 					}
-					tile = getTile(x, end_y, z);
+					tile = getTileFast(x, end_y);
 					if (tile && tile->spawn) {
 						list.push_back(tile->spawn);
 						++found;
@@ -499,12 +580,12 @@ SpawnList Map::getSpawnList(Tile* where) {
 				}
 
 				for (int y = start_y + 1; y < end_y; ++y) {
-					Tile* tile = getTile(start_x, y, z);
+					Tile* tile = getTileFast(start_x, y);
 					if (tile && tile->spawn) {
 						list.push_back(tile->spawn);
 						++found;
 					}
-					tile = getTile(end_x, y, z);
+					tile = getTileFast(end_x, y);
 					if (tile && tile->spawn) {
 						list.push_back(tile->spawn);
 						++found;
