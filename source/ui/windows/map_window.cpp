@@ -17,7 +17,7 @@
 
 #include "app/main.h"
 
-#include "ui/map_window.h"
+#include "ui/windows/map_window.h"
 #include "ui/gui.h"
 #include "game/sprites.h"
 #include "editor/editor.h"
@@ -57,6 +57,8 @@ MapWindow::MapWindow(wxWindow* parent, Editor& editor) :
 	Bind(wxEVT_SCROLL_PAGEDOWN, &MapWindow::OnScrollPageDown, this);
 	Bind(wxEVT_SCROLL_THUMBTRACK, &MapWindow::OnScroll, this);
 	Bind(wxEVT_SCROLL_THUMBRELEASE, &MapWindow::OnScroll, this);
+	Bind(wxEVT_SCROLL_TOP, &MapWindow::OnScroll, this);
+	Bind(wxEVT_SCROLL_BOTTOM, &MapWindow::OnScroll, this);
 	Bind(wxEVT_BUTTON, &MapWindow::OnGem, this, MAP_WINDOW_GEM);
 }
 
