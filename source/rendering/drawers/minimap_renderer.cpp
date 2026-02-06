@@ -70,7 +70,8 @@ bool MinimapRenderer::initialize() {
 
 	pbo_ = std::make_unique<PixelBufferObject>();
 	// Initial PBO size for small chunk
-	pbo_->initialize(1024 * 1024);
+	constexpr size_t INITIAL_PBO_SIZE = 1024 * 1024;
+	pbo_->initialize(INITIAL_PBO_SIZE);
 
 	createPaletteTexture();
 
@@ -90,7 +91,8 @@ bool MinimapRenderer::initialize() {
 	glNamedBufferStorage(vbo_->GetID(), sizeof(quad_vertices), quad_vertices, 0);
 
 	// Pre-allocate instance buffer
-	instance_vbo_capacity_ = 1024;
+	constexpr size_t INITIAL_INSTANCE_CAPACITY = 1024;
+	instance_vbo_capacity_ = INITIAL_INSTANCE_CAPACITY;
 	glNamedBufferStorage(instance_vbo_->GetID(), instance_vbo_capacity_ * sizeof(InstanceData), nullptr, GL_DYNAMIC_STORAGE_BIT);
 
 	// Setup VAO (DSA)
@@ -131,18 +133,20 @@ bool MinimapRenderer::initialize() {
 void MinimapRenderer::createPaletteTexture() {
 	palette_texture_id_ = std::make_unique<GLTextureResource>(GL_TEXTURE_1D);
 
-	std::vector<uint8_t> palette(256 * 4);
-	for (int i = 0; i < 256; ++i) {
-		palette[i * 4 + 0] = minimap_color[i].red;
-		palette[i * 4 + 1] = minimap_color[i].green;
-		palette[i * 4 + 2] = minimap_color[i].blue;
-		palette[i * 4 + 3] = 255;
+	constexpr int PALETTE_SIZE = 256;
+	constexpr int CHANNELS = 4;
+	std::vector<uint8_t> palette(PALETTE_SIZE * CHANNELS);
+	for (int i = 0; i < PALETTE_SIZE; ++i) {
+		palette[i * CHANNELS + 0] = minimap_color[i].red;
+		palette[i * CHANNELS + 1] = minimap_color[i].green;
+		palette[i * CHANNELS + 2] = minimap_color[i].blue;
+		palette[i * CHANNELS + 3] = 255;
 	}
 	// Index 0 is transparent
 	palette[3] = 0;
 
-	glTextureStorage1D(palette_texture_id_->GetID(), 1, GL_RGBA8, 256);
-	glTextureSubImage1D(palette_texture_id_->GetID(), 0, 0, 256, GL_RGBA, GL_UNSIGNED_BYTE, palette.data());
+	glTextureStorage1D(palette_texture_id_->GetID(), 1, GL_RGBA8, PALETTE_SIZE);
+	glTextureSubImage1D(palette_texture_id_->GetID(), 0, 0, PALETTE_SIZE, GL_RGBA, GL_UNSIGNED_BYTE, palette.data());
 
 	glTextureParameteri(palette_texture_id_->GetID(), GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTextureParameteri(palette_texture_id_->GetID(), GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -273,15 +277,15 @@ void MinimapRenderer::render(const glm::mat4& projection, int x, int y, int w, i
 	}
 
 	// Constants
-	float scale_x = (float)w / map_w;
-	float scale_y = (float)h / map_h;
+	float scale_x = static_cast<float>(w) / map_w;
+	float scale_y = static_cast<float>(h) / map_h;
 
 	// Determine visible tiles
 	// Clamp to integer grid
-	int start_col = (int)std::floor(map_x / TILE_SIZE);
-	int end_col = (int)std::floor((map_x + map_w) / TILE_SIZE);
-	int start_row = (int)std::floor(map_y / TILE_SIZE);
-	int end_row = (int)std::floor((map_y + map_h) / TILE_SIZE);
+	int start_col = static_cast<int>(std::floor(map_x / TILE_SIZE));
+	int end_col = static_cast<int>(std::floor((map_x + map_w) / TILE_SIZE));
+	int start_row = static_cast<int>(std::floor(map_y / TILE_SIZE));
+	int end_row = static_cast<int>(std::floor((map_y + map_h) / TILE_SIZE));
 
 	start_col = std::max(0, start_col);
 	start_row = std::max(0, start_row);
@@ -305,7 +309,7 @@ void MinimapRenderer::render(const glm::mat4& projection, int x, int y, int w, i
 
 			int layer = r * cols_ + c;
 
-			instance_data_.push_back({ .x = screen_tile_x, .y = screen_tile_y, .w = screen_tile_w, .h = screen_tile_h, .layer = (float)layer });
+			instance_data_.push_back({ .x = screen_tile_x, .y = screen_tile_y, .w = screen_tile_w, .h = screen_tile_h, .layer = static_cast<float>(layer) });
 		}
 	}
 

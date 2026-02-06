@@ -63,7 +63,7 @@ void PreviewDrawer::draw(SpriteBatch& sprite_batch, PrimitiveRenderer& primitive
 							b = b / 3 * 2;
 						}
 						if (tile->isHouseTile() && options.show_houses) {
-							if ((int)tile->getHouseID() == current_house_id) {
+							if (tile->getHouseID() == current_house_id) {
 								r /= 2;
 							} else {
 								r /= 2;
@@ -90,12 +90,11 @@ void PreviewDrawer::draw(SpriteBatch& sprite_batch, PrimitiveRenderer& primitive
 
 					// Draw items on the tile
 					if (view.zoom <= 10.0 || !options.hide_items_when_zoomed) {
-						ItemVector::iterator it;
-						for (it = tile->items.begin(); it != tile->items.end(); it++) {
-							if ((*it)->isBorder()) {
-								item_drawer->BlitItem(sprite_batch, primitive_renderer, sprite_drawer, creature_drawer, draw_x, draw_y, tile, *it, options, true, 255, r, g, b);
+						for (const auto& item : tile->items) {
+							if (item->isBorder()) {
+								item_drawer->BlitItem(sprite_batch, primitive_renderer, sprite_drawer, creature_drawer, draw_x, draw_y, tile, item, options, true, 255, r, g, b);
 							} else {
-								item_drawer->BlitItem(sprite_batch, primitive_renderer, sprite_drawer, creature_drawer, draw_x, draw_y, tile, *it, options, true, 255, 255, 255, 255);
+								item_drawer->BlitItem(sprite_batch, primitive_renderer, sprite_drawer, creature_drawer, draw_x, draw_y, tile, item, options, true, 255, 255, 255, 255);
 							}
 						}
 						if (tile->creature && options.show_creatures) {
@@ -122,7 +121,7 @@ void PreviewDrawer::draw(SpriteBatch& sprite_batch, PrimitiveRenderer& primitive
 			if (g_gui.gfx.ensureAtlasManager()) {
 				// Draw a semi-transparent white box over the tile
 				glm::vec4 highlightColor(1.0f, 1.0f, 1.0f, 0.25f); // 25% white
-				sprite_batch.drawRect((float)draw_x, (float)draw_y, (float)TileSize, (float)TileSize, highlightColor, *g_gui.gfx.getAtlasManager());
+				sprite_batch.drawRect(static_cast<float>(draw_x), static_cast<float>(draw_y), static_cast<float>(TileSize), static_cast<float>(TileSize), highlightColor, *g_gui.gfx.getAtlasManager());
 			}
 		}
 	}

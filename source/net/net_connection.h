@@ -25,6 +25,8 @@
 #include <cstdint>
 #include <thread>
 #include <mutex>
+#include <memory>
+#include <cstring>
 
 struct NetworkMessage {
 	NetworkMessage();
@@ -35,7 +37,8 @@ struct NetworkMessage {
 	//
 	template <typename T>
 	T read() {
-		T& value = *reinterpret_cast<T*>(&buffer[position]);
+		T value;
+		memcpy(&value, &buffer[position], sizeof(T));
 		position += sizeof(T);
 		return value;
 	}
@@ -78,7 +81,7 @@ public:
 	boost::asio::io_context& get_service();
 
 private:
-	boost::asio::io_context* service;
+	std::unique_ptr<boost::asio::io_context> service;
 	std::thread thread;
 	bool stopped;
 };
