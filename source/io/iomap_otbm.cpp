@@ -891,7 +891,9 @@ bool IOMapOTBM::loadMap(Map& map, NodeFileReadHandle& f) {
 	for (BinaryNode* mapNode = mapHeaderNode->getChild(); mapNode != nullptr; mapNode = mapNode->advance()) {
 		++nodes_loaded;
 		if (nodes_loaded % 2048 == 0) {
-			g_gui.SetLoadDone(static_cast<int32_t>(100.0 * f.tell() / f.size()));
+			if (f.size() > 0) {
+				g_gui.SetLoadDone(static_cast<int32_t>(100.0 * f.tell() / f.size()));
+			}
 		}
 
 		uint8_t node_type;

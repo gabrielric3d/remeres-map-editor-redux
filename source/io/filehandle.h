@@ -24,6 +24,7 @@
 #include <string>
 #include <stack>
 #include <stdio.h>
+#include <cstring>
 
 #ifndef FORCEINLINE
 	#ifdef _MSV_VER
@@ -174,7 +175,7 @@ protected:
 			read_offset = data.size();
 			return false;
 		}
-		ref = *(T*)(data.data() + read_offset);
+		memcpy(&ref, data.data() + read_offset, sizeof(T));
 
 		read_offset += sizeof(ref);
 		return true;
