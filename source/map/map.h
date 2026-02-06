@@ -25,6 +25,7 @@
 #include "game/spawn.h"
 #include "game/complexitem.h"
 #include "game/waypoints.h"
+#include "game/camera_paths.h"
 #include "io/templates.h"
 
 class Map : public BaseMap {
@@ -167,6 +168,7 @@ protected:
 
 public:
 	Waypoints waypoints;
+	CameraPaths camera_paths;
 };
 
 template <typename ForeachType>

@@ -236,6 +236,9 @@
 	-->
 	<menu name="Experimental">
 		<item name="Fog in light view" hotkey="" action="EXPERIMENTAL_FOG" help="Apply fog filter to light effect."/>
+		<separator/>
+		<item name="Show Camera Paths" hotkey="Shift+C" action="SHOW_CAMERA_PATHS" help="Show camera paths on the map."/>
+		<item name="Camera Path Palette" hotkey="" action="SELECT_CAMERA_PATH" help="Select the Camera Path palette."/>
 	</menu>
 	<menu name="About">
 		<item name="Extensions..." hotkey="F2" action="EXTENSIONS" help=""/>

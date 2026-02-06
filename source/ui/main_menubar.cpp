@@ -555,6 +555,10 @@ void MainMenuBar::OnSelectWaypointPalette(wxCommandEvent& event) {
 	paletteMenuHandler->OnSelectWaypointPalette(event);
 }
 
+void MainMenuBar::OnSelectCameraPathPalette(wxCommandEvent& event) {
+	paletteMenuHandler->OnSelectCameraPathPalette(event);
+}
+
 void MainMenuBar::OnSelectRawPalette(wxCommandEvent& event) {
 	paletteMenuHandler->OnSelectRawPalette(event);
 }

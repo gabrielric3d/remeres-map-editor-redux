@@ -27,6 +27,7 @@
 #include "palette/panels/brush_palette_panel.h"
 #include "palette/palette_creature.h"
 #include "palette/palette_waypoints.h"
+#include "palette/palette_camera_paths.h"
 
 // Removed includes for size/tool panels as they are no longer managed here
 
@@ -45,6 +46,7 @@ PaletteWindow::PaletteWindow(wxWindow* parent, const TilesetContainer& tilesets)
 	collection_palette(nullptr),
 	creature_palette(nullptr),
 	waypoint_palette(nullptr),
+	camera_path_palette(nullptr),
 	raw_palette(nullptr) {
 	SetMinSize(wxSize(225, 250));
 
@@ -70,6 +72,9 @@ PaletteWindow::PaletteWindow(wxWindow* parent, const TilesetContainer& tilesets)
 
 	waypoint_palette = static_cast<WaypointPalettePanel*>(CreateWaypointPalette(choicebook, tilesets));
 	choicebook->AddPage(waypoint_palette, waypoint_palette->GetName());
+
+	camera_path_palette = static_cast<CameraPathPalettePanel*>(CreateCameraPathPalette(choicebook, tilesets));
+	choicebook->AddPage(camera_path_palette, camera_path_palette->GetName());
 
 	creature_palette = static_cast<CreaturePalettePanel*>(CreateCreaturePalette(choicebook, tilesets));
 	choicebook->AddPage(creature_palette, creature_palette->GetName());
@@ -132,6 +137,11 @@ PalettePanel* PaletteWindow::CreateCreaturePalette(wxWindow* parent, const Tiles
 	return panel;
 }
 
+PalettePanel* PaletteWindow::CreateCameraPathPalette(wxWindow* parent, const TilesetContainer& tilesets) {
+	CameraPathPalettePanel* panel = newd CameraPathPalettePanel(parent);
+	return panel;
+}
+
 PalettePanel* PaletteWindow::CreateRAWPalette(wxWindow* parent, const TilesetContainer& tilesets) {
 	BrushPalettePanel* panel = newd BrushPalettePanel(parent, tilesets, TILESET_RAW);
 	panel->SetListType(wxstr(g_settings.getString(Config::PALETTE_RAW_STYLE)));
@@ -148,8 +158,8 @@ void PaletteWindow::ReloadSettings(Map* map) {
 	if (waypoint_palette) {
 		waypoint_palette->SetMap(map);
 	}
-	if (waypoint_palette) {
-		waypoint_palette->SetMap(map);
+	if (camera_path_palette) {
+		camera_path_palette->SetMap(map);
 	}
 	if (item_palette) {
 		item_palette->SetListType(wxstr(g_settings.getString(Config::PALETTE_ITEM_STYLE)));
@@ -188,6 +198,9 @@ void PaletteWindow::InvalidateContents() {
 	}
 	if (waypoint_palette) {
 		waypoint_palette->OnUpdate();
+	}
+	if (camera_path_palette) {
+		camera_path_palette->OnUpdate();
 	}
 }
 
@@ -281,6 +294,13 @@ bool PaletteWindow::OnSelectBrush(const Brush* whatbrush, PaletteType primary) {
 			}
 			break;
 		}
+		case TILESET_CAMERA_PATH: {
+			if (camera_path_palette && camera_path_palette->SelectBrush(whatbrush)) {
+				SelectPage(TILESET_CAMERA_PATH);
+				return true;
+			}
+			break;
+		}
 		default:
 			break;
 	}
@@ -369,6 +389,10 @@ void PaletteWindow::OnUpdate(Map* map) {
 	if (waypoint_palette) {
 		waypoint_palette->SetMap(map);
 		waypoint_palette->OnUpdate();
+	}
+	if (camera_path_palette) {
+		camera_path_palette->SetMap(map);
+		camera_path_palette->OnUpdate();
 	}
 }
 

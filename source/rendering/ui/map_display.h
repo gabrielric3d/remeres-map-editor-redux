@@ -18,6 +18,8 @@
 #ifndef RME_DISPLAY_WINDOW_H_
 #define RME_DISPLAY_WINDOW_H_
 
+#include <chrono>
+
 #include "editor/action.h"
 #include "map/tile.h"
 #include "game/creature.h"
@@ -105,6 +107,10 @@ public:
 
 	void TakeScreenshot(wxFileName path, wxString format);
 
+	void ToggleCameraPathPlayback();
+	void OnCameraPathTimer(wxTimerEvent& event);
+	bool IsCameraPathPlaying() const { return camera_path_playing; }
+
 	enum {
 		BLOCK_SIZE = 100
 	};
@@ -162,6 +168,12 @@ public:
 	wxStopWatch refresh_watch;
 	std::unique_ptr<MapPopupMenu> popup_menu;
 	std::unique_ptr<AnimationTimer> animation_timer;
+
+	wxTimer camera_path_timer;
+	bool camera_path_playing = false;
+	std::string camera_path_name;
+	double camera_path_time = 0.0;
+	std::chrono::steady_clock::time_point camera_path_last_tick;
 
 	FramePacer frame_pacer;
 

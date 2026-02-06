@@ -37,6 +37,7 @@ void DrawingOptions::SetDefault() {
 	show_only_modified = false;
 	show_preview = false;
 	show_hooks = false;
+	show_camera_paths = true;
 	hide_items_when_zoomed = true;
 	current_house_id = 0;
 	light_intensity = 1.0f;
@@ -77,6 +78,7 @@ void DrawingOptions::SetIngame() {
 	show_only_modified = false;
 	show_preview = false;
 	show_hooks = false;
+	show_camera_paths = false;
 	hide_items_when_zoomed = false;
 	current_house_id = 0;
 }
@@ -115,6 +117,8 @@ void DrawingOptions::Update() {
 	extended_house_shader = g_settings.getBoolean(Config::EXT_HOUSE_SHADER);
 	light_intensity = g_gui.GetLightIntensity();
 	ambient_light_level = g_gui.GetAmbientLightLevel();
+
+	show_camera_paths = g_settings.getBoolean(Config::SHOW_CAMERA_PATHS);
 
 	experimental_fog = g_settings.getBoolean(Config::EXPERIMENTAL_FOG);
 	anti_aliasing = g_settings.getBoolean(Config::ANTI_ALIASING);
