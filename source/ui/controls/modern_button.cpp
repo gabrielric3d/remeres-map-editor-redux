@@ -1,12 +1,15 @@
 #include "ui/controls/modern_button.h"
 
-wxBEGIN_EVENT_TABLE(ModernButton, wxControl) EVT_PAINT(ModernButton::OnPaint) EVT_MOUSE_EVENTS(ModernButton::OnMouse) EVT_ERASE_BACKGROUND(ModernButton::OnEraseBackground) EVT_TIMER(wxID_ANY, ModernButton::OnTimer) wxEND_EVENT_TABLE()
-
-	ModernButton::ModernButton(wxWindow* parent, wxWindowID id, const wxString& label, const wxPoint& pos, const wxSize& size, long style) :
+ModernButton::ModernButton(wxWindow* parent, wxWindowID id, const wxString& label, const wxPoint& pos, const wxSize& size, long style) :
 	wxControl(parent, id, pos, size, style | wxBORDER_NONE),
 	m_animTimer(this) {
 	SetLabel(label);
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
+
+	Bind(wxEVT_PAINT, &ModernButton::OnPaint, this);
+	Bind(wxEVT_MOUSE_EVENTS, &ModernButton::OnMouse, this);
+	Bind(wxEVT_ERASE_BACKGROUND, &ModernButton::OnEraseBackground, this);
+	Bind(wxEVT_TIMER, &ModernButton::OnTimer, this);
 }
 
 wxSize ModernButton::DoGetBestClientSize() const {
@@ -55,7 +58,7 @@ void ModernButton::OnPaint(wxPaintEvent& evt) {
 	// Focus indication (quiet)
 	if (HasFocus()) {
 		dc.SetBrush(*wxTRANSPARENT_BRUSH);
-		dc.SetPen(wxPen(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT), 1, wxPENSTYLE_STIPPLE));
+		dc.SetPen(*wxThePenList->FindOrCreatePen(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT), 1, wxPENSTYLE_STIPPLE));
 		dc.DrawRectangle(GetClientSize());
 	}
 

@@ -62,12 +62,12 @@ namespace {
 
 			wxRect rect = GetClientRect();
 			dc.SetPen(*wxTRANSPARENT_PEN);
-			dc.SetBrush(wxBrush(wxColor((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF)));
+			dc.SetBrush(*wxTheBrushList->FindOrCreateBrush(wxColor((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF)));
 			dc.DrawRectangle(rect);
 
 			if (selected) {
 				dc.SetBrush(*wxTRANSPARENT_BRUSH);
-				dc.SetPen(wxPen(*wxWHITE, 2));
+				dc.SetPen(*wxThePenList->FindOrCreatePen(*wxWHITE, 2));
 				dc.DrawRectangle(rect.Inflate(-1, -1));
 			}
 		}
