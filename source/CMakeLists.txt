@@ -43,6 +43,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/brushes/wall/wall_brush_items.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/wall/wall_brush_loader.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/waypoint/waypoint_brush.h
+    ${CMAKE_CURRENT_LIST_DIR}/brushes/camera/camera_path_brush.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/action.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/action_queue.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/copybuffer.h
@@ -77,6 +78,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/game/town.h
     ${CMAKE_CURRENT_LIST_DIR}/game/preview_preferences.h
     ${CMAKE_CURRENT_LIST_DIR}/game/waypoints.h
+    ${CMAKE_CURRENT_LIST_DIR}/game/camera_paths.h
 
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/floor_visibility_calculator.h
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_renderer.h
@@ -122,6 +124,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_common.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_creature.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_waypoints.h
+    ${CMAKE_CURRENT_LIST_DIR}/palette/palette_camera_paths.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/house_palette.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/edit_house_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_window.h
@@ -167,6 +170,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/minimap_renderer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/brush_overlay_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/grid_drawer.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/camera_path_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/marker_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/preview_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/selection_drawer.h
@@ -366,6 +370,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/brushes/wall/wall_brush_loader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/wall/wall_brush_arrays.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/waypoint/waypoint_brush.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/brushes/camera/camera_path_brush.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/action.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/action_queue.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/copybuffer.cpp
@@ -396,6 +401,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/game/town.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/preview_preferences.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/waypoints.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/game/camera_paths.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/floor_visibility_calculator.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_renderer.cpp
@@ -437,6 +443,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_common.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_creature.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_waypoints.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/palette/palette_camera_paths.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/house_palette.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/edit_house_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_window.cpp
@@ -478,6 +485,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/minimap_renderer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/brush_overlay_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/grid_drawer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/camera_path_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/marker_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/preview_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/selection_drawer.cpp

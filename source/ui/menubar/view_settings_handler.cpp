@@ -64,6 +64,7 @@ void ViewSettingsHandler::LoadValues() {
 	menuBar->CheckItem(SHOW_TOOLTIPS, g_settings.getBoolean(Config::SHOW_TOOLTIPS));
 	menuBar->CheckItem(SHOW_PREVIEW, g_settings.getBoolean(Config::SHOW_PREVIEW));
 	menuBar->CheckItem(SHOW_WALL_HOOKS, g_settings.getBoolean(Config::SHOW_WALL_HOOKS));
+	menuBar->CheckItem(SHOW_CAMERA_PATHS, g_settings.getBoolean(Config::SHOW_CAMERA_PATHS));
 	menuBar->CheckItem(SHOW_TOWNS, g_settings.getBoolean(Config::SHOW_TOWNS));
 	menuBar->CheckItem(ALWAYS_SHOW_ZONES, g_settings.getBoolean(Config::ALWAYS_SHOW_ZONES));
 	menuBar->CheckItem(EXT_HOUSE_SHADER, g_settings.getBoolean(Config::EXT_HOUSE_SHADER));
@@ -108,6 +109,7 @@ void ViewSettingsHandler::OnChangeViewSettings(wxCommandEvent& event) {
 	g_settings.setInteger(Config::SHOW_TOOLTIPS, menuBar->IsItemChecked(SHOW_TOOLTIPS));
 	g_settings.setInteger(Config::SHOW_PREVIEW, menuBar->IsItemChecked(SHOW_PREVIEW));
 	g_settings.setInteger(Config::SHOW_WALL_HOOKS, menuBar->IsItemChecked(SHOW_WALL_HOOKS));
+	g_settings.setInteger(Config::SHOW_CAMERA_PATHS, menuBar->IsItemChecked(SHOW_CAMERA_PATHS));
 	g_settings.setInteger(Config::SHOW_TOWNS, menuBar->IsItemChecked(SHOW_TOWNS));
 	g_settings.setInteger(Config::ALWAYS_SHOW_ZONES, menuBar->IsItemChecked(ALWAYS_SHOW_ZONES));
 	g_settings.setInteger(Config::EXT_HOUSE_SHADER, menuBar->IsItemChecked(EXT_HOUSE_SHADER));

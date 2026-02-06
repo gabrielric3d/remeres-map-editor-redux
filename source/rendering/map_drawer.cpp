@@ -59,6 +59,7 @@
 #include "rendering/drawers/entities/item_drawer.h"
 #include "rendering/drawers/entities/creature_drawer.h"
 #include "rendering/drawers/overlays/marker_drawer.h"
+#include "rendering/drawers/overlays/camera_path_drawer.h"
 #include "rendering/drawers/overlays/preview_drawer.h"
 #include "rendering/drawers/tiles/shade_drawer.h"
 #include "rendering/drawers/tiles/tile_color_calculator.h"
@@ -94,6 +95,7 @@ MapDrawer::MapDrawer(MapCanvas* canvas) :
 	floor_drawer = std::make_unique<FloorDrawer>();
 	item_drawer = std::make_unique<ItemDrawer>();
 	marker_drawer = std::make_unique<MarkerDrawer>();
+	camera_path_drawer = std::make_unique<CameraPathDrawer>();
 
 	creature_name_drawer = std::make_unique<CreatureNameDrawer>();
 
@@ -331,6 +333,10 @@ void MapDrawer::Draw() {
 	live_cursor_drawer->draw(*sprite_batch, view, editor, options);
 
 	brush_overlay_drawer->draw(*sprite_batch, *primitive_renderer, this, item_drawer.get(), sprite_drawer.get(), creature_drawer.get(), view, options, editor);
+
+	if (camera_path_drawer) {
+		camera_path_drawer->draw(*primitive_renderer, view, options, editor);
+	}
 
 	if (options.show_grid) {
 		DrawGrid();

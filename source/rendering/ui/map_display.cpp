@@ -75,6 +75,7 @@
 #include "brushes/raw/raw_brush.h"
 #include "brushes/carpet/carpet_brush.h"
 #include "brushes/table/table_brush.h"
+#include "game/camera_paths.h"
 
 bool MapCanvas::processed[] = { 0 };
 
@@ -113,7 +114,8 @@ MapCanvas::MapCanvas(MapWindow* parent, Editor& editor, int* attriblist) :
 	last_click_y(-1),
 
 	last_mmb_click_x(-1),
-	last_mmb_click_y(-1) {
+	last_mmb_click_y(-1),
+	camera_path_timer(this, CAMERA_PATH_TIMER) {
 	popup_menu = std::make_unique<MapPopupMenu>(editor);
 	animation_timer = std::make_unique<AnimationTimer>(this);
 	drawer = std::make_unique<MapDrawer>(this);
@@ -141,9 +143,12 @@ MapCanvas::MapCanvas(MapWindow* parent, Editor& editor, int* attriblist) :
 
 	Bind(wxEVT_PAINT, &MapCanvas::OnPaint, this);
 	Bind(wxEVT_ERASE_BACKGROUND, &MapCanvas::OnEraseBackground, this);
+	Bind(wxEVT_TIMER, &MapCanvas::OnCameraPathTimer, this, CAMERA_PATH_TIMER);
 }
 
-MapCanvas::~MapCanvas() = default;
+MapCanvas::~MapCanvas() {
+	camera_path_timer.Stop();
+}
 
 void MapCanvas::Refresh() {
 	if (refresh_watch.Time() > g_settings.getInteger(Config::HARD_REFRESH_RATE)) {
@@ -605,6 +610,13 @@ void MapCanvas::EndPasting() {
 }
 
 void MapCanvas::Reset() {
+	if (camera_path_playing) {
+		camera_path_timer.Stop();
+		camera_path_playing = false;
+		camera_path_time = 0.0;
+		camera_path_name.clear();
+	}
+
 	cursor_x = 0;
 	cursor_y = 0;
 
@@ -627,4 +639,65 @@ void MapCanvas::Reset() {
 
 	editor.selection.clear();
 	editor.actionQueue->clear();
+}
+
+void MapCanvas::ToggleCameraPathPlayback() {
+	if (camera_path_playing) {
+		camera_path_timer.Stop();
+		camera_path_playing = false;
+		camera_path_time = 0.0;
+		camera_path_name.clear();
+		g_gui.SetStatusText("Camera path playback stopped.");
+		return;
+	}
+
+	CameraPaths& cameraPaths = editor.map.camera_paths;
+	CameraPath* path = cameraPaths.getActivePath();
+	if (!path || path->keyframes.size() < 2) {
+		g_gui.SetStatusText("No camera path with at least 2 keyframes selected.");
+		return;
+	}
+
+	camera_path_name = path->name;
+	camera_path_time = 0.0;
+	camera_path_last_tick = std::chrono::steady_clock::now();
+	camera_path_playing = true;
+	camera_path_timer.Start(16);
+	g_gui.SetStatusText("Camera path playback started.");
+}
+
+void MapCanvas::OnCameraPathTimer(wxTimerEvent& WXUNUSED(event)) {
+	if (!camera_path_playing) {
+		return;
+	}
+
+	CameraPaths& cameraPaths = editor.map.camera_paths;
+	CameraPath* path = cameraPaths.getPath(camera_path_name);
+	if (!path || path->keyframes.size() < 2) {
+		ToggleCameraPathPlayback();
+		return;
+	}
+
+	auto now = std::chrono::steady_clock::now();
+	std::chrono::duration<double> delta = now - camera_path_last_tick;
+	camera_path_last_tick = now;
+	camera_path_time += delta.count();
+
+	bool finished = false;
+	CameraPathSample sample = SampleCameraPathByTime(*path, camera_path_time, path->loop, &finished);
+
+	int sample_z = static_cast<int>(std::round(sample.z));
+	MapWindow* window = GetMapWindow();
+	if (window) {
+		SetZoom(sample.zoom);
+		window->SetScreenCenterPosition(Position(
+			static_cast<int>(std::round(sample.x)),
+			static_cast<int>(std::round(sample.y)),
+			sample_z));
+	}
+	Refresh();
+
+	if (finished && !path->loop) {
+		ToggleCameraPathPlayback();
+	}
 }

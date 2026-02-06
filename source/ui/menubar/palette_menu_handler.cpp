@@ -46,6 +46,10 @@ void PaletteMenuHandler::OnSelectWaypointPalette(wxCommandEvent& WXUNUSED(event)
 	g_gui.SelectPalettePage(TILESET_WAYPOINT);
 }
 
+void PaletteMenuHandler::OnSelectCameraPathPalette(wxCommandEvent& WXUNUSED(event)) {
+	g_gui.SelectPalettePage(TILESET_CAMERA_PATH);
+}
+
 void PaletteMenuHandler::OnSelectRawPalette(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.SelectPalettePage(TILESET_RAW);
 }

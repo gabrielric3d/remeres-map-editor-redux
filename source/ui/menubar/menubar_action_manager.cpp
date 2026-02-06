@@ -120,6 +120,7 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::map<std::string
 	MAKE_ACTION(SHOW_TOOLTIPS, wxITEM_CHECK, OnChangeViewSettings);
 	MAKE_ACTION(SHOW_PREVIEW, wxITEM_CHECK, OnChangeViewSettings);
 	MAKE_ACTION(SHOW_WALL_HOOKS, wxITEM_CHECK, OnChangeViewSettings);
+	MAKE_ACTION(SHOW_CAMERA_PATHS, wxITEM_CHECK, OnChangeViewSettings);
 	MAKE_ACTION(SHOW_TOWNS, wxITEM_CHECK, OnChangeViewSettings);
 	MAKE_ACTION(ALWAYS_SHOW_ZONES, wxITEM_CHECK, OnChangeViewSettings);
 	MAKE_ACTION(EXT_HOUSE_SHADER, wxITEM_CHECK, OnChangeViewSettings);
@@ -143,6 +144,7 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::map<std::string
 	MAKE_ACTION(SELECT_CREATURE, wxITEM_NORMAL, OnSelectCreaturePalette);
 	MAKE_ACTION(SELECT_HOUSE, wxITEM_NORMAL, OnSelectHousePalette);
 	MAKE_ACTION(SELECT_WAYPOINT, wxITEM_NORMAL, OnSelectWaypointPalette);
+	MAKE_ACTION(SELECT_CAMERA_PATH, wxITEM_NORMAL, OnSelectCameraPathPalette);
 	MAKE_ACTION(SELECT_RAW, wxITEM_NORMAL, OnSelectRawPalette);
 
 	MAKE_ACTION(FLOOR_0, wxITEM_RADIO, OnChangeFloor);
@@ -273,6 +275,7 @@ void MenuBarActionManager::UpdateState(MainMenuBar* mb) {
 	mb->EnableItem(SELECT_HOUSE, loaded);
 	mb->EnableItem(SELECT_CREATURE, loaded);
 	mb->EnableItem(SELECT_WAYPOINT, loaded);
+	mb->EnableItem(SELECT_CAMERA_PATH, loaded);
 	mb->EnableItem(SELECT_RAW, loaded);
 
 	mb->EnableItem(LIVE_START, is_local);
