@@ -40,7 +40,7 @@ namespace {
 	class ColorSwatch : public wxWindow {
 	public:
 		ColorSwatch(wxWindow* parent, int id, uint32_t color) :
-			wxWindow(parent, id, wxDefaultPosition, wxSize(16, 16), wxBORDER_NONE),
+			wxWindow(parent, id, wxDefaultPosition, parent ? parent->FromDIP(wxSize(16, 16)) : wxSize(16, 16), wxBORDER_NONE),
 			color(color), selected(false) {
 			SetBackgroundStyle(wxBG_STYLE_PAINT);
 			Bind(wxEVT_PAINT, &ColorSwatch::OnPaint, this);
@@ -91,7 +91,7 @@ namespace {
 // ============================================================================
 
 OutfitChooserDialog::OutfitChooserDialog(wxWindow* parent, const Outfit& current_outfit) :
-	wxDialog(parent, wxID_ANY, "Customise Character", wxDefaultPosition, wxSize(1200, 850), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
+	wxDialog(parent, wxID_ANY, "Customise Character", wxDefaultPosition, parent ? parent->FromDIP(wxSize(1200, 850)) : wxSize(1200, 850), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
 	current_outfit(current_outfit),
 	current_speed(220),
 	current_name("You"),
@@ -160,10 +160,10 @@ OutfitChooserDialog::OutfitChooserDialog(wxWindow* parent, const Outfit& current
 
 	col1_sizer->Add(CreateHeader("Appearance"), 0, wxLEFT | wxTOP, 8);
 	wxBoxSizer* part_sizer = new wxBoxSizer(wxHORIZONTAL);
-	head_btn = new wxButton(this, ID_COLOR_HEAD, "Head", wxDefaultPosition, wxSize(50, -1));
-	body_btn = new wxButton(this, ID_COLOR_BODY, "Primary", wxDefaultPosition, wxSize(50, -1));
-	legs_btn = new wxButton(this, ID_COLOR_LEGS, "Secondary", wxDefaultPosition, wxSize(50, -1));
-	feet_btn = new wxButton(this, ID_COLOR_FEET, "Detail", wxDefaultPosition, wxSize(50, -1));
+	head_btn = new wxButton(this, ID_COLOR_HEAD, "Head", wxDefaultPosition, FromDIP(wxSize(50, -1)));
+	body_btn = new wxButton(this, ID_COLOR_BODY, "Primary", wxDefaultPosition, FromDIP(wxSize(50, -1)));
+	legs_btn = new wxButton(this, ID_COLOR_LEGS, "Secondary", wxDefaultPosition, FromDIP(wxSize(50, -1)));
+	feet_btn = new wxButton(this, ID_COLOR_FEET, "Detail", wxDefaultPosition, FromDIP(wxSize(50, -1)));
 
 	part_sizer->Add(head_btn, 1, wxEXPAND | wxRIGHT, 2);
 	part_sizer->Add(body_btn, 1, wxEXPAND | wxRIGHT, 2);
@@ -196,7 +196,7 @@ OutfitChooserDialog::OutfitChooserDialog(wxWindow* parent, const Outfit& current
 	check_sizer->Add(addon1, 0, wxALL | wxALIGN_CENTER_VERTICAL, 2);
 	check_sizer->Add(addon2, 0, wxALL | wxALIGN_CENTER_VERTICAL, 2);
 
-	wxButton* rand_btn = new wxButton(this, ID_RANDOMIZE, "Random", wxDefaultPosition, wxSize(60, 22));
+	wxButton* rand_btn = new wxButton(this, ID_RANDOMIZE, "Random", wxDefaultPosition, FromDIP(wxSize(60, 22)));
 	rand_btn->SetToolTip("Randomize outfit colors");
 	check_sizer->Add(rand_btn, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, 5);
 
@@ -220,7 +220,7 @@ OutfitChooserDialog::OutfitChooserDialog(wxWindow* parent, const Outfit& current
 	wxBoxSizer* outfits_header_row = new wxBoxSizer(wxHORIZONTAL);
 	outfits_header_row->Add(CreateHeader("Available Outfits"), 1, wxALIGN_BOTTOM | wxLEFT, 4);
 
-	outfit_search = new wxSearchCtrl(this, ID_SEARCH, wxEmptyString, wxDefaultPosition, wxSize(180, -1));
+	outfit_search = new wxSearchCtrl(this, ID_SEARCH, wxEmptyString, wxDefaultPosition, FromDIP(wxSize(180, -1)));
 	outfit_search->SetDescriptiveText("Search...");
 	outfits_header_row->Add(outfit_search, 0, wxALIGN_BOTTOM | wxRIGHT, 4);
 
@@ -236,10 +236,10 @@ OutfitChooserDialog::OutfitChooserDialog(wxWindow* parent, const Outfit& current
 	wxBoxSizer* favs_sizer = new wxBoxSizer(wxVERTICAL);
 	favs_sizer->Add(CreateHeader("Favorites"), 0, wxBOTTOM | wxLEFT, 4);
 
-	favorites_panel->SetMinSize(wxSize(430, -1)); // Force width for 4 columns of 100px
+	favorites_panel->SetMinSize(FromDIP(wxSize(430, -1))); // Force width for 4 columns of 100px
 	favs_sizer->Add(favorites_panel, 1, wxEXPAND);
 
-	wxButton* fav_btn = new wxButton(this, ID_ADD_FAVORITE, "Save Current Outfit as Favorite", wxDefaultPosition, wxSize(-1, 28));
+	wxButton* fav_btn = new wxButton(this, ID_ADD_FAVORITE, "Save Current Outfit as Favorite", wxDefaultPosition, FromDIP(wxSize(-1, 28)));
 	favs_sizer->Add(fav_btn, 0, wxEXPAND | wxTOP, 8);
 
 	main_sizer->Add(favs_sizer, 0, wxEXPAND | wxLEFT, 5);
@@ -253,9 +253,9 @@ OutfitChooserDialog::OutfitChooserDialog(wxWindow* parent, const Outfit& current
 	wxBoxSizer* bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
 	bottom_sizer->AddStretchSpacer();
 
-	wxButton* ok_btn = new wxButton(this, wxID_OK, "OK", wxDefaultPosition, wxSize(90, 30));
+	wxButton* ok_btn = new wxButton(this, wxID_OK, "OK", wxDefaultPosition, FromDIP(wxSize(90, 30)));
 	ok_btn->SetToolTip("Confirm outfit selection");
-	wxButton* cancel_btn = new wxButton(this, wxID_CANCEL, "Cancel", wxDefaultPosition, wxSize(90, 30));
+	wxButton* cancel_btn = new wxButton(this, wxID_CANCEL, "Cancel", wxDefaultPosition, FromDIP(wxSize(90, 30)));
 	cancel_btn->SetToolTip("Cancel outfit selection");
 	bottom_sizer->Add(ok_btn, 0, wxALL, 8);
 	bottom_sizer->Add(cancel_btn, 0, wxALL, 8);

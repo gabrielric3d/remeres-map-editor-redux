@@ -59,7 +59,7 @@ void DialogUtil::ListDialog(wxWindow* parent, wxString title, const wxArrayStrin
 
 	// Show the window
 	dlg->ShowModal();
-	delete dlg;
+	dlg->Destroy();
 }
 
 void DialogUtil::ShowTextBox(wxWindow* parent, wxString title, wxString content) {
