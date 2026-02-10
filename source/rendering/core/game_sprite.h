@@ -36,10 +36,11 @@ class GraphicManager;
 class Sprite {
 public:
 	Sprite() { }
-	virtual ~Sprite() { }
+	virtual ~Sprite() = default;
 
 	virtual void DrawTo(wxDC* dc, SpriteSize sz, int start_x, int start_y, int width = -1, int height = -1) = 0;
 	virtual void unloadDC() = 0;
+	virtual wxSize GetSize() const = 0;
 
 private:
 	Sprite(const Sprite&);
@@ -50,10 +51,13 @@ class GameSprite;
 class CreatureSprite : public Sprite {
 public:
 	CreatureSprite(GameSprite* parent, const Outfit& outfit);
-	virtual ~CreatureSprite();
+	~CreatureSprite() override;
 
-	virtual void DrawTo(wxDC* dc, SpriteSize sz, int start_x, int start_y, int width = -1, int height = -1) override;
+	void DrawTo(wxDC* dc, SpriteSize sz, int start_x, int start_y, int width = -1, int height = -1) override;
 	virtual void unloadDC() override;
+	wxSize GetSize() const override {
+		return wxSize(32, 32);
+	}
 
 	GameSprite* parent;
 	Outfit outfit;
@@ -62,7 +66,7 @@ public:
 class GameSprite : public Sprite {
 public:
 	GameSprite();
-	~GameSprite();
+	~GameSprite() override;
 
 	int getIndex(int width, int height, int layer, int pattern_x, int pattern_y, int pattern_z, int frame) const;
 
@@ -70,10 +74,14 @@ public:
 	const AtlasRegion* getAtlasRegion(int _x, int _y, int _layer, int _subtype, int _pattern_x, int _pattern_y, int _pattern_z, int _frame);
 	const AtlasRegion* getAtlasRegion(int _x, int _y, int _dir, int _addon, int _pattern_z, const Outfit& _outfit, int _frame);
 
-	virtual void DrawTo(wxDC* dc, SpriteSize sz, int start_x, int start_y, int width = -1, int height = -1) override;
+	void DrawTo(wxDC* dc, SpriteSize sz, int start_x, int start_y, int width = -1, int height = -1) override;
 	virtual void DrawTo(wxDC* dc, SpriteSize sz, const Outfit& outfit, int start_x, int start_y, int width = -1, int height = -1);
 
-	virtual void unloadDC() override;
+	void unloadDC() override;
+
+	wxSize GetSize() const override {
+		return wxSize(width * 32, height * 32);
+	}
 
 	void clean(time_t time);
 
@@ -100,7 +108,7 @@ protected:
 	class Image {
 	public:
 		Image();
-		virtual ~Image();
+		virtual ~Image() = default;
 
 		bool isGLLoaded;
 		time_t lastaccess;
@@ -119,7 +127,7 @@ protected:
 	class NormalImage : public Image {
 	public:
 		NormalImage();
-		virtual ~NormalImage();
+		~NormalImage() override;
 
 		// We use the sprite id as key
 		uint32_t id;
@@ -143,9 +151,9 @@ protected:
 	class TemplateImage : public Image {
 	public:
 		TemplateImage(GameSprite* parent, int v, const Outfit& outfit);
-		virtual ~TemplateImage();
+		~TemplateImage() override;
 
-		virtual void clean(time_t time) override;
+		void clean(time_t time) override;
 
 		virtual std::unique_ptr<uint8_t[]> getRGBData() override;
 		virtual std::unique_ptr<uint8_t[]> getRGBAData() override;

@@ -64,6 +64,10 @@ void MapPopupMenu::Update() {
 	deleteItem->Enable(anything_selected);
 
 	if (anything_selected) {
+		Append(MAP_POPUP_MENU_ADVANCED_REPLACE, "Replace tiles...", "Open Advanced Replace Tool for selected items");
+	}
+
+	if (anything_selected) {
 		if (editor.selection.size() == 1) {
 			Tile* tile = editor.selection.getSelectedTile();
 			ItemVector selected_items = tile->getSelectedItems();
@@ -74,8 +78,8 @@ void MapPopupMenu::Update() {
 			bool hasCollection = false;
 			Item* topItem = nullptr;
 			Item* topSelectedItem = (selected_items.size() == 1 ? selected_items.back() : nullptr);
-			Creature* topCreature = tile->creature;
-			Spawn* topSpawn = tile->spawn;
+			Creature* topCreature = tile->creature.get();
+			Spawn* topSpawn = tile->spawn.get();
 
 			for (auto* item : tile->items) {
 				if (item->isWall()) {

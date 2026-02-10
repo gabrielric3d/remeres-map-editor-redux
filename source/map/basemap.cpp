@@ -28,10 +28,6 @@ BaseMap::BaseMap() :
 	////
 }
 
-BaseMap::~BaseMap() {
-	////
-}
-
 void BaseMap::clear(bool del) {
 	PositionVector pos_vec;
 	for (MapIterator map_iter = begin(); map_iter != end(); ++map_iter) {
@@ -39,7 +35,10 @@ void BaseMap::clear(bool del) {
 		pos_vec.push_back(t->getPosition());
 	}
 	for (PositionVector::iterator pos_iter = pos_vec.begin(); pos_iter != pos_vec.end(); ++pos_iter) {
-		setTile(*pos_iter, nullptr, del);
+		std::unique_ptr<Tile> t = setTile(*pos_iter, nullptr);
+		if (!del) {
+			t.release();
+		}
 	}
 }
 
@@ -54,9 +53,10 @@ Tile* BaseMap::createTile(int x, int y, int z) {
 	if (loc->get()) {
 		return loc->get();
 	}
-	Tile* t = allocator(loc);
-	leaf->setTile(x, y, z, t);
-	return t;
+	std::unique_ptr<Tile> t = allocator(loc);
+	Tile* ptr = t.get();
+	leaf->setTile(x, y, z, std::move(t));
+	return ptr;
 }
 
 Tile* BaseMap::getOrCreateTile(const Position& pos) {
@@ -111,26 +111,23 @@ TileLocation* BaseMap::createTileL(const Position& pos) {
 	return createTileL(pos.x, pos.y, pos.z);
 }
 
-void BaseMap::setTile(int x, int y, int z, Tile* newtile, bool remove) {
+std::unique_ptr<Tile> BaseMap::setTile(int x, int y, int z, std::unique_ptr<Tile> newtile) {
 	ASSERT(!newtile || newtile->getX() == int(x));
 	ASSERT(!newtile || newtile->getY() == int(y));
 	ASSERT(!newtile || newtile->getZ() == int(z));
 
 	MapNode* leaf = grid.getLeafForce(x, y);
-	Tile* old = leaf->setTile(x, y, z, newtile);
-	if (remove) {
-		delete old;
-	}
+	return leaf->setTile(x, y, z, std::move(newtile));
 }
 
-Tile* BaseMap::swapTile(int x, int y, int z, Tile* newtile) {
+std::unique_ptr<Tile> BaseMap::swapTile(int x, int y, int z, std::unique_ptr<Tile> newtile) {
 	ASSERT(z < MAP_LAYERS);
 	ASSERT(!newtile || newtile->getX() == int(x));
 	ASSERT(!newtile || newtile->getY() == int(y));
 	ASSERT(!newtile || newtile->getZ() == int(z));
 
 	MapNode* leaf = grid.getLeafForce(x, y);
-	return leaf->setTile(x, y, z, newtile);
+	return leaf->setTile(x, y, z, std::move(newtile));
 }
 
 // Iterators
@@ -145,10 +142,6 @@ MapIterator::MapIterator(BaseMap* _map) :
 	if (map) {
 		cell_it = map->grid.cells.begin();
 	}
-}
-
-MapIterator::~MapIterator() {
-	////
 }
 
 // Copy constructor for flat iterator design - copies all stateful members
@@ -214,7 +207,7 @@ bool MapIterator::findNext() {
 			MapNode* node = cell->nodes[node_i].get();
 			if (node) {
 				while (floor_i < MAP_LAYERS) {
-					Floor* floor = node->array[floor_i];
+					Floor* floor = node->array[floor_i].get();
 					if (floor) {
 						while (tile_i < SpatialHashGrid::TILES_PER_NODE) {
 							TileLocation& t = floor->locs[tile_i];

@@ -3,7 +3,8 @@
 
 #include "app/main.h"
 
-#include <map>
+#include <unordered_map>
+#include <list>
 #include <cstdint>
 #include <memory>
 
@@ -37,7 +38,22 @@ struct NVGcontext;
  * };
  * ```
  */
+/**
+ * @class ScopedGLContext
+ * @brief RAII helper to ensure a NanoVGCanvas's OpenGL context is current.
+ */
+class ScopedGLContext {
+public:
+	explicit ScopedGLContext(class NanoVGCanvas* canvas);
+	~ScopedGLContext() = default; // Restoration of previous context is not reliably possible in wx without a global tracker
+
+private:
+	class NanoVGCanvas* m_canvas;
+};
+
 class NanoVGCanvas : public wxGLCanvas {
+	friend class ScopedGLContext;
+
 public:
 	/**
 	 * @brief Constructs a NanoVGCanvas control.
@@ -78,6 +94,16 @@ public:
 		return m_nvg.get();
 	}
 
+	/**
+	 * @brief Gets or creates a cached NanoVG image for an item.
+	 */
+	int GetOrCreateItemImage(uint16_t itemId);
+
+	/**
+	 * @brief Gets or creates a cached NanoVG image for a Sprite (GameSprite or generic).
+	 */
+	int GetOrCreateSpriteTexture(NVGcontext* vg, Sprite* sprite);
+
 protected:
 	/**
 	 * @brief Override this to implement your custom NanoVG drawing.
@@ -104,13 +130,22 @@ protected:
 	 * @param height Image height
 	 * @return NanoVG image handle, or 0 on failure
 	 */
-	int GetOrCreateImage(uint32_t id, const uint8_t* data, int width, int height);
+	int GetOrCreateImage(uint64_t id, const uint8_t* data, int width, int height);
+	int CreateGameSpriteTexture(NVGcontext* vg, GameSprite* gs, uint64_t spriteId);
+	int CreateGenericSpriteTexture(NVGcontext* vg, Sprite* sprite, uint64_t spriteId);
 
 	/**
 	 * @brief Deletes a cached image.
 	 * @param id Image identifier to delete
 	 */
-	void DeleteCachedImage(uint32_t id);
+	void DeleteCachedImage(uint64_t id);
+
+	/**
+	 * @brief Adds an externally created image to the cache.
+	 * @param id Unique identifier
+	 * @param imageHandle NanoVG image handle
+	 */
+	void AddCachedImage(uint64_t id, int imageHandle);
 
 	/**
 	 * @brief Clears all cached images.
@@ -123,7 +158,7 @@ protected:
 	 * @param id Image identifier
 	 * @return Cached image handle, or 0 if not cached
 	 */
-	[[nodiscard]] int GetCachedImage(uint32_t id) const;
+	[[nodiscard]] int GetCachedImage(uint64_t id) const;
 
 	/**
 	 * @brief Updates the scrollbar based on content size.
@@ -137,6 +172,7 @@ protected:
 	 */
 	bool MakeContextCurrent();
 
+public: // Public for ScopedGLContext and future extensions
 	// Background color (can be overridden by subclasses)
 	float m_bgRed = 45.0f / 255.0f;
 	float m_bgGreen = 45.0f / 255.0f;
@@ -155,7 +191,9 @@ private:
 	bool m_glInitialized = false;
 
 	// Texture cache: ID -> NanoVG image handle
-	std::map<uint32_t, int> m_imageCache;
+	std::unordered_map<uint64_t, int> m_imageCache;
+	mutable std::list<uint64_t> m_lruList;
+	size_t m_maxCacheSize = 1024; // Default limit
 
 	// Scroll state
 	int m_scrollPos = 0;

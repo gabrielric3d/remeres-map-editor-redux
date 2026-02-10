@@ -4,6 +4,7 @@
 
 #include "app/main.h"
 #include "ui/properties/container_properties_window.h"
+#include "map/map.h"
 
 #include "game/complexitem.h"
 #include "ui/dialog_util.h"
@@ -45,7 +46,7 @@ ContainerPropertiesWindow::ContainerPropertiesWindow(wxWindow* win_parent, const
 	subsizer->Add(action_id_field, wxSizerFlags(1).Expand());
 
 	subsizer->Add(newd wxStaticText(this, wxID_ANY, "Unique ID"));
-	unique_id_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(edit_item->getUniqueID()), wxDefaultPosition, wxSize(-1, 20), wxSP_ARROW_KEYS, 0, 0xFFFF, edit_item->getUniqueID());
+	unique_id_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(edit_item->getUniqueID()), wxDefaultPosition, FROM_DIP(this, wxSize(-1, 20)), wxSP_ARROW_KEYS, 0, 0xFFFF, edit_item->getUniqueID());
 	unique_id_field->SetToolTip("Unique ID (0-65535). Must be unique on the map.");
 	subsizer->Add(unique_id_field, wxSizerFlags(1).Expand());
 
@@ -209,7 +210,7 @@ void ContainerPropertiesWindow::OnEditItem(wxCommandEvent& WXUNUSED(event)) {
 	}
 
 	Item* sub_item = last_clicked_button->getItem();
-	wxPoint newDialogAt = GetPosition() + wxPoint(20, 20);
+	wxPoint newDialogAt = GetPosition() + FROM_DIP(this, wxPoint(20, 20));
 
 	wxDialog* d;
 	if (edit_map->getVersion().otbm >= MAP_OTBM_4) {

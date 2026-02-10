@@ -23,6 +23,7 @@
 
 #include "brushes/brush_enums.h"
 #include <map>
+#include <unordered_map>
 #include <string>
 #include <memory>
 #include <string_view>
@@ -83,7 +84,7 @@ public:
 	}
 
 protected:
-	using BorderMap = std::map<uint32_t, std::unique_ptr<AutoBorder>>;
+	using BorderMap = std::unordered_map<uint32_t, std::unique_ptr<AutoBorder>>;
 	BrushMap brushes;
 	BorderMap borders;
 
@@ -267,6 +268,8 @@ public:
 	void setCollection() {
 		usesCollection = true;
 	}
+
+	virtual void getRelatedItems(std::vector<uint16_t>& items) { }
 
 protected:
 	static uint32_t id_counter;

@@ -21,6 +21,7 @@
 #include <ctime>
 #include <sstream>
 #include <format>
+#include <unordered_map>
 #include <spdlog/spdlog.h>
 
 void EditorPersistence::loadMap(Editor& editor, const FileName& fn) {
@@ -265,8 +266,10 @@ bool EditorPersistence::importMap(Editor& editor, FileName filename, int import_
 
 	g_gui.CreateLoadBar("Merging maps...");
 
-	std::map<uint32_t, uint32_t> town_id_map;
-	std::map<uint32_t, uint32_t> house_id_map;
+	std::unordered_map<uint32_t, uint32_t> town_id_map;
+	town_id_map.reserve(imported_map.towns.count());
+	std::unordered_map<uint32_t, uint32_t> house_id_map;
+	house_id_map.reserve(imported_map.houses.count());
 
 	if (house_import_type != IMPORT_DONT) {
 		for (TownMap::iterator tit = imported_map.towns.begin(); tit != imported_map.towns.end();) {
@@ -433,7 +436,7 @@ bool EditorPersistence::importMap(Editor& editor, FileName filename, int import_
 		}
 	}
 
-	std::map<Position, Spawn*> spawn_map;
+	std::map<Position, std::unique_ptr<Spawn>> spawn_map;
 	if (spawn_import_type != IMPORT_DONT) {
 		for (SpawnPositionList::iterator siter = imported_map.spawns.begin(); siter != imported_map.spawns.end();) {
 			Position old_spawn_pos = *siter;
@@ -445,7 +448,7 @@ bool EditorPersistence::importMap(Editor& editor, FileName filename, int import_
 					Tile* imported_tile = imported_map.getTile(old_spawn_pos);
 					if (imported_tile) {
 						ASSERT(imported_tile->spawn);
-						spawn_map[new_spawn_pos] = imported_tile->spawn;
+						spawn_map[new_spawn_pos] = std::move(imported_tile->spawn);
 
 						SpawnPositionList::iterator next = siter;
 						bool cont = true;
@@ -522,7 +525,7 @@ bool EditorPersistence::importMap(Editor& editor, FileName filename, int import_
 			newsize_y = new_pos.y;
 		}
 
-		imported_map.setTile(import_tile->getPosition(), nullptr);
+		std::unique_ptr<Tile> moved_tile = imported_map.setTile(import_tile->getPosition(), nullptr);
 		TileLocation* location = editor.map.createTileL(new_pos);
 
 		// Check if we should update any houses
@@ -550,23 +553,31 @@ bool EditorPersistence::importMap(Editor& editor, FileName filename, int import_
 		if (old_tile) {
 			editor.map.removeSpawn(old_tile);
 		}
-		import_tile->spawn = nullptr;
+		// import_tile->spawn was already released above if it was in spawns list
+		// but checking to be safe or if it wasn't in spawns list?
+		// Logic above iterates `imported_map.spawns`. If a spawn is there, it is moved to spawn_map.
+		// If import_tile has a spawn NOT in `imported_map.spawns` (should not happen), it remains.
+		// But here we set it to nullptr? Why?
+		// To prevent it from being added with the tile, maybe?
+		// The original code `import_tile->spawn = nullptr` suggests dropping it.
+		// But we released it to spawn_map. `release()` sets to nullptr.
+		// So this is redundant but safe.
+		import_tile->spawn.reset();
 
-		editor.map.setTile(new_pos, import_tile, true);
+		editor.map.setTile(new_pos, std::move(moved_tile));
 	}
 
-	for (std::map<Position, Spawn*>::iterator spawn_iter = spawn_map.begin(); spawn_iter != spawn_map.end(); ++spawn_iter) {
-		Position pos = spawn_iter->first;
+	for (auto& spawn_entry : spawn_map) {
+		Position pos = spawn_entry.first;
 		TileLocation* location = editor.map.createTileL(pos);
 		Tile* tile = location->get();
 		if (!tile) {
-			tile = editor.map.allocator(location);
-			editor.map.setTile(pos, tile);
+			tile = editor.map.createTile(pos.x, pos.y, pos.z);
 		} else if (tile->spawn) {
 			editor.map.removeSpawnInternal(tile);
-			delete tile->spawn;
+			tile->spawn.reset();
 		}
-		tile->spawn = spawn_iter->second;
+		tile->spawn = std::move(spawn_entry.second);
 
 		editor.map.addSpawn(tile);
 	}
