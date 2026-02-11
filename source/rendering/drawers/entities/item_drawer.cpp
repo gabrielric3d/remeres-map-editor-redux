@@ -10,6 +10,7 @@
 
 #include "rendering/drawers/entities/item_drawer.h"
 #include "rendering/drawers/overlays/hook_indicator_drawer.h"
+#include "rendering/drawers/overlays/door_indicator_drawer.h"
 #include "rendering/core/graphics.h"
 #include "rendering/core/sprite_batch.h"
 #include "rendering/drawers/entities/sprite_drawer.h"
@@ -37,14 +38,23 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 	ItemType& it = g_items[item->getID()];
 
 	// Locked door indicator
-	// FIXME: This logic causes the map to turn black when zooming out with a house brush selected.
-	// Disabled until a proper fix is found.
-	/*
-	if (!options.ingame && options.highlight_locked_doors && it.isDoor() && it.isLocked) {
-		blue /= 2;
-		green /= 2;
+	if (!options.ingame && options.highlight_locked_doors && it.isDoor()) {
+		bool locked = (item->getActionID() != 0 || item->getUniqueID() != 0);
+		if (!locked) {
+			const Door* door = item->asDoor();
+			if (door && door->getDoorID() != 0) {
+				locked = true;
+			}
+		}
+
+		// Door orientation: horizontal wall -> West border (south=true), vertical wall -> North border (east=true)
+		if (it.border_alignment == WALL_HORIZONTAL) {
+			DrawDoorIndicator(locked, pos, true, false);
+		}
+		if (it.border_alignment == WALL_VERTICAL) {
+			DrawDoorIndicator(locked, pos, false, true);
+		}
 	}
-	*/
 
 	if (!options.ingame && !ephemeral && item->isSelected()) {
 		red /= 2;
@@ -280,5 +290,11 @@ void ItemDrawer::DrawRawBrush(SpriteBatch& sprite_batch, SpriteDrawer* sprite_dr
 void ItemDrawer::DrawHookIndicator(const ItemType& type, const Position& pos) {
 	if (hook_indicator_drawer) {
 		hook_indicator_drawer->addHook(pos, type.hookSouth, type.hookEast);
+	}
+}
+
+void ItemDrawer::DrawDoorIndicator(bool locked, const Position& pos, bool south, bool east) {
+	if (door_indicator_drawer) {
+		door_indicator_drawer->addDoor(pos, locked, south, east);
 	}
 }

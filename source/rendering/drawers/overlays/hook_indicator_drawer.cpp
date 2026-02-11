@@ -2,6 +2,7 @@
 #include <nanovg.h>
 #include "rendering/core/render_view.h"
 #include "app/definitions.h"
+#include "util/image_manager.h"
 
 HookIndicatorDrawer::HookIndicatorDrawer() {
 	requests.reserve(100);
@@ -25,14 +26,13 @@ void HookIndicatorDrawer::draw(NVGcontext* vg, const RenderView& view) {
 	nvgSave(vg);
 
 	// Style
-	const NVGcolor fillColor = nvgRGBA(255, 215, 0, 240); // Golden Yellow, more intense
-	const NVGcolor strokeColor = nvgRGBA(0, 0, 0, 255); // Solid black border
+	const NVGcolor tintColor = nvgRGBA(204, 255, 0, 255); // Fluorescent Yellow-Green (#ccff00)
+	const wxColour wxTint(tintColor.r * 255, tintColor.g * 255, tintColor.b * 255);
+	const wxColour wxBlack(0, 0, 0);
 
 	const float zoomFactor = 1.0f / view.zoom;
-	const float arrowSize = 15.0f * zoomFactor; // Slightly larger
-	const float headSize = 6.0f * zoomFactor;
-	const float shaftWidth = 4.0f * zoomFactor; // Thicker shaft to show more fill
-	const float strokeWidth = 1.0f * zoomFactor; // Thinner border relative to size
+	const float iconSize = 24.0f * zoomFactor;
+	const float outlineOffset = 1.0f * zoomFactor;
 
 	for (const auto& request : requests) {
 		// Only render hooks on the current floor
@@ -50,48 +50,43 @@ void HookIndicatorDrawer::draw(NVGcontext* vg, const RenderView& view) {
 		const float y = unscaled_y / zoom;
 		const float tileSize = 32.0f / zoom;
 
+		auto drawIconWithBorder = [&](float cx, float cy, const std::string& iconMacro) {
+			int imgBlack = IMAGE_MANAGER.GetNanoVGImage(vg, iconMacro, wxBlack);
+			int imgGreen = IMAGE_MANAGER.GetNanoVGImage(vg, iconMacro, wxTint);
+
+			if (imgBlack > 0 && imgGreen > 0) {
+				// Draw outline (4 directions)
+				float offsets[4][2] = {
+					{ -outlineOffset, 0 }, { outlineOffset, 0 }, { 0, -outlineOffset }, { 0, outlineOffset }
+				};
+
+				for (int i = 0; i < 4; ++i) {
+					float ox = cx + offsets[i][0];
+					float oy = cy + offsets[i][1];
+					NVGpaint paint = nvgImagePattern(vg, ox - iconSize / 2.0f, oy - iconSize / 2.0f, iconSize, iconSize, 0, imgBlack, 1.0f);
+					nvgBeginPath(vg);
+					nvgRect(vg, ox - iconSize / 2.0f, oy - iconSize / 2.0f, iconSize, iconSize);
+					nvgFillPaint(vg, paint);
+					nvgFill(vg);
+				}
+
+				// Draw main icon
+				NVGpaint paint = nvgImagePattern(vg, cx - iconSize / 2.0f, cy - iconSize / 2.0f, iconSize, iconSize, 0, imgGreen, 1.0f);
+				nvgBeginPath(vg);
+				nvgRect(vg, cx - iconSize / 2.0f, cy - iconSize / 2.0f, iconSize, iconSize);
+				nvgFillPaint(vg, paint);
+				nvgFill(vg);
+			}
+		};
+
 		if (request.south) {
-			// "Up arrow" on center of WEST border, pointing NORTH (towards corner)
-			float cx = x;
-			float cy = y + tileSize / 2.0f;
-
-			nvgBeginPath(vg);
-			// Shaft
-			nvgRect(vg, cx - shaftWidth / 2.0f, cy, shaftWidth, -(arrowSize - headSize));
-
-			// Head
-			nvgMoveTo(vg, cx - headSize, cy - (arrowSize - headSize));
-			nvgLineTo(vg, cx, cy - arrowSize);
-			nvgLineTo(vg, cx + headSize, cy - (arrowSize - headSize));
-			nvgClosePath(vg);
-
-			nvgFillColor(vg, fillColor);
-			nvgFill(vg);
-			nvgStrokeColor(vg, strokeColor);
-			nvgStrokeWidth(vg, strokeWidth);
-			nvgStroke(vg);
+			// Center of WEST border, pointing NORTH (towards corner)
+			drawIconWithBorder(x, y + tileSize / 2.0f, ICON_ANGLE_UP);
 		}
 
 		if (request.east) {
-			// "Left arrow" on center of NORTH border, pointing WEST (towards corner)
-			float cx = x + tileSize / 2.0f;
-			float cy = y;
-
-			nvgBeginPath(vg);
-			// Shaft
-			nvgRect(vg, cx, cy - shaftWidth / 2.0f, -(arrowSize - headSize), shaftWidth);
-
-			// Head
-			nvgMoveTo(vg, cx - (arrowSize - headSize), cy - headSize);
-			nvgLineTo(vg, cx - arrowSize, cy);
-			nvgLineTo(vg, cx - (arrowSize - headSize), cy + headSize);
-			nvgClosePath(vg);
-
-			nvgFillColor(vg, fillColor);
-			nvgFill(vg);
-			nvgStrokeColor(vg, strokeColor);
-			nvgStrokeWidth(vg, strokeWidth);
-			nvgStroke(vg);
+			// Center of NORTH border, pointing WEST (towards corner)
+			drawIconWithBorder(x + tileSize / 2.0f, y, ICON_ANGLE_LEFT);
 		}
 	}
 

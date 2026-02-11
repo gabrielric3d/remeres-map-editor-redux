@@ -134,18 +134,19 @@ wxImage ImageManager::TintImage(const wxImage& image, const wxColour& tint) {
 	int size = tinted.GetWidth() * tinted.GetHeight();
 
 	for (int i = 0; i < size; ++i) {
-		// Basic tinting: multiply color by tint, keep alpha
-		// This works well for white/grayscale icons
-		data[i * 3 + 0] = (unsigned char)((data[i * 3 + 0] * r) / 255);
-		data[i * 3 + 1] = (unsigned char)((data[i * 3 + 1] * g) / 255);
-		data[i * 3 + 2] = (unsigned char)((data[i * 3 + 2] * b) / 255);
+		// Silhouette tinting: replace existing color with the tint color.
+		// The original alpha channel handles the shape and anti-aliasing.
+		data[i * 3 + 0] = r;
+		data[i * 3 + 1] = g;
+		data[i * 3 + 2] = b;
 	}
 
 	return tinted;
 }
 
-int ImageManager::GetNanoVGImage(NVGcontext* vg, const std::string& assetPath) {
-	auto it = m_nvgImageCache.find(assetPath);
+int ImageManager::GetNanoVGImage(NVGcontext* vg, const std::string& assetPath, const wxColour& tint) {
+	std::pair<std::string, uint32_t> cacheKey = { assetPath, tint.IsOk() ? (uint32_t)tint.GetRGB() : 0xFFFFFFFF };
+	auto it = m_nvgImageCache.find(cacheKey);
 	if (it != m_nvgImageCache.end()) {
 		return it->second;
 	}
@@ -154,12 +155,16 @@ int ImageManager::GetNanoVGImage(NVGcontext* vg, const std::string& assetPath) {
 	int img = 0;
 
 	if (assetPath.ends_with(".svg")) {
-		// NanoVG doesn't native load SVG. We need to rasterize it or use a separate SVG parser.
+		// NanoVG doesn't native load SVG. We need to rasterize it.
 		// For now, let's Rasterize it via wxImage (easiest bridge)
 		wxBitmapBundle bundle = wxBitmapBundle::FromSVGFile(fullPath, wxSize(128, 128)); // High res raster
 		if (bundle.IsOk()) {
 			wxImage image = bundle.GetBitmap(wxSize(128, 128)).ConvertToImage();
 			if (image.IsOk()) {
+				if (tint.IsOk()) {
+					image = TintImage(image, tint);
+				}
+
 				int w = image.GetWidth();
 				int h = image.GetHeight();
 				std::vector<uint8_t> rgba(w * h * 4);
@@ -177,11 +182,32 @@ int ImageManager::GetNanoVGImage(NVGcontext* vg, const std::string& assetPath) {
 			}
 		}
 	} else {
-		img = nvgCreateImage(vg, fullPath.c_str(), 0);
+		if (tint.IsOk()) {
+			// For PNGs with tint, we need to load via wxImage, tint, and then create NanoVG image
+			wxImage image(fullPath, wxBITMAP_TYPE_PNG);
+			if (image.IsOk()) {
+				image = TintImage(image, tint);
+				int w = image.GetWidth();
+				int h = image.GetHeight();
+				std::vector<uint8_t> rgba(w * h * 4);
+				unsigned char* data = image.GetData();
+				unsigned char* alpha = image.GetAlpha();
+				bool hasAlpha = image.HasAlpha();
+				for (int i = 0; i < w * h; ++i) {
+					rgba[i * 4 + 0] = data[i * 3 + 0];
+					rgba[i * 4 + 1] = data[i * 3 + 1];
+					rgba[i * 4 + 2] = data[i * 3 + 2];
+					rgba[i * 4 + 3] = (hasAlpha && alpha) ? alpha[i] : 255;
+				}
+				img = nvgCreateImageRGBA(vg, w, h, 0, rgba.data());
+			}
+		} else {
+			img = nvgCreateImage(vg, fullPath.c_str(), 0);
+		}
 	}
 
 	if (img != 0) {
-		m_nvgImageCache[assetPath] = img;
+		m_nvgImageCache[cacheKey] = img;
 	} else {
 		spdlog::error("Failed to load NanoVG image: {}", assetPath);
 	}
