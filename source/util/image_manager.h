@@ -27,7 +27,7 @@ public:
 	wxBitmap GetBitmap(const std::string& assetPath, const wxSize& size = wxDefaultSize, const wxColour& tint = wxNullColour);
 
 	// NanoVG support
-	int GetNanoVGImage(NVGcontext* vg, const std::string& assetPath);
+	int GetNanoVGImage(NVGcontext* vg, const std::string& assetPath, const wxColour& tint = wxNullColour);
 
 	// OpenGL support
 	uint32_t GetGLTexture(const std::string& assetPath);
@@ -44,11 +44,14 @@ private:
 	// Caches
 	std::map<std::string, wxBitmapBundle> m_bitmapBundleCache;
 	std::map<std::pair<std::string, uint32_t>, wxBitmap> m_tintedBitmapCache;
-	std::map<std::string, int> m_nvgImageCache;
+	std::map<std::pair<std::string, uint32_t>, int> m_nvgImageCache;
 	std::map<std::string, uint32_t> m_glTextureCache;
 
 	// Helper for tinting
 	wxImage TintImage(const wxImage& image, const wxColour& tint);
+
+	// Helper for NanoVG image creation
+	int CreateNanoVGImageFromWxImage(NVGcontext* vg, const wxImage& image);
 };
 
 // Helper macros for common assets
@@ -1612,7 +1615,6 @@ private:
 #define ICON_YIN_YANG "svg/solid/yin-yang.svg"
 #define ICON_Z "svg/solid/z.svg"
 
-
 // Additional SVG Icons - Regular
 #define ICON_ADDRESS_BOOK "svg/regular/address-book.svg"
 #define ICON_ADDRESS_CARD "svg/regular/address-card.svg"
@@ -1861,7 +1863,6 @@ private:
 #define ICON_CREATIVE_COMMONS_ND "svg/brands/creative-commons-nd.svg"
 #define ICON_CREATIVE_COMMONS_PD "svg/brands/creative-commons-pd.svg"
 #define ICON_CREATIVE_COMMONS_PD_ALT "svg/brands/creative-commons-pd-alt.svg"
-
 
 // Brush Assets (PNGs)
 #define IMAGE_CIRCULAR_1 "png/circular_1.png"

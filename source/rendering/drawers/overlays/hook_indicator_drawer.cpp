@@ -2,6 +2,8 @@
 #include <nanovg.h>
 #include "rendering/core/render_view.h"
 #include "app/definitions.h"
+#include "util/image_manager.h"
+#include "rendering/utilities/icon_renderer.h"
 
 HookIndicatorDrawer::HookIndicatorDrawer() {
 	requests.reserve(100);
@@ -25,14 +27,11 @@ void HookIndicatorDrawer::draw(NVGcontext* vg, const RenderView& view) {
 	nvgSave(vg);
 
 	// Style
-	const NVGcolor fillColor = nvgRGBA(255, 215, 0, 240); // Golden Yellow, more intense
-	const NVGcolor strokeColor = nvgRGBA(0, 0, 0, 255); // Solid black border
+	const NVGcolor tintColor = nvgRGBA(204, 255, 0, 255); // Fluorescent Yellow-Green (#ccff00)
 
 	const float zoomFactor = 1.0f / view.zoom;
-	const float arrowSize = 15.0f * zoomFactor; // Slightly larger
-	const float headSize = 6.0f * zoomFactor;
-	const float shaftWidth = 4.0f * zoomFactor; // Thicker shaft to show more fill
-	const float strokeWidth = 1.0f * zoomFactor; // Thinner border relative to size
+	const float iconSize = 24.0f * zoomFactor;
+	const float outlineOffset = 1.0f * zoomFactor;
 
 	for (const auto& request : requests) {
 		// Only render hooks on the current floor
@@ -51,47 +50,13 @@ void HookIndicatorDrawer::draw(NVGcontext* vg, const RenderView& view) {
 		const float tileSize = 32.0f / zoom;
 
 		if (request.south) {
-			// "Up arrow" on center of WEST border, pointing NORTH (towards corner)
-			float cx = x;
-			float cy = y + tileSize / 2.0f;
-
-			nvgBeginPath(vg);
-			// Shaft
-			nvgRect(vg, cx - shaftWidth / 2.0f, cy, shaftWidth, -(arrowSize - headSize));
-
-			// Head
-			nvgMoveTo(vg, cx - headSize, cy - (arrowSize - headSize));
-			nvgLineTo(vg, cx, cy - arrowSize);
-			nvgLineTo(vg, cx + headSize, cy - (arrowSize - headSize));
-			nvgClosePath(vg);
-
-			nvgFillColor(vg, fillColor);
-			nvgFill(vg);
-			nvgStrokeColor(vg, strokeColor);
-			nvgStrokeWidth(vg, strokeWidth);
-			nvgStroke(vg);
+			// Center of WEST border, pointing NORTH (towards corner)
+			IconRenderer::DrawIconWithBorder(vg, x, y + tileSize / 2.0f, iconSize, outlineOffset, ICON_ANGLE_UP, tintColor);
 		}
 
 		if (request.east) {
-			// "Left arrow" on center of NORTH border, pointing WEST (towards corner)
-			float cx = x + tileSize / 2.0f;
-			float cy = y;
-
-			nvgBeginPath(vg);
-			// Shaft
-			nvgRect(vg, cx, cy - shaftWidth / 2.0f, -(arrowSize - headSize), shaftWidth);
-
-			// Head
-			nvgMoveTo(vg, cx - (arrowSize - headSize), cy - headSize);
-			nvgLineTo(vg, cx - arrowSize, cy);
-			nvgLineTo(vg, cx - (arrowSize - headSize), cy + headSize);
-			nvgClosePath(vg);
-
-			nvgFillColor(vg, fillColor);
-			nvgFill(vg);
-			nvgStrokeColor(vg, strokeColor);
-			nvgStrokeWidth(vg, strokeWidth);
-			nvgStroke(vg);
+			// Center of NORTH border, pointing WEST (towards corner)
+			IconRenderer::DrawIconWithBorder(vg, x + tileSize / 2.0f, y, iconSize, outlineOffset, ICON_ANGLE_LEFT, tintColor);
 		}
 	}
 

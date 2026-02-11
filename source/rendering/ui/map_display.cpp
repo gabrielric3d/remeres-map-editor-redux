@@ -232,6 +232,9 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 			if (options.show_hooks) {
 				drawer->DrawHookIndicators(vg);
 			}
+			if (options.highlight_locked_doors) {
+				drawer->DrawDoorIndicators(vg);
+			}
 
 			// Floating HUD (Selection & Cursor Info)
 			int w = GetSize().x;

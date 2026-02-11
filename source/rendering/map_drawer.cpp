@@ -60,6 +60,7 @@
 #include "rendering/drawers/entities/creature_drawer.h"
 #include "rendering/drawers/overlays/marker_drawer.h"
 #include "rendering/drawers/overlays/hook_indicator_drawer.h"
+#include "rendering/drawers/overlays/door_indicator_drawer.h"
 #include "rendering/drawers/overlays/preview_drawer.h"
 #include "rendering/drawers/tiles/shade_drawer.h"
 #include "rendering/drawers/tiles/tile_color_calculator.h"
@@ -114,8 +115,10 @@ MapDrawer::MapDrawer(MapCanvas* canvas) :
 	sprite_batch = std::make_unique<SpriteBatch>();
 	primitive_renderer = std::make_unique<PrimitiveRenderer>();
 	hook_indicator_drawer = std::make_unique<HookIndicatorDrawer>();
+	door_indicator_drawer = std::make_unique<DoorIndicatorDrawer>();
 
 	item_drawer->SetHookIndicatorDrawer(hook_indicator_drawer.get());
+	item_drawer->SetDoorIndicatorDrawer(door_indicator_drawer.get());
 }
 
 MapDrawer::~MapDrawer() {
@@ -399,6 +402,12 @@ void MapDrawer::DrawHookIndicators(NVGcontext* vg) {
 	hook_indicator_drawer->draw(vg, view);
 }
 
+void MapDrawer::DrawDoorIndicators(NVGcontext* vg) {
+	if (options.highlight_locked_doors) {
+		door_indicator_drawer->draw(vg, view);
+	}
+}
+
 void MapDrawer::DrawCreatureNames(NVGcontext* vg) {
 	creature_name_drawer->draw(vg, view);
 }
@@ -418,4 +427,5 @@ void MapDrawer::TakeScreenshot(uint8_t* screenshot_buffer) {
 void MapDrawer::ClearFrameOverlays() {
 	tooltip_drawer->clear();
 	hook_indicator_drawer->clear();
+	door_indicator_drawer->clear();
 }
