@@ -118,7 +118,6 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/map/tileset.h
     ${CMAKE_CURRENT_LIST_DIR}/net/net_connection.h
     ${CMAKE_CURRENT_LIST_DIR}/net/process_com.h
-    ${CMAKE_CURRENT_LIST_DIR}/net/rme_net.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_brushlist.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_common.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_creature.h
@@ -445,7 +444,6 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/mkpch.cpp
     ${CMAKE_CURRENT_LIST_DIR}/net/net_connection.cpp
     ${CMAKE_CURRENT_LIST_DIR}/net/process_com.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/net/rme_net.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_brushlist.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_common.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_creature.cpp
