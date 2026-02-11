@@ -49,7 +49,7 @@ public:
 	~MapIterator() = default;
 	MapIterator(const MapIterator& other);
 
-	TileLocation& operator*() noexcept;
+	TileLocation& operator*() const noexcept;
 	TileLocation* operator->() noexcept {
 		return &(*(*this));
 	}

@@ -176,11 +176,11 @@ inline void foreach_ItemOnMap(Map& map, ForeachType& foreach, bool selectedTiles
 	std::vector<Container*> containers;
 	containers.reserve(32);
 
-	for (auto& tile_loc : map.tiles()) {
+	std::ranges::for_each(map.tiles(), [&](auto& tile_loc) {
 		++done;
 		Tile* tile = tile_loc.get();
 		if (selectedTiles && !tile->isSelected()) {
-			continue;
+			return;
 		}
 
 		if (tile->ground) {
@@ -211,15 +211,15 @@ inline void foreach_ItemOnMap(Map& map, ForeachType& foreach, bool selectedTiles
 				}
 			}
 		}
-	}
+	});
 }
 
 template <typename ForeachType>
 inline void foreach_TileOnMap(Map& map, ForeachType& foreach) {
 	long long done = 0;
-	for (auto& tile_loc : map.tiles()) {
+	std::ranges::for_each(map.tiles(), [&](auto& tile_loc) {
 		foreach (map, tile_loc.get(), ++done);
-	}
+	});
 }
 
 template <typename RemoveIfType>
@@ -228,14 +228,14 @@ inline long long remove_if_TileOnMap(Map& map, RemoveIfType& remove_if) {
 	long long removed = 0;
 	long long total = map.getTileCount();
 
-	for (auto& tile_loc : map.tiles()) {
+	std::ranges::for_each(map.tiles(), [&](auto& tile_loc) {
 		Tile* tile = tile_loc.get();
 		if (remove_if(map, tile, removed, done, total)) {
 			map.setTile(tile->getPosition(), std::unique_ptr<Tile>());
 			++removed;
 		}
 		++done;
-	}
+	});
 
 	return removed;
 }
@@ -245,11 +245,11 @@ inline int64_t RemoveItemOnMap(Map& map, RemoveIfType& condition, bool selectedO
 	int64_t done = 0;
 	int64_t removed = 0;
 
-	for (auto& tile_loc : map.tiles()) {
+	std::ranges::for_each(map.tiles(), [&](auto& tile_loc) {
 		++done;
 		Tile* tile = tile_loc.get();
 		if (selectedOnly && !tile->isSelected()) {
-			continue;
+			return;
 		}
 
 		if (tile->ground) {
@@ -260,17 +260,17 @@ inline int64_t RemoveItemOnMap(Map& map, RemoveIfType& condition, bool selectedO
 			}
 		}
 
-		for (auto iit = tile->items.begin(); iit != tile->items.end();) {
-			Item* item = *iit;
+		// Use erase_if pattern for vector
+		auto it = std::remove_if(tile->items.begin(), tile->items.end(), [&](Item* item) {
 			if (condition(map, item, removed, done)) {
-				iit = tile->items.erase(iit);
 				delete item;
 				++removed;
-			} else {
-				++iit;
+				return true;
 			}
-		}
-	}
+			return false;
+		});
+		tile->items.erase(it, tile->items.end());
+	});
 	return removed;
 }
 
