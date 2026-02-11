@@ -126,7 +126,6 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/house_palette.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/edit_house_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_window.h
-    ${CMAKE_CURRENT_LIST_DIR}/palette/controls/brush_button.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/controls/virtual_brush_grid.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/panels/brush_palette_panel.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/panels/brush_panel.h
@@ -453,7 +452,6 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/house_palette.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/edit_house_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_window.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/palette/controls/brush_button.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/controls/virtual_brush_grid.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/panels/brush_palette_panel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/panels/brush_panel.cpp

@@ -103,6 +103,7 @@ void WaypointPalettePanel::OnUpdate() {
 			map->waypoints.removeWaypoint(wp->name);
 		}
 	}
+	waypoint_list->Freeze();
 	waypoint_list->DeleteAllItems();
 
 	if (!map) {
@@ -120,6 +121,7 @@ void WaypointPalettePanel::OnUpdate() {
 			waypoint_list->InsertItem(0, wxstr(iter->second->name));
 		}
 	}
+	waypoint_list->Thaw();
 }
 
 void WaypointPalettePanel::OnClickWaypoint(wxListEvent& event) {
