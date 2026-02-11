@@ -27,7 +27,6 @@ void DoorIndicatorDrawer::draw(NVGcontext* vg, const RenderView& view) {
 
 	const NVGcolor colorLocked = nvgRGBA(255, 0, 0, 255); // Red
 	const NVGcolor colorUnlocked = nvgRGBA(102, 255, 0, 255); // Green (#66ff00)
-	const wxColour wxBlack(0, 0, 0);
 
 	const float zoomFactor = 1.0f / view.zoom;
 	const float iconSize = 12.0f * zoomFactor;

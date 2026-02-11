@@ -49,6 +49,9 @@ private:
 
 	// Helper for tinting
 	wxImage TintImage(const wxImage& image, const wxColour& tint);
+
+	// Helper for NanoVG image creation
+	int CreateNanoVGImageFromWxImage(NVGcontext* vg, const wxImage& image);
 };
 
 // Helper macros for common assets

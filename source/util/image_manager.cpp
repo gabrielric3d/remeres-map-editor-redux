@@ -164,21 +164,7 @@ int ImageManager::GetNanoVGImage(NVGcontext* vg, const std::string& assetPath, c
 				if (tint.IsOk()) {
 					image = TintImage(image, tint);
 				}
-
-				int w = image.GetWidth();
-				int h = image.GetHeight();
-				std::vector<uint8_t> rgba(w * h * 4);
-				unsigned char* data = image.GetData();
-				unsigned char* alpha = image.GetAlpha();
-				bool hasAlpha = image.HasAlpha();
-
-				for (int i = 0; i < w * h; ++i) {
-					rgba[i * 4 + 0] = data[i * 3 + 0];
-					rgba[i * 4 + 1] = data[i * 3 + 1];
-					rgba[i * 4 + 2] = data[i * 3 + 2];
-					rgba[i * 4 + 3] = (hasAlpha && alpha) ? alpha[i] : 255;
-				}
-				img = nvgCreateImageRGBA(vg, w, h, 0, rgba.data());
+				img = CreateNanoVGImageFromWxImage(vg, image);
 			}
 		}
 	} else {
@@ -187,19 +173,7 @@ int ImageManager::GetNanoVGImage(NVGcontext* vg, const std::string& assetPath, c
 			wxImage image(fullPath, wxBITMAP_TYPE_PNG);
 			if (image.IsOk()) {
 				image = TintImage(image, tint);
-				int w = image.GetWidth();
-				int h = image.GetHeight();
-				std::vector<uint8_t> rgba(w * h * 4);
-				unsigned char* data = image.GetData();
-				unsigned char* alpha = image.GetAlpha();
-				bool hasAlpha = image.HasAlpha();
-				for (int i = 0; i < w * h; ++i) {
-					rgba[i * 4 + 0] = data[i * 3 + 0];
-					rgba[i * 4 + 1] = data[i * 3 + 1];
-					rgba[i * 4 + 2] = data[i * 3 + 2];
-					rgba[i * 4 + 3] = (hasAlpha && alpha) ? alpha[i] : 255;
-				}
-				img = nvgCreateImageRGBA(vg, w, h, 0, rgba.data());
+				img = CreateNanoVGImageFromWxImage(vg, image);
 			}
 		} else {
 			img = nvgCreateImage(vg, fullPath.c_str(), 0);
@@ -213,6 +187,23 @@ int ImageManager::GetNanoVGImage(NVGcontext* vg, const std::string& assetPath, c
 	}
 
 	return img;
+}
+
+int ImageManager::CreateNanoVGImageFromWxImage(NVGcontext* vg, const wxImage& image) {
+	int w = image.GetWidth();
+	int h = image.GetHeight();
+	std::vector<uint8_t> rgba(w * h * 4);
+	unsigned char* data = image.GetData();
+	unsigned char* alpha = image.GetAlpha();
+	bool hasAlpha = image.HasAlpha();
+
+	for (int i = 0; i < w * h; ++i) {
+		rgba[i * 4 + 0] = data[i * 3 + 0];
+		rgba[i * 4 + 1] = data[i * 3 + 1];
+		rgba[i * 4 + 2] = data[i * 3 + 2];
+		rgba[i * 4 + 3] = (hasAlpha && alpha) ? alpha[i] : 255;
+	}
+	return nvgCreateImageRGBA(vg, w, h, 0, rgba.data());
 }
 
 uint32_t ImageManager::GetGLTexture(const std::string& assetPath) {

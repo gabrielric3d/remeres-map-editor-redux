@@ -28,8 +28,6 @@ void HookIndicatorDrawer::draw(NVGcontext* vg, const RenderView& view) {
 
 	// Style
 	const NVGcolor tintColor = nvgRGBA(204, 255, 0, 255); // Fluorescent Yellow-Green (#ccff00)
-	const wxColour wxTint(tintColor.r * 255, tintColor.g * 255, tintColor.b * 255);
-	const wxColour wxBlack(0, 0, 0);
 
 	const float zoomFactor = 1.0f / view.zoom;
 	const float iconSize = 24.0f * zoomFactor;
