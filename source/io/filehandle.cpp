@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <algorithm>
+#include <format>
 
 uint8_t NodeFileWriteHandle::NODE_START = ::NODE_START;
 uint8_t NodeFileWriteHandle::NODE_END = ::NODE_END;
@@ -54,7 +55,7 @@ std::string FileHandle::getErrorMessage() {
 		return "Could not open file (2)";
 	}
 	if (ferror(file.get())) {
-		return "Internal file error #" + i2s(ferror(file.get()));
+		return std::format("Internal file error #{}", ferror(file.get()));
 	}
 	return "No error";
 }
@@ -525,7 +526,10 @@ bool FileWriteHandle::addString(const char* str) {
 		return false;
 	}
 	addU16(uint16_t(len));
-	fwrite(str, 1, len, file.get());
+	if (fwrite(str, 1, len, file.get()) != len) {
+		error_code = FILE_WRITE_ERROR;
+		return false;
+	}
 	return true;
 }
 
@@ -581,16 +585,18 @@ void DiskNodeFileWriteHandle::close() {
 	}
 }
 
-void DiskNodeFileWriteHandle::renewCache() {
+bool DiskNodeFileWriteHandle::renewCache() {
 	if (!cache.empty()) {
 		fwrite(cache.data(), local_write_index, 1, file.get());
 		if (ferror(file.get()) != 0) {
 			error_code = FILE_WRITE_ERROR;
+			return false;
 		}
 	} else {
 		cache.resize(INITIAL_CACHE_SIZE + 1);
 	}
 	local_write_index = 0;
+	return true;
 }
 
 //=============================================================================
@@ -622,12 +628,13 @@ size_t MemoryNodeFileWriteHandle::getSize() {
 	return local_write_index;
 }
 
-void MemoryNodeFileWriteHandle::renewCache() {
+bool MemoryNodeFileWriteHandle::renewCache() {
 	if (!cache.empty()) {
 		cache.resize(cache.size() * 2);
 	} else {
 		cache.resize(INITIAL_CACHE_SIZE + 1);
 	}
+	return true;
 }
 
 //=============================================================================

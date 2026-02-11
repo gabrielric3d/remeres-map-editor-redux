@@ -342,7 +342,7 @@ public:
 	}
 
 protected:
-	virtual void renewCache() = 0;
+	virtual bool renewCache() = 0;
 
 	static uint8_t NODE_START;
 	static uint8_t NODE_END;
@@ -358,12 +358,16 @@ protected:
 				if (*ptr == NODE_START || *ptr == NODE_END || *ptr == ESCAPE_CHAR) {
 					cache[local_write_index++] = ESCAPE_CHAR;
 					if (local_write_index >= cache.size()) {
-						renewCache();
+						if (!renewCache()) {
+							return;
+						}
 					}
 				}
 				cache[local_write_index++] = *ptr;
 				if (local_write_index >= cache.size()) {
-					renewCache();
+					if (!renewCache()) {
+						return;
+					}
 				}
 				++ptr;
 				--sz;
@@ -380,7 +384,7 @@ public:
 	void close() override;
 
 protected:
-	void renewCache() override;
+	bool renewCache() override;
 };
 
 class MemoryNodeFileWriteHandle : public NodeFileWriteHandle {
@@ -391,11 +395,13 @@ public:
 	void reset();
 	void close() override;
 
+	// Returns a pointer to the internal memory buffer.
+	// WARNING: This pointer may become invalid if the buffer is resized (e.g. by renewCache()).
 	uint8_t* getMemory();
 	size_t getSize();
 
 protected:
-	void renewCache() override;
+	bool renewCache() override;
 };
 
 #endif
