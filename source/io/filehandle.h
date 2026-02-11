@@ -348,6 +348,7 @@ protected:
 	static uint8_t NODE_END;
 	static uint8_t ESCAPE_CHAR;
 
+	static constexpr size_t INITIAL_CACHE_SIZE = 0x7FFF;
 	std::vector<uint8_t> cache;
 	size_t local_write_index;
 

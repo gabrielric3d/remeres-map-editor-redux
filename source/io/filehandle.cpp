@@ -565,7 +565,7 @@ DiskNodeFileWriteHandle::DiskNodeFileWriteHandle(const std::string& name, const 
 
 	fwrite(identifier.c_str(), 1, 4, file.get());
 
-	cache.resize(0x7FFF + 1);
+	cache.resize(INITIAL_CACHE_SIZE + 1);
 	local_write_index = 0;
 }
 
@@ -588,7 +588,7 @@ void DiskNodeFileWriteHandle::renewCache() {
 			error_code = FILE_WRITE_ERROR;
 		}
 	} else {
-		cache.resize(0x7FFF + 1);
+		cache.resize(INITIAL_CACHE_SIZE + 1);
 	}
 	local_write_index = 0;
 }
@@ -597,7 +597,7 @@ void DiskNodeFileWriteHandle::renewCache() {
 // Memory based node file write handle
 
 MemoryNodeFileWriteHandle::MemoryNodeFileWriteHandle() {
-	cache.resize(0x7FFF + 1);
+	cache.resize(INITIAL_CACHE_SIZE + 1);
 	local_write_index = 0;
 }
 
@@ -626,7 +626,7 @@ void MemoryNodeFileWriteHandle::renewCache() {
 	if (!cache.empty()) {
 		cache.resize(cache.size() * 2);
 	} else {
-		cache.resize(0x7FFF + 1);
+		cache.resize(INITIAL_CACHE_SIZE + 1);
 	}
 }
 
@@ -635,7 +635,7 @@ void MemoryNodeFileWriteHandle::renewCache() {
 
 NodeFileWriteHandle::NodeFileWriteHandle() :
 	local_write_index(0) {
-	cache.resize(0x7FFF);
+	// The cache is default-constructed as empty and will be sized by derived classes.
 }
 
 NodeFileWriteHandle::~NodeFileWriteHandle() {
