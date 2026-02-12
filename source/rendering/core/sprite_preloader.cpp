@@ -155,7 +155,7 @@ void SpritePreloader::update() {
 
 	while (!results.empty()) {
 		Result& res = results.front();
-		uint32_t id = res.id;
+		auto id = res.id;
 
 		// Check if GraphicManager is loaded, for the correct sprite file, and ID is valid
 		if (res.spritefile == g_gui.gfx.getSpriteFile() && !g_gui.gfx.isUnloaded() && id < g_gui.gfx.image_space.size()) {
@@ -176,7 +176,7 @@ void SpritePreloader::update() {
 
 	if (!ids_processed.empty()) {
 		std::lock_guard<std::mutex> lock(queue_mutex);
-		for (uint32_t id : ids_processed) {
+		for (const auto id : ids_processed) {
 			pending_ids.erase(id);
 		}
 	}
