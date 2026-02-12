@@ -142,8 +142,8 @@ protected:
 
 	bool loadMap(Map& map, NodeFileReadHandle& handle);
 	bool loadMapRoot(Map& map, NodeFileReadHandle& f, BinaryNode*& root, BinaryNode*& mapHeaderNode);
-	bool readMapAttributes(Map& map, BinaryNode* mapHeaderNode);
-	bool readMapNodes(Map& map, NodeFileReadHandle& f, BinaryNode* mapHeaderNode);
+	void readMapAttributes(Map& map, BinaryNode* mapHeaderNode);
+	void readMapNodes(Map& map, NodeFileReadHandle& f, BinaryNode* mapHeaderNode);
 
 	bool loadSpawns(Map& map, const FileName& dir);
 	bool loadSpawns(Map& map, pugi::xml_document& doc);

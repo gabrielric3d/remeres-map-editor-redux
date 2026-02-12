@@ -849,7 +849,7 @@ bool IOMapOTBM::loadMapRoot(Map& map, NodeFileReadHandle& f, BinaryNode*& root, 
 	return true;
 }
 
-bool IOMapOTBM::readMapAttributes(Map& map, BinaryNode* mapHeaderNode) {
+void IOMapOTBM::readMapAttributes(Map& map, BinaryNode* mapHeaderNode) {
 	uint8_t attribute;
 	while (mapHeaderNode->getU8(attribute)) {
 		switch (attribute) {
@@ -885,10 +885,10 @@ bool IOMapOTBM::readMapAttributes(Map& map, BinaryNode* mapHeaderNode) {
 			}
 		}
 	}
-	return true;
+	
 }
 
-bool IOMapOTBM::readMapNodes(Map& map, NodeFileReadHandle& f, BinaryNode* mapHeaderNode) {
+void IOMapOTBM::readMapNodes(Map& map, NodeFileReadHandle& f, BinaryNode* mapHeaderNode) {
 	int nodes_loaded = 0;
 
 	for (BinaryNode* mapNode = mapHeaderNode->getChild(); mapNode != nullptr; mapNode = mapNode->advance()) {
@@ -1089,7 +1089,7 @@ bool IOMapOTBM::readMapNodes(Map& map, NodeFileReadHandle& f, BinaryNode* mapHea
 			}
 		}
 	}
-	return true;
+	
 }
 
 bool IOMapOTBM::loadMap(Map& map, NodeFileReadHandle& f) {
