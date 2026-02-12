@@ -26,6 +26,7 @@
 #include "palette/palette_waypoints.h"
 #include "brushes/waypoint/waypoint_brush.h"
 #include "map/map.h"
+#include "util/image_manager.h"
 
 WaypointPalettePanel::WaypointPalettePanel(wxWindow* parent, wxWindowID id) :
 	PalettePanel(parent, id),
@@ -37,8 +38,12 @@ WaypointPalettePanel::WaypointPalettePanel(wxWindow* parent, wxWindowID id) :
 	sidesizer->Add(waypoint_list, 1, wxEXPAND);
 
 	wxSizer* tmpsizer = newd wxBoxSizer(wxHORIZONTAL);
-	tmpsizer->Add(add_waypoint_button = newd wxButton(this, PALETTE_WAYPOINT_ADD_WAYPOINT, "Add", wxDefaultPosition, wxSize(50, -1)), 1, wxEXPAND);
-	tmpsizer->Add(remove_waypoint_button = newd wxButton(this, PALETTE_WAYPOINT_REMOVE_WAYPOINT, "Remove", wxDefaultPosition, wxSize(70, -1)), 1, wxEXPAND);
+	add_waypoint_button = newd wxButton(this, PALETTE_WAYPOINT_ADD_WAYPOINT, "Add", wxDefaultPosition, wxSize(50, -1));
+	add_waypoint_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_PLUS, wxSize(16, 16)));
+	tmpsizer->Add(add_waypoint_button, 1, wxEXPAND);
+	remove_waypoint_button = newd wxButton(this, PALETTE_WAYPOINT_REMOVE_WAYPOINT, "Remove", wxDefaultPosition, wxSize(70, -1));
+	remove_waypoint_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_MINUS, wxSize(16, 16)));
+	tmpsizer->Add(remove_waypoint_button, 1, wxEXPAND);
 	sidesizer->Add(tmpsizer, 0, wxEXPAND);
 
 	SetSizerAndFit(sidesizer);
