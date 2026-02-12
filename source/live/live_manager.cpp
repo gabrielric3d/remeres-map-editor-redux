@@ -66,7 +66,7 @@ LiveServer* LiveManager::StartServer() {
 	ASSERT(IsLocal());
 	live_server = std::make_unique<LiveServer>(editor);
 
-	editor.actionQueue.reset(newd NetworkedActionQueue(editor));
+	editor.actionQueue = std::make_unique<NetworkedActionQueue>(editor);
 
 	return live_server.get();
 }
@@ -94,7 +94,7 @@ void LiveManager::CloseServer() {
 		live_client.reset();
 	}
 
-	editor.actionQueue.reset(newd ActionQueue(editor));
+	editor.actionQueue = std::make_unique<ActionQueue>(editor);
 
 	NetworkConnection& connection = NetworkConnection::getInstance();
 	connection.stop();

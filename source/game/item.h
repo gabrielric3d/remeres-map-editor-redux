@@ -90,11 +90,10 @@ public:
 	static std::unique_ptr<Item> Create_OTBM(const IOMap& maphandle, BinaryNode* stream);
 	// static std::unique_ptr<Item> Create_OTMM(const IOMap& maphandle, BinaryNode* stream);
 
-protected:
+public:
 	// Constructor for items
 	Item(unsigned short _type, unsigned short _count);
 
-public:
 	virtual ~Item();
 
 	// Deep copy thingy

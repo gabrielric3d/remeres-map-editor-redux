@@ -42,30 +42,30 @@ std::unique_ptr<Item> Item::Create(uint16_t _type, uint16_t _subtype /*= 0xFFFF*
 
 	if (it.id != 0) {
 		if (it.isDepot()) {
-			newItem.reset(newd Depot(_type));
+			newItem = std::make_unique<Depot>(_type);
 		} else if (it.isContainer()) {
-			newItem.reset(newd Container(_type));
+			newItem = std::make_unique<Container>(_type);
 		} else if (it.isTeleport()) {
-			newItem.reset(newd Teleport(_type));
+			newItem = std::make_unique<Teleport>(_type);
 		} else if (it.isDoor()) {
-			newItem.reset(newd Door(_type));
+			newItem = std::make_unique<Door>(_type);
 		} else if (it.isPodium()) {
-			newItem.reset(newd Podium(_type));
+			newItem = std::make_unique<Podium>(_type);
 		} else if (_subtype == 0xFFFF) {
 			if (it.isFluidContainer()) {
-				newItem.reset(newd Item(_type, LIQUID_NONE));
+				newItem = std::make_unique<Item>(_type, LIQUID_NONE);
 			} else if (it.isSplash()) {
-				newItem.reset(newd Item(_type, LIQUID_WATER));
+				newItem = std::make_unique<Item>(_type, LIQUID_WATER);
 			} else if (it.charges > 0) {
-				newItem.reset(newd Item(_type, it.charges));
+				newItem = std::make_unique<Item>(_type, it.charges);
 			} else {
-				newItem.reset(newd Item(_type, 1));
+				newItem = std::make_unique<Item>(_type, 1);
 			}
 		} else {
-			newItem.reset(newd Item(_type, _subtype));
+			newItem = std::make_unique<Item>(_type, _subtype);
 		}
 	} else {
-		newItem.reset(newd Item(_type, _subtype));
+		newItem = std::make_unique<Item>(_type, _subtype);
 	}
 
 	return newItem;
