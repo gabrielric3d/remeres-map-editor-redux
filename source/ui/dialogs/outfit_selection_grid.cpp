@@ -3,6 +3,7 @@
 #include "rendering/utilities/sprite_icon_generator.h"
 #include "rendering/core/graphics.h"
 #include "ui/gui.h"
+#include "util/image_manager.h"
 
 #include <glad/glad.h>
 #include <nanovg.h>
@@ -319,9 +320,9 @@ void OutfitSelectionGrid::OnContextMenu(wxContextMenuEvent& event) {
 	}
 
 	wxMenu menu;
-	menu.Append(OutfitChooserDialog::ID_FAVORITE_RENAME, "Rename...");
-	menu.Append(OutfitChooserDialog::ID_FAVORITE_EDIT, "Update with Current");
-	menu.Append(OutfitChooserDialog::ID_FAVORITE_DELETE, "Delete");
+	menu.Append(OutfitChooserDialog::ID_FAVORITE_RENAME, "Rename...")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_PEN_TO_SQUARE, wxSize(16, 16)));
+	menu.Append(OutfitChooserDialog::ID_FAVORITE_EDIT, "Update with Current")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_SYNC, wxSize(16, 16)));
+	menu.Append(OutfitChooserDialog::ID_FAVORITE_DELETE, "Delete")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_TRASH_CAN, wxSize(16, 16)));
 
 	PopupMenu(&menu);
 }

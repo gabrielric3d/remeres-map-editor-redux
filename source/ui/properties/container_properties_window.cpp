@@ -162,11 +162,11 @@ void ContainerPropertiesWindow::OnContainerItemRightClick(wxMouseEvent& event) {
 
 	wxMenu menu;
 	if (button->getItem()) {
-		menu.Append(CONTAINER_POPUP_MENU_EDIT, "&Edit Item");
-		menu.Append(CONTAINER_POPUP_MENU_ADD, "&Add Item");
-		menu.Append(CONTAINER_POPUP_MENU_REMOVE, "&Remove Item");
+		menu.Append(CONTAINER_POPUP_MENU_EDIT, "&Edit Item")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_PEN_TO_SQUARE, wxSize(16, 16)));
+		menu.Append(CONTAINER_POPUP_MENU_ADD, "&Add Item")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_PLUS, wxSize(16, 16)));
+		menu.Append(CONTAINER_POPUP_MENU_REMOVE, "&Remove Item")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_MINUS, wxSize(16, 16)));
 	} else {
-		menu.Append(CONTAINER_POPUP_MENU_ADD, "&Add Item");
+		menu.Append(CONTAINER_POPUP_MENU_ADD, "&Add Item")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_PLUS, wxSize(16, 16)));
 	}
 
 	Container* container = dynamic_cast<Container*>(edit_item);

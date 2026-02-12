@@ -1,5 +1,6 @@
 #include "ui/replace_tool/rule_list_control.h"
 #include "ui/theme.h"
+#include "util/image_manager.h"
 #include <nanovg.h>
 #include <memory>
 #include <algorithm>
@@ -210,8 +211,8 @@ void RuleListControl::OnContextMenu(wxContextMenuEvent& event) {
 	}
 
 	wxMenu menu;
-	menu.Append(wxID_EDIT, "Edit Name");
-	menu.Append(wxID_DELETE, "Delete");
+	menu.Append(wxID_EDIT, "Edit Name")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_PEN_TO_SQUARE, wxSize(16, 16)));
+	menu.Append(wxID_DELETE, "Delete")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_TRASH_CAN, wxSize(16, 16)));
 
 	menu.Bind(wxEVT_MENU, [this, menuIdx](wxCommandEvent& e) {
 		if (menuIdx < 0 || menuIdx >= (int)m_ruleSetNames.size()) {
