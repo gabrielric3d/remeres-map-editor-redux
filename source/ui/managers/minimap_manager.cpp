@@ -56,13 +56,15 @@ void MinimapManager::Destroy() {
 	spdlog::info("MinimapManager::Destroy called");
 	spdlog::default_logger()->flush();
 	if (minimap) {
-		spdlog::info("MinimapManager::Destroy - detaching minimap from aui_manager");
-		spdlog::default_logger()->flush();
-		g_gui.aui_manager->DetachPane(minimap);
+		if (g_gui.aui_manager) {
+			spdlog::info("MinimapManager::Destroy - detaching minimap from aui_manager");
+			spdlog::default_logger()->flush();
+			g_gui.aui_manager->DetachPane(minimap);
 
-		spdlog::info("MinimapManager::Destroy - updating aui_manager");
-		spdlog::default_logger()->flush();
-		g_gui.aui_manager->Update();
+			spdlog::info("MinimapManager::Destroy - updating aui_manager");
+			spdlog::default_logger()->flush();
+			g_gui.aui_manager->Update();
+		}
 
 		spdlog::info("MinimapManager::Destroy - calling minimap->Destroy()");
 		spdlog::default_logger()->flush();

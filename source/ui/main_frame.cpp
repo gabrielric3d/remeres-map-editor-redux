@@ -333,6 +333,8 @@ void MainFrame::OnExit(wxCloseEvent& event) {
 
 	if (g_gui.aui_manager) {
 		g_gui.aui_manager->UnInit();
+		delete g_gui.aui_manager;
+		g_gui.aui_manager = nullptr;
 	}
 
 	static_cast<Application&>(wxGetApp()).Unload();

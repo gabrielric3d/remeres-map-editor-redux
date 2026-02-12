@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
 	return ret;
 }
 
-// OnRun is implemented above
+// OnRun is implemented below
 
 Application::~Application() {
 }
