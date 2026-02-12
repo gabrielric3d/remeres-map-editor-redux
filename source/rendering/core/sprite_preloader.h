@@ -44,11 +44,6 @@ private:
 		std::string spritefile;
 		bool is_extended;
 		bool has_transparency;
-		uint64_t priority;
-
-		bool operator<(const Task& other) const {
-			return priority < other.priority;
-		}
 	};
 
 	struct Result {
@@ -66,10 +61,9 @@ private:
 	bool stopping = false;
 	std::jthread worker;
 
-	std::priority_queue<Task> task_queue;
+	std::queue<Task> task_queue;
 	std::queue<Result> result_queue;
 	std::unordered_set<uint32_t> pending_ids; // To avoid duplicate tasks
-	uint64_t request_counter = 0;
 };
 
 namespace rme {

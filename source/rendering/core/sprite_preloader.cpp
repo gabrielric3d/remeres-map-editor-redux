@@ -37,7 +37,7 @@ void SpritePreloader::shutdown() {
 
 void SpritePreloader::clear() {
 	std::lock_guard<std::mutex> lock(queue_mutex);
-	task_queue = std::priority_queue<Task>();
+	task_queue = std::queue<Task>();
 	result_queue = std::queue<Result>();
 	pending_ids.clear();
 }
@@ -92,7 +92,7 @@ void SpritePreloader::preload(GameSprite* spr, int pattern_x, int pattern_y, int
 
 		for (uint32_t id : ids_to_enqueue) {
 			if (pending_ids.insert(id).second) {
-				task_queue.push({ id, sprfile, is_extended, has_transparency, ++request_counter });
+				task_queue.push({ id, sprfile, is_extended, has_transparency });
 			}
 		}
 		cv.notify_all();
@@ -108,7 +108,7 @@ void SpritePreloader::workerLoop(std::stop_token stop_token) {
 			if (stop_token.stop_requested()) {
 				break;
 			}
-			task = std::move(const_cast<Task&>(task_queue.top()));
+			task = std::move(task_queue.front());
 			task_queue.pop();
 		}
 
