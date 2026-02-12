@@ -471,6 +471,7 @@ bool DatLoader::ReadSpriteGroup(GraphicManager* manager, FileReadHandle& file, G
 	uint32_t numsprites = static_cast<uint32_t>(width) * static_cast<uint32_t>(height) * static_cast<uint32_t>(layers) * static_cast<uint32_t>(pattern_x) * static_cast<uint32_t>(pattern_y) * static_cast<uint32_t>(pattern_z) * static_cast<uint32_t>(frames);
 	if (group_index == 0) {
 		sType->numsprites = numsprites;
+		sType->spriteList.reserve(numsprites);
 	}
 
 	// Read the sprite ids
