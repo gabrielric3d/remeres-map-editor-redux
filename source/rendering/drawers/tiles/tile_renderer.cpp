@@ -27,11 +27,11 @@
 #include "rendering/core/light_buffer.h"
 
 TileRenderer::TileRenderer(ItemDrawer* id, SpriteDrawer* sd, CreatureDrawer* cd, CreatureNameDrawer* cnd, FloorDrawer* fd, MarkerDrawer* md, TooltipDrawer* td, Editor* ed) :
-	item_drawer(id), sprite_drawer(sd), creature_drawer(cd), creature_name_drawer(cnd), floor_drawer(fd), marker_drawer(md), tooltip_drawer(td), editor(ed) {
+	item_drawer(id), sprite_drawer(sd), creature_drawer(cd), floor_drawer(fd), marker_drawer(md), tooltip_drawer(td), creature_name_drawer(cnd), editor(ed) {
 }
 
 // Helper function to populate tooltip data from an item (in-place)
-static bool FillItemTooltipData(TooltipData& data, Item* item, const Position& pos, bool isHouseTile) {
+static bool FillItemTooltipData(TooltipData& data, Item* item, const Position& pos, bool isHouseTile, float zoom) {
 	if (!item) {
 		return false;
 	}
@@ -41,15 +41,33 @@ static bool FillItemTooltipData(TooltipData& data, Item* item, const Position& p
 		return false;
 	}
 
-	const uint16_t unique = item->getUniqueID();
-	const uint16_t action = item->getActionID();
-	std::string_view text = item->getText();
-	std::string_view description = item->getDescription();
+	uint16_t unique = 0;
+	uint16_t action = 0;
+	std::string_view text;
+	std::string_view description;
 	uint8_t doorId = 0;
 	Position destination;
+	bool hasContent = false;
+
+	bool is_complex = item->isComplex();
+	bool is_container = g_items[id].isContainer();
+	bool is_door = isHouseTile && item->isDoor();
+	bool is_teleport = item->isTeleport();
+
+	// Early exit for simple items
+	if (!is_complex && !is_container && !is_door && !is_teleport) {
+		return false;
+	}
+
+	if (is_complex) {
+		unique = item->getUniqueID();
+		action = item->getActionID();
+		text = item->getText();
+		description = item->getDescription();
+	}
 
 	// Check if it's a door
-	if (isHouseTile && item->isDoor()) {
+	if (is_door) {
 		if (const Door* door = item->asDoor()) {
 			if (door->isRealDoor()) {
 				doorId = door->getDoorID();
@@ -58,7 +76,7 @@ static bool FillItemTooltipData(TooltipData& data, Item* item, const Position& p
 	}
 
 	// Check if it's a teleport
-	if (item->isTeleport()) {
+	if (is_teleport) {
 		Teleport* tp = static_cast<Teleport*>(item);
 		if (tp->hasDestination()) {
 			destination = tp->getDestination();
@@ -66,8 +84,7 @@ static bool FillItemTooltipData(TooltipData& data, Item* item, const Position& p
 	}
 
 	// Check if container has content
-	bool hasContent = false;
-	if (g_items[id].isContainer()) {
+	if (is_container) {
 		if (const Container* container = item->asContainer()) {
 			hasContent = container->getItemCount() > 0;
 		}
@@ -96,7 +113,7 @@ static bool FillItemTooltipData(TooltipData& data, Item* item, const Position& p
 	data.destination = destination;
 
 	// Populate container items
-	if (g_items[id].isContainer()) {
+	if (g_items[id].isContainer() && zoom <= 1.5f) {
 		if (const Container* container = item->asContainer()) {
 			// Set capacity for rendering empty slots
 			data.containerCapacity = static_cast<uint8_t>(container->getVolume());
@@ -131,7 +148,7 @@ static bool FillItemTooltipData(TooltipData& data, Item* item, const Position& p
 	return true;
 }
 
-void TileRenderer::DrawTile(SpriteBatch& sprite_batch, PrimitiveRenderer& primitive_renderer, TileLocation* location, const RenderView& view, const DrawingOptions& options, uint32_t current_house_id, int in_draw_x, int in_draw_y) {
+void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, const RenderView& view, const DrawingOptions& options, uint32_t current_house_id, int in_draw_x, int in_draw_y) {
 	if (!location) {
 		return;
 	}
@@ -160,10 +177,13 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, PrimitiveRenderer& primit
 		}
 	}
 
-	Waypoint* waypoint = editor->map.waypoints.getWaypoint(location);
+	Waypoint* waypoint = nullptr;
+	if (location->getWaypointCount() > 0) {
+		waypoint = editor->map.waypoints.getWaypoint(location);
+	}
 
 	// Waypoint tooltip (one per waypoint)
-	if (options.show_tooltips && location->getWaypointCount() > 0 && waypoint && map_z == view.floor) {
+	if (options.show_tooltips && waypoint && map_z == view.floor) {
 		tooltip_drawer->addWaypointTooltip(location->getPosition(), waypoint->name);
 	}
 
@@ -186,11 +206,7 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, PrimitiveRenderer& primit
 		}
 	} else {
 		if (tile->ground) {
-			if (options.show_preview && view.zoom <= 2.0) {
-				tile->ground->animate();
-			}
-
-			item_drawer->BlitItem(sprite_batch, primitive_renderer, sprite_drawer, creature_drawer, draw_x, draw_y, tile, tile->ground, options, false, r, g, b);
+			item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, tile, tile->ground, options, false, r, g, b);
 		} else if (options.always_show_zones && (r != 255 || g != 255 || b != 255)) {
 			ItemType* zoneItem = &g_items[SPRITE_ZONE];
 			item_drawer->DrawRawBrush(sprite_batch, sprite_drawer, draw_x, draw_y, zoneItem, r, g, b, 60);
@@ -200,7 +216,7 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, PrimitiveRenderer& primit
 	// Ground tooltip (one per item)
 	if (options.show_tooltips && map_z == view.floor && tile->ground) {
 		TooltipData& groundData = tooltip_drawer->requestTooltipData();
-		if (FillItemTooltipData(groundData, tile->ground, location->getPosition(), tile->isHouseTile())) {
+		if (FillItemTooltipData(groundData, tile->ground, location->getPosition(), tile->isHouseTile(), view.zoom)) {
 			if (groundData.hasVisibleFields()) {
 				tooltip_drawer->commitTooltip();
 			}
@@ -246,21 +262,16 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, PrimitiveRenderer& primit
 				// item tooltip (one per item)
 				if (options.show_tooltips && map_z == view.floor) {
 					TooltipData& itemData = tooltip_drawer->requestTooltipData();
-					if (FillItemTooltipData(itemData, item, location->getPosition(), tile->isHouseTile())) {
+					if (FillItemTooltipData(itemData, item, location->getPosition(), tile->isHouseTile(), view.zoom)) {
 						if (itemData.hasVisibleFields()) {
 							tooltip_drawer->commitTooltip();
 						}
 					}
 				}
 
-				// item animation
-				if (options.show_preview && view.zoom <= 2.0) {
-					item->animate();
-				}
-
 				// item sprite
 				if (item->isBorder()) {
-					item_drawer->BlitItem(sprite_batch, primitive_renderer, sprite_drawer, creature_drawer, draw_x, draw_y, tile, item, options, false, r, g, b);
+					item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, tile, item, options, false, r, g, b);
 				} else {
 					uint8_t ir = 255, ig = 255, ib = 255;
 
@@ -280,14 +291,14 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, PrimitiveRenderer& primit
 							}
 						}
 					}
-					item_drawer->BlitItem(sprite_batch, primitive_renderer, sprite_drawer, creature_drawer, draw_x, draw_y, tile, item, options, false, ir, ig, ib);
+					item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, tile, item, options, false, ir, ig, ib);
 				}
 			}
 			// monster/npc on tile
 			if (tile->creature && options.show_creatures) {
-				creature_drawer->BlitCreature(sprite_batch, sprite_drawer, draw_x, draw_y, tile->creature);
+				creature_drawer->BlitCreature(sprite_batch, sprite_drawer, draw_x, draw_y, tile->creature.get());
 				if (creature_name_drawer) {
-					creature_name_drawer->addLabel(location->getPosition(), tile->creature->getName(), tile->creature);
+					creature_name_drawer->addLabel(location->getPosition(), tile->creature->getName(), tile->creature.get());
 				}
 			}
 		}

@@ -24,6 +24,7 @@
 #include "rendering/core/graphics.h"
 #include "ui/gui.h"
 #include "ui/browse_tile_window.h"
+#include "util/image_manager.h"
 
 // ============================================================================
 //
@@ -41,13 +42,13 @@ public:
 protected:
 	void UpdateItems();
 
-	using ItemsMap = std::map<int, Item*>;
+	using ItemsMap = std::vector<Item*>;
 	ItemsMap items;
 	Tile* edit_tile;
 };
 
 BrowseTileListBox::BrowseTileListBox(wxWindow* parent, wxWindowID id, Tile* tile) :
-	wxVListBox(parent, id, wxDefaultPosition, wxSize(200, 180), wxLB_MULTIPLE), edit_tile(tile) {
+	wxVListBox(parent, id, wxDefaultPosition, FROM_DIP(parent, wxSize(200, 180)), wxLB_MULTIPLE), edit_tile(tile) {
 	UpdateItems();
 }
 
@@ -56,8 +57,7 @@ BrowseTileListBox::~BrowseTileListBox() {
 }
 
 void BrowseTileListBox::OnDrawItem(wxDC& dc, const wxRect& rect, size_t n) const {
-	ItemsMap::const_iterator item_iterator = items.find(int(n));
-	Item* item = item_iterator->second;
+	Item* item = items[n];
 
 	Sprite* sprite = g_gui.gfx.getSprite(item->getClientID());
 	if (sprite) {
@@ -112,25 +112,24 @@ void BrowseTileListBox::RemoveSelected() {
 }
 
 void BrowseTileListBox::UpdateItems() {
-	int n = 0;
+	items.clear();
+	items.reserve(edit_tile->items.size() + (edit_tile->ground ? 1 : 0));
 	for (ItemVector::reverse_iterator it = edit_tile->items.rbegin(); it != edit_tile->items.rend(); ++it) {
-		items[n] = (*it);
-		++n;
+		items.push_back(*it);
 	}
 
 	if (edit_tile->ground) {
-		items[n] = edit_tile->ground;
-		++n;
+		items.push_back(edit_tile->ground);
 	}
 
-	SetItemCount(n);
+	SetItemCount(items.size());
 }
 
 // ============================================================================
 //
 
 BrowseTileWindow::BrowseTileWindow(wxWindow* parent, Tile* tile, wxPoint position /* = wxDefaultPosition */) :
-	wxDialog(parent, wxID_ANY, "Browse Field", position, wxSize(600, 400), wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER) {
+	wxDialog(parent, wxID_ANY, "Browse Field", position, FROM_DIP(parent, wxSize(600, 400)), wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER) {
 	wxSizer* sizer = newd wxBoxSizer(wxVERTICAL);
 	item_list = newd BrowseTileListBox(this, wxID_ANY, tile);
 	sizer->Add(item_list, wxSizerFlags(1).Expand());
@@ -141,11 +140,13 @@ BrowseTileWindow::BrowseTileWindow(wxWindow* parent, Tile* tile, wxPoint positio
 	wxSizer* infoSizer = newd wxBoxSizer(wxVERTICAL);
 	wxBoxSizer* buttons = newd wxBoxSizer(wxHORIZONTAL);
 	delete_button = newd wxButton(this, wxID_REMOVE, "Delete");
+	delete_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_TRASH_CAN, wxSize(16, 16)));
 	delete_button->SetToolTip("Delete selected item");
 	delete_button->Enable(false);
 	buttons->Add(delete_button);
 	buttons->AddSpacer(5);
 	select_raw_button = newd wxButton(this, wxID_FIND, "Select RAW");
+	select_raw_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_SEARCH, wxSize(16, 16)));
 	select_raw_button->SetToolTip("Select this item in RAW palette");
 	select_raw_button->Enable(false);
 	buttons->Add(select_raw_button);
@@ -164,9 +165,11 @@ BrowseTileWindow::BrowseTileWindow(wxWindow* parent, Tile* tile, wxPoint positio
 	// OK/Cancel buttons
 	wxSizer* btnSizer = newd wxBoxSizer(wxHORIZONTAL);
 	auto okBtn = newd wxButton(this, wxID_OK, "OK");
+	okBtn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_CHECK, wxSize(16, 16)));
 	okBtn->SetToolTip("Confirm selection");
 	btnSizer->Add(okBtn, wxSizerFlags(0).Center());
 	auto cancelBtn = newd wxButton(this, wxID_CANCEL, "Cancel");
+	cancelBtn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_XMARK, wxSize(16, 16)));
 	cancelBtn->SetToolTip("Cancel");
 	btnSizer->Add(cancelBtn, wxSizerFlags(0).Center());
 	sizer->Add(btnSizer, wxSizerFlags(0).Center().DoubleBorder());

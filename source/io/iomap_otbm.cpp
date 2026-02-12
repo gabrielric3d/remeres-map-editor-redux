@@ -70,7 +70,7 @@ void reform(Map* map, Tile* tile, Item* item) {
 // ============================================================================
 // Item
 
-Item* Item::Create_OTBM(const IOMap& maphandle, BinaryNode* stream) {
+std::unique_ptr<Item> Item::Create_OTBM(const IOMap& maphandle, BinaryNode* stream) {
 	uint16_t _id;
 	if (!stream->getU16(_id)) {
 		return nullptr;
@@ -385,17 +385,16 @@ bool Container::unserializeItemNode_OTBM(const IOMap& maphandle, BinaryNode* nod
 				return false;
 			}
 
-			Item* item = Item::Create_OTBM(maphandle, child);
+			std::unique_ptr<Item> item = Item::Create_OTBM(maphandle, child);
 			if (!item) {
 				return false;
 			}
 
 			if (!item->unserializeItemNode_OTBM(maphandle, child)) {
-				delete item;
 				return false;
 			}
 
-			contents.push_back(item);
+			contents.push_back(item.release());
 		} while (child->advance());
 	}
 	return true;
@@ -554,7 +553,7 @@ bool IOMapOTBM::getVersionInfo(const FileName& filename, MapVersion& out_ver) {
 				}
 
 				// Create a read handle on it
-				std::shared_ptr<NodeFileReadHandle> f(new MemoryNodeFileReadHandle(buffer + 4, read_bytes - 4));
+				std::shared_ptr<NodeFileReadHandle> f = std::make_shared<MemoryNodeFileReadHandle>(buffer + 4, read_bytes - 4);
 
 				// Read the version info
 				return getVersionInfo(f.get(), out_ver);
@@ -647,9 +646,7 @@ bool IOMapOTBM::loadMap(Map& map, const FileName& filename) {
 				g_gui.SetLoadDone(0, "Loading OTBM map...");
 
 				// Create a read handle on it
-				std::shared_ptr<NodeFileReadHandle> f(
-					new MemoryNodeFileReadHandle(otbm_buffer.data() + 4, otbm_size - 4)
-				);
+				std::shared_ptr<NodeFileReadHandle> f = std::make_shared<MemoryNodeFileReadHandle>(otbm_buffer.data() + 4, otbm_size - 4);
 
 				// Read the version info
 				if (!loadMap(map, *f.get())) {
@@ -785,8 +782,8 @@ bool IOMapOTBM::loadMap(Map& map, const FileName& filename) {
 	return true;
 }
 
-bool IOMapOTBM::loadMap(Map& map, NodeFileReadHandle& f) {
-	BinaryNode* root = f.getRootNode();
+bool IOMapOTBM::loadMapRoot(Map& map, NodeFileReadHandle& f, BinaryNode*& root, BinaryNode*& mapHeaderNode) {
+	root = f.getRootNode();
 	if (!root) {
 		error("Could not read root node.");
 		return false;
@@ -844,12 +841,15 @@ bool IOMapOTBM::loadMap(Map& map, NodeFileReadHandle& f) {
 	}
 	version.client = (ClientVersionID)u32;
 
-	BinaryNode* mapHeaderNode = root->getChild();
+	mapHeaderNode = root->getChild();
 	if (mapHeaderNode == nullptr || !mapHeaderNode->getByte(u8) || u8 != OTBM_MAP_DATA) {
 		error("Could not get root child node. Cannot recover from fatal error!");
 		return false;
 	}
+	return true;
+}
 
+void IOMapOTBM::readMapAttributes(Map& map, BinaryNode* mapHeaderNode) {
 	uint8_t attribute;
 	while (mapHeaderNode->getU8(attribute)) {
 		switch (attribute) {
@@ -885,7 +885,10 @@ bool IOMapOTBM::loadMap(Map& map, NodeFileReadHandle& f) {
 			}
 		}
 	}
+	
+}
 
+void IOMapOTBM::readMapNodes(Map& map, NodeFileReadHandle& f, BinaryNode* mapHeaderNode) {
 	int nodes_loaded = 0;
 
 	for (BinaryNode* mapNode = mapHeaderNode->getChild(); mapNode != nullptr; mapNode = mapNode->advance()) {
@@ -927,7 +930,7 @@ bool IOMapOTBM::loadMap(Map& map, NodeFileReadHandle& f) {
 						continue;
 					}
 
-					tile = map.allocator(map.createTileL(pos));
+					tile = map.createTile(pos.x, pos.y, pos.z);
 					House* house = nullptr;
 					if (tile_type == OTBM_HOUSETILE) {
 						uint32_t house_id;
@@ -960,11 +963,11 @@ bool IOMapOTBM::loadMap(Map& map, NodeFileReadHandle& f) {
 								break;
 							}
 							case OTBM_ATTR_ITEM: {
-								Item* item = Item::Create_OTBM(*this, tileNode);
+								std::unique_ptr<Item> item = Item::Create_OTBM(*this, tileNode);
 								if (item == nullptr) {
 									warning("Invalid item at tile %d:%d:%d", pos.x, pos.y, pos.z);
 								}
-								tile->addItem(item);
+								tile->addItem(item.release());
 								break;
 							}
 							default: {
@@ -975,7 +978,7 @@ bool IOMapOTBM::loadMap(Map& map, NodeFileReadHandle& f) {
 					}
 
 					for (BinaryNode* itemNode = tileNode->getChild(); itemNode != nullptr; itemNode = itemNode->advance()) {
-						Item* item = nullptr;
+						std::unique_ptr<Item> item;
 						uint8_t item_type;
 						if (!itemNode->getByte(item_type)) {
 							warning("Unknown item type %d:%d:%d", pos.x, pos.y, pos.z);
@@ -988,7 +991,7 @@ bool IOMapOTBM::loadMap(Map& map, NodeFileReadHandle& f) {
 									warning("Couldn't unserialize item attributes at %d:%d:%d", pos.x, pos.y, pos.z);
 								}
 								// reform(&map, tile, item);
-								tile->addItem(item);
+								tile->addItem(item.release());
 							}
 						} else {
 							warning("Unknown type of tile child node");
@@ -1000,7 +1003,6 @@ bool IOMapOTBM::loadMap(Map& map, NodeFileReadHandle& f) {
 						house->addTile(tile);
 					}
 
-					map.setTile(pos.x, pos.y, pos.z, tile);
 				} else {
 					warning("Unknown type of tile node");
 				}
@@ -1087,6 +1089,20 @@ bool IOMapOTBM::loadMap(Map& map, NodeFileReadHandle& f) {
 			}
 		}
 	}
+	
+}
+
+bool IOMapOTBM::loadMap(Map& map, NodeFileReadHandle& f) {
+	BinaryNode* root = nullptr;
+	BinaryNode* mapHeaderNode = nullptr;
+
+	if (!loadMapRoot(map, f, root, mapHeaderNode)) {
+		return false;
+	}
+
+	readMapAttributes(map, mapHeaderNode);
+
+	readMapNodes(map, f, mapHeaderNode);
 
 	if (!f.isOk()) {
 		warning(wxstr(f.getErrorMessage()).wc_str());
@@ -1150,13 +1166,11 @@ bool IOMapOTBM::loadSpawns(Map& map, pugi::xml_document& doc) {
 			continue;
 		}
 
-		Spawn* spawn = newd Spawn(radius);
 		if (!tile) {
-			tile = map.allocator(map.createTileL(spawnPosition));
-			map.setTile(spawnPosition, tile);
+			tile = map.createTile(spawnPosition.x, spawnPosition.y, spawnPosition.z);
 		}
 
-		tile->spawn = spawn;
+		tile->spawn = std::make_unique<Spawn>(radius);
 		map.addSpawn(tile);
 
 		for (pugi::xml_node creatureNode = spawnNode.first_child(); creatureNode; creatureNode = creatureNode.next_sibling()) {
@@ -1233,16 +1247,14 @@ bool IOMapOTBM::loadSpawns(Map& map, pugi::xml_document& doc) {
 				}
 			}
 
-			Creature* creature = newd Creature(type);
-			creature->setDirection(direction);
-			creature->setSpawnTime(spawntime);
-			creatureTile->creature = creature;
+			creatureTile->creature = std::make_unique<Creature>(type);
+			creatureTile->creature->setDirection(direction);
+			creatureTile->creature->setSpawnTime(spawntime);
 
 			if (creatureTile->getLocation()->getSpawnCount() == 0) {
 				// No spawn, create a newd one
 				ASSERT(creatureTile->spawn == nullptr);
-				Spawn* spawn = newd Spawn(5);
-				creatureTile->spawn = spawn;
+				creatureTile->spawn = std::make_unique<Spawn>(5);
 				map.addSpawn(creatureTile);
 			}
 		}
@@ -1683,7 +1695,7 @@ bool IOMapOTBM::saveSpawns(Map& map, pugi::xml_document& doc) {
 			continue;
 		}
 
-		Spawn* spawn = tile->spawn;
+		Spawn* spawn = tile->spawn.get();
 		ASSERT(spawn);
 
 		pugi::xml_node spawnNode = spawnNodes.append_child("spawn");
@@ -1699,7 +1711,7 @@ bool IOMapOTBM::saveSpawns(Map& map, pugi::xml_document& doc) {
 			for (int32_t x = -radius; x <= radius; ++x) {
 				Tile* creature_tile = map.getTile(spawnPosition + Position(x, y, 0));
 				if (creature_tile) {
-					Creature* creature = creature_tile->creature;
+					Creature* creature = creature_tile->creature.get();
 					if (creature && !creature->isSaved()) {
 						pugi::xml_node creatureNode = spawnNode.append_child(creature->isNpc() ? "npc" : "monster");
 

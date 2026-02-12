@@ -10,6 +10,7 @@
 #include "editor/action_queue.h"
 #include "editor/selection.h"
 #include "map/map.h"
+#include "map/tile_operations.h"
 #include "brushes/ground/ground_brush.h"
 #include "app/settings.h"
 #include "ui/gui.h"
@@ -37,7 +38,7 @@ void SelectionOperations::doSurroundingBorders(DoodadBrush* doodad_brush, Positi
 void SelectionOperations::removeDuplicateWalls(Tile* buffer, Tile* tile) {
 	for (ItemVector::const_iterator iter = buffer->items.begin(); iter != buffer->items.end(); ++iter) {
 		if ((*iter)->getWallBrush()) {
-			tile->cleanWalls((*iter)->getWallBrush());
+			TileOperations::cleanWalls(tile, (*iter)->getWallBrush());
 		}
 	}
 }
@@ -49,10 +50,10 @@ void SelectionOperations::borderizeSelection(Editor& editor) {
 
 	std::unique_ptr<Action> action = editor.actionQueue->createAction(ACTION_BORDERIZE);
 	for (Tile* tile : editor.selection) {
-		Tile* newTile = tile->deepCopy(editor.map);
-		newTile->borderize(&editor.map);
+		std::unique_ptr<Tile> newTile = tile->deepCopy(editor.map);
+		TileOperations::borderize(newTile.get(), &editor.map);
 		newTile->select();
-		action->addChange(std::make_unique<Change>(newTile));
+		action->addChange(std::make_unique<Change>(newTile.release()));
 	}
 	editor.addAction(std::move(action));
 }
@@ -64,10 +65,10 @@ void SelectionOperations::randomizeSelection(Editor& editor) {
 
 	std::unique_ptr<Action> action = editor.actionQueue->createAction(ACTION_RANDOMIZE);
 	for (Tile* tile : editor.selection) {
-		Tile* newTile = tile->deepCopy(editor.map);
+		std::unique_ptr<Tile> newTile = tile->deepCopy(editor.map);
 		GroundBrush* groundBrush = newTile->getGroundBrush();
 		if (groundBrush && groundBrush->isReRandomizable()) {
-			groundBrush->draw(&editor.map, newTile, nullptr);
+			groundBrush->draw(&editor.map, newTile.get(), nullptr);
 
 			Item* oldGround = tile->ground;
 			Item* newGround = newTile->ground;
@@ -77,7 +78,7 @@ void SelectionOperations::randomizeSelection(Editor& editor) {
 			}
 
 			newTile->select();
-			action->addChange(std::make_unique<Change>(newTile));
+			action->addChange(std::make_unique<Change>(newTile.release()));
 		}
 	}
 	editor.addAction(std::move(action));
@@ -96,15 +97,11 @@ void SelectionOperations::moveSelection(Editor& editor, Position offset) {
 	for (auto it = editor.selection.begin(); it != editor.selection.end(); ++it) {
 		// First we get the old tile and it's position
 		Tile* tile = (*it);
-		// const Position pos = tile->getPosition();
 
 		// Create the duplicate source tile, which will replace the old one later
-		Tile* old_src_tile = tile;
-		Tile* new_src_tile;
+		std::unique_ptr<Tile> new_src_tile = tile->deepCopy(editor.map);
 
-		new_src_tile = old_src_tile->deepCopy(editor.map);
-
-		Tile* tmp_storage_tile = editor.map.allocator(tile->getLocation());
+		std::unique_ptr<Tile> tmp_storage_tile = editor.map.allocator(tile->getLocation());
 
 		// Get all the selected items from the NEW source tile and iterate through them
 		// This transfers ownership to the temporary tile
@@ -116,13 +113,11 @@ void SelectionOperations::moveSelection(Editor& editor, Position offset) {
 		}
 		// Move spawns
 		if (new_src_tile->spawn && new_src_tile->spawn->isSelected()) {
-			tmp_storage_tile->spawn = new_src_tile->spawn;
-			new_src_tile->spawn = nullptr;
+			tmp_storage_tile->spawn = std::move(new_src_tile->spawn);
 		}
 		// Move creatures
 		if (new_src_tile->creature && new_src_tile->creature->isSelected()) {
-			tmp_storage_tile->creature = new_src_tile->creature;
-			new_src_tile->creature = nullptr;
+			tmp_storage_tile->creature = std::move(new_src_tile->creature);
 		}
 
 		// Move house data & tile status if ground is transferred
@@ -134,9 +129,9 @@ void SelectionOperations::moveSelection(Editor& editor, Position offset) {
 			doborders = true;
 		}
 
-		tmp_storage.push_back(tmp_storage_tile);
+		tmp_storage.push_back(tmp_storage_tile.release());
 		// Add the tile copy to the action
-		action->addChange(std::make_unique<Change>(new_src_tile));
+		action->addChange(std::make_unique<Change>(new_src_tile.release()));
 	}
 	// Commit changes to map
 	batchAction->addAndCommitAction(std::move(action));
@@ -193,17 +188,17 @@ void SelectionOperations::moveSelection(Editor& editor, Position offset) {
 		// Do le borders!
 		for (TileList::iterator it = borderize_tiles.begin(); it != borderize_tiles.end(); ++it) {
 			Tile* tile = *it;
-			Tile* new_tile = (*it)->deepCopy(editor.map);
+			std::unique_ptr<Tile> new_tile = (*it)->deepCopy(editor.map);
 			if (doborders) {
-				new_tile->borderize(&editor.map);
+				TileOperations::borderize(new_tile.get(), &editor.map);
 			}
-			new_tile->wallize(&editor.map);
-			new_tile->tableize(&editor.map);
-			new_tile->carpetize(&editor.map);
+			TileOperations::wallize(new_tile.get(), &editor.map);
+			TileOperations::tableize(new_tile.get(), &editor.map);
+			TileOperations::carpetize(new_tile.get(), &editor.map);
 			if (tile->ground && tile->ground->isSelected()) {
 				new_tile->selectGround();
 			}
-			action->addChange(std::make_unique<Change>(new_tile));
+			action->addChange(std::make_unique<Change>(new_tile.release()));
 		}
 		// Commit changes to map
 		batchAction->addAndCommitAction(std::move(action));
@@ -225,24 +220,26 @@ void SelectionOperations::moveSelection(Editor& editor, Position offset) {
 		// Create the duplicate dest tile, which will replace the old one later
 		TileLocation* location = editor.map.createTileL(new_pos);
 		Tile* old_dest_tile = location->get();
-		Tile* new_dest_tile = nullptr;
+		std::unique_ptr<Tile> new_dest_tile;
 
 		if (g_settings.getInteger(Config::MERGE_MOVE) || !tile->ground) {
 			// Move items
 			if (old_dest_tile) {
 				new_dest_tile = old_dest_tile->deepCopy(editor.map);
+				ASSERT(new_dest_tile);
 			} else {
 				new_dest_tile = editor.map.allocator(location);
 			}
 			new_dest_tile->merge(tile);
+			// Removing old tile from memory since we merged it
 			delete tile;
 		} else {
 			// Replace tile instead of just merge
 			tile->setLocation(location);
-			new_dest_tile = tile;
+			new_dest_tile.reset(tile);
 		}
 
-		action->addChange(std::make_unique<Change>(new_dest_tile));
+		action->addChange(std::make_unique<Change>(new_dest_tile.release()));
 	}
 
 	// Commit changes to the map
@@ -315,20 +312,20 @@ void SelectionOperations::moveSelection(Editor& editor, Position offset) {
 			Tile* tile = *it;
 			if (tile->ground) {
 				if (tile->ground->getGroundBrush()) {
-					Tile* new_tile = tile->deepCopy(editor.map);
+					std::unique_ptr<Tile> new_tile = tile->deepCopy(editor.map);
 
 					if (doborders) {
-						new_tile->borderize(&editor.map);
+						TileOperations::borderize(new_tile.get(), &editor.map);
 					}
 
-					new_tile->wallize(&editor.map);
-					new_tile->tableize(&editor.map);
-					new_tile->carpetize(&editor.map);
+					TileOperations::wallize(new_tile.get(), &editor.map);
+					TileOperations::tableize(new_tile.get(), &editor.map);
+					TileOperations::carpetize(new_tile.get(), &editor.map);
 					if (tile->ground->isSelected()) {
 						new_tile->selectGround();
 					}
 
-					action->addChange(std::make_unique<Change>(new_tile));
+					action->addChange(std::make_unique<Change>(new_tile.release()));
 				}
 			}
 		}
@@ -356,7 +353,7 @@ void SelectionOperations::destroySelection(Editor& editor) {
 			tile_count++;
 
 			Tile* tile = *it;
-			Tile* newtile = tile->deepCopy(editor.map);
+			std::unique_ptr<Tile> newtile = tile->deepCopy(editor.map);
 
 			ItemVector tile_selection = newtile->popSelectedItems();
 			for (ItemVector::iterator iit = tile_selection.begin(); iit != tile_selection.end(); ++iit) {
@@ -366,25 +363,23 @@ void SelectionOperations::destroySelection(Editor& editor) {
 			}
 
 			if (newtile->creature && newtile->creature->isSelected()) {
-				delete newtile->creature;
-				newtile->creature = nullptr;
+				newtile->creature.reset();
 			}
 
 			if (newtile->spawn && newtile->spawn->isSelected()) {
-				delete newtile->spawn;
-				newtile->spawn = nullptr;
+				newtile->spawn.reset();
 			}
 
 			if (g_settings.getInteger(Config::USE_AUTOMAGIC)) {
 				for (int y = -1; y <= 1; y++) {
 					for (int x = -1; x <= 1; x++) {
 						tilestoborder.push_back(
-							Position(tile->getPosition().x + x, tile->getPosition().y + y, tile->getPosition().z)
+							Position(tile->getX() + x, tile->getY() + y, tile->getZ())
 						);
 					}
 				}
 			}
-			action->addChange(std::make_unique<Change>(newtile));
+			action->addChange(std::make_unique<Change>(newtile.release()));
 		}
 
 		batch->addAndCommitAction(std::move(action));
@@ -400,19 +395,17 @@ void SelectionOperations::destroySelection(Editor& editor) {
 				Tile* tile = location->get();
 
 				if (tile) {
-					Tile* new_tile = tile->deepCopy(editor.map);
-					new_tile->borderize(&editor.map);
-					new_tile->wallize(&editor.map);
-					new_tile->tableize(&editor.map);
-					new_tile->carpetize(&editor.map);
-					action->addChange(std::make_unique<Change>(new_tile));
+					std::unique_ptr<Tile> new_tile = tile->deepCopy(editor.map);
+					TileOperations::borderize(new_tile.get(), &editor.map);
+					TileOperations::wallize(new_tile.get(), &editor.map);
+					TileOperations::tableize(new_tile.get(), &editor.map);
+					TileOperations::carpetize(new_tile.get(), &editor.map);
+					action->addChange(std::make_unique<Change>(new_tile.release()));
 				} else {
-					Tile* new_tile = editor.map.allocator(location);
-					new_tile->borderize(&editor.map);
+					std::unique_ptr<Tile> new_tile = editor.map.allocator(location);
+					TileOperations::borderize(new_tile.get(), &editor.map);
 					if (new_tile->size()) {
-						action->addChange(std::make_unique<Change>(new_tile));
-					} else {
-						delete new_tile;
+						action->addChange(std::make_unique<Change>(new_tile.release()));
 					}
 				}
 			}

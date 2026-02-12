@@ -65,16 +65,20 @@ if(NOT nanovg_FOUND)
 endif()
 
 include(source/CMakeLists.txt)
-# WIN32 is required for wxWidgets app entry point (WinMain)
-if(WIN32)
-	add_executable(rme WIN32 ${rme_H} ${rme_SRC})
-else()
-	add_executable(rme ${rme_H} ${rme_SRC})
-endif()
+# Removed WIN32 to enable Console subsystem for persistent debugging logs
+add_executable(rme ${rme_H} ${rme_SRC})
 
 set_target_properties(rme PROPERTIES CXX_STANDARD 20)
 set_target_properties(rme PROPERTIES CXX_STANDARD_REQUIRED ON)
 target_compile_definitions(rme PRIVATE WXWIN_COMPATIBILITY_3_3 NANOVG_GL3)
+ 
+# Copy assets to build directory
+add_custom_command(TARGET rme POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_directory
+	"${CMAKE_CURRENT_SOURCE_DIR}/source/assets"
+	"$<TARGET_FILE_DIR:rme>/assets"
+	COMMENT "Copying assets to output directory..."
+)
 
 
 # Link against wxWidgets (works with both vcpkg and Conan)
@@ -122,3 +126,56 @@ target_link_libraries(rme PRIVATE glad::glad)
 target_link_libraries(rme PRIVATE glm::glm)
 target_link_libraries(rme PRIVATE nanovg::nanovg)
 target_link_libraries(rme PRIVATE spdlog::spdlog)
+
+option(RME_BUILD_TESTS "Build test executables" OFF)
+
+if(RME_BUILD_TESTS)
+	# Filter out application.cpp from tests to avoid multiple main() definitions
+	set(rme_SRC_TEST ${rme_SRC})
+	list(FILTER rme_SRC_TEST EXCLUDE REGEX "app/application\\.cpp$")
+
+	# Test executable for autoborder preview - uses same sources as main target
+	add_executable(test_autoborder_preview ${rme_H} ${rme_SRC_TEST} ${CMAKE_CURRENT_SOURCE_DIR}/source/test_autoborder_preview.cpp)
+	target_compile_definitions(test_autoborder_preview PRIVATE WXWIN_COMPATIBILITY_3_3 NANOVG_GL3)
+
+	# Include directories
+	target_include_directories(test_autoborder_preview PRIVATE
+		${Boost_INCLUDE_DIRS}
+		${LibArchive_INCLUDE_DIRS}
+		${OPENGL_INCLUDE_DIR}
+		${ZLIB_INCLUDE_DIR}
+		${CMAKE_CURRENT_SOURCE_DIR}/source
+	)
+
+	# Link libraries (same as main rme target)
+	if(TARGET wxWidgets::wxWidgets)
+		target_link_libraries(test_autoborder_preview PRIVATE wxWidgets::wxWidgets)
+	else()
+		target_link_libraries(test_autoborder_preview PRIVATE ${wxWidgets_LIBRARIES})
+	endif()
+
+	if(TARGET Boost::boost)
+		target_link_libraries(test_autoborder_preview PRIVATE Boost::boost Boost::thread Boost::system)
+	else()
+		target_link_libraries(test_autoborder_preview PRIVATE ${Boost_LIBRARIES})
+	endif()
+
+	if(TARGET LibArchive::LibArchive)
+		target_link_libraries(test_autoborder_preview PRIVATE LibArchive::LibArchive)
+	else()
+		target_link_libraries(test_autoborder_preview PRIVATE ${LibArchive_LIBRARIES})
+	endif()
+
+	if(TARGET ZLIB::ZLIB)
+		target_link_libraries(test_autoborder_preview PRIVATE ZLIB::ZLIB)
+	else()
+		target_link_libraries(test_autoborder_preview PRIVATE ${ZLIB_LIBRARIES})
+	endif()
+
+	target_link_libraries(test_autoborder_preview PRIVATE ${OPENGL_LIBRARIES})
+	target_link_libraries(test_autoborder_preview PRIVATE glad::glad)
+	target_link_libraries(test_autoborder_preview PRIVATE glm::glm)
+	target_link_libraries(test_autoborder_preview PRIVATE nanovg::nanovg)
+	target_link_libraries(test_autoborder_preview PRIVATE spdlog::spdlog)
+
+endif()

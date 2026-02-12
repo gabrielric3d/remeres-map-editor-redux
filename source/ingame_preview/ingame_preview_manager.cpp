@@ -1,7 +1,7 @@
 #include <iostream>
 #include "ingame_preview/ingame_preview_manager.h"
 #include "ingame_preview/ingame_preview_window.h"
-#include "MaterialDesign/wxMaterialDesignArtProvider.hpp"
+#include "util/image_manager.h"
 
 #include "ui/gui.h"
 #include "editor/editor.h"
@@ -15,17 +15,18 @@ namespace IngamePreview {
 	}
 
 	IngamePreviewManager::~IngamePreviewManager() {
+		spdlog::info("IngamePreviewManager destructor started");
+		spdlog::default_logger()->flush();
 		if (window && g_gui.aui_manager) {
+			spdlog::info("IngamePreviewManager destructor - detaching window from aui_manager");
+			spdlog::default_logger()->flush();
 			g_gui.aui_manager->DetachPane(window.get());
 		}
+		spdlog::info("IngamePreviewManager destructor finished");
+		spdlog::default_logger()->flush();
 	}
 
 	void IngamePreviewManager::Create() {
-		static bool artProviderRegistered = false;
-		if (!artProviderRegistered) {
-			wxArtProvider::Push(new wxMaterialDesignArtProvider);
-			artProviderRegistered = true;
-		}
 
 		if (!g_gui.aui_manager) {
 			return;
@@ -54,10 +55,13 @@ namespace IngamePreview {
 	}
 
 	void IngamePreviewManager::Destroy() {
+		spdlog::info("IngamePreviewManager::Destroy called");
+		spdlog::default_logger()->flush();
 		if (window) {
 			if (g_gui.aui_manager) {
+				spdlog::info("IngamePreviewManager::Destroy - detaching window from aui_manager");
+				spdlog::default_logger()->flush();
 				g_gui.aui_manager->DetachPane(window.get());
-				g_gui.aui_manager->Update();
 			}
 			// window->Destroy(); // wxWindow::Destroy calls delete this; which might double free with unique_ptr
 			// However, if we detach from wx parent or AUI first...
@@ -65,8 +69,12 @@ namespace IngamePreview {
 			// delete calls ~wxWindow(), which removes from parent. This is safe.
 			// Calling Destroy() queues deletion? No, for normal windows it's effectively delete.
 			// We just reset() the unique_ptr.
+			spdlog::info("IngamePreviewManager::Destroy - resetting window (unique_ptr)");
+			spdlog::default_logger()->flush();
 			window.reset();
 		}
+		spdlog::info("IngamePreviewManager::Destroy finished");
+		spdlog::default_logger()->flush();
 	}
 
 	void IngamePreviewManager::Update() {

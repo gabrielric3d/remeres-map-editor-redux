@@ -216,11 +216,17 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 		}
 
 		drawer->Release();
-		// BatchRenderer::End(); call removed
 
 		// Draw UI (Tooltips, Overlays & HUD) using NanoVG
 		if (NVGcontext* vg = m_nvg.get()) {
-			TextRenderer::BeginFrame(vg, GetSize().x, GetSize().y);
+			// Sanitize state before handover to NanoVG
+			glUseProgram(0);
+			glBindVertexArray(0);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+			TextRenderer::BeginFrame(vg, GetSize().x, GetSize().y, GetContentScaleFactor());
 
 			if (options.show_creatures) {
 				drawer->DrawCreatureNames(vg);
@@ -228,38 +234,47 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 			if (options.show_tooltips) {
 				drawer->DrawTooltips(vg);
 			}
+			if (options.show_hooks) {
+				drawer->DrawHookIndicators(vg);
+			}
+			if (options.highlight_locked_doors) {
+				drawer->DrawDoorIndicators(vg);
+			}
 
 			// Floating HUD (Selection & Cursor Info)
 			int w = GetSize().x;
 			int h = GetSize().y;
 
-			bool needs_update = (editor.selection.size() != hud_cached_selection_count || last_cursor_map_x != hud_cached_x || last_cursor_map_y != hud_cached_y || last_cursor_map_z != hud_cached_z);
+			const float hudFontSize = 16.0f;
+			nvgFontSize(vg, hudFontSize);
+			nvgFontFace(vg, "sans");
+
+			bool needs_update = (editor.selection.size() != hud_cached_selection_count || last_cursor_map_x != hud_cached_x || last_cursor_map_y != hud_cached_y || last_cursor_map_z != hud_cached_z || zoom != hud_cached_zoom);
 
 			if (needs_update || hud_cached_text.empty()) {
 				if (!editor.selection.empty()) {
-					hud_cached_text = std::format("Pos: {}, {}, {} | Sel: {}", last_cursor_map_x, last_cursor_map_y, last_cursor_map_z, editor.selection.size());
+					hud_cached_text = std::format("Pos: {}, {}, {} | Zoom: {:.0f}% | Sel: {}", last_cursor_map_x, last_cursor_map_y, last_cursor_map_z, zoom * 100, editor.selection.size());
 				} else {
-					hud_cached_text = std::format("Pos: {}, {}, {}", last_cursor_map_x, last_cursor_map_y, last_cursor_map_z);
+					hud_cached_text = std::format("Pos: {}, {}, {} | Zoom: {:.0f}%", last_cursor_map_x, last_cursor_map_y, last_cursor_map_z, zoom * 100);
 				}
 
 				hud_cached_selection_count = editor.selection.size();
 				hud_cached_x = last_cursor_map_x;
 				hud_cached_y = last_cursor_map_y;
 				hud_cached_z = last_cursor_map_z;
+				hud_cached_zoom = zoom;
 
-				nvgFontSize(vg, 14.0f);
-				nvgFontFace(vg, "sans");
 				nvgTextBounds(vg, 0, 0, hud_cached_text.c_str(), nullptr, hud_cached_bounds);
 			}
 
 			float textW = hud_cached_bounds[2] - hud_cached_bounds[0];
 			float padding = 8.0f;
 			float hudW = textW + padding * 2;
-			float hudH = 24.0f;
-			float hudX = w - hudW - 10.0f;
+			float hudH = 28.0f;
+			float hudX = 10.0f;
 			float hudY = h - hudH - 10.0f;
 
-			// Glass Background
+			// Background
 			nvgBeginPath(vg);
 			nvgRoundedRect(vg, hudX, hudY, hudW, hudH, 4.0f);
 			nvgFillColor(vg, nvgRGBA(0, 0, 0, 160));
@@ -278,20 +293,24 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 			nvgText(vg, hudX + padding, hudY + hudH * 0.5f, hud_cached_text.c_str(), nullptr);
 
 			TextRenderer::EndFrame(vg);
+
+			// Sanitize state after NanoVG to avoid polluting the next frame or other tabs
+			glUseProgram(0);
+			glBindVertexArray(0);
 		}
 
-		drawer->ClearTooltips();
+		drawer->ClearFrameOverlays();
 	}
 
 	// Clean unused textures once every second
+	// Only run GC if this is the active tab to prevent multiple tabs from fighting over resources
 	static long last_gc_time = 0;
 	long current_time = wxGetLocalTime();
-	if (current_time - last_gc_time >= 1) {
+	if (current_time - last_gc_time >= 1 && g_gui.GetCurrentMapTab() == GetParent()) {
 		g_gui.gfx.garbageCollection();
 		last_gc_time = current_time;
 	}
 
-	// Swap buffer
 	SwapBuffers();
 
 	// FPS tracking and limiting

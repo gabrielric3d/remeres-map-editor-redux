@@ -4,10 +4,12 @@
 
 #include "app/main.h"
 #include "ui/properties/container_properties_window.h"
+#include "map/map.h"
 
 #include "game/complexitem.h"
 #include "ui/dialog_util.h"
 #include "ui/properties/property_validator.h"
+#include "util/image_manager.h"
 #include "app/application.h"
 #include "ui/find_item_window.h"
 #include "ui/gui_ids.h"
@@ -45,7 +47,7 @@ ContainerPropertiesWindow::ContainerPropertiesWindow(wxWindow* win_parent, const
 	subsizer->Add(action_id_field, wxSizerFlags(1).Expand());
 
 	subsizer->Add(newd wxStaticText(this, wxID_ANY, "Unique ID"));
-	unique_id_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(edit_item->getUniqueID()), wxDefaultPosition, wxSize(-1, 20), wxSP_ARROW_KEYS, 0, 0xFFFF, edit_item->getUniqueID());
+	unique_id_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(edit_item->getUniqueID()), wxDefaultPosition, FROM_DIP(this, wxSize(-1, 20)), wxSP_ARROW_KEYS, 0, 0xFFFF, edit_item->getUniqueID());
 	unique_id_field->SetToolTip("Unique ID (0-65535). Must be unique on the map.");
 	subsizer->Add(unique_id_field, wxSizerFlags(1).Expand());
 
@@ -91,8 +93,12 @@ ContainerPropertiesWindow::ContainerPropertiesWindow(wxWindow* win_parent, const
 	topsizer->Add(boxsizer, wxSizerFlags(0).Expand().Border(wxALL, 20));
 
 	wxSizer* std_sizer = newd wxBoxSizer(wxHORIZONTAL);
-	std_sizer->Add(newd wxButton(this, wxID_OK, "OK"), wxSizerFlags(1).Center().Border(wxTOP | wxBOTTOM, 10));
-	std_sizer->Add(newd wxButton(this, wxID_CANCEL, "Cancel"), wxSizerFlags(1).Center().Border(wxTOP | wxBOTTOM, 10));
+	wxButton* okBtn = newd wxButton(this, wxID_OK, "OK");
+	okBtn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_CHECK, wxSize(16, 16)));
+	std_sizer->Add(okBtn, wxSizerFlags(1).Center().Border(wxTOP | wxBOTTOM, 10));
+	wxButton* cancelBtn = newd wxButton(this, wxID_CANCEL, "Cancel");
+	cancelBtn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_XMARK, wxSize(16, 16)));
+	std_sizer->Add(cancelBtn, wxSizerFlags(1).Center().Border(wxTOP | wxBOTTOM, 10));
 	topsizer->Add(std_sizer, wxSizerFlags(0).Center().Border(wxLEFT | wxRIGHT, 20));
 
 	SetSizerAndFit(topsizer);
@@ -156,11 +162,11 @@ void ContainerPropertiesWindow::OnContainerItemRightClick(wxMouseEvent& event) {
 
 	wxMenu menu;
 	if (button->getItem()) {
-		menu.Append(CONTAINER_POPUP_MENU_EDIT, "&Edit Item");
-		menu.Append(CONTAINER_POPUP_MENU_ADD, "&Add Item");
-		menu.Append(CONTAINER_POPUP_MENU_REMOVE, "&Remove Item");
+		menu.Append(CONTAINER_POPUP_MENU_EDIT, "&Edit Item")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_PEN_TO_SQUARE, wxSize(16, 16)));
+		menu.Append(CONTAINER_POPUP_MENU_ADD, "&Add Item")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_PLUS, wxSize(16, 16)));
+		menu.Append(CONTAINER_POPUP_MENU_REMOVE, "&Remove Item")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_MINUS, wxSize(16, 16)));
 	} else {
-		menu.Append(CONTAINER_POPUP_MENU_ADD, "&Add Item");
+		menu.Append(CONTAINER_POPUP_MENU_ADD, "&Add Item")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_PLUS, wxSize(16, 16)));
 	}
 
 	Container* container = dynamic_cast<Container*>(edit_item);
@@ -209,7 +215,7 @@ void ContainerPropertiesWindow::OnEditItem(wxCommandEvent& WXUNUSED(event)) {
 	}
 
 	Item* sub_item = last_clicked_button->getItem();
-	wxPoint newDialogAt = GetPosition() + wxPoint(20, 20);
+	wxPoint newDialogAt = GetPosition() + FROM_DIP(this, wxPoint(20, 20));
 
 	wxDialog* d;
 	if (edit_map->getVersion().otbm >= MAP_OTBM_4) {

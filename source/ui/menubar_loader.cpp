@@ -5,10 +5,11 @@
 #include "app/main.h"
 #include "ui/menubar_loader.h"
 #include "ui/gui_ids.h"
+#include "util/image_manager.h"
 #include <wx/wx.h>
 #include <algorithm>
 
-bool MenuBarLoader::Load(const FileName& path, wxMenuBar* menubar, std::map<MenuBar::ActionID, std::list<wxMenuItem*>>& items, const std::map<std::string, MenuBar::Action*>& actions, RecentFilesManager& recentFilesManager, std::vector<std::string>& warnings, wxString& error) {
+bool MenuBarLoader::Load(const FileName& path, wxMenuBar* menubar, std::unordered_map<MenuBar::ActionID, std::list<wxMenuItem*>>& items, const std::unordered_map<std::string, std::unique_ptr<MenuBar::Action>>& actions, RecentFilesManager& recentFilesManager, std::vector<std::string>& warnings, wxString& error) {
 	// Open the XML file
 	pugi::xml_document doc;
 	pugi::xml_parse_result result = doc.load_file(path.GetFullPath().mb_str());
@@ -49,7 +50,7 @@ bool MenuBarLoader::Load(const FileName& path, wxMenuBar* menubar, std::map<Menu
 	return true;
 }
 
-wxObject* MenuBarLoader::LoadItem(pugi::xml_node node, wxMenu* parent, std::map<MenuBar::ActionID, std::list<wxMenuItem*>>& items, const std::map<std::string, MenuBar::Action*>& actions, RecentFilesManager& recentFilesManager, std::vector<std::string>& warnings, wxString& error) {
+wxObject* MenuBarLoader::LoadItem(pugi::xml_node node, wxMenu* parent, std::unordered_map<MenuBar::ActionID, std::list<wxMenuItem*>>& items, const std::unordered_map<std::string, std::unique_ptr<MenuBar::Action>>& actions, RecentFilesManager& recentFilesManager, std::vector<std::string>& warnings, wxString& error) {
 	pugi::xml_attribute attribute;
 
 	const std::string& nodeName = as_lower_str(node.name());
@@ -123,6 +124,9 @@ wxObject* MenuBarLoader::LoadItem(pugi::xml_node node, wxMenu* parent, std::map<
 			wxstr(help), // Help text
 			act.kind // Kind of item
 		);
+		if (!act.icon.empty()) {
+			tmp->SetBitmap(IMAGE_MANAGER.GetBitmap(act.icon, wxSize(16, 16)));
+		}
 		items[MenuBar::ActionID(act.id)].push_back(tmp);
 		return tmp;
 	} else if (nodeName == "separator") {

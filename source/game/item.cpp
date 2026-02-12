@@ -32,40 +32,40 @@
 #include "brushes/table/table_brush.h"
 #include "brushes/wall/wall_brush.h"
 
-Item* Item::Create(uint16_t _type, uint16_t _subtype /*= 0xFFFF*/) {
+std::unique_ptr<Item> Item::Create(uint16_t _type, uint16_t _subtype /*= 0xFFFF*/) {
 	if (_type == 0) {
 		return nullptr;
 	}
-	Item* newItem = nullptr;
+	std::unique_ptr<Item> newItem;
 
 	const ItemType& it = g_items[_type];
 
 	if (it.id != 0) {
 		if (it.isDepot()) {
-			newItem = newd Depot(_type);
+			newItem = std::make_unique<Depot>(_type);
 		} else if (it.isContainer()) {
-			newItem = newd Container(_type);
+			newItem = std::make_unique<Container>(_type);
 		} else if (it.isTeleport()) {
-			newItem = newd Teleport(_type);
+			newItem = std::make_unique<Teleport>(_type);
 		} else if (it.isDoor()) {
-			newItem = newd Door(_type);
+			newItem = std::make_unique<Door>(_type);
 		} else if (it.isPodium()) {
-			newItem = newd Podium(_type);
+			newItem = std::make_unique<Podium>(_type);
 		} else if (_subtype == 0xFFFF) {
 			if (it.isFluidContainer()) {
-				newItem = newd Item(_type, LIQUID_NONE);
+				newItem = std::make_unique<Item>(_type, LIQUID_NONE);
 			} else if (it.isSplash()) {
-				newItem = newd Item(_type, LIQUID_WATER);
+				newItem = std::make_unique<Item>(_type, LIQUID_WATER);
 			} else if (it.charges > 0) {
-				newItem = newd Item(_type, it.charges);
+				newItem = std::make_unique<Item>(_type, it.charges);
 			} else {
-				newItem = newd Item(_type, 1);
+				newItem = std::make_unique<Item>(_type, 1);
 			}
 		} else {
-			newItem = newd Item(_type, _subtype);
+			newItem = std::make_unique<Item>(_type, _subtype);
 		}
 	} else {
-		newItem = newd Item(_type, _subtype);
+		newItem = std::make_unique<Item>(_type, _subtype);
 	}
 
 	return newItem;
@@ -74,8 +74,7 @@ Item* Item::Create(uint16_t _type, uint16_t _subtype /*= 0xFFFF*/) {
 Item::Item(unsigned short _type, unsigned short _count) :
 	id(_type),
 	subtype(1),
-	selected(false),
-	frame(0) {
+	selected(false) {
 	if (hasSubtype()) {
 		subtype = _count;
 	}
@@ -86,14 +85,14 @@ Item::~Item() {
 }
 
 Item* Item::deepCopy() const {
-	Item* copy = Create(id, subtype);
+	std::unique_ptr<Item> copy = Create(id, subtype);
 	if (copy) {
 		copy->selected = selected;
 		if (attributes) {
 			copy->attributes = newd ItemAttributeMap(*attributes);
 		}
 	}
-	return copy;
+	return copy.release();
 }
 
 Item* transformItem(Item* old_item, uint16_t new_id, Tile* parent) {
@@ -233,6 +232,16 @@ bool Item::hasProperty(enum ITEMPROPERTY prop) const {
 	return false;
 }
 
+bool Item::isLocked() const {
+	if (getActionID() != 0 || getUniqueID() != 0) {
+		return true;
+	}
+	if (const Door* door = asDoor()) {
+		return door->getDoorID() != 0;
+	}
+	return false;
+}
+
 std::pair<int, int> Item::getDrawOffset() const {
 	ItemType& it = g_items[id];
 	if (it.sprite != nullptr) {
@@ -277,23 +286,23 @@ int Item::getHeight() const {
 }
 
 void Item::setUniqueID(unsigned short n) {
-	setAttribute("uid", n);
+	setAttribute(ATTR_UID, n);
 }
 
 void Item::setActionID(unsigned short n) {
-	setAttribute("aid", n);
+	setAttribute(ATTR_AID, n);
 }
 
 void Item::setText(const std::string& str) {
-	setAttribute("text", str);
+	setAttribute(ATTR_TEXT, str);
 }
 
 void Item::setDescription(const std::string& str) {
-	setAttribute("desc", str);
+	setAttribute(ATTR_DESC, str);
 }
 
 void Item::setTier(unsigned short n) {
-	setAttribute("tier", n);
+	setAttribute(ATTR_TIER, n);
 }
 
 double Item::getWeight() {
@@ -414,16 +423,6 @@ BorderType Item::getBorderAlignment() const {
 	return it.border_alignment;
 }
 
-void Item::animate() {
-	ItemType& type = g_items[id];
-	GameSprite* sprite = type.sprite;
-	if (!sprite || !sprite->animator) {
-		return;
-	}
-
-	frame = sprite->animator->getFrame();
-}
-
 // ============================================================================
 // Static conversions
 
@@ -516,7 +515,7 @@ uint16_t Item::LiquidName2ID(std::string liquid) {
 // ============================================================================
 // XML Saving & loading
 
-Item* Item::Create(pugi::xml_node xml) {
+std::unique_ptr<Item> Item::Create(pugi::xml_node xml) {
 	pugi::xml_attribute attribute;
 
 	int16_t id = 0;

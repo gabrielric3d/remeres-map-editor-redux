@@ -11,6 +11,7 @@
 #include "ui/gui.h"
 #include "game/items.h"
 #include "map/basemap.h"
+#include "map/tile_operations.h"
 
 uint32_t WallBrush::full_border_types[16];
 uint32_t WallBrush::half_border_types[16];
@@ -29,7 +30,7 @@ bool WallBrush::load(pugi::xml_node node, std::vector<std::string>& warnings) {
 }
 
 void WallBrush::undraw(BaseMap* map, Tile* tile) {
-	tile->cleanWalls(this);
+	TileOperations::cleanWalls(tile, this);
 }
 
 void WallBrush::draw(BaseMap* map, Tile* tile, void* parameter) {
@@ -54,7 +55,7 @@ void WallBrush::draw(BaseMap* map, Tile* tile, void* parameter) {
 						}
 
 						for (int i = alignment + 1; i != alignment; ++i) {
-							if (i == 16) {
+							if (i == WallBrushItems::WALL_ALIGNMENT_COUNT) {
 								i = 0;
 							}
 							id = try_brush->items.getRandomWallId(i);
@@ -77,7 +78,7 @@ void WallBrush::draw(BaseMap* map, Tile* tile, void* parameter) {
 		}
 	}
 
-	tile->cleanWalls(this);
+	TileOperations::cleanWalls(tile, this);
 
 	// Just find a valid item and place it, the bordering algorithm will change it to the proper shape.
 	uint16_t id = 0;
@@ -91,7 +92,7 @@ void WallBrush::draw(BaseMap* map, Tile* tile, void* parameter) {
 			return;
 		}
 
-		for (int i = 0; i < 16; ++i) {
+		for (int i = 0; i < WallBrushItems::WALL_ALIGNMENT_COUNT; ++i) {
 			id = try_brush->items.getRandomWallId(i);
 			if (id != 0) {
 				break;
@@ -104,11 +105,28 @@ void WallBrush::draw(BaseMap* map, Tile* tile, void* parameter) {
 		}
 	}
 
-	tile->addWallItem(Item::Create(id));
+	tile->addWallItem(Item::Create(id).release());
 }
 
 void WallBrush::doWalls(BaseMap* map, Tile* tile) {
 	WallBorderCalculator::doWalls(map, tile);
+}
+
+void WallBrush::getRelatedItems(std::vector<uint16_t>& items_out) {
+	for (int i = 0; i < WallBrushItems::WALL_ALIGNMENT_COUNT; ++i) {
+		const auto& node = items.getWallNode(i);
+		for (const auto& item : node.items) {
+			if (item.id != 0) {
+				items_out.push_back(item.id);
+			}
+		}
+		const auto& doors = items.getDoorItems(i);
+		for (const auto& door : doors) {
+			if (door.id != 0) {
+				items_out.push_back(door.id);
+			}
+		}
+	}
 }
 
 bool WallBrush::hasWall(Item* item) {
@@ -152,7 +170,7 @@ void WallDecorationBrush::draw(BaseMap* map, Tile* tile, void* parameter) {
 
 	bool prefLocked = g_gui.HasDoorLocked();
 
-	tile->cleanWalls(this);
+	TileOperations::cleanWalls(tile, this);
 	while (iter != tile->items.end()) {
 		Item* item = *iter;
 		if (item->isBorder()) {
@@ -228,9 +246,9 @@ void WallDecorationBrush::draw(BaseMap* map, Tile* tile, void* parameter) {
 			ASSERT(id);
 
 			// Add a matching item above this item.
-			Item* item = Item::Create(id);
+			std::unique_ptr<Item> item = Item::Create(id);
 			++iter;
-			iter = tile->items.insert(iter, item);
+			iter = tile->items.insert(iter, item.release());
 		}
 		++iter;
 	}

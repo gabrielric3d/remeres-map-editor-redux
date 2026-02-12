@@ -39,8 +39,6 @@
 Tile::Tile(int x, int y, int z) :
 	location(nullptr),
 	ground(nullptr),
-	creature(nullptr),
-	spawn(nullptr),
 	house_id(0),
 	mapflags(0),
 	statflags(0),
@@ -51,8 +49,6 @@ Tile::Tile(int x, int y, int z) :
 Tile::Tile(TileLocation& loc) :
 	location(&loc),
 	ground(nullptr),
-	creature(nullptr),
-	spawn(nullptr),
 	house_id(0),
 	mapflags(0),
 	statflags(0),
@@ -110,21 +106,24 @@ Tile::~Tile() {
 		delete items.back();
 		items.pop_back();
 	}
-	delete creature;
 	delete ground;
-	delete spawn;
 }
 
-Tile* Tile::deepCopy(BaseMap& map) {
-	Tile* copy = map.allocator.allocateTile(location);
+std::unique_ptr<Tile> Tile::deepCopy(BaseMap& map) {
+	// Use the destination map's TileLocation at the same position
+	TileLocation* dest_location = map.getTileL(getX(), getY(), getZ());
+	if (!dest_location) {
+		dest_location = map.createTileL(getX(), getY(), getZ());
+	}
+	std::unique_ptr<Tile> copy(map.allocator.allocateTile(dest_location));
 	copy->flags = flags;
 	copy->minimapColor = minimapColor;
 	copy->house_id = house_id;
 	if (spawn) {
-		copy->spawn = spawn->deepCopy();
+		copy->spawn.reset(spawn->deepCopy());
 	}
 	if (creature) {
-		copy->creature = creature->deepCopy();
+		copy->creature.reset(creature->deepCopy());
 	}
 	// Spawncount & exits are not transferred on copy!
 	if (ground) {
@@ -199,31 +198,17 @@ void Tile::merge(Tile* other) {
 	}
 
 	if (other->creature) {
-		delete creature;
-		creature = other->creature;
-		other->creature = nullptr;
+		creature = std::move(other->creature);
 	}
 
 	if (other->spawn) {
-		delete spawn;
-		spawn = other->spawn;
-		other->spawn = nullptr;
+		spawn = std::move(other->spawn);
 	}
-
-	if (other->creature) {
-		delete creature;
-		creature = other->creature;
-		other->creature = nullptr;
-	}
-
-	ItemVector::iterator it;
 
 	items.reserve(items.size() + other->items.size());
-	it = other->items.begin();
-	while (it != other->items.end()) {
-		addItem(*it);
-		++it;
-	}
+	std::ranges::for_each(other->items, [&](Item* item) {
+		addItem(item);
+	});
 	other->items.clear();
 }
 
@@ -304,27 +289,22 @@ void Tile::addItem(Item* item) {
 	uint16_t gid = item->getGroundEquivalent();
 	if (gid != 0) {
 		delete ground;
-		ground = Item::Create(gid);
+		ground = Item::Create(gid).release();
 		// At the very bottom!
 		it = items.begin();
-	} else {
-		if (item->isAlwaysOnBottom()) {
-			it = items.begin();
-			while (true) {
-				if (it == items.end()) {
-					break;
-				} else if ((*it)->isAlwaysOnBottom()) {
-					if (item->getTopOrder() < (*it)->getTopOrder()) {
-						break;
-					}
-				} else { // Always on top
-					break;
-				}
-				++it;
+	} else if (item->isAlwaysOnBottom()) {
+		// Find insertion point for always-on-bottom items
+		// They are sorted by TopOrder, and come before normal items.
+		it = std::ranges::find_if(items, [&](Item* i) {
+			if (!i->isAlwaysOnBottom()) {
+				return true; // Found a normal item, insert before it
 			}
-		} else {
-			it = items.end();
-		}
+			// find_if will stop at the first non-bottom item, which is equivalent to the original
+			// manually written loop and ensures efficient insertion even with large item counts.
+			return item->getTopOrder() < i->getTopOrder(); // Found a bottom item with higher order
+		});
+	} else {
+		it = items.end();
 	}
 
 	items.insert(it, item);
@@ -538,6 +518,12 @@ void Tile::update() {
 		if (it.isCarpet) {
 			statflags |= TILESTATE_HAS_CARPET;
 		}
+		if (it.hookSouth) {
+			statflags |= TILESTATE_HOOK_SOUTH;
+		}
+		if (it.hookEast) {
+			statflags |= TILESTATE_HOOK_EAST;
+		}
 	}
 
 	if ((statflags & TILESTATE_BLOCKING) == 0) {
@@ -545,10 +531,6 @@ void Tile::update() {
 			statflags |= TILESTATE_BLOCKING;
 		}
 	}
-}
-
-void Tile::borderize(BaseMap* parent) {
-	GroundBrush::doBorders(parent, this);
 }
 
 void Tile::addBorderItem(Item* item) {
@@ -566,21 +548,6 @@ GroundBrush* Tile::getGroundBrush() const {
 		}
 	}
 	return nullptr;
-}
-
-void Tile::cleanBorders() {
-	auto first_to_remove = std::stable_partition(items.begin(), items.end(), [](Item* item) {
-		return !item->isBorder();
-	});
-
-	for (auto it = first_to_remove; it != items.end(); ++it) {
-		delete *it;
-	}
-	items.erase(first_to_remove, items.end());
-}
-
-void Tile::wallize(BaseMap* parent) {
-	WallBrush::doWalls(parent, this);
 }
 
 Item* Tile::getWall() const {
@@ -611,51 +578,6 @@ void Tile::addWallItem(Item* item) {
 	ASSERT(item->isWall());
 
 	addItem(item);
-}
-
-void Tile::cleanWalls(bool dontdelete) {
-	auto first_to_remove = std::stable_partition(items.begin(), items.end(), [](Item* item) {
-		return !item->isWall();
-	});
-
-	if (!dontdelete) {
-		for (auto it = first_to_remove; it != items.end(); ++it) {
-			delete *it;
-		}
-	}
-	items.erase(first_to_remove, items.end());
-}
-
-void Tile::cleanWalls(WallBrush* wb) {
-	auto first_to_remove = std::stable_partition(items.begin(), items.end(), [wb](Item* item) {
-		return !(item->isWall() && wb->hasWall(item));
-	});
-
-	for (auto it = first_to_remove; it != items.end(); ++it) {
-		delete *it;
-	}
-	items.erase(first_to_remove, items.end());
-}
-
-void Tile::cleanTables(bool dontdelete) {
-	auto first_to_remove = std::stable_partition(items.begin(), items.end(), [](Item* item) {
-		return !item->isTable();
-	});
-
-	if (!dontdelete) {
-		for (auto it = first_to_remove; it != items.end(); ++it) {
-			delete *it;
-		}
-	}
-	items.erase(first_to_remove, items.end());
-}
-
-void Tile::tableize(BaseMap* parent) {
-	TableBrush::doTables(parent, this);
-}
-
-void Tile::carpetize(BaseMap* parent) {
-	CarpetBrush::doCarpets(parent, this);
 }
 
 void Tile::selectGround() {

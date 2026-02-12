@@ -106,11 +106,13 @@ void BrushManager::SelectBrushInternal(Brush* brush) {
 	brush_variation = std::min(brush_variation, brush->getMaxVariation());
 	// If we are switching away from a doodad brush, we need to clear the secondary map
 	// Or if the new brush isn't a doodad brush
+	MapTab* mapTab = g_gui.GetCurrentMapTab();
 	if (brush->isDoodad()) {
-		g_doodad_preview.FillBuffer();
-		g_gui.secondary_map = g_doodad_preview.GetBufferMap();
+		UpdateDoodadPreview();
 	} else {
-		g_gui.secondary_map = nullptr;
+		if (mapTab) {
+			mapTab->GetSession()->secondary_map = nullptr;
+		}
 		g_doodad_preview.Clear();
 	}
 
@@ -160,7 +162,10 @@ void BrushManager::SetBrushSizeInternal(int nz) {
 	if (nz != brush_size && current_brush && current_brush->isDoodad() && !current_brush->oneSizeFitsAll()) {
 		brush_size = nz;
 		g_doodad_preview.FillBuffer();
-		g_gui.secondary_map = g_doodad_preview.GetBufferMap();
+		MapTab* mapTab = g_gui.GetCurrentMapTab();
+		if (mapTab) {
+			mapTab->GetSession()->secondary_map = g_doodad_preview.GetBufferMap();
+		}
 	} else {
 		brush_size = nz;
 	}
@@ -179,16 +184,14 @@ void BrushManager::SetBrushSize(int nz) {
 void BrushManager::SetBrushVariation(int nz) {
 	if (nz != brush_variation && current_brush && current_brush->isDoodad()) {
 		brush_variation = nz;
-		g_doodad_preview.FillBuffer();
-		g_gui.secondary_map = g_doodad_preview.GetBufferMap();
+		UpdateDoodadPreview();
 	}
 }
 
 void BrushManager::SetBrushShape(BrushShape bs) {
 	if (bs != brush_shape && current_brush && current_brush->isDoodad() && !current_brush->oneSizeFitsAll()) {
 		brush_shape = bs;
-		g_doodad_preview.FillBuffer();
-		g_gui.secondary_map = g_doodad_preview.GetBufferMap();
+		UpdateDoodadPreview();
 	}
 	brush_shape = bs;
 
@@ -256,4 +259,11 @@ void BrushManager::SetDoorLocked(bool on) {
 
 void BrushManager::FillDoodadPreviewBuffer() {
 	g_doodad_preview.FillBuffer();
+}
+void BrushManager::UpdateDoodadPreview() {
+	g_doodad_preview.FillBuffer();
+	MapTab* mapTab = g_gui.GetCurrentMapTab();
+	if (mapTab) {
+		mapTab->GetSession()->secondary_map = g_doodad_preview.GetBufferMap();
+	}
 }

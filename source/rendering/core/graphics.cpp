@@ -19,33 +19,19 @@
 
 #include "game/sprites.h"
 #include "rendering/core/graphics.h"
+#include "rendering/core/sprite_preloader.h"
 #include <nanovg.h>
 #include <spdlog/spdlog.h>
 #include <nanovg_gl.h>
 #include "io/filehandle.h"
 #include "app/settings.h"
 #include "ui/gui.h"
-#include "ui/gui.h"
 #include "map/otml.h"
 #include "rendering/io/editor_sprite_loader.h"
 
 #include <wx/mstream.h>
 #include <wx/dir.h>
-#include "ui/pngfiles.h"
 #include "rendering/utilities/wx_utils.h"
-
-#include "../../../brushes/door_normal.xpm"
-#include "../../../brushes/door_normal_small.xpm"
-#include "../../../brushes/door_locked.xpm"
-#include "../../../brushes/door_locked_small.xpm"
-#include "../../../brushes/door_magic.xpm"
-#include "../../../brushes/door_magic_small.xpm"
-#include "../../../brushes/door_quest.xpm"
-#include "../../../brushes/door_quest_small.xpm"
-#include "../../../brushes/door_normal_alt.xpm"
-#include "../../../brushes/door_normal_alt_small.xpm"
-#include "../../../brushes/door_archway.xpm"
-#include "../../../brushes/door_archway_small.xpm"
 
 #include "rendering/core/outfit_colors.h"
 #include "rendering/core/outfit_colorizer.h"
@@ -83,9 +69,13 @@ bool GraphicManager::isUnloaded() const {
 
 void GraphicManager::updateTime() {
 	cached_time_ = time(nullptr);
+	SpritePreloader::get().update();
 }
 
 void GraphicManager::clear() {
+	// CRITICAL: Ensure preloader is cleared before modifying image_space to avoid
+	// use-after-free or OOB access in SpritePreloader::update() on main thread.
+	SpritePreloader::get().clear();
 	sprite_space.clear();
 	image_space.clear();
 	// editor_sprite_space.clear(); // Editor sprites are global/internal and should persist across version changes
@@ -175,8 +165,6 @@ uint16_t GraphicManager::getItemSpriteMaxID() const {
 uint16_t GraphicManager::getCreatureSpriteMaxID() const {
 	return creature_count;
 }
-
-#define loadPNGFile(name) _wxGetBitmapFromMemory(name, sizeof(name))
 
 #include "rendering/io/game_sprite_loader.h"
 

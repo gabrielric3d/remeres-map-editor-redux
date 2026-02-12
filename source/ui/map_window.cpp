@@ -21,6 +21,13 @@
 #include "ui/gui.h"
 #include "game/sprites.h"
 #include "editor/editor.h"
+#include "ui/replace_tool/replace_tool_window.h"
+
+void ReplaceToolWindowDeleter::operator()(ReplaceToolWindow* w) {
+	if (w) {
+		w->Destroy();
+	}
+}
 
 MapWindow::MapWindow(wxWindow* parent, Editor& editor) :
 	wxPanel(parent, PANE_MAIN),
@@ -82,8 +89,21 @@ void MapWindow::ShowReplaceItemsDialog(bool selectionOnly) {
 		return;
 	}
 
-	replaceItemsDialog = new ReplaceItemsDialog(this, selectionOnly);
+	replaceItemsDialog.reset(new ReplaceToolWindow(this, &editor));
 	replaceItemsDialog->Bind(wxEVT_CLOSE_WINDOW, &MapWindow::OnReplaceItemsDialogClose, this);
+	replaceItemsDialog->Show();
+}
+
+void MapWindow::ShowAdvancedReplaceForSelection(const std::vector<uint16_t>& ids) {
+	if (replaceItemsDialog) {
+		replaceItemsDialog->InitializeWithIDs(ids);
+		replaceItemsDialog->Raise();
+		return;
+	}
+
+	replaceItemsDialog.reset(new ReplaceToolWindow(this, &editor));
+	replaceItemsDialog->Bind(wxEVT_CLOSE_WINDOW, &MapWindow::OnReplaceItemsDialogClose, this);
+	replaceItemsDialog->InitializeWithIDs(ids);
 	replaceItemsDialog->Show();
 }
 
@@ -96,9 +116,10 @@ void MapWindow::CloseReplaceItemsDialog() {
 void MapWindow::OnReplaceItemsDialogClose(wxCloseEvent& event) {
 	if (replaceItemsDialog) {
 		replaceItemsDialog->Unbind(wxEVT_CLOSE_WINDOW, &MapWindow::OnReplaceItemsDialogClose, this);
-		replaceItemsDialog->Destroy();
-		replaceItemsDialog = nullptr;
+		// unique_ptr will call Destroy() via custom deleter
+		replaceItemsDialog.reset();
 	}
+	event.Skip();
 }
 
 void MapWindow::SetSize(int x, int y, bool center) {
@@ -207,7 +228,7 @@ void MapWindow::OnSize(wxSizeEvent& event) {
 }
 
 void MapWindow::OnScroll(wxScrollEvent& event) {
-	Refresh();
+	canvas->Refresh();
 }
 
 void MapWindow::OnScrollLineDown(wxScrollEvent& event) {
@@ -216,7 +237,7 @@ void MapWindow::OnScrollLineDown(wxScrollEvent& event) {
 	} else {
 		ScrollRelative(0, 96);
 	}
-	Refresh();
+	canvas->Refresh();
 }
 
 void MapWindow::OnScrollLineUp(wxScrollEvent& event) {
@@ -225,7 +246,7 @@ void MapWindow::OnScrollLineUp(wxScrollEvent& event) {
 	} else {
 		ScrollRelative(0, -96);
 	}
-	Refresh();
+	canvas->Refresh();
 }
 
 void MapWindow::OnScrollPageDown(wxScrollEvent& event) {
@@ -234,7 +255,7 @@ void MapWindow::OnScrollPageDown(wxScrollEvent& event) {
 	} else {
 		ScrollRelative(0, 5 * 96);
 	}
-	Refresh();
+	canvas->Refresh();
 }
 
 void MapWindow::OnScrollPageUp(wxScrollEvent& event) {
@@ -243,5 +264,5 @@ void MapWindow::OnScrollPageUp(wxScrollEvent& event) {
 	} else {
 		ScrollRelative(0, -5 * 96);
 	}
-	Refresh();
+	canvas->Refresh();
 }

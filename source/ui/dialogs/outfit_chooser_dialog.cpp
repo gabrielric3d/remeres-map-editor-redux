@@ -18,6 +18,7 @@
 #include <wx/stdpaths.h>
 #include <wx/menu.h>
 #include <algorithm>
+#include <unordered_map>
 
 #include "game/creatures.h"
 #include "rendering/drawers/entities/creature_drawer.h"
@@ -27,6 +28,7 @@
 #include "rendering/core/outfit_colorizer.h"
 #include "ui/gui.h"
 #include "util/json.h"
+#include "util/image_manager.h"
 #include <fstream>
 #include <nlohmann/json.hpp>
 
@@ -107,7 +109,7 @@ OutfitChooserDialog::OutfitChooserDialog(wxWindow* parent, const Outfit& current
 	favorites = g_preview_preferences.getFavorites();
 
 	// Resolve names from g_creatures
-	std::map<int, wxString> looktype_to_name;
+	std::unordered_map<int, wxString> looktype_to_name;
 	for (const auto& [name, ct] : g_creatures) {
 		if (ct && ct->outfit.lookType != 0) {
 			if (looktype_to_name.find(ct->outfit.lookType) == looktype_to_name.end()) {
@@ -161,9 +163,13 @@ OutfitChooserDialog::OutfitChooserDialog(wxWindow* parent, const Outfit& current
 	col1_sizer->Add(CreateHeader("Appearance"), 0, wxLEFT | wxTOP, 8);
 	wxBoxSizer* part_sizer = new wxBoxSizer(wxHORIZONTAL);
 	head_btn = new wxButton(this, ID_COLOR_HEAD, "Head", wxDefaultPosition, wxSize(50, -1));
+	head_btn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_USER_SOLID, wxSize(16, 16)));
 	body_btn = new wxButton(this, ID_COLOR_BODY, "Primary", wxDefaultPosition, wxSize(50, -1));
+	body_btn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_SHIRT, wxSize(16, 16)));
 	legs_btn = new wxButton(this, ID_COLOR_LEGS, "Secondary", wxDefaultPosition, wxSize(50, -1));
+	legs_btn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_SOCKS, wxSize(16, 16)));
 	feet_btn = new wxButton(this, ID_COLOR_FEET, "Detail", wxDefaultPosition, wxSize(50, -1));
+	feet_btn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_SHOE_PRINTS, wxSize(16, 16)));
 
 	part_sizer->Add(head_btn, 1, wxEXPAND | wxRIGHT, 2);
 	part_sizer->Add(body_btn, 1, wxEXPAND | wxRIGHT, 2);
@@ -196,7 +202,8 @@ OutfitChooserDialog::OutfitChooserDialog(wxWindow* parent, const Outfit& current
 	check_sizer->Add(addon1, 0, wxALL | wxALIGN_CENTER_VERTICAL, 2);
 	check_sizer->Add(addon2, 0, wxALL | wxALIGN_CENTER_VERTICAL, 2);
 
-	wxButton* rand_btn = new wxButton(this, ID_RANDOMIZE, "Random", wxDefaultPosition, wxSize(60, 22));
+	wxButton* rand_btn = new wxButton(this, ID_RANDOMIZE, "Random");
+	rand_btn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_SHUFFLE, wxSize(16, 16)));
 	rand_btn->SetToolTip("Randomize outfit colors");
 	check_sizer->Add(rand_btn, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, 5);
 
@@ -240,6 +247,7 @@ OutfitChooserDialog::OutfitChooserDialog(wxWindow* parent, const Outfit& current
 	favs_sizer->Add(favorites_panel, 1, wxEXPAND);
 
 	wxButton* fav_btn = new wxButton(this, ID_ADD_FAVORITE, "Save Current Outfit as Favorite", wxDefaultPosition, wxSize(-1, 28));
+	fav_btn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_STAR, wxSize(16, 16)));
 	favs_sizer->Add(fav_btn, 0, wxEXPAND | wxTOP, 8);
 
 	main_sizer->Add(favs_sizer, 0, wxEXPAND | wxLEFT, 5);
@@ -254,8 +262,10 @@ OutfitChooserDialog::OutfitChooserDialog(wxWindow* parent, const Outfit& current
 	bottom_sizer->AddStretchSpacer();
 
 	wxButton* ok_btn = new wxButton(this, wxID_OK, "OK", wxDefaultPosition, wxSize(90, 30));
+	ok_btn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_CHECK, wxSize(16, 16)));
 	ok_btn->SetToolTip("Confirm outfit selection");
 	wxButton* cancel_btn = new wxButton(this, wxID_CANCEL, "Cancel", wxDefaultPosition, wxSize(90, 30));
+	cancel_btn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_XMARK, wxSize(16, 16)));
 	cancel_btn->SetToolTip("Cancel outfit selection");
 	bottom_sizer->Add(ok_btn, 0, wxALL, 8);
 	bottom_sizer->Add(cancel_btn, 0, wxALL, 8);

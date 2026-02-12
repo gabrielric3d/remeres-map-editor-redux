@@ -81,8 +81,10 @@ void GameSprite::clean(time_t time) {
 void GameSprite::unloadDC() {
 	dc[SPRITE_SIZE_16x16].reset();
 	dc[SPRITE_SIZE_32x32].reset();
+	dc[SPRITE_SIZE_64x64].reset();
 	bm[SPRITE_SIZE_16x16].reset();
 	bm[SPRITE_SIZE_32x32].reset();
+	bm[SPRITE_SIZE_64x64].reset();
 	colored_dc.clear();
 }
 
@@ -233,15 +235,19 @@ wxMemoryDC* GameSprite::getDC(SpriteSize size, const Outfit& outfit) {
 }
 
 void GameSprite::DrawTo(wxDC* dc, SpriteSize sz, int start_x, int start_y, int width, int height) {
+	const int sprite_dim = (sz == SPRITE_SIZE_64x64) ? 64 : (sz == SPRITE_SIZE_32x32 ? 32 : 16);
+	int src_width = sprite_dim;
+	int src_height = sprite_dim;
+
 	if (width == -1) {
-		width = sz == SPRITE_SIZE_32x32 ? 32 : 16;
+		width = src_width;
 	}
 	if (height == -1) {
-		height = sz == SPRITE_SIZE_32x32 ? 32 : 16;
+		height = src_height;
 	}
 	wxDC* sdc = getDC(sz);
 	if (sdc) {
-		dc->Blit(start_x, start_y, width, height, sdc, 0, 0, wxCOPY, true);
+		dc->StretchBlit(start_x, start_y, width, height, sdc, 0, 0, src_width, src_height, wxCOPY, true);
 	} else {
 		const wxBrush& b = dc->GetBrush();
 		dc->SetBrush(*wxRED_BRUSH);
@@ -251,15 +257,19 @@ void GameSprite::DrawTo(wxDC* dc, SpriteSize sz, int start_x, int start_y, int w
 }
 
 void GameSprite::DrawTo(wxDC* dc, SpriteSize sz, const Outfit& outfit, int start_x, int start_y, int width, int height) {
+	const int sprite_dim = (sz == SPRITE_SIZE_64x64) ? 64 : (sz == SPRITE_SIZE_32x32 ? 32 : 16);
+	int src_width = sprite_dim;
+	int src_height = sprite_dim;
+
 	if (width == -1) {
-		width = sz == SPRITE_SIZE_32x32 ? 32 : 16;
+		width = src_width;
 	}
 	if (height == -1) {
-		height = sz == SPRITE_SIZE_32x32 ? 32 : 16;
+		height = src_height;
 	}
 	wxDC* sdc = getDC(sz, outfit);
 	if (sdc) {
-		dc->Blit(start_x, start_y, width, height, sdc, 0, 0, wxCOPY, true);
+		dc->StretchBlit(start_x, start_y, width, height, sdc, 0, 0, src_width, src_height, wxCOPY, true);
 	} else {
 		const wxBrush& b = dc->GetBrush();
 		dc->SetBrush(*wxRED_BRUSH);
@@ -273,11 +283,6 @@ GameSprite::Image::Image() :
 	lastaccess(0) {
 }
 
-GameSprite::Image::~Image() {
-	// Base destructor no longer needs to unload GL texture
-	// as separate textures are removed.
-}
-
 void GameSprite::Image::visit() {
 	lastaccess = g_gui.gfx.getCachedTime();
 }
@@ -286,7 +291,7 @@ void GameSprite::Image::clean(time_t time) {
 	// Legacy texture cleanup logic removed
 }
 
-const AtlasRegion* GameSprite::Image::EnsureAtlasSprite(uint32_t sprite_id) {
+const AtlasRegion* GameSprite::Image::EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<uint8_t[]> preloaded_data) {
 	if (g_gui.gfx.ensureAtlasManager()) {
 		AtlasManager* atlas_mgr = g_gui.gfx.getAtlasManager();
 
@@ -297,7 +302,13 @@ const AtlasRegion* GameSprite::Image::EnsureAtlasSprite(uint32_t sprite_id) {
 		}
 
 		// 2. Load data
-		auto rgba = getRGBAData();
+		std::unique_ptr<uint8_t[]> rgba;
+		if (preloaded_data) {
+			rgba = std::move(preloaded_data);
+		} else {
+			rgba = getRGBAData();
+		}
+
 		if (!rgba) {
 			// Fallback: Create a magenta texture to distinguish failure from garbage
 			// Use literal 32 to ensure compilation (OT sprites are always 32x32)
@@ -344,6 +355,10 @@ GameSprite::NormalImage::~NormalImage() {
 			g_gui.gfx.getAtlasManager()->removeSprite(id);
 		}
 	}
+}
+
+void GameSprite::NormalImage::fulfillPreload(std::unique_ptr<uint8_t[]> data) {
+	atlas_region = EnsureAtlasSprite(id, std::move(data));
 }
 
 void GameSprite::NormalImage::clean(time_t time) {
@@ -422,31 +437,12 @@ std::unique_ptr<uint8_t[]> GameSprite::NormalImage::getRGBData() {
 	return data;
 }
 
-std::unique_ptr<uint8_t[]> GameSprite::NormalImage::getRGBAData() {
-	// Robust ID 0 handling
-	if (id == 0) {
-		const int pixels_data_size = SPRITE_PIXELS_SIZE * 4;
-		return std::make_unique<uint8_t[]>(pixels_data_size); // Value-initialized (zeroed)
-	}
-
-	if (!dump) {
-		if (g_settings.getInteger(Config::USE_MEMCACHED_SPRITES)) {
-			return nullptr;
-		}
-
-		if (!g_gui.gfx.loadSpriteDump(dump, size, id)) {
-			// This is the only case where we return nullptr for non-zero ID
-			// effectively warning the caller that the sprite is missing from file
-			return nullptr;
-		}
-	}
-
+std::unique_ptr<uint8_t[]> GameSprite::Decompress(const uint8_t* dump, size_t size, bool use_alpha, int id) {
 	const int pixels_data_size = SPRITE_PIXELS_SIZE * 4;
 	auto data = std::make_unique<uint8_t[]>(pixels_data_size);
-	bool use_alpha = g_gui.gfx.hasTransparency();
 	uint8_t bpp = use_alpha ? 4 : 3;
-	int write = 0;
-	int read = 0;
+	size_t write = 0;
+	size_t read = 0;
 	bool non_zero_alpha_found = false;
 	bool non_black_pixel_found = false;
 
@@ -539,6 +535,28 @@ std::unique_ptr<uint8_t[]> GameSprite::NormalImage::getRGBAData() {
 	}
 
 	return data;
+}
+
+std::unique_ptr<uint8_t[]> GameSprite::NormalImage::getRGBAData() {
+	// Robust ID 0 handling
+	if (id == 0) {
+		const int pixels_data_size = SPRITE_PIXELS_SIZE * 4;
+		return std::make_unique<uint8_t[]>(pixels_data_size); // Value-initialized (zeroed)
+	}
+
+	if (!dump) {
+		if (g_settings.getInteger(Config::USE_MEMCACHED_SPRITES)) {
+			return nullptr;
+		}
+
+		if (!g_gui.gfx.loadSpriteDump(dump, size, id)) {
+			// This is the only case where we return nullptr for non-zero ID
+			// effectively warning the caller that the sprite is missing from file
+			return nullptr;
+		}
+	}
+
+	return GameSprite::Decompress(dump.get(), size, g_gui.gfx.hasTransparency(), id);
 }
 
 const AtlasRegion* GameSprite::NormalImage::getAtlasRegion() {

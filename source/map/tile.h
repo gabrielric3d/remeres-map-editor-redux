@@ -45,6 +45,8 @@ enum {
 	TILESTATE_HAS_TABLE = 0x0010,
 	TILESTATE_HAS_CARPET = 0x0020,
 	TILESTATE_MODIFIED = 0x0040,
+	TILESTATE_HOOK_SOUTH = 0x0080,
+	TILESTATE_HOOK_EAST = 0x0100,
 };
 
 enum : uint8_t {
@@ -56,8 +58,8 @@ public: // Members
 	TileLocation* location;
 	Item* ground;
 	ItemVector items;
-	Creature* creature;
-	Spawn* spawn;
+	std::unique_ptr<Creature> creature;
+	std::unique_ptr<Spawn> spawn;
 	uint32_t house_id; // House id for this tile (pointer not safe)
 
 public:
@@ -69,7 +71,7 @@ public:
 	~Tile();
 
 	// Argument is a the map to allocate the tile from
-	Tile* deepCopy(BaseMap& map);
+	std::unique_ptr<Tile> deepCopy(BaseMap& map);
 
 	// The location of the tile
 	// Stores state that remains between the tile being moved (like house exits)
@@ -173,14 +175,8 @@ public: // Functions
 	// Get the border brush of this tile
 	GroundBrush* getGroundBrush() const;
 
-	// Remove all borders (for autoborder)
-	void cleanBorders();
-
 	// Add a border item (added at the bottom of all items)
 	void addBorderItem(Item* item);
-
-	// Borderize this tile
-	void borderize(BaseMap* parent);
 
 	bool hasTable() const {
 		return testFlags(statflags, TILESTATE_HAS_TABLE);
@@ -191,6 +187,14 @@ public: // Functions
 		return testFlags(statflags, TILESTATE_HAS_CARPET);
 	}
 	Item* getCarpet() const;
+
+	bool hasHookSouth() const {
+		return testFlags(statflags, TILESTATE_HOOK_SOUTH);
+	}
+
+	bool hasHookEast() const {
+		return testFlags(statflags, TILESTATE_HOOK_EAST);
+	}
 
 	bool hasOptionalBorder() const {
 		return testFlags(statflags, TILESTATE_OP_BORDER);
@@ -206,20 +210,8 @@ public: // Functions
 	// Get the (first) wall of this tile
 	Item* getWall() const;
 	bool hasWall() const;
-	// Remove all walls from the tile (for autowall) (only of those belonging to the specified brush
-	void cleanWalls(WallBrush* wb);
-	// Remove all walls from the tile
-	void cleanWalls(bool dontdelete = false);
 	// Add a wall item (same as just addItem, but an additional check to verify that it is a wall)
 	void addWallItem(Item* item);
-	// Wallize (name sucks, I know) this tile
-	void wallize(BaseMap* parent);
-	// Remove all tables from this tile
-	void cleanTables(bool dontdelete = false);
-	// Tableize (name sucks even worse, I know) this tile
-	void tableize(BaseMap* parent);
-	// Carpetize (name sucks even worse than last one, I know) this tile
-	void carpetize(BaseMap* parent);
 
 	// Has to do with houses
 	bool isHouseTile() const;

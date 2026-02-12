@@ -138,8 +138,8 @@ void Action::commit(DirtyList* dirty_list) {
 		switch (c->type) {
 			case CHANGE_TILE: {
 				auto& uptr = std::get<std::unique_ptr<Tile>>(c->data);
-				Tile* newtile = uptr.release();
-				ASSERT(newtile);
+				ASSERT(uptr);
+				Tile* newtile = uptr.get();
 				Position pos = newtile->getPosition();
 
 				if (editor.live_manager.IsClient()) {
@@ -147,13 +147,14 @@ void Action::commit(DirtyList* dirty_list) {
 					if (!nd || !nd->isVisible(pos.z > GROUND_LAYER)) {
 						// Delete all changes that affect tiles outside our view
 						c->clear();
-						delete newtile;
+						uptr.reset();
 						++it;
 						continue;
 					}
 				}
 
-				Tile* oldtile = editor.map.swapTile(pos, newtile);
+				std::unique_ptr<Tile> oldtile_uptr = editor.map.swapTile(pos, std::move(uptr));
+				Tile* oldtile = oldtile_uptr.get();
 				TileLocation* location = newtile->getLocation();
 
 				// Update other nodes in the network
@@ -199,9 +200,9 @@ void Action::commit(DirtyList* dirty_list) {
 						editor.selection.removeInternal(oldtile);
 					}
 
-					uptr.reset(oldtile);
+					uptr = std::move(oldtile_uptr);
 				} else {
-					uptr.reset(editor.map.allocator(location));
+					uptr = editor.map.allocator(location);
 					if (newtile->getHouseID() != 0) {
 						// oooooomggzzz we need to add it to the appropriate house!
 						House* house = editor.map.houses.getHouse(newtile->getHouseID());
@@ -294,8 +295,9 @@ void Action::undo(DirtyList* dirty_list) {
 		switch (c->type) {
 			case CHANGE_TILE: {
 				auto& uptr = std::get<std::unique_ptr<Tile>>(c->data);
-				Tile* oldtile = uptr.release();
-				ASSERT(oldtile);
+				std::unique_ptr<Tile> old_uptr = std::move(uptr);
+				ASSERT(old_uptr);
+				Tile* oldtile = old_uptr.get();
 				Position pos = oldtile->getPosition();
 
 				if (editor.live_manager.IsClient()) {
@@ -303,13 +305,14 @@ void Action::undo(DirtyList* dirty_list) {
 					if (!nd || !nd->isVisible(pos.z > GROUND_LAYER)) {
 						// Delete all changes that affect tiles outside our view
 						c->clear();
-						delete oldtile;
+						old_uptr.reset();
 						++it;
 						continue;
 					}
 				}
 
-				Tile* newtile = editor.map.swapTile(pos, oldtile);
+				std::unique_ptr<Tile> newtile_uptr = editor.map.swapTile(pos, std::move(old_uptr));
+				Tile* newtile = newtile_uptr.get();
 
 				// Update server side change list (for broadcast)
 				if (editor.live_manager.IsServer() && dirty_list) {
@@ -351,7 +354,7 @@ void Action::undo(DirtyList* dirty_list) {
 				} else if (newtile->spawn) {
 					editor.map.removeSpawn(newtile);
 				}
-				uptr.reset(newtile);
+				uptr = std::move(newtile_uptr);
 
 				// Update client dirty list
 				if (editor.live_manager.IsClient() && dirty_list && type != ACTION_REMOTE) {

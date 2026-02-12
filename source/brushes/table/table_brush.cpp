@@ -76,7 +76,20 @@ void TableBrush::draw(BaseMap* map, Tile* tile, void* parameter) {
 	}
 
 	if (type != 0) {
-		tile->addItem(Item::Create(type));
+		tile->addItem(Item::Create(type).release());
+	}
+}
+
+void TableBrush::getRelatedItems(std::vector<uint16_t>& items_out) {
+	for (int i = 0; i < TableBrushItems::TABLE_ALIGNMENT_COUNT; ++i) {
+		if (items.hasItems(i)) {
+			const auto& node = items.getItems(i);
+			for (const auto& t : node.items) {
+				if (t.item_id != 0) {
+					items_out.push_back(t.item_id);
+				}
+			}
+		}
 	}
 }
 

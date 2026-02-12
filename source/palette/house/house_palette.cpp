@@ -38,10 +38,10 @@ HousePalette::HousePalette(wxWindow* parent) :
 	// Header section (Town & Search)
 	wxStaticBoxSizer* filter_sizer = newd wxStaticBoxSizer(wxVERTICAL, this, "Filter / Search");
 
-	town_choice = newd wxChoice(this, ID_TOWN_CHOICE);
+	town_choice = newd wxChoice(filter_sizer->GetStaticBox(), ID_TOWN_CHOICE);
 	filter_sizer->Add(town_choice, 0, wxEXPAND | wxALL, 2);
 
-	search_ctrl = newd wxTextCtrl(this, ID_SEARCH_CTRL, "", wxDefaultPosition, wxDefaultSize, 0);
+	search_ctrl = newd wxTextCtrl(filter_sizer->GetStaticBox(), ID_SEARCH_CTRL, "", wxDefaultPosition, wxDefaultSize, 0);
 	search_ctrl->SetHint("Search houses...");
 	filter_sizer->Add(search_ctrl, 0, wxEXPAND | wxALL, 2);
 
@@ -71,8 +71,8 @@ HousePalette::HousePalette(wxWindow* parent) :
 	// Brush buttons (House tiles, Select Exit)
 	wxStaticBoxSizer* brush_sizer = newd wxStaticBoxSizer(wxVERTICAL, this, "Brushes");
 
-	house_brush_button = newd wxToggleButton(this, ID_HOUSE_BRUSH, "House tiles");
-	select_exit_button = newd wxToggleButton(this, ID_EXIT_BRUSH, "Select Exit");
+	house_brush_button = newd wxToggleButton(brush_sizer->GetStaticBox(), ID_HOUSE_BRUSH, "House tiles");
+	select_exit_button = newd wxToggleButton(brush_sizer->GetStaticBox(), ID_EXIT_BRUSH, "Select Exit");
 
 	brush_sizer->Add(house_brush_button, 0, wxEXPAND | wxBOTTOM, 2);
 	brush_sizer->Add(select_exit_button, 0, wxEXPAND);
@@ -130,9 +130,9 @@ void HousePalette::SetMap(Map* m) {
 
 void HousePalette::UpdateHouses() {
 	town_choice->Clear();
-	house_list->DeleteAllItems();
 
 	if (!map) {
+		house_list->DeleteAllItems();
 		return;
 	}
 
@@ -148,8 +148,10 @@ void HousePalette::UpdateHouses() {
 }
 
 void HousePalette::FilterHouses() {
+	house_list->Freeze();
 	house_list->DeleteAllItems();
 	if (!map) {
+		house_list->Thaw();
 		return;
 	}
 
@@ -196,6 +198,7 @@ void HousePalette::FilterHouses() {
 			house_list->AppendItem(data, (wxUIntPtr)house);
 		}
 	}
+	house_list->Thaw();
 }
 
 House* HousePalette::GetSelectedHouse() const {

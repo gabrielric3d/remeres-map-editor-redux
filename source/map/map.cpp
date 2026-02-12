@@ -24,6 +24,7 @@
 #include <sstream>
 #include <algorithm>
 #include <unordered_set>
+#include <unordered_map>
 #include <spdlog/spdlog.h>
 
 Map::Map() :
@@ -92,48 +93,6 @@ bool Map::open(const std::string file) {
 
 	// convert(getReplacementMapClassic(), true);
 
-#if 0 // This will create a replacement map out of one of SO's template files
-	std::ofstream out("templateshit.cpp");
-	out << "\tConversionMap replacement_map;\n";
-	int count = 0;
-	out << "\tstd::vector<uint16_t> veckey, vecval;\n\n";
-
-	for(int x = 20; ; x += 2) {
-		int y = 22;
-		Tile* old = getTile(x, y, GROUND_LAYER);
-		if(old) {
-			y -= 2;
-			Tile* new_ = getTile(x, y, GROUND_LAYER);
-			if(new_) {
-				if(old->ground || old->items.size()) {
-					out << "\tvecval.clear();\n";
-					if(new_->ground)
-						out << "\tvecval.push_back(" << new_->ground->getID() << ");\n";
-					for(ItemVector::iterator iter = new_->items.begin(); iter != new_->items.end(); ++iter)
-						out << "\tvecval.push_back(" << (*iter)->getID() << ");\n";
-
-					if(old->ground && old->items.empty()) // Single item
-						out << "\treplacement_map.stm[" << old->ground->getID() << "] = vecval;\n\n";
-					else if(old->ground == nullptr && old->items.size() == 1) // Single item
-						out << "\treplacement_map.stm[" << old->items.front()->getID() << "] = vecval;\n\n";
-					else {
-						// Many items
-						out << "\tveckey.clear();\n";
-						if(old->ground)
-							out << "\tveckey.push_back(" << old->ground->getID() << ");\n";
-						for(ItemVector::iterator iter = old->items.begin(); iter != old->items.end(); ++iter)
-							out << "\tveckey.push_back(" << (*iter)->getID() << ");\n";
-						out << "\tstd::sort(veckey.begin(), veckey.end());\n";
-						out << "\treplacement_map.mtm[veckey] = vecval;\n\n";
-					}
-				}
-			}
-		} else {
-			break;
-		}
-	}
-	out.close();
-#endif
 	return true;
 }
 
@@ -171,7 +130,7 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 		g_gui.CreateLoadBar("Converting map ...");
 	}
 
-	std::map<const std::vector<uint16_t>*, std::unordered_set<uint16_t>> mtm_lookups;
+	std::unordered_map<const std::vector<uint16_t>*, std::unordered_set<uint16_t>> mtm_lookups;
 	for (const auto& entry : rm.mtm) {
 		mtm_lookups.emplace(&entry.first, std::unordered_set<uint16_t>(entry.first.begin(), entry.first.end()));
 	}
@@ -237,11 +196,11 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 
 			const std::vector<uint16_t>& new_items = cfmtm->second;
 			for (std::vector<uint16_t>::const_iterator iit = new_items.begin(); iit != new_items.end(); ++iit) {
-				Item* item = Item::Create(*iit);
+				std::unique_ptr<Item> item = Item::Create(*iit);
 				if (item->isGroundTile()) {
-					tile->ground = item;
+					tile->ground = item.release();
 				} else {
-					tile->items.insert(tile->items.begin(), item);
+					tile->items.insert(tile->items.begin(), item.release());
 					++inserted_items;
 				}
 			}
@@ -258,14 +217,14 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 				const std::vector<uint16_t>& v = cfstm->second;
 				// conversions << "Converted " << tile->getX() << ":" << tile->getY() << ":" << tile->getZ() << " " << id << " -> ";
 				for (std::vector<uint16_t>::const_iterator iit = v.begin(); iit != v.end(); ++iit) {
-					Item* item = Item::Create(*iit);
+					std::unique_ptr<Item> item = Item::Create(*iit);
 					// conversions << *iit << " ";
 					if (item->isGroundTile()) {
 						item->setActionID(aid);
 						item->setUniqueID(uid);
-						tile->addItem(item);
+						tile->addItem(item.release());
 					} else {
-						tile->items.insert(tile->items.begin(), item);
+						tile->items.insert(tile->items.begin(), item.release());
 						++inserted_items;
 					}
 				}
@@ -284,7 +243,7 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 				replace_item_iter = tile->items.erase(replace_item_iter);
 				const std::vector<uint16_t>& v = cf->second;
 				for (std::vector<uint16_t>::const_iterator iit = v.begin(); iit != v.end(); ++iit) {
-					replace_item_iter = tile->items.insert(replace_item_iter, Item::Create(*iit));
+					replace_item_iter = tile->items.insert(replace_item_iter, Item::Create(*iit).release());
 					// conversions << "Converted " << tile->getX() << ":" << tile->getY() << ":" << tile->getZ() << " " << id << " -> " << *iit << std::endl;
 					++replace_item_iter;
 				}
@@ -422,7 +381,7 @@ void Map::setSpawnFilename(const std::string& new_spawnfile) {
 }
 
 bool Map::addSpawn(Tile* tile) {
-	Spawn* spawn = tile->spawn;
+	Spawn* spawn = tile->spawn.get();
 	if (spawn) {
 		int z = tile->getZ();
 		int start_x = tile->getX() - spawn->getSize();
@@ -443,7 +402,7 @@ bool Map::addSpawn(Tile* tile) {
 }
 
 void Map::removeSpawnInternal(Tile* tile) {
-	Spawn* spawn = tile->spawn;
+	Spawn* spawn = tile->spawn.get();
 	ASSERT(spawn);
 
 	int z = tile->getZ();
@@ -477,7 +436,7 @@ SpawnList Map::getSpawnList(Tile* where) {
 			uint32_t found = 0;
 			if (where->spawn) {
 				++found;
-				list.push_back(where->spawn);
+				list.push_back(where->spawn.get());
 			}
 
 			// Scans the border tiles in an expanding square around the original spawn
@@ -488,12 +447,12 @@ SpawnList Map::getSpawnList(Tile* where) {
 				for (int x = start_x; x <= end_x; ++x) {
 					Tile* tile = getTile(x, start_y, z);
 					if (tile && tile->spawn) {
-						list.push_back(tile->spawn);
+						list.push_back(tile->spawn.get());
 						++found;
 					}
 					tile = getTile(x, end_y, z);
 					if (tile && tile->spawn) {
-						list.push_back(tile->spawn);
+						list.push_back(tile->spawn.get());
 						++found;
 					}
 				}
@@ -501,12 +460,12 @@ SpawnList Map::getSpawnList(Tile* where) {
 				for (int y = start_y + 1; y < end_y; ++y) {
 					Tile* tile = getTile(start_x, y, z);
 					if (tile && tile->spawn) {
-						list.push_back(tile->spawn);
+						list.push_back(tile->spawn.get());
 						++found;
 					}
 					tile = getTile(end_x, y, z);
 					if (tile && tile->spawn) {
-						list.push_back(tile->spawn);
+						list.push_back(tile->spawn.get());
 						++found;
 					}
 				}

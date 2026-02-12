@@ -20,6 +20,7 @@
 #include "ui/properties/property_validator.h"
 #include "ui/properties/property_applier.h"
 #include "ui/properties/teleport_service.h"
+#include "util/image_manager.h"
 
 // ============================================================================
 // Old Properties Window
@@ -63,8 +64,12 @@ OldPropertiesWindow::OldPropertiesWindow(wxWindow* win_parent, const Map* map, c
 	topsizer->Add(boxsizer, wxSizerFlags(0).Expand().Border(wxLEFT | wxRIGHT, 20));
 
 	wxSizer* subsizer_btn = newd wxBoxSizer(wxHORIZONTAL);
-	subsizer_btn->Add(newd wxButton(this, wxID_OK, "OK"), wxSizerFlags(1).Center().Border(wxTOP | wxBOTTOM, 10));
-	subsizer_btn->Add(newd wxButton(this, wxID_CANCEL, "Cancel"), wxSizerFlags(1).Center().Border(wxTOP | wxBOTTOM, 10));
+	wxButton* okBtn = newd wxButton(this, wxID_OK, "OK");
+	okBtn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_CHECK, wxSize(16, 16)));
+	subsizer_btn->Add(okBtn, wxSizerFlags(1).Center().Border(wxTOP | wxBOTTOM, 10));
+	wxButton* cancelBtn = newd wxButton(this, wxID_CANCEL, "Cancel");
+	cancelBtn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_XMARK, wxSize(16, 16)));
+	subsizer_btn->Add(cancelBtn, wxSizerFlags(1).Center().Border(wxTOP | wxBOTTOM, 10));
 	topsizer->Add(subsizer_btn, wxSizerFlags(0).Center().Border(wxLEFT | wxRIGHT, 20));
 
 	SetSizerAndFit(topsizer);
@@ -96,7 +101,7 @@ void OldPropertiesWindow::createGenericFields(wxFlexGridSizer* subsizer) {
 	subsizer->Add(action_id_field, wxSizerFlags(1).Expand());
 
 	subsizer->Add(newd wxStaticText(this, wxID_ANY, "Unique ID"));
-	unique_id_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(edit_item->getUniqueID()), wxDefaultPosition, wxSize(-1, 20), wxSP_ARROW_KEYS, 0, 0xFFFF, edit_item->getUniqueID());
+	unique_id_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(edit_item->getUniqueID()), wxDefaultPosition, FROM_DIP(this, wxSize(-1, 20)), wxSP_ARROW_KEYS, 0, 0xFFFF, edit_item->getUniqueID());
 	subsizer->Add(unique_id_field, wxSizerFlags(1).Expand());
 }
 
@@ -108,7 +113,7 @@ void OldPropertiesWindow::createClassificationFields(wxFlexGridSizer* subsizer) 
 
 		// item iter
 		subsizer->Add(newd wxStaticText(this, wxID_ANY, "Tier"));
-		tier_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(edit_item->getTier()), wxDefaultPosition, wxSize(-1, 20), wxSP_ARROW_KEYS, 0, 0xFF, edit_item->getTier());
+		tier_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(edit_item->getTier()), wxDefaultPosition, FROM_DIP(this, wxSize(-1, 20)), wxSP_ARROW_KEYS, 0, 0xFF, edit_item->getTier());
 		subsizer->Add(tier_field, wxSizerFlags(1).Expand());
 	}
 }
@@ -116,7 +121,7 @@ void OldPropertiesWindow::createClassificationFields(wxFlexGridSizer* subsizer) 
 void OldPropertiesWindow::createDoorFields(wxFlexGridSizer* subsizer) {
 	if (Door* door = dynamic_cast<Door*>(edit_item)) {
 		subsizer->Add(newd wxStaticText(this, wxID_ANY, "Door ID"));
-		door_id_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(door->getDoorID()), wxDefaultPosition, wxSize(-1, 20), wxSP_ARROW_KEYS, 0, 0xFF, door->getDoorID());
+		door_id_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(door->getDoorID()), wxDefaultPosition, FROM_DIP(this, wxSize(-1, 20)), wxSP_ARROW_KEYS, 0, 0xFF, door->getDoorID());
 		if (!edit_tile || !edit_tile->isHouseTile() || !door->isRealDoor()) {
 			door_id_field->Disable();
 		}
@@ -129,13 +134,13 @@ void OldPropertiesWindow::createTeleportFields(wxFlexGridSizer* subsizer) {
 		subsizer->Add(newd wxStaticText(this, wxID_ANY, "Destination"));
 
 		wxSizer* possizer = newd wxBoxSizer(wxHORIZONTAL);
-		x_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(teleport->getX()), wxDefaultPosition, wxSize(-1, 20), wxSP_ARROW_KEYS, 0, edit_map->getWidth(), teleport->getX());
+		x_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(teleport->getX()), wxDefaultPosition, FROM_DIP(this, wxSize(-1, 20)), wxSP_ARROW_KEYS, 0, edit_map->getWidth(), teleport->getX());
 		x_field->Bind(wxEVT_CHAR, &OldPropertiesWindow::OnChar, this);
 		possizer->Add(x_field, wxSizerFlags(3).Expand());
-		y_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(teleport->getY()), wxDefaultPosition, wxSize(-1, 20), wxSP_ARROW_KEYS, 0, edit_map->getHeight(), teleport->getY());
+		y_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(teleport->getY()), wxDefaultPosition, FROM_DIP(this, wxSize(-1, 20)), wxSP_ARROW_KEYS, 0, edit_map->getHeight(), teleport->getY());
 		y_field->Bind(wxEVT_CHAR, &OldPropertiesWindow::OnChar, this);
 		possizer->Add(y_field, wxSizerFlags(3).Expand());
-		z_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(teleport->getZ()), wxDefaultPosition, wxSize(-1, 20), wxSP_ARROW_KEYS, 0, MAP_MAX_LAYER, teleport->getZ());
+		z_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(teleport->getZ()), wxDefaultPosition, FROM_DIP(this, wxSize(-1, 20)), wxSP_ARROW_KEYS, 0, MAP_MAX_LAYER, teleport->getZ());
 		z_field->Bind(wxEVT_CHAR, &OldPropertiesWindow::OnChar, this);
 		possizer->Add(z_field, wxSizerFlags(2).Expand());
 

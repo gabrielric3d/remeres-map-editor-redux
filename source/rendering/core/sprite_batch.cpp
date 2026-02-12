@@ -1,4 +1,5 @@
 #include "rendering/core/sprite_batch.h"
+#include "rendering/core/shared_geometry.h"
 #include <iostream>
 #include <cstring>
 #include <utility>
@@ -67,25 +68,15 @@ bool SpriteBatch::initialize() {
 
 	// Create VAO and static buffers
 	vao_ = std::make_unique<GLVertexArray>();
-	quad_vbo_ = std::make_unique<GLBuffer>();
-	quad_ebo_ = std::make_unique<GLBuffer>();
-
-	// Unit quad geometry
-	float quad_vertices[] = {
-		0.0f, 0.0f, 0.0f, 0.0f, // pos.xy, tex.xy
-		1.0f, 0.0f, 1.0f, 0.0f,
-		1.0f, 1.0f, 1.0f, 1.0f,
-		0.0f, 1.0f, 0.0f, 1.0f
-	};
-	unsigned int indices[] = { 0, 1, 2, 2, 3, 0 };
-
-	// Upload static geometry
-	glNamedBufferStorage(quad_vbo_->GetID(), sizeof(quad_vertices), quad_vertices, 0);
-	glNamedBufferStorage(quad_ebo_->GetID(), sizeof(indices), indices, 0);
+	// Initialize Shared Geometry
+	if (!SharedGeometry::Instance().initialize()) {
+		spdlog::error("SpriteBatch: Failed to initialize SharedGeometry");
+		return false;
+	}
 
 	// Bind Quad VBO/EBO to VAO (DSA)
-	glVertexArrayVertexBuffer(vao_->GetID(), 0, quad_vbo_->GetID(), 0, 4 * sizeof(float));
-	glVertexArrayElementBuffer(vao_->GetID(), quad_ebo_->GetID());
+	glVertexArrayVertexBuffer(vao_->GetID(), 0, SharedGeometry::Instance().getQuadVBO(), 0, 4 * sizeof(float));
+	glVertexArrayElementBuffer(vao_->GetID(), SharedGeometry::Instance().getQuadEBO());
 
 	// Loc 0: position (vec2)
 	glEnableVertexArrayAttrib(vao_->GetID(), 0);
@@ -140,7 +131,7 @@ void SpriteBatch::begin(const glm::mat4& projection) {
 	in_batch_ = true;
 	draw_call_count_ = 0;
 	sprite_count_ = 0;
-	last_bound_vao_ = 0;
+	sprite_count_ = 0;
 	global_tint_ = glm::vec4(1.0f);
 
 	glEnable(GL_BLEND);
@@ -152,17 +143,14 @@ void SpriteBatch::begin(const glm::mat4& projection) {
 	shader_->SetVec4("uGlobalTint", global_tint_);
 }
 
-void SpriteBatch::setGlobalTint(float r, float g, float b, float a) {
+void SpriteBatch::setGlobalTint(float r, float g, float b, float a, const AtlasManager& atlas_manager) {
 	if (!in_batch_) {
 		return;
 	}
 
 	// If pending sprites exist, must flush to apply previous tint
 	if (!pending_sprites_.empty()) {
-		// Warning: This causes a flush and state change
-		// We can't access AtlasManager here, so we must assume calling code
-		// flushes or sets tint at appropriate times.
-		// Ideally setGlobalTint is called when batch is empty.
+		flush(atlas_manager);
 	}
 
 	global_tint_ = glm::vec4(r, g, b, a);
@@ -225,12 +213,15 @@ void SpriteBatch::flush(const AtlasManager& atlas_manager) {
 		return;
 	}
 
+	// Ensure shader and VAO are bound to handle interleaved renderer calls
+	shader_->Use();
+	shader_->SetMat4("uMVP", projection_);
+	shader_->SetInt("uAtlas", 0);
+	shader_->SetVec4("uGlobalTint", global_tint_);
+
 	atlas_manager.bind(0);
 
-	if (last_bound_vao_ != vao_->GetID()) {
-		glBindVertexArray(vao_->GetID());
-		last_bound_vao_ = vao_->GetID();
-	}
+	glBindVertexArray(vao_->GetID());
 
 	glBindBuffer(GL_ARRAY_BUFFER, ring_buffer_.getBufferId());
 

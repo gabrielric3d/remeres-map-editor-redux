@@ -26,19 +26,24 @@
 #include "palette/palette_waypoints.h"
 #include "brushes/waypoint/waypoint_brush.h"
 #include "map/map.h"
+#include "util/image_manager.h"
 
 WaypointPalettePanel::WaypointPalettePanel(wxWindow* parent, wxWindowID id) :
 	PalettePanel(parent, id),
 	map(nullptr) {
 	wxSizer* sidesizer = newd wxStaticBoxSizer(wxVERTICAL, this, "Waypoints");
 
-	waypoint_list = newd wxListCtrl(this, PALETTE_WAYPOINT_LISTBOX, wxDefaultPosition, wxDefaultSize, wxLC_REPORT | wxLC_SINGLE_SEL | wxLC_EDIT_LABELS | wxLC_NO_HEADER);
+	waypoint_list = newd wxListCtrl(static_cast<wxStaticBoxSizer*>(sidesizer)->GetStaticBox(), PALETTE_WAYPOINT_LISTBOX, wxDefaultPosition, wxDefaultSize, wxLC_REPORT | wxLC_SINGLE_SEL | wxLC_EDIT_LABELS | wxLC_NO_HEADER);
 	waypoint_list->InsertColumn(0, "UNNAMED", wxLIST_FORMAT_LEFT, 200);
 	sidesizer->Add(waypoint_list, 1, wxEXPAND);
 
 	wxSizer* tmpsizer = newd wxBoxSizer(wxHORIZONTAL);
-	tmpsizer->Add(add_waypoint_button = newd wxButton(this, PALETTE_WAYPOINT_ADD_WAYPOINT, "Add", wxDefaultPosition, wxSize(50, -1)), 1, wxEXPAND);
-	tmpsizer->Add(remove_waypoint_button = newd wxButton(this, PALETTE_WAYPOINT_REMOVE_WAYPOINT, "Remove", wxDefaultPosition, wxSize(70, -1)), 1, wxEXPAND);
+	add_waypoint_button = newd wxButton(static_cast<wxStaticBoxSizer*>(sidesizer)->GetStaticBox(), PALETTE_WAYPOINT_ADD_WAYPOINT, "Add", wxDefaultPosition, wxSize(50, -1));
+	add_waypoint_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_PLUS, wxSize(16, 16)));
+	tmpsizer->Add(add_waypoint_button, 1, wxEXPAND);
+	remove_waypoint_button = newd wxButton(static_cast<wxStaticBoxSizer*>(sidesizer)->GetStaticBox(), PALETTE_WAYPOINT_REMOVE_WAYPOINT, "Remove", wxDefaultPosition, wxSize(70, -1));
+	remove_waypoint_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_MINUS, wxSize(16, 16)));
+	tmpsizer->Add(remove_waypoint_button, 1, wxEXPAND);
 	sidesizer->Add(tmpsizer, 0, wxEXPAND);
 
 	SetSizerAndFit(sidesizer);
@@ -103,23 +108,27 @@ void WaypointPalettePanel::OnUpdate() {
 			map->waypoints.removeWaypoint(wp->name);
 		}
 	}
+	waypoint_list->Freeze();
 	waypoint_list->DeleteAllItems();
 
 	if (!map) {
 		waypoint_list->Enable(false);
 		add_waypoint_button->Enable(false);
 		remove_waypoint_button->Enable(false);
-	} else {
-		waypoint_list->Enable(true);
-		add_waypoint_button->Enable(true);
-		remove_waypoint_button->Enable(true);
-
-		Waypoints& waypoints = map->waypoints;
-
-		for (WaypointMap::const_iterator iter = waypoints.begin(); iter != waypoints.end(); ++iter) {
-			waypoint_list->InsertItem(0, wxstr(iter->second->name));
-		}
+		waypoint_list->Thaw();
+		return;
 	}
+
+	waypoint_list->Enable(true);
+	add_waypoint_button->Enable(true);
+	remove_waypoint_button->Enable(true);
+
+	Waypoints& waypoints = map->waypoints;
+
+	for (WaypointMap::const_iterator iter = waypoints.begin(); iter != waypoints.end(); ++iter) {
+		waypoint_list->InsertItem(0, wxstr(iter->second->name));
+	}
+	waypoint_list->Thaw();
 }
 
 void WaypointPalettePanel::OnClickWaypoint(wxListEvent& event) {

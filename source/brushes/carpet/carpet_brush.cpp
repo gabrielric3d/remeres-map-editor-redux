@@ -49,7 +49,7 @@ bool CarpetBrush::canDraw(BaseMap* map, const Position& position) const {
 
 void CarpetBrush::draw(BaseMap* map, Tile* tile, void* parameter) {
 	undraw(map, tile); // Remove old
-	tile->addItem(Item::Create(getRandomCarpet(CARPET_CENTER)));
+	tile->addItem(Item::Create(getRandomCarpet(CARPET_CENTER)).release());
 }
 
 void CarpetBrush::undraw(BaseMap* map, Tile* tile) {
@@ -66,6 +66,16 @@ void CarpetBrush::undraw(BaseMap* map, Tile* tile) {
 			}
 		} else {
 			++it;
+		}
+	}
+}
+
+void CarpetBrush::getRelatedItems(std::vector<uint16_t>& items_out) {
+	for (const auto& group : m_items.getGroups()) {
+		for (const auto& item : group.items) {
+			if (item.id != 0) {
+				items_out.push_back(item.id);
+			}
 		}
 	}
 }

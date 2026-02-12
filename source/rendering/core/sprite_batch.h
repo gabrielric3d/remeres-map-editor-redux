@@ -82,8 +82,9 @@ public:
 
 	/**
 	 * Set global tint for subsequent draws in current batch.
+	 * If pending sprites exist, they will be flushed using the provided atlas manager.
 	 */
-	void setGlobalTint(float r, float g, float b, float a);
+	void setGlobalTint(float r, float g, float b, float a, const AtlasManager& atlas_manager);
 
 	/**
 	 * Ensure capacity in pending vector.
@@ -103,8 +104,6 @@ private:
 	std::unique_ptr<ShaderProgram> shader_;
 
 	std::unique_ptr<GLVertexArray> vao_;
-	std::unique_ptr<GLBuffer> quad_vbo_;
-	std::unique_ptr<GLBuffer> quad_ebo_;
 
 	RingBuffer ring_buffer_;
 	MultiDrawIndirectRenderer mdi_renderer_;
@@ -118,7 +117,6 @@ private:
 
 	int draw_call_count_ = 0;
 	int sprite_count_ = 0;
-	GLuint last_bound_vao_ = 0;
 };
 
 #endif

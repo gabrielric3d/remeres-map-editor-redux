@@ -41,7 +41,7 @@ class MainFrame;
 class WelcomeDialog;
 class MapWindow;
 class MapCanvas;
-
+class LiveClient;
 class SearchResultWindow;
 class MinimapWindow;
 class PaletteWindow;
@@ -197,12 +197,8 @@ public:
 	void SwitchMode();
 	void SetSelectionMode();
 	void SetDrawingMode();
-	bool IsSelectionMode() const {
-		return mode == SELECTION_MODE;
-	}
-	bool IsDrawingMode() const {
-		return mode == DRAWING_MODE;
-	}
+	bool IsSelectionMode() const;
+	bool IsDrawingMode() const;
 
 	// Brushes
 	void FillDoodadPreviewBuffer();
@@ -271,7 +267,7 @@ public:
 
 	// Editor interface
 	wxAuiManager* GetAuiManager() const {
-		return aui_manager.get();
+		return aui_manager;
 	}
 	EditorTab* GetCurrentTab();
 	EditorTab* GetTab(int idx);
@@ -338,20 +334,16 @@ protected:
 	// Public members
 	//=========================================================================
 public:
-	std::unique_ptr<wxAuiManager> aui_manager;
-	std::unique_ptr<MapTabbook> tabbook;
+	wxAuiManager* aui_manager;
+	MapTabbook* tabbook;
 	MainFrame* root; // The main frame
 	CopyBuffer copybuffer;
 
 	GraphicManager gfx;
 
-	BaseMap* secondary_map; // A buffer map
-
 	HousePalette* house_palette;
 
 	ToolOptionsWindow* tool_options;
-
-	EditorMode mode;
 
 	bool pasting;
 
@@ -367,8 +359,7 @@ protected:
 	std::vector<std::unique_ptr<LiveClient>> pending_live_clients;
 
 	friend class RenderingLock;
-	friend MapTab::MapTab(MapTabbook*, Editor*);
-	friend MapTab::MapTab(const MapTab*);
+	friend class MapTab;
 };
 
 extern GUI g_gui;

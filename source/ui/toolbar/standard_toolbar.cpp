@@ -9,39 +9,39 @@
 #include "ui/main_menubar.h"
 #include "editor/editor.h"
 #include "editor/action_queue.h"
-#include "ui/artprovider.h"
+#include "util/image_manager.h"
 #include <wx/artprov.h>
 
 const wxString StandardToolBar::PANE_NAME = "standard_toolbar";
 
 StandardToolBar::StandardToolBar(wxWindow* parent) {
 	wxSize icon_size = FROM_DIP(parent, wxSize(16, 16));
-	wxBitmap new_bitmap = wxArtProvider::GetBitmap(wxART_NEW, wxART_TOOLBAR, icon_size);
-	wxBitmap open_bitmap = wxArtProvider::GetBitmap(wxART_FILE_OPEN, wxART_TOOLBAR, icon_size);
-	wxBitmap save_bitmap = wxArtProvider::GetBitmap(wxART_FILE_SAVE, wxART_TOOLBAR, icon_size);
-	wxBitmap saveas_bitmap = wxArtProvider::GetBitmap(wxART_FILE_SAVE_AS, wxART_TOOLBAR, icon_size);
-	wxBitmap undo_bitmap = wxArtProvider::GetBitmap(wxART_UNDO, wxART_TOOLBAR, icon_size);
-	wxBitmap redo_bitmap = wxArtProvider::GetBitmap(wxART_REDO, wxART_TOOLBAR, icon_size);
-	wxBitmap cut_bitmap = wxArtProvider::GetBitmap(wxART_CUT, wxART_TOOLBAR, icon_size);
-	wxBitmap copy_bitmap = wxArtProvider::GetBitmap(wxART_COPY, wxART_TOOLBAR, icon_size);
-	wxBitmap paste_bitmap = wxArtProvider::GetBitmap(wxART_PASTE, wxART_TOOLBAR, icon_size);
-	wxBitmap find_bitmap = wxArtProvider::GetBitmap(wxART_FIND, wxART_TOOLBAR, icon_size);
+	wxBitmap new_bitmap = IMAGE_MANAGER.GetBitmap(ICON_NEW, icon_size);
+	wxBitmap open_bitmap = IMAGE_MANAGER.GetBitmap(ICON_OPEN, icon_size);
+	wxBitmap save_bitmap = IMAGE_MANAGER.GetBitmap(ICON_SAVE, icon_size);
+	wxBitmap saveas_bitmap = IMAGE_MANAGER.GetBitmap(ICON_SAVE, icon_size);
+	wxBitmap undo_bitmap = IMAGE_MANAGER.GetBitmap(ICON_UNDO, icon_size);
+	wxBitmap redo_bitmap = IMAGE_MANAGER.GetBitmap(ICON_REDO, icon_size);
+	wxBitmap cut_bitmap = IMAGE_MANAGER.GetBitmap(ICON_CUT, icon_size);
+	wxBitmap copy_bitmap = IMAGE_MANAGER.GetBitmap(ICON_COPY, icon_size);
+	wxBitmap paste_bitmap = IMAGE_MANAGER.GetBitmap(ICON_PASTE, icon_size);
+	wxBitmap find_bitmap = IMAGE_MANAGER.GetBitmap(ICON_FIND, icon_size);
 
 	toolbar = newd wxAuiToolBar(parent, TOOLBAR_STANDARD, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE);
 	toolbar->SetToolBitmapSize(icon_size);
-	toolbar->AddTool(wxID_NEW, wxEmptyString, new_bitmap, wxNullBitmap, wxITEM_NORMAL, "New Map (Ctrl+N) - Create a new empty map", wxEmptyString, nullptr);
-	toolbar->AddTool(wxID_OPEN, wxEmptyString, open_bitmap, wxNullBitmap, wxITEM_NORMAL, "Open Map (Ctrl+O) - Open an existing map", wxEmptyString, nullptr);
-	toolbar->AddTool(wxID_SAVE, wxEmptyString, save_bitmap, wxNullBitmap, wxITEM_NORMAL, "Save Map (Ctrl+S)", wxEmptyString, nullptr);
-	toolbar->AddTool(wxID_SAVEAS, wxEmptyString, saveas_bitmap, wxNullBitmap, wxITEM_NORMAL, "Save Map As... (Ctrl+Alt+S)", wxEmptyString, nullptr);
+	toolbar->AddTool(wxID_NEW, wxEmptyString, new_bitmap, wxNullBitmap, wxITEM_NORMAL, "New Map (Ctrl+N) - Create a new empty map", "Create a new empty map", nullptr);
+	toolbar->AddTool(wxID_OPEN, wxEmptyString, open_bitmap, wxNullBitmap, wxITEM_NORMAL, "Open Map (Ctrl+O) - Open an existing map", "Open an existing map", nullptr);
+	toolbar->AddTool(wxID_SAVE, wxEmptyString, save_bitmap, wxNullBitmap, wxITEM_NORMAL, "Save Map (Ctrl+S)", "Save the current map", nullptr);
+	toolbar->AddTool(wxID_SAVEAS, wxEmptyString, saveas_bitmap, wxNullBitmap, wxITEM_NORMAL, "Save Map As... (Ctrl+Alt+S)", "Save the current map with a new name", nullptr);
 	toolbar->AddSeparator();
-	toolbar->AddTool(wxID_UNDO, wxEmptyString, undo_bitmap, wxNullBitmap, wxITEM_NORMAL, "Undo (Ctrl+Z)", wxEmptyString, nullptr);
-	toolbar->AddTool(wxID_REDO, wxEmptyString, redo_bitmap, wxNullBitmap, wxITEM_NORMAL, "Redo (Ctrl+Shift+Z)", wxEmptyString, nullptr);
+	toolbar->AddTool(wxID_UNDO, wxEmptyString, undo_bitmap, wxNullBitmap, wxITEM_NORMAL, "Undo (Ctrl+Z)", "Undo the last action", nullptr);
+	toolbar->AddTool(wxID_REDO, wxEmptyString, redo_bitmap, wxNullBitmap, wxITEM_NORMAL, "Redo (Ctrl+Shift+Z)", "Redo the last undone action", nullptr);
 	toolbar->AddSeparator();
-	toolbar->AddTool(wxID_CUT, wxEmptyString, cut_bitmap, wxNullBitmap, wxITEM_NORMAL, "Cut (Ctrl+X)", wxEmptyString, nullptr);
-	toolbar->AddTool(wxID_COPY, wxEmptyString, copy_bitmap, wxNullBitmap, wxITEM_NORMAL, "Copy (Ctrl+C)", wxEmptyString, nullptr);
-	toolbar->AddTool(wxID_PASTE, wxEmptyString, paste_bitmap, wxNullBitmap, wxITEM_NORMAL, "Paste (Ctrl+V)", wxEmptyString, nullptr);
+	toolbar->AddTool(wxID_CUT, wxEmptyString, cut_bitmap, wxNullBitmap, wxITEM_NORMAL, "Cut (Ctrl+X)", "Cut selection to clipboard", nullptr);
+	toolbar->AddTool(wxID_COPY, wxEmptyString, copy_bitmap, wxNullBitmap, wxITEM_NORMAL, "Copy (Ctrl+C)", "Copy selection to clipboard", nullptr);
+	toolbar->AddTool(wxID_PASTE, wxEmptyString, paste_bitmap, wxNullBitmap, wxITEM_NORMAL, "Paste (Ctrl+V)", "Paste from clipboard", nullptr);
 	toolbar->AddSeparator();
-	toolbar->AddTool(MAIN_FRAME_MENU + MenuBar::JUMP_TO_BRUSH, wxEmptyString, find_bitmap, wxNullBitmap, wxITEM_NORMAL, "Jump to Brush (J)", wxEmptyString, nullptr);
+	toolbar->AddTool(MAIN_FRAME_MENU + MenuBar::JUMP_TO_BRUSH, wxEmptyString, find_bitmap, wxNullBitmap, wxITEM_NORMAL, "Jump to Brush (J)", "Find brush or item", nullptr);
 	toolbar->Realize();
 
 	toolbar->Bind(wxEVT_COMMAND_MENU_SELECTED, &StandardToolBar::OnButtonClick, this);
