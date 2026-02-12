@@ -22,6 +22,7 @@
 #include "ui/gui.h"
 #include "util/file_system.h"
 #include "game/materials.h"
+#include "util/image_manager.h"
 
 extern Materials g_materials;
 
@@ -35,9 +36,11 @@ ExtensionsDialog::ExtensionsDialog(wxWindow* parent) :
 
 	wxSizer* buttonSizer = newd wxBoxSizer(wxHORIZONTAL);
 	auto okBtn = newd wxButton(this, wxID_OK, "OK");
+	okBtn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_CHECK, wxSize(16, 16)));
 	okBtn->SetToolTip("Close window");
 	buttonSizer->Add(okBtn, wxSizerFlags(1).Center());
 	auto openBtn = newd wxButton(this, EXTENSIONS_OPEN_FOLDER_BUTTON, "Open Extensions Folder");
+	openBtn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_FOLDER_OPEN, wxSize(16, 16)));
 	openBtn->SetToolTip("Open the extensions directory in file explorer");
 	buttonSizer->Add(openBtn, wxSizerFlags(1).Center());
 	topSizer->Add(buttonSizer, 0, wxCENTER | wxLEFT | wxRIGHT | wxBOTTOM, 20);
