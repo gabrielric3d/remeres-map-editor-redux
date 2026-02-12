@@ -149,6 +149,10 @@ void SpritePreloader::update() {
 		std::swap(results, result_queue);
 	}
 
+	thread_local std::vector<uint32_t> ids_processed;
+	ids_processed.clear();
+	ids_processed.reserve(results.size());
+
 	while (!results.empty()) {
 		Result& res = results.front();
 		uint32_t id = res.id;
@@ -166,12 +170,15 @@ void SpritePreloader::update() {
 			}
 		}
 
-		{
-			std::lock_guard<std::mutex> lock(queue_mutex);
+		ids_processed.push_back(id);
+		results.pop();
+	}
+
+	if (!ids_processed.empty()) {
+		std::lock_guard<std::mutex> lock(queue_mutex);
+		for (uint32_t id : ids_processed) {
 			pending_ids.erase(id);
 		}
-
-		results.pop();
 	}
 }
 
