@@ -130,11 +130,9 @@ void HousePalette::SetMap(Map* m) {
 
 void HousePalette::UpdateHouses() {
 	town_choice->Clear();
-	house_list->Freeze();
-	house_list->DeleteAllItems();
 
 	if (!map) {
-		house_list->Thaw();
+		house_list->DeleteAllItems();
 		return;
 	}
 
@@ -145,7 +143,6 @@ void HousePalette::UpdateHouses() {
 	}
 	town_choice->Append("No Town", (void*)nullptr);
 	town_choice->SetSelection(0);
-	house_list->Thaw();
 
 	FilterHouses();
 }

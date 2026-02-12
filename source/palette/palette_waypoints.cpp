@@ -110,16 +110,18 @@ void WaypointPalettePanel::OnUpdate() {
 		waypoint_list->Enable(false);
 		add_waypoint_button->Enable(false);
 		remove_waypoint_button->Enable(false);
-	} else {
-		waypoint_list->Enable(true);
-		add_waypoint_button->Enable(true);
-		remove_waypoint_button->Enable(true);
+		waypoint_list->Thaw();
+		return;
+	}
 
-		Waypoints& waypoints = map->waypoints;
+	waypoint_list->Enable(true);
+	add_waypoint_button->Enable(true);
+	remove_waypoint_button->Enable(true);
 
-		for (WaypointMap::const_iterator iter = waypoints.begin(); iter != waypoints.end(); ++iter) {
-			waypoint_list->InsertItem(0, wxstr(iter->second->name));
-		}
+	Waypoints& waypoints = map->waypoints;
+
+	for (WaypointMap::const_iterator iter = waypoints.begin(); iter != waypoints.end(); ++iter) {
+		waypoint_list->InsertItem(0, wxstr(iter->second->name));
 	}
 	waypoint_list->Thaw();
 }
