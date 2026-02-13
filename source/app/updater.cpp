@@ -24,6 +24,7 @@
 	#include "util/json.h"
 
 	#include "app/updater.h"
+	#include "app/application.h"
 	#include <thread>
 
 wxDEFINE_EVENT(EVT_UPDATE_CHECK_FINISHED, wxCommandEvent);
@@ -72,11 +73,13 @@ void UpdateChecker::connect(wxEvtHandler* receiver) {
 		// We need to be careful with event posting from a detached thread if the receiver might be destroyed.
 		// However, we are replicating existing logic here where UpdateConnectionThread was also detached.
 		// In a real robust app, we'd need weak pointers or valid lifetime guarantees.
-		if (receiver) {
-			wxCommandEvent event(EVT_UPDATE_CHECK_FINISHED);
-			event.SetClientData(newd std::string(data));
-			receiver->AddPendingEvent(event);
-		}
+		wxGetApp().CallAfter([receiver, data]() {
+			if (receiver) {
+				wxCommandEvent event(EVT_UPDATE_CHECK_FINISHED);
+				event.SetClientData(newd std::string(data));
+				receiver->AddPendingEvent(event);
+			}
+		});
 	}).detach();
 }
 
