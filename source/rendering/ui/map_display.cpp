@@ -112,8 +112,14 @@ MapCanvas::MapCanvas(MapWindow* parent, Editor& editor, int* attriblist) :
 	last_click_x(-1),
 	last_click_y(-1),
 
-	last_mmb_click_x(-1),
 	last_mmb_click_y(-1) {
+	// Context creation must happen on the main/UI thread
+	m_glContext = std::make_unique<wxGLContext>(this, g_gui.GetGLContext(this));
+	if (!m_glContext->IsOK()) {
+		spdlog::error("MapCanvas: Failed to create wxGLContext");
+		m_glContext.reset();
+	}
+
 	popup_menu = std::make_unique<MapPopupMenu>(editor);
 	animation_timer = std::make_unique<AnimationTimer>(this);
 	drawer = std::make_unique<MapDrawer>(this);
@@ -174,7 +180,9 @@ MapWindow* MapCanvas::GetMapWindow() const {
 
 void MapCanvas::OnPaint(wxPaintEvent& event) {
 	wxPaintDC dc(this); // validates the paint event
-	SetCurrent(*g_gui.GetGLContext(this));
+	if (m_glContext) {
+		SetCurrent(*m_glContext);
+	}
 
 	// proper nvg pointer wrapper
 	if (!m_nvg) {
@@ -227,6 +235,7 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 			glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
+			glClear(GL_STENCIL_BUFFER_BIT);
 			TextRenderer::BeginFrame(vg, GetSize().x, GetSize().y, GetContentScaleFactor());
 
 			if (options.show_creatures) {
