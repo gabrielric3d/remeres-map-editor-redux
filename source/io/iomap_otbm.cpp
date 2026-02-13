@@ -394,7 +394,7 @@ bool Container::unserializeItemNode_OTBM(const IOMap& maphandle, BinaryNode* nod
 				return false;
 			}
 
-			contents.push_back(item.release());
+			contents.push_back(std::move(item));
 		} while (child->advance());
 	}
 	return true;
@@ -412,7 +412,7 @@ bool Container::serializeItemNode_OTBM(const IOMap& maphandle, NodeFileWriteHand
 	}
 
 	serializeItemAttributes_OTBM(maphandle, file);
-	for (Item* item : contents) {
+	for (const auto& item : contents) {
 		item->serializeItemNode_OTBM(maphandle, file);
 	}
 
@@ -977,7 +977,7 @@ void IOMapOTBM::readMapNodes(Map& map, NodeFileReadHandle& f, BinaryNode* mapHea
 								if (item == nullptr) {
 									warning("Invalid item at tile %d:%d:%d", pos.x, pos.y, pos.z);
 								}
-								tile->addItem(item.release());
+								tile->addItem(std::move(item));
 								break;
 							}
 							default: {
@@ -1001,7 +1001,7 @@ void IOMapOTBM::readMapNodes(Map& map, NodeFileReadHandle& f, BinaryNode* mapHea
 									warning("Couldn't unserialize item attributes at %d:%d:%d", pos.x, pos.y, pos.z);
 								}
 								// reform(&map, tile, item);
-								tile->addItem(item.release());
+								tile->addItem(std::move(item));
 							}
 						} else {
 							warning("Unknown type of tile child node");
@@ -1859,12 +1859,12 @@ void IOMapOTBM::serializeTile_OTBM(Tile* save_tile, NodeFileWriteHandle& f, cons
 	}
 
 	if (save_tile->ground) {
-		Item* ground = save_tile->ground;
+		Item* ground = save_tile->ground.get();
 		if (ground->isMetaItem()) {
 			// Do nothing, we don't save metaitems...
 		} else if (ground->hasBorderEquivalent()) {
 			bool found = false;
-			for (Item* item : save_tile->items) {
+			for (const auto& item : save_tile->items) {
 				if (item->getGroundEquivalent() == ground->getID()) {
 					// Found equivalent
 					found = true;
@@ -1883,7 +1883,7 @@ void IOMapOTBM::serializeTile_OTBM(Tile* save_tile, NodeFileWriteHandle& f, cons
 		}
 	}
 
-	for (Item* item : save_tile->items) {
+	for (const auto& item : save_tile->items) {
 		if (!item->isMetaItem()) {
 			item->serializeItemNode_OTBM(self, f);
 		}

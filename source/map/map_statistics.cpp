@@ -13,10 +13,10 @@ MapStatistics MapStatisticsCollector::Collect(Map* map) {
 
 	std::unordered_map<uint32_t, uint32_t> town_sqm_count;
 
-	for (auto& tile_location : *map) {
+	for (auto& tile_location : map->tiles()) {
 		Tile* tile = tile_location.get();
 		if (load_counter % 8192 == 0) {
-			g_gui.SetLoadDone((unsigned int)(int64_t(load_counter) * 95ll / int64_t(map->getTileCount())));
+			g_gui.SetLoadDone(static_cast<unsigned int>(static_cast<int64_t>(load_counter) * 95ll / static_cast<int64_t>(map->getTileCount())));
 		}
 
 		if (tile->empty()) {
@@ -52,11 +52,11 @@ MapStatistics MapStatisticsCollector::Collect(Map* map) {
 		};
 
 		if (tile->ground) {
-			analyze_item(tile->ground);
+			analyze_item(tile->ground.get());
 		}
 
-		for (Item* item : tile->items) {
-			analyze_item(item);
+		for (const auto& item : tile->items) {
+			analyze_item(item.get());
 		}
 
 		if (tile->spawn) {
@@ -80,9 +80,9 @@ MapStatistics MapStatisticsCollector::Collect(Map* map) {
 		load_counter += 1;
 	}
 
-	stats.creatures_per_spawn = (stats.spawn_count != 0 ? double(stats.creature_count) / double(stats.spawn_count) : -1.0);
-	stats.percent_pathable = 100.0 * (stats.tile_count != 0 ? double(stats.walkable_tile_count) / double(stats.tile_count) : -1.0);
-	stats.percent_detailed = 100.0 * (stats.tile_count != 0 ? double(stats.detailed_tile_count) / double(stats.tile_count) : -1.0);
+	stats.creatures_per_spawn = (stats.spawn_count != 0 ? static_cast<double>(stats.creature_count) / static_cast<double>(stats.spawn_count) : -1.0);
+	stats.percent_pathable = 100.0 * (stats.tile_count != 0 ? static_cast<double>(stats.walkable_tile_count) / static_cast<double>(stats.tile_count) : -1.0);
+	stats.percent_detailed = 100.0 * (stats.tile_count != 0 ? static_cast<double>(stats.detailed_tile_count) / static_cast<double>(stats.tile_count) : -1.0);
 
 	load_counter = 0;
 	stats.town_count = map->towns.count();
@@ -92,7 +92,7 @@ MapStatistics MapStatisticsCollector::Collect(Map* map) {
 	for (const auto& [house_id, house] : houses) {
 
 		if (load_counter % 64) {
-			g_gui.SetLoadDone((unsigned int)(95ll + int64_t(load_counter) * 5ll / int64_t(stats.house_count)));
+			g_gui.SetLoadDone(static_cast<unsigned int>(95ll + static_cast<int64_t>(load_counter) * 5ll / static_cast<int64_t>(stats.house_count)));
 		}
 
 		if (house->size() > stats.largest_house_size) {
@@ -104,9 +104,9 @@ MapStatistics MapStatisticsCollector::Collect(Map* map) {
 		load_counter++;
 	}
 
-	stats.houses_per_town = (stats.town_count != 0 ? double(stats.house_count) / double(stats.town_count) : -1.0);
-	stats.sqm_per_house = (stats.house_count != 0 ? double(stats.total_house_sqm) / double(stats.house_count) : -1.0);
-	stats.sqm_per_town = (stats.town_count != 0 ? double(stats.total_house_sqm) / double(stats.town_count) : -1.0);
+	stats.houses_per_town = (stats.town_count != 0 ? static_cast<double>(stats.house_count) / static_cast<double>(stats.town_count) : -1.0);
+	stats.sqm_per_house = (stats.house_count != 0 ? static_cast<double>(stats.total_house_sqm) / static_cast<double>(stats.house_count) : -1.0);
+	stats.sqm_per_town = (stats.town_count != 0 ? static_cast<double>(stats.total_house_sqm) / static_cast<double>(stats.town_count) : -1.0);
 
 	Towns& towns = map->towns;
 	for (const auto& [town_id, town_sqm] : town_sqm_count) {
