@@ -12,6 +12,8 @@
 #include "rendering/core/outfit_colors.h"
 #include <spdlog/spdlog.h>
 #include <atomic>
+#include <algorithm>
+#include <ranges>
 
 static std::atomic<uint32_t> template_id_generator(0x1000000);
 
@@ -72,9 +74,9 @@ GameSprite::~GameSprite() {
 	// instanced_templates and animator cleaned up automatically by unique_ptr
 }
 
-void GameSprite::clean(time_t time) {
+void GameSprite::clean(time_t time, int longevity) {
 	for (auto& iter : instanced_templates) {
-		iter->clean(time);
+		iter->clean(time, longevity);
 	}
 }
 
@@ -90,6 +92,15 @@ void GameSprite::unloadDC() {
 
 int GameSprite::getDrawHeight() const {
 	return draw_height;
+}
+
+bool GameSprite::isSimpleAndLoaded() const {
+	if (numsprites == 1 && !spriteList.empty()) {
+		if (NormalImage* img = spriteList[0]) {
+			return img->isGLLoaded;
+		}
+	}
+	return false;
 }
 
 std::pair<int, int> GameSprite::getDrawOffset() const {
@@ -155,7 +166,7 @@ const AtlasRegion* GameSprite::getAtlasRegion(int _x, int _y, int _layer, int _c
 GameSprite::TemplateImage* GameSprite::getTemplateImage(int sprite_index, const Outfit& outfit) {
 	// While this is linear lookup, it is very rare for the list to contain more than 4-8 entries,
 	// so it's faster than a hashmap anyways.
-	auto it = std::find_if(instanced_templates.begin(), instanced_templates.end(), [sprite_index, &outfit](const auto& img) {
+	auto it = std::ranges::find_if(instanced_templates, [sprite_index, &outfit](const auto& img) {
 		if (img->sprite_index != sprite_index) {
 			return false;
 		}
@@ -287,7 +298,7 @@ void GameSprite::Image::visit() {
 	lastaccess = g_gui.gfx.getCachedTime();
 }
 
-void GameSprite::Image::clean(time_t time) {
+void GameSprite::Image::clean(time_t time, int longevity) {
 	// Legacy texture cleanup logic removed
 }
 
@@ -361,9 +372,12 @@ void GameSprite::NormalImage::fulfillPreload(std::unique_ptr<uint8_t[]> data) {
 	atlas_region = EnsureAtlasSprite(id, std::move(data));
 }
 
-void GameSprite::NormalImage::clean(time_t time) {
+void GameSprite::NormalImage::clean(time_t time, int longevity) {
 	// Evict from atlas if expired
-	if (isGLLoaded && time - lastaccess > g_settings.getInteger(Config::TEXTURE_LONGEVITY)) {
+	if (longevity == -1) {
+		longevity = g_settings.getInteger(Config::TEXTURE_LONGEVITY);
+	}
+	if (isGLLoaded && time - lastaccess > longevity) {
 		if (g_gui.gfx.hasAtlasManager()) {
 			g_gui.gfx.getAtlasManager()->removeSprite(id);
 		}
@@ -586,9 +600,12 @@ GameSprite::TemplateImage::~TemplateImage() {
 	}
 }
 
-void GameSprite::TemplateImage::clean(time_t time) {
+void GameSprite::TemplateImage::clean(time_t time, int longevity) {
 	// Evict from atlas if expired
-	if (isGLLoaded && time - lastaccess > g_settings.getInteger(Config::TEXTURE_LONGEVITY)) {
+	if (longevity == -1) {
+		longevity = g_settings.getInteger(Config::TEXTURE_LONGEVITY);
+	}
+	if (isGLLoaded && time - lastaccess > longevity) {
 		if (g_gui.gfx.hasAtlasManager()) {
 			g_gui.gfx.getAtlasManager()->removeSprite(texture_id);
 		}
