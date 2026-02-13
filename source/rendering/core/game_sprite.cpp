@@ -624,25 +624,23 @@ std::unique_ptr<uint8_t[]> GameSprite::TemplateImage::getRGBData() {
 		lookFeet = 0;
 	}
 
-	for (int y = 0; y < SPRITE_PIXELS; ++y) {
-		for (int x = 0; x < SPRITE_PIXELS; ++x) {
-			uint8_t& red = rgbdata[y * SPRITE_PIXELS * 3 + x * 3 + 0];
-			uint8_t& green = rgbdata[y * SPRITE_PIXELS * 3 + x * 3 + 1];
-			uint8_t& blue = rgbdata[y * SPRITE_PIXELS * 3 + x * 3 + 2];
+	for (int i = 0; i < SPRITE_PIXELS * SPRITE_PIXELS; ++i) {
+		uint8_t& red = rgbdata[i * 3 + 0];
+		uint8_t& green = rgbdata[i * 3 + 1];
+		uint8_t& blue = rgbdata[i * 3 + 2];
 
-			uint8_t& tred = template_rgbdata[y * SPRITE_PIXELS * 3 + x * 3 + 0];
-			uint8_t& tgreen = template_rgbdata[y * SPRITE_PIXELS * 3 + x * 3 + 1];
-			uint8_t& tblue = template_rgbdata[y * SPRITE_PIXELS * 3 + x * 3 + 2];
+		const uint8_t& tred = template_rgbdata[i * 3 + 0];
+		const uint8_t& tgreen = template_rgbdata[i * 3 + 1];
+		const uint8_t& tblue = template_rgbdata[i * 3 + 2];
 
-			if (tred && tgreen && !tblue) { // yellow => head
-				OutfitColorizer::ColorizePixel(lookHead, red, green, blue);
-			} else if (tred && !tgreen && !tblue) { // red => body
-				OutfitColorizer::ColorizePixel(lookBody, red, green, blue);
-			} else if (!tred && tgreen && !tblue) { // green => legs
-				OutfitColorizer::ColorizePixel(lookLegs, red, green, blue);
-			} else if (!tred && !tgreen && tblue) { // blue => feet
-				OutfitColorizer::ColorizePixel(lookFeet, red, green, blue);
-			}
+		if (tred && tgreen && !tblue) { // yellow => head
+			OutfitColorizer::ColorizePixel(lookHead, red, green, blue);
+		} else if (tred && !tgreen && !tblue) { // red => body
+			OutfitColorizer::ColorizePixel(lookBody, red, green, blue);
+		} else if (!tred && tgreen && !tblue) { // green => legs
+			OutfitColorizer::ColorizePixel(lookLegs, red, green, blue);
+		} else if (!tred && !tgreen && tblue) { // blue => feet
+			OutfitColorizer::ColorizePixel(lookFeet, red, green, blue);
 		}
 	}
 	// template_rgbdata auto-deleted
@@ -677,25 +675,23 @@ std::unique_ptr<uint8_t[]> GameSprite::TemplateImage::getRGBAData() {
 		lookFeet = 0;
 	}
 
-	for (int y = 0; y < SPRITE_PIXELS; ++y) {
-		for (int x = 0; x < SPRITE_PIXELS; ++x) {
-			uint8_t& red = rgbadata[y * SPRITE_PIXELS * 4 + x * 4 + 0];
-			uint8_t& green = rgbadata[y * SPRITE_PIXELS * 4 + x * 4 + 1];
-			uint8_t& blue = rgbadata[y * SPRITE_PIXELS * 4 + x * 4 + 2];
+	for (int i = 0; i < SPRITE_PIXELS * SPRITE_PIXELS; ++i) {
+		uint8_t& red = rgbadata[i * 4 + 0];
+		uint8_t& green = rgbadata[i * 4 + 1];
+		uint8_t& blue = rgbadata[i * 4 + 2];
 
-			uint8_t& tred = template_rgbdata[y * SPRITE_PIXELS * 3 + x * 3 + 0];
-			uint8_t& tgreen = template_rgbdata[y * SPRITE_PIXELS * 3 + x * 3 + 1];
-			uint8_t& tblue = template_rgbdata[y * SPRITE_PIXELS * 3 + x * 3 + 2];
+		const uint8_t& tred = template_rgbdata[i * 3 + 0];
+		const uint8_t& tgreen = template_rgbdata[i * 3 + 1];
+		const uint8_t& tblue = template_rgbdata[i * 3 + 2];
 
-			if (tred && tgreen && !tblue) { // yellow => head
-				OutfitColorizer::ColorizePixel(lookHead, red, green, blue);
-			} else if (tred && !tgreen && !tblue) { // red => body
-				OutfitColorizer::ColorizePixel(lookBody, red, green, blue);
-			} else if (!tred && tgreen && !tblue) { // green => legs
-				OutfitColorizer::ColorizePixel(lookLegs, red, green, blue);
-			} else if (!tred && !tgreen && tblue) { // blue => feet
-				OutfitColorizer::ColorizePixel(lookFeet, red, green, blue);
-			}
+		if (tred && tgreen && !tblue) { // yellow => head
+			OutfitColorizer::ColorizePixel(lookHead, red, green, blue);
+		} else if (tred && !tgreen && !tblue) { // red => body
+			OutfitColorizer::ColorizePixel(lookBody, red, green, blue);
+		} else if (!tred && tgreen && !tblue) { // green => legs
+			OutfitColorizer::ColorizePixel(lookLegs, red, green, blue);
+		} else if (!tred && !tgreen && tblue) { // blue => feet
+			OutfitColorizer::ColorizePixel(lookFeet, red, green, blue);
 		}
 	}
 	// template_rgbdata auto-deleted
