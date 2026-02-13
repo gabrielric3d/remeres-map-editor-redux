@@ -49,8 +49,12 @@ namespace IngamePreview {
 		last_step_time(0),
 		walk_lock_timer(0),
 		animation_timer(this) {
-
+		// Context creation must happen on the main/UI thread
 		m_glContext = std::make_unique<wxGLContext>(this, g_gui.GetGLContext(this));
+		if (!m_glContext->IsOK()) {
+			spdlog::error("IngamePreviewCanvas: Failed to create wxGLContext");
+			m_glContext.reset();
+		}
 
 		preview_outfit.lookType = 128;
 
