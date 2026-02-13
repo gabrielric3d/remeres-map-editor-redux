@@ -128,7 +128,7 @@ public:
 
 protected:
 	// Loads a map
-	bool open(const std::string identifier);
+	bool open(const std::string& identifier);
 
 protected:
 	void removeSpawnInternal(Tile* tile);

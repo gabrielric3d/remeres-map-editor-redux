@@ -35,7 +35,7 @@ Map::Map() :
 	has_changed(false),
 	unnamed(false),
 	waypoints(*this) {
-	spdlog::info("Map created [Map={}]", (void*)this);
+	spdlog::info("Map created [Map={}]", static_cast<void*>(this));
 	// Earliest version possible
 	// Caller is responsible for converting us to proper version
 	mapVersion.otbm = MAP_OTBM_1;
@@ -43,13 +43,13 @@ Map::Map() :
 }
 
 void Map::initializeEmpty() {
-	spdlog::info("Map::initializeEmpty [Map={}]", (void*)this);
+	spdlog::info("Map::initializeEmpty [Map={}]", static_cast<void*>(this));
 	height = 2048;
 	width = 2048;
 
 	static int unnamed_counter = 0;
 
-	std::string sname = "Untitled-" + i2s(++unnamed_counter);
+	std::string sname = "Untitled-" + std::to_string(++unnamed_counter);
 	name = sname + ".otbm";
 	spawnfile = sname + "-spawn.xml";
 	housefile = sname + "-house.xml";
@@ -61,11 +61,10 @@ void Map::initializeEmpty() {
 }
 
 Map::~Map() {
-	spdlog::info("Map destroying [Map={}]", (void*)this);
-	////
+	spdlog::info("Map destroying [Map={}]", static_cast<void*>(this));
 }
 
-bool Map::open(const std::string file) {
+bool Map::open(const std::string& file) {
 	if (file == filename) {
 		return true; // Do not reopen ourselves!
 	}
@@ -140,11 +139,11 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 
 	// std::ofstream conversions("converted_items.txt");
 
-	for (MapIterator miter = begin(); miter != end(); ++miter) {
-		Tile* tile = miter->get();
+	for (auto& tile_loc : tiles()) {
+		Tile* tile = tile_loc.get();
 		ASSERT(tile);
 
-		if (tile->size() == 0) {
+		if (tile->empty()) {
 			continue;
 		}
 
@@ -165,7 +164,7 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 
 		ConversionMap::MTM::const_iterator cfmtm = rm.mtm.end();
 
-		while (id_list.size()) {
+		while (!id_list.empty()) {
 			cfmtm = rm.mtm.find(id_list);
 			if (cfmtm != rm.mtm.end()) {
 				break;
@@ -254,7 +253,7 @@ bool Map::convert(const ConversionMap& rm, bool showdialog) {
 
 		++tiles_done;
 		if (showdialog && tiles_done % 0x10000 == 0) {
-			g_gui.SetLoadDone(int(tiles_done / double(getTileCount()) * 100.0));
+			g_gui.SetLoadDone(static_cast<int>(tiles_done * 100.0 / static_cast<double>(getTileCount())));
 		}
 	}
 
@@ -272,26 +271,26 @@ void Map::cleanInvalidTiles(bool showdialog) {
 
 	uint64_t tiles_done = 0;
 
-	for (MapIterator miter = begin(); miter != end(); ++miter) {
-		Tile* tile = miter->get();
+	for (auto& tile_loc : tiles()) {
+		Tile* tile = tile_loc.get();
 		ASSERT(tile);
 
-		if (tile->size() == 0) {
+		if (tile->empty()) {
 			continue;
 		}
 
-		auto part_iter = std::stable_partition(tile->items.begin(), tile->items.end(), [](Item* item) {
-			return g_items.typeExists(item->getID());
+		// Use std::erase_if from C++20 for cleanup
+		std::erase_if(tile->items, [](Item* item) {
+			if (!g_items.typeExists(item->getID())) {
+				delete item;
+				return true;
+			}
+			return false;
 		});
-
-		std::for_each(part_iter, tile->items.end(), [](Item* item) {
-			delete item;
-		});
-		tile->items.erase(part_iter, tile->items.end());
 
 		++tiles_done;
 		if (showdialog && tiles_done % 0x10000 == 0) {
-			g_gui.SetLoadDone(int(tiles_done / double(getTileCount()) * 100.0));
+			g_gui.SetLoadDone(static_cast<int>(tiles_done * 100.0 / static_cast<double>(getTileCount())));
 		}
 	}
 
@@ -304,8 +303,8 @@ void Map::convertHouseTiles(uint32_t fromId, uint32_t toId) {
 	g_gui.CreateLoadBar("Converting house tiles...");
 	uint64_t tiles_done = 0;
 
-	for (MapIterator miter = begin(); miter != end(); ++miter) {
-		Tile* tile = miter->get();
+	for (auto& tile_loc : tiles()) {
+		Tile* tile = tile_loc.get();
 		ASSERT(tile);
 
 		uint32_t houseId = tile->getHouseID();
@@ -316,7 +315,7 @@ void Map::convertHouseTiles(uint32_t fromId, uint32_t toId) {
 		tile->setHouseID(toId);
 		++tiles_done;
 		if (tiles_done % 0x10000 == 0) {
-			g_gui.SetLoadDone(int(tiles_done / double(getTileCount()) * 100.0));
+			g_gui.SetLoadDone(static_cast<int>(tiles_done * 100.0 / static_cast<double>(getTileCount())));
 		}
 	}
 
@@ -348,23 +347,11 @@ bool Map::hasFile() const {
 }
 
 void Map::setWidth(int new_width) {
-	if (new_width > 65000) {
-		width = 65000;
-	} else if (new_width < 64) {
-		width = 64;
-	} else {
-		width = new_width;
-	}
+	width = std::clamp(new_width, 64, 65000);
 }
 
 void Map::setHeight(int new_height) {
-	if (new_height > 65000) {
-		height = 65000;
-	} else if (new_height < 64) {
-		height = 64;
-	} else {
-		height = new_height;
-	}
+	height = std::clamp(new_height, 64, 65000);
 }
 void Map::setMapDescription(const std::string& new_description) {
 	description = new_description;
