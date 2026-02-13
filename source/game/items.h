@@ -304,6 +304,11 @@ public:
 		return !client_chargeable && extra_chargeable;
 	}
 
+	bool isTooltipable() const {
+		return is_tooltipable;
+	}
+	void updateTooltipable();
+
 	bool isDepot() const {
 		return (type == ITEM_TYPE_DEPOT);
 	}
@@ -421,6 +426,7 @@ public:
 	bool blockMissiles;
 	bool blockPathfinder;
 	bool hasElevation;
+	bool is_tooltipable;
 
 	int alwaysOnTopOrder;
 	uint16_t rotateTo;

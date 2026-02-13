@@ -97,6 +97,7 @@ ItemType::ItemType() :
 	blockMissiles(false),
 	blockPathfinder(false),
 	hasElevation(false),
+	is_tooltipable(false),
 	alwaysOnTopOrder(0),
 	rotateTo(0),
 	way_speed(100),
@@ -106,6 +107,10 @@ ItemType::ItemType() :
 
 ItemType::~ItemType() {
 	////
+}
+
+void ItemType::updateTooltipable() {
+	is_tooltipable = isContainer() || isDoor() || isTeleport();
 }
 
 bool ItemType::isFloorChange() const {
@@ -479,7 +484,15 @@ bool ItemDatabase::loadFromOtb(const FileName& datafile, wxString& error, std::v
 
 	BinaryNode* itemNode = root->getChild();
 	if (auto it_loader = loaders.find(MajorVersion); it_loader != loaders.end()) {
-		return (this->*(it_loader->second))(itemNode, error, warnings);
+		bool res = (this->*(it_loader->second))(itemNode, error, warnings);
+		if (res) {
+			for (auto& it_ptr : items) {
+				if (it_ptr) {
+					it_ptr->updateTooltipable();
+				}
+			}
+		}
+		return res;
 	}
 
 	error = std::format("items.otb: Unsupported version ({})", MajorVersion);
@@ -692,6 +705,12 @@ bool ItemDatabase::loadItemFromGameXml(pugi::xml_node itemNode, int id) {
 			if (auto it_parser = parsers.find(key); it_parser != parsers.end()) {
 				it_parser->second(it, attributeNode);
 			}
+		}
+	}
+
+	for (auto& it_ptr : items) {
+		if (it_ptr) {
+			it_ptr->updateTooltipable();
 		}
 	}
 	return true;
