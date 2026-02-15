@@ -53,6 +53,7 @@ class ItemDrawer;
 class MapLayerDrawer;
 class CreatureDrawer;
 class MarkerDrawer;
+class CameraPathDrawer;
 class PreviewDrawer;
 class ShadeDrawer;
 class TileRenderer;
@@ -80,6 +81,7 @@ class MapDrawer {
 	std::unique_ptr<CreatureDrawer> creature_drawer;
 	std::unique_ptr<ItemDrawer> item_drawer;
 	std::unique_ptr<MarkerDrawer> marker_drawer;
+	std::unique_ptr<CameraPathDrawer> camera_path_drawer;
 	std::unique_ptr<PreviewDrawer> preview_drawer;
 	std::unique_ptr<ShadeDrawer> shade_drawer;
 	std::unique_ptr<TileRenderer> tile_renderer;

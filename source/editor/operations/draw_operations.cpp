@@ -19,6 +19,7 @@
 #include "brushes/creature/creature_brush.h"
 #include "brushes/spawn/spawn_brush.h"
 #include "brushes/door/door_brush.h"
+#include "brushes/camera/camera_path_brush.h"
 #include "map/map.h"
 #include "map/map.h"
 #include "map/tile.h"
@@ -149,6 +150,38 @@ void DrawOperations::draw(Editor& editor, Position offset, bool alt, bool dodraw
 		action->addChange(std::unique_ptr<Change>(Change::Create(waypoint, offset)));
 		batch->addAndCommitAction(std::move(action));
 		editor.addBatch(std::move(batch), 2);
+	} else if (brush->isCameraPath()) {
+		if (!brush->asCameraPath()->canDraw(&editor.map, offset)) {
+			return;
+		}
+
+		CameraPath* path = editor.map.camera_paths.getActivePath();
+		if (!path) {
+			return;
+		}
+
+		CameraPathsSnapshot snapshot = editor.map.camera_paths.snapshot();
+		CameraPath* snap_path = nullptr;
+		for (auto& p : snapshot.paths) {
+			if (p.name == path->name) {
+				snap_path = &p;
+				break;
+			}
+		}
+		if (!snap_path) {
+			return;
+		}
+
+		CameraKeyframe key;
+		key.pos = offset;
+		key.duration = 1.0;
+		key.speed = 0.0;
+		key.zoom = 1.0;
+		key.easing = CameraEasing::EaseInOut;
+		snap_path->keyframes.push_back(key);
+		snapshot.active_keyframe = static_cast<int>(snap_path->keyframes.size()) - 1;
+
+		editor.ApplyCameraPathsSnapshot(snapshot, ACTION_DRAW);
 	} else if (brush->isWall()) {
 		std::unique_ptr<BatchAction> batch = editor.actionQueue->createBatch(ACTION_DRAW);
 		std::unique_ptr<Action> action = editor.actionQueue->createAction(batch.get());

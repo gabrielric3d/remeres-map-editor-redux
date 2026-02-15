@@ -52,6 +52,13 @@ Change* Change::Create(Waypoint* wp, const Position& where) {
 	return c;
 }
 
+Change* Change::Create(const CameraPathsSnapshot& snapshot) {
+	Change* c = newd Change();
+	c->type = CHANGE_CAMERA_PATHS;
+	c->data = CameraPathsChangeData { .snapshot = snapshot };
+	return c;
+}
+
 Change::~Change() {
 	clear();
 }
@@ -76,6 +83,10 @@ const WaypointChangeData* Change::getWaypointData() const {
 	return std::get_if<WaypointChangeData>(&data);
 }
 
+const CameraPathsChangeData* Change::getCameraPathsData() const {
+	return std::get_if<CameraPathsChangeData>(&data);
+}
+
 uint32_t Change::memsize() const {
 	uint32_t mem = sizeof(*this);
 	if (auto* t = std::get_if<std::unique_ptr<Tile>>(&data)) {
@@ -84,6 +95,12 @@ uint32_t Change::memsize() const {
 		mem += wp->name.capacity();
 	} else if (auto* house = std::get_if<HouseExitChangeData>(&data)) {
 		mem += sizeof(HouseExitChangeData);
+	} else if (auto* cp = std::get_if<CameraPathsChangeData>(&data)) {
+		mem += sizeof(CameraPathsChangeData);
+		for (const auto& path : cp->snapshot.paths) {
+			mem += path.name.capacity();
+			mem += path.keyframes.capacity() * sizeof(CameraKeyframe);
+		}
 	}
 	return mem;
 }
@@ -247,6 +264,15 @@ void Action::commit(DirtyList* dirty_list) {
 				break;
 			}
 
+			case CHANGE_CAMERA_PATHS: {
+				auto& cpd = std::get<CameraPathsChangeData>(c->data);
+				editor.map.camera_paths.swapSnapshot(cpd.snapshot);
+				editor.map.doChange();
+				g_gui.RefreshPalettes(&editor.map);
+				g_gui.RefreshView();
+				break;
+			}
+
 			default:
 				break;
 		}
@@ -374,6 +400,15 @@ void Action::undo(DirtyList* dirty_list) {
 					wp->pos = p.pos;
 					p.pos = oldpos;
 				}
+				break;
+			}
+
+			case CHANGE_CAMERA_PATHS: {
+				auto& cpd = std::get<CameraPathsChangeData>(c->data);
+				editor.map.camera_paths.swapSnapshot(cpd.snapshot);
+				editor.map.doChange();
+				g_gui.RefreshPalettes(&editor.map);
+				g_gui.RefreshView();
 				break;
 			}
 

@@ -204,6 +204,8 @@ namespace Config {
 		ANTI_ALIASING,
 		SCREEN_SHADER,
 
+		SHOW_CAMERA_PATHS,
+
 		LAST,
 	};
 }

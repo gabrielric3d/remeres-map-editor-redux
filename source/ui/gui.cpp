@@ -183,6 +183,17 @@ void GUI::SetScreenCenterPosition(Position position) {
 	}
 }
 
+void GUI::ToggleCameraPathPlayback() {
+	MapTab* mapTab = GetCurrentMapTab();
+	if (!mapTab) {
+		return;
+	}
+	MapCanvas* canvas = mapTab->GetCanvas();
+	if (canvas) {
+		canvas->ToggleCameraPathPlayback();
+	}
+}
+
 void GUI::DoCut() {
 	g_editors.DoCut();
 }

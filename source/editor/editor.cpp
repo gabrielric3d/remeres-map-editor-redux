@@ -138,6 +138,14 @@ void Editor::destroySelection() {
 
 // Helper functions moved to SelectionOperations
 
+void Editor::ApplyCameraPathsSnapshot(const CameraPathsSnapshot& snapshot, ActionIdentifier actionType) {
+	auto batch = actionQueue->createBatch(actionType);
+	auto action = actionQueue->createAction(batch.get());
+	action->addChange(std::unique_ptr<Change>(Change::Create(snapshot)));
+	batch->addAndCommitAction(std::move(action));
+	addBatch(std::move(batch), 2);
+}
+
 void Editor::drawInternal(Position offset, bool alt, bool dodraw) {
 	DrawOperations::draw(*this, offset, alt, dodraw);
 }

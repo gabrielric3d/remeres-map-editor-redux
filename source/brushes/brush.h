@@ -55,6 +55,7 @@ class SpawnBrush;
 class HouseBrush;
 class HouseExitBrush;
 class WaypointBrush;
+class CameraPathBrush;
 class FlagBrush;
 class EraserBrush;
 
@@ -189,6 +190,9 @@ public:
 	virtual bool isWaypoint() const {
 		return false;
 	}
+	virtual bool isCameraPath() const {
+		return false;
+	}
 	virtual bool isFlag() const {
 		return false;
 	}
@@ -239,6 +243,9 @@ public:
 		return nullptr;
 	}
 	virtual WaypointBrush* asWaypoint() {
+		return nullptr;
+	}
+	virtual CameraPathBrush* asCameraPath() {
 		return nullptr;
 	}
 	virtual FlagBrush* asFlag() {

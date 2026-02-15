@@ -120,6 +120,7 @@ namespace MenuBar {
 		SHOW_TOOLTIPS,
 		SHOW_PREVIEW,
 		SHOW_WALL_HOOKS,
+		SHOW_CAMERA_PATHS,
 		SHOW_TOWNS,
 		ALWAYS_SHOW_ZONES,
 		EXT_HOUSE_SHADER,
@@ -138,6 +139,7 @@ namespace MenuBar {
 		SELECT_CREATURE,
 		SELECT_HOUSE,
 		SELECT_WAYPOINT,
+		SELECT_CAMERA_PATH,
 		SELECT_RAW,
 		FLOOR_0,
 		FLOOR_1,
@@ -293,6 +295,7 @@ public:
 	void OnSelectHousePalette(wxCommandEvent& event);
 	void OnSelectCreaturePalette(wxCommandEvent& event);
 	void OnSelectWaypointPalette(wxCommandEvent& event);
+	void OnSelectCameraPathPalette(wxCommandEvent& event);
 	void OnSelectRawPalette(wxCommandEvent& event);
 
 	void OnDebugViewDat(wxCommandEvent& event);

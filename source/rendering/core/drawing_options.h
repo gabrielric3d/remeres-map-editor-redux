@@ -48,6 +48,8 @@ struct DrawingOptions {
 	bool always_show_zones;
 	bool extended_house_shader;
 
+	bool show_camera_paths;
+
 	bool experimental_fog;
 
 	uint32_t current_house_id;

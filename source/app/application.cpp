@@ -71,8 +71,8 @@ bool Application::OnInit() {
 	SetAppearance(wxApp::Appearance::System);
 #endif
 
-#ifdef __WXMSW__
-	// Enable dark mode support for Windows
+#if defined(__WXMSW__) && wxCHECK_VERSION(3, 3, 0)
+	// Enable dark mode support for Windows (wxWidgets 3.3+)
 	MSWEnableDarkMode(wxApp::DarkMode_Always);
 #endif
 

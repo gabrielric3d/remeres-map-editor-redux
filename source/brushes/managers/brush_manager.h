@@ -12,6 +12,7 @@ class Brush;
 class HouseBrush;
 class HouseExitBrush;
 class WaypointBrush;
+class CameraPathBrush;
 class OptionalBorderBrush;
 class EraserBrush;
 class SpawnBrush;
@@ -99,6 +100,7 @@ public:
 	HouseBrush* house_brush;
 	HouseExitBrush* house_exit_brush;
 	WaypointBrush* waypoint_brush;
+	CameraPathBrush* camera_path_brush;
 	OptionalBorderBrush* optional_brush;
 	EraserBrush* eraser;
 	SpawnBrush* spawn_brush;

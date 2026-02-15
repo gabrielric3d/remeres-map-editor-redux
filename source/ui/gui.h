@@ -242,6 +242,8 @@ public:
 
 	// Centers current view on position
 	void SetScreenCenterPosition(Position pos);
+	// Camera paths
+	void ToggleCameraPathPlayback();
 	// Refresh the view canvas
 	void RefreshView();
 	// Fit all/specified current map view to map dimensions

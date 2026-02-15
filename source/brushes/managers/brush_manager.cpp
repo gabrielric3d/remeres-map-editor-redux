@@ -25,6 +25,7 @@ BrushManager::BrushManager() :
 	house_brush(nullptr),
 	house_exit_brush(nullptr),
 	waypoint_brush(nullptr),
+	camera_path_brush(nullptr),
 	optional_brush(nullptr),
 	eraser(nullptr),
 	normal_door_brush(nullptr),
@@ -132,6 +133,7 @@ void BrushManager::Clear() {
 	house_brush = nullptr;
 	house_exit_brush = nullptr;
 	waypoint_brush = nullptr;
+	camera_path_brush = nullptr;
 	optional_brush = nullptr;
 	eraser = nullptr;
 	spawn_brush = nullptr;
