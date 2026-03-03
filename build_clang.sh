@@ -34,7 +34,8 @@ run_quiet() {
 # Step 1: Ensure fast tools are installed
 echo "[1/5] Checking/Installing Tools (Quiet)..."
 sudo apt update -y > /dev/null 2>&1
-sudo apt install -y clang lld mold ccache ninja-build make clang-tools-18 > /dev/null 2>&1
+sudo apt remove -y libstdc++-13-dev libgcc-13-dev libstdc++-14-dev libgcc-14-dev > /dev/null 2>&1 || true
+sudo apt install -y clang lld mold ccache ninja-build make clang-tools-18 libstdc++-12-dev libboost-all-dev libwxgtk3.2-dev libglm-dev libfmt-dev libspdlog-dev libfreetype6-dev nlohmann-json3-dev > /dev/null 2>&1
 
 # Step 2: Setup Conan profile for Clang if it doesn't exist
 echo "[2/5] Setting up Conan Clang profile..."
@@ -90,7 +91,8 @@ run_quiet cmake -S "$SCRIPT_DIR" -B "$BUILD_DIR/build/Debug" \
     -DCMAKE_MODULE_LINKER_FLAGS="-fuse-ld=mold" \
     -DCMAKE_UNITY_BUILD=OFF \
     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-    -DCMAKE_C_COMPILER_LAUNCHER=ccache
+    -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+    -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
 
 # Step 5: Building with Ninja (Output to screen AND log)
 echo "[5/5] Building with Ninja (j2 to avoid OOM)..." | tee -a "$LOG_FILE"
