@@ -78,14 +78,12 @@ if [ -d "$BUILD_DIR/build/Debug" ] && [ -f "$BUILD_DIR/build/Debug/CMakeCache.tx
     fi
 fi
 
-# Explicitly point to clang-scan-deps for C++23 modules/dependency scanning in Ninja
-SCAN_DEPS=$(which clang-scan-deps-18 || which clang-scan-deps || echo "")
-
 run_quiet cmake -S "$SCRIPT_DIR" -B "$BUILD_DIR/build/Debug" \
     -G "Ninja" \
     --log-level=ERROR \
     -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
     -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_CXX_SCAN_FOR_MODULES=OFF \
     -DCMAKE_CXX_FLAGS_DEBUG="-O0 -g0" \
     -DCMAKE_C_FLAGS_DEBUG="-O0 -g0" \
     -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" \
