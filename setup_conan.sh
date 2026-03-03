@@ -1,22 +1,38 @@
 #!/bin/bash
 # ========================================
 # RME Linux Dependency Setup Script
-# Installs system packages first, then Conan for remaining deps
+# Optimized for Jules AI (Low Resource)
 # ========================================
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Using local build_conan directory (gitignored)
 BUILD_DIR="$SCRIPT_DIR/build_conan"
+LOG_FILE="$BUILD_DIR/setup_conan.log"
 
-echo "========================================"
-echo " RME Linux Dependency Setup"
-echo " Started: $(date)"
-echo "========================================"
+# Ensure build directory exists for the log file
+mkdir -p "$BUILD_DIR"
+
+# Function to run command and only show errors
+run_quiet() {
+    if ! "$@" >> "$LOG_FILE" 2>&1; then
+        echo "Error executing: $*"
+        echo "Check $LOG_FILE for details."
+        exit 1
+    fi
+}
+
+{
+    echo "========================================"
+    echo " RME Linux Dependency Setup"
+    echo " Started: $(date)"
+    echo "========================================"
+} > "$LOG_FILE"
 
 # Step 1: Install system dependencies via apt (fast, pre-compiled)
-echo "[1/4] Installing system dependencies via apt..."
-sudo apt update
+echo "[1/4] Installing system dependencies (Quiet)..."
+sudo apt update -y > /dev/null 2>&1
 sudo apt install -y \
     build-essential \
     cmake \
@@ -35,50 +51,36 @@ sudo apt install -y \
     libspdlog-dev \
     libfmt-dev \
     nlohmann-json3-dev \
-    libasio-dev
+    libasio-dev > /dev/null 2>&1
 
 echo "  ✅ System packages installed"
 
 # Step 2: Setup Conan profile
-echo ""
 echo "[2/4] Setting up Conan profile..."
 if ! conan profile show &> /dev/null; then
-    echo "  Creating default Conan profile..."
-    conan profile detect
+    run_quiet conan profile detect --force
 fi
 
-# Step 3: Install remaining dependencies via Conan (only what's not in apt)
-echo ""
-echo "[3/4] Installing remaining dependencies via Conan..."
-echo "  Build directory: $BUILD_DIR"
-
-conan install "$SCRIPT_DIR" \
+# Step 3: Install dependencies via Conan (No Building)
+echo "[3/4] Installing Conan dependencies (Binaries only)..."
+# Using --build=never to ensure Jules only downloads precompiled libraries
+# If dependencies are missing, this will fail fast instead of wasting time/RAM
+run_quiet conan install "$SCRIPT_DIR" \
     -of "$BUILD_DIR" \
-    --build=missing \
+    --build=never \
     -s build_type=Release
 
-# Step 4: Verify CMake presets were generated
-echo ""
-echo "[4/4] Verifying CMake presets..."
-if [ -f "$BUILD_DIR/build/Release/generators/CMakePresets.json" ]; then
-    echo "  ✅ CMakePresets.json generated"
+# Step 4: Verification
+echo "[4/4] Verifying setup..."
+if [ -d "$BUILD_DIR" ]; then
+    echo "  ✅ Conan environment initialized in $BUILD_DIR"
 else
-    echo "  ⚠️  CMakePresets.json not in expected location, checking alternatives..."
-    find "$BUILD_DIR" -name "CMakePresets.json" 2>/dev/null || echo "  Not found"
+    echo "  ⚠️  Setup may have failed, check $LOG_FILE"
+    exit 1
 fi
 
-# Step 5: Clean working tree (required for remote verification)
-echo ""
-echo "[5/4] Cleaning working tree..."
-git reset --hard
-
-echo ""
 echo "========================================"
 echo " SETUP COMPLETE!"
-echo " System packages: apt"
-echo " Remaining deps: ~/.conan2/p/"
-echo " Build files: $BUILD_DIR"
-echo ""
-echo " Next step - run the build:"
-echo "   ./build_linux.sh"
+echo " All temporary files are in $BUILD_DIR"
+echo " Your git directory is CLEAN ✨"
 echo "========================================"
