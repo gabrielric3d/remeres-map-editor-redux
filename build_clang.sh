@@ -40,7 +40,6 @@ sudo apt install -y clang lld mold ccache ninja-build make clang-tools-18 > /dev
 echo "[2/5] Setting up Conan Clang profile..."
 if ! conan profile show -pr clang &> /dev/null; then
     run_quiet conan profile detect --name clang --force
-    run_quiet conan profile exec-update -pr clang "settings.compiler.libcxx=libstdc++11"
 fi
 
 # Step 3: Install dependencies with Conan (Debug)
@@ -52,6 +51,7 @@ run_quiet conan install "$SCRIPT_DIR" \
     -of "$BUILD_DIR" \
     --build=missing \
     -s build_type=Debug \
+    -s:h compiler.libcxx=libstdc++11 \
     -c tools.system.package_manager:mode=install \
     -c tools.system.package_manager:sudo=True
 

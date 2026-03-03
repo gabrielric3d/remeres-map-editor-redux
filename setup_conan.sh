@@ -52,8 +52,6 @@ echo "  ✅ System packages installed" | tee -a "$LOG_FILE"
 echo "[2/4] Setting up Conan profile..." | tee -a "$LOG_FILE"
 if ! conan profile show &> /dev/null; then
     conan profile detect --force 2>&1 | tee -a "$LOG_FILE"
-    # Ensure modern C++ ABI is used for the default profile
-    conan profile exec-update default "settings.compiler.libcxx=libstdc++11" 2>&1 | tee -a "$LOG_FILE"
 fi
 
 # Step 3: Install dependencies via Conan (Safe & Fast)
@@ -64,7 +62,8 @@ echo "[3/4] Installing Conan dependencies (Binaries + Missing tiny deps)..." | t
 if ! conan install "$SCRIPT_DIR" \
     -of "$BUILD_DIR" \
     --build=missing \
-    -s build_type=Release 2>&1 | tee -a "$LOG_FILE"; then
+    -s build_type=Release \
+    -s compiler.libcxx=libstdc++11 2>&1 | tee -a "$LOG_FILE"; then
     echo "========================================" | tee -a "$LOG_FILE"
     echo " CONAN INSTALL FAILED." | tee -a "$LOG_FILE"
     echo "========================================" | tee -a "$LOG_FILE"
