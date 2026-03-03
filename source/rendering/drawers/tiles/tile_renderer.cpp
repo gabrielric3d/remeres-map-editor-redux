@@ -227,7 +227,7 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 			if (ground_it->sprite) {
 				SpritePatterns patterns = PatternCalculator::Calculate(ground_it->sprite, *ground_it, tile->ground.get(), tile, position);
 
-				// Inline preload check — skip function call when sprite is simple and loaded (95%+ case)
+				// Inline preload check â€” skip function call when sprite is simple and loaded (95%+ case)
 				if (!ground_it->sprite->isSimpleAndLoaded()) {
 					rme::collectTileSprites(ground_it->sprite, patterns.x, patterns.y, patterns.z, patterns.frame);
 				}
@@ -247,7 +247,7 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 		}
 	}
 
-	// Cache isHouseTile — used multiple times below
+	// Cache isHouseTile â€” used multiple times below
 	const bool is_house_tile = tile->isHouseTile();
 
 	// Ground tooltip (one per item)
@@ -314,7 +314,7 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 				if (it.sprite) {
 					SpritePatterns patterns = PatternCalculator::Calculate(it.sprite, it, item.get(), tile, position);
 
-					// Inline preload check — skip function call when sprite is simple and loaded
+					// Inline preload check â€” skip function call when sprite is simple and loaded
 					if (!it.sprite->isSimpleAndLoaded()) {
 						rme::collectTileSprites(it.sprite, patterns.x, patterns.y, patterns.z, patterns.frame);
 					}

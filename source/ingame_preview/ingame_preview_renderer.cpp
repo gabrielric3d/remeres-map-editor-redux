@@ -143,7 +143,7 @@ namespace IngamePreview {
 			// offset_diff accounts for the diagonal shift between the camera floor and this floor
 			int offset_diff = floor_offset - camera_offset;
 
-			// Dynamic viewport culling — adjusted per floor
+			// Dynamic viewport culling â€” adjusted per floor
 			// Use EXTREMELY large margins to guarantee no tiles are ever culled
 			// The camera floor (z == camera_pos.z) uses view_scroll directly
 			// Other floors are shifted by floor_offset, so we need to expand bounds
