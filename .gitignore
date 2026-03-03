@@ -118,3 +118,4 @@ data/user/
 /build-ninja
 compile_commands.json
 /.cache
+/build_clang
