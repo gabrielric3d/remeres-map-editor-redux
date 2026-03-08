@@ -59,7 +59,7 @@ namespace {
 		return flag;
 	}
 
-	bool readFlagPayload(DatFormat format, FileReadHandle& file, DatCatalogEntry& entry, uint8_t flag, uint8_t previous_flag, std::vector<std::string>& warnings) {
+	bool readFlagPayload(DatFormat format, FileReadHandle& file, DatCatalogEntry& entry, uint8_t flag, uint8_t previous_flag, wxString& error, std::vector<std::string>& warnings) {
 		auto& fragment = entry.item_fragment;
 
 		switch (flag) {
@@ -156,14 +156,16 @@ namespace {
 				constexpr auto kMaxSpriteLightValue = static_cast<uint16_t>(std::numeric_limits<uint8_t>::max());
 				if (intensity > kMaxSpriteLightValue || color > kMaxSpriteLightValue) {
 					warnings.push_back(std::format(
-						"DAT catalog: light values intensity={} color={} exceed SpriteLight range for client id {}.",
+						"DAT catalog: light values intensity={} color={} exceed SpriteLight range for client id {}. Capping to {}.",
 						intensity,
 						color,
-						entry.client_id));
-					return false;
+						entry.client_id,
+						kMaxSpriteLightValue));
 				}
+				const auto capped_intensity = std::min(intensity, kMaxSpriteLightValue);
+				const auto capped_color = std::min(color, kMaxSpriteLightValue);
 				entry.has_light = true;
-				entry.light = SpriteLight { static_cast<uint8_t>(intensity), static_cast<uint8_t>(color) };
+				entry.light = SpriteLight { static_cast<uint8_t>(capped_intensity), static_cast<uint8_t>(capped_color) };
 				return true;
 			}
 			case DatFlagDisplacement:
@@ -191,12 +193,12 @@ namespace {
 			case DatFlagWings:
 				return file.skip(16);
 			default:
-				warnings.push_back(std::format("DAT catalog: unknown flag {} after {}.", static_cast<int>(flag), static_cast<int>(previous_flag)));
-				return true;
+				error = wxString::FromUTF8(std::format("DAT catalog: unknown flag {} after {}.", static_cast<int>(flag), static_cast<int>(previous_flag)));
+				return false;
 		}
 	}
 
-	bool readFlags(DatFormat format, FileReadHandle& file, DatCatalogEntry& entry, std::vector<std::string>& warnings) {
+	bool readFlags(DatFormat format, FileReadHandle& file, DatCatalogEntry& entry, wxString& error, std::vector<std::string>& warnings) {
 		uint8_t flag = 0xFF;
 		uint8_t previous_flag = 0xFF;
 
@@ -212,7 +214,7 @@ namespace {
 			}
 
 			flag = remapFlag(flag, format);
-			if (!readFlagPayload(format, file, entry, flag, previous_flag, warnings)) {
+			if (!readFlagPayload(format, file, entry, flag, previous_flag, error, warnings)) {
 				return false;
 			}
 		}
@@ -459,8 +461,10 @@ bool DatItemParser::parseCatalog(const ItemDefinitionLoadInput& input, DatCatalo
 		entry.client_id = client_id;
 		entry.item_fragment.client_id = static_cast<ClientItemId>(client_id);
 
-		if (!readFlags(catalog.format, file, entry, warnings)) {
-			error = wxstr(std::format("Failed to read DAT flags for client id {}", client_id));
+		if (!readFlags(catalog.format, file, entry, error, warnings)) {
+			if (error.empty()) {
+				error = wxstr(std::format("Failed to read DAT flags for client id {}", client_id));
+			}
 			return false;
 		}
 
