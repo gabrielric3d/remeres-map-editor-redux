@@ -92,6 +92,9 @@ public: // Functions
 	void clearInvalidHouseTiles(bool showdialog);
 	void clearModifiedTileState(bool showdialog);
 
+	// Apply a camera paths snapshot as an undoable action
+	void ApplyCameraPathsSnapshot(const CameraPathsSnapshot& snapshot, ActionIdentifier actionType = ACTION_DRAW);
+
 	// Draw using the current brush to the target position
 	// alt is whether the ALT key is pressed
 	void draw(const Position& offset, bool alt);

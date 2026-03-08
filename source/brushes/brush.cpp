@@ -30,6 +30,7 @@
 #include "brushes/table/table_brush.h"
 #include "brushes/wall/wall_brush.h"
 #include "brushes/waypoint/waypoint_brush.h"
+#include "brushes/camera/camera_path_brush.h"
 #include "brushes/managers/brush_manager.h"
 
 #include "brushes/flag/flag_brush.h"

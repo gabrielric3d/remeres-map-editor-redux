@@ -36,6 +36,9 @@ void EditorPersistence::loadMap(Editor& editor, const FileName& fn) {
 
 	ScopedLoadingBar loadingBar("Loading OTBM map...");
 	editor.map.open(nstr(fn.GetFullPath()));
+
+	// Load camera paths from sidecar file
+	editor.map.camera_paths.loadFromFile(fn);
 }
 
 void EditorPersistence::saveMap(Editor& editor, FileName filename, bool showdialog) {
@@ -172,6 +175,9 @@ void EditorPersistence::saveMap(Editor& editor, FileName filename, bool showdial
 			return;
 		}
 	}
+
+	// Save camera paths to sidecar file
+	editor.map.camera_paths.saveToFile(FileName(wxstr(savefile)));
 
 	// Move to permanent backup
 	if (!save_as && g_settings.getInteger(Config::ALWAYS_MAKE_BACKUP)) {

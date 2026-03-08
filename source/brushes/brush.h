@@ -55,6 +55,7 @@ class SpawnBrush;
 class HouseBrush;
 class HouseExitBrush;
 class WaypointBrush;
+class CameraPathBrush;
 class FlagBrush;
 class EraserBrush;
 

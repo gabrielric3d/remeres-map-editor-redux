@@ -19,6 +19,7 @@
 #define RME_ACTION_H_
 
 #include "map/position.h"
+#include "game/camera_paths.h"
 #include "map/tile.h"
 
 #include <cstdint>
@@ -43,6 +44,7 @@ enum ChangeType {
 	CHANGE_TILE,
 	CHANGE_MOVE_HOUSE_EXIT,
 	CHANGE_MOVE_WAYPOINT,
+	CHANGE_CAMERA_PATHS,
 };
 
 struct HouseExitChangeData {
@@ -55,9 +57,13 @@ struct WaypointChangeData {
 	Position pos;
 };
 
+struct CameraPathsChangeData {
+	CameraPathsSnapshot snapshot;
+};
+
 class Change {
 private:
-	using Data = std::variant<std::monostate, std::unique_ptr<Tile>, HouseExitChangeData, WaypointChangeData>;
+	using Data = std::variant<std::monostate, std::unique_ptr<Tile>, HouseExitChangeData, WaypointChangeData, CameraPathsChangeData>;
 	ChangeType type;
 	Data data;
 
@@ -67,6 +73,7 @@ public:
 	explicit Change(std::unique_ptr<Tile> tile);
 	static Change* Create(House* house, const Position& where);
 	static Change* Create(Waypoint* wp, const Position& where);
+	static Change* Create(const CameraPathsSnapshot& snapshot);
 	~Change();
 	void clear();
 
@@ -76,6 +83,7 @@ public:
 	const Tile* getTile() const;
 	const HouseExitChangeData* getHouseExitData() const;
 	const WaypointChangeData* getWaypointData() const;
+	const CameraPathsChangeData* getCameraPathsData() const;
 
 	// Get memory footprint
 	uint32_t memsize() const;

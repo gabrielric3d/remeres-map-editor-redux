@@ -20,6 +20,7 @@ public:
 	void OnSelectHousePalette(wxCommandEvent& event);
 	void OnSelectCreaturePalette(wxCommandEvent& event);
 	void OnSelectWaypointPalette(wxCommandEvent& event);
+	void OnSelectCameraPathPalette(wxCommandEvent& event);
 	void OnSelectRawPalette(wxCommandEvent& event);
 
 protected:

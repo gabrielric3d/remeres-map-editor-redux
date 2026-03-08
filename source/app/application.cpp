@@ -68,6 +68,17 @@ Application::~Application() {
 }
 
 bool Application::OnInit() {
+	// Enable modern appearance handling (wxWidgets 3.3+)
+#if wxCHECK_VERSION(3, 3, 0)
+	SetAppearance(wxApp::Appearance::System);
+#endif
+
+#if defined(__WXMSW__) && wxCHECK_VERSION(3, 3, 0)
+	// Enable dark mode support for Windows (wxWidgets 3.3+)
+	MSWEnableDarkMode(wxApp::DarkMode_Always);
+#endif
+
+
 #if defined __DEBUG_MODE__ && defined __WINDOWS__
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
