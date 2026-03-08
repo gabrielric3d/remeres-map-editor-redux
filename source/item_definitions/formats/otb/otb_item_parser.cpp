@@ -11,6 +11,9 @@ namespace {
 	constexpr uint64_t flagMask(ItemFlag flag) {
 		return uint64_t { 1 } << static_cast<uint8_t>(flag);
 	}
+	constexpr uint16_t kOtbVersionFieldBytes = static_cast<uint16_t>(sizeof(uint32_t) * 3);
+	constexpr uint16_t kOtbVersionTailBytes = 128;
+	constexpr uint16_t kExpectedOtbVersionHeaderLength = kOtbVersionFieldBytes + kOtbVersionTailBytes;
 
 	void setMappedFlag(uint64_t& target, bool value, ItemFlag flag) {
 		if (value) {
@@ -56,7 +59,11 @@ bool OtbItemParser::parse(const ItemDefinitionLoadInput& input, ItemDefinitionFr
 		error = "Invalid items.otb version header.";
 		return false;
 	}
-	if (!root->skip(128)) {
+	if (version_header_length != kExpectedOtbVersionHeaderLength) {
+		error = "Invalid items.otb version payload.";
+		return false;
+	}
+	if (!root->skip(version_header_length - kOtbVersionFieldBytes)) {
 		error = "Invalid items.otb version payload.";
 		return false;
 	}

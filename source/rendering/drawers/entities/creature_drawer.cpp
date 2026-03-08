@@ -35,7 +35,8 @@ void CreatureDrawer::BlitCreature(SpriteBatch& sprite_batch, SpriteDrawer* sprit
 void CreatureDrawer::BlitCreature(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer, int screenx, int screeny, const Outfit& outfit, Direction dir, const CreatureDrawOptions& options) {
 	if (outfit.lookItem != 0) {
 		if (const auto definition = g_item_definitions.get(outfit.lookItem)) {
-			sprite_drawer->BlitSprite(sprite_batch, screenx, screeny, definition.clientId(), options.color);
+			GameSprite* spr = dynamic_cast<GameSprite*>(g_gui.gfx.getSprite(definition.clientId()));
+			sprite_drawer->BlitSprite(sprite_batch, screenx, screeny, spr, options.color);
 		}
 	} else {
 		// get outfit sprite

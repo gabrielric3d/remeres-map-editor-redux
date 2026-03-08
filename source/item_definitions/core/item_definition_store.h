@@ -3,6 +3,8 @@
 
 #include "item_definitions/core/item_definition_fragments.h"
 
+#include <array>
+#include <limits>
 #include <span>
 #include <unordered_map>
 
@@ -153,7 +155,7 @@ private:
 	ItemVisualTable visual_;
 	ItemEditorTable editor_;
 
-	std::unordered_map<ServerItemId, DefinitionId> server_to_index_;
+	std::array<DefinitionId, static_cast<size_t>(std::numeric_limits<ServerItemId>::max()) + 1> server_to_index_ {};
 	std::unordered_map<ClientItemId, std::vector<ServerItemId>> client_to_servers_;
 	mutable std::vector<ServerItemId> empty_client_results_;
 	ServerItemId max_server_id_ = 0;

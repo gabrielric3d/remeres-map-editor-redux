@@ -236,10 +236,14 @@ int Item::getHeight() const {
 	}
 
 	if (const GameSprite* sprite = getSprite()) {
-		return sprite->getDrawHeight();
+		const int draw_height = sprite->getDrawHeight();
+		if (draw_height > 0) {
+			return draw_height;
+		}
 	}
 
-	return 0;
+	// Older DAT formats may mark elevation without storing an explicit draw height.
+	return 8;
 }
 
 void Item::setUniqueID(unsigned short n) {

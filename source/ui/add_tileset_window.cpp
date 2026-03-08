@@ -44,7 +44,21 @@
 // ============================================================================
 // Add Tileset Window
 
-static constexpr int OUTFIT_COLOR_MAX = 133;
+namespace {
+	void clearItemSelection(wxSpinCtrl* item_id_field, wxStaticText* item_id_label, wxStaticText* item_name_label, DCButton* item_button) {
+		item_id_field->SetValue(0);
+		item_id_label->SetLabelText("ID 0");
+		item_name_label->SetLabelText("\"None\"");
+		item_button->SetSprite(0);
+	}
+
+	void applyItemSelection(wxSpinCtrl* item_id_field, wxStaticText* item_id_label, wxStaticText* item_name_label, DCButton* item_button, const ItemDefinitionView& item) {
+		item_id_field->SetValue(item.serverId());
+		item_id_label->SetLabelText("ID " + i2ws(item.serverId()));
+		item_name_label->SetLabelText("\"" + wxstr(std::string(item.name())) + "\"");
+		item_button->SetSprite(item.clientId());
+	}
+}
 
 AddTilesetWindow::AddTilesetWindow(wxWindow* win_parent, TilesetCategoryType categoryType, wxPoint pos) :
 	ObjectPropertiesWindowBase(win_parent, "Add a Tileset", pos),
@@ -77,7 +91,7 @@ AddTilesetWindow::AddTilesetWindow(wxWindow* win_parent, TilesetCategoryType cat
 	subsizer->Add(item_button);
 
 	subsizer->Add(newd wxStaticText(this, wxID_ANY, "Item Id of First Item"));
-	item_id_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(itemId), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 100, std::numeric_limits<uint16_t>::max());
+	item_id_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(itemId), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, std::numeric_limits<uint16_t>::max());
 	subsizer->Add(item_id_field, wxSizerFlags(1).Expand());
 
 	subsizer->Add(newd wxStaticText(this, wxID_ANY, "Tileset Name"));
@@ -112,12 +126,9 @@ void AddTilesetWindow::OnChangeItemId(wxCommandEvent& WXUNUSED(event)) {
 	uint16_t itemId = item_id_field->GetValue();
 	const auto it = g_item_definitions.get(itemId);
 	if (it) {
-		item_id_label->SetLabelText("ID " + i2ws(it.serverId()));
-		item_name_label->SetLabelText("\"" + wxstr(std::string(it.name())) + "\"");
-
-		item_button->SetSprite(it.clientId());
+		applyItemSelection(item_id_field, item_id_label, item_name_label, item_button, it);
 	} else {
-		item_id_field->SetValue(100);
+		clearItemSelection(item_id_field, item_id_label, item_name_label, item_button);
 	}
 }
 
@@ -138,16 +149,12 @@ void AddTilesetWindow::SetItemIdToItemButton(uint16_t id) {
 	if (id != 0) {
 		const auto it = g_item_definitions.get(id);
 		if (it) {
-			item_id_field->SetValue(it.serverId());
-			item_id_label->SetLabelText("ID " + i2ws(it.serverId()));
-			item_name_label->SetLabelText("\"" + wxstr(std::string(it.name())) + "\"");
-
-			item_button->SetSprite(it.clientId());
+			applyItemSelection(item_id_field, item_id_label, item_name_label, item_button, it);
 			return;
 		}
 	}
 
-	item_button->SetSprite(0);
+	clearItemSelection(item_id_field, item_id_label, item_name_label, item_button);
 }
 
 void AddTilesetWindow::OnClickOK(wxCommandEvent& WXUNUSED(event)) {

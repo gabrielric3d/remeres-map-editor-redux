@@ -38,14 +38,14 @@ void ItemGridPanel::SetFilter(const wxString& filter) {
 			continue;
 		}
 		const auto it = g_item_definitions.get(id);
-		if (!it) {
-			continue;
-		}
 		if (lowerFilter.IsEmpty()) {
 			filteredItems.push_back(id);
 		} else {
-			wxString name = wxstr(it.name());
-			if (name.Lower().Contains(lowerFilter) || wxstr(std::format("{}", id)).Contains(lowerFilter) || wxstr(std::format("{}", it.clientId())).Contains(lowerFilter)) {
+			const wxString name = it ? wxstr(std::string(it.name())) : wxString("<unknown item>");
+			const bool matches_name = name.Lower().Contains(lowerFilter);
+			const bool matches_id = wxstr(std::format("{}", id)).Contains(lowerFilter);
+			const bool matches_client_id = it && wxstr(std::format("{}", it.clientId())).Contains(lowerFilter);
+			if (matches_name || matches_id || matches_client_id) {
 				filteredItems.push_back(id);
 			}
 		}

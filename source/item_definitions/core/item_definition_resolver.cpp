@@ -1,6 +1,7 @@
 #include "item_definitions/core/item_definition_resolver.h"
 
 #include <format>
+#include <unordered_map>
 
 namespace {
 	constexpr uint64_t flagMask(ItemFlag flag) {
@@ -80,6 +81,8 @@ bool ItemDefinitionResolver::resolveDatOnly(const ItemDefinitionFragments& fragm
 
 	std::unordered_map<ClientItemId, size_t> client_to_row;
 	client_to_row.reserve(fragments.dat.size());
+	std::unordered_map<ClientItemId, ServerItemId> xml_server_by_client;
+	xml_server_by_client.reserve(fragments.xml.size());
 
 	for (const auto& [client_id, dat] : fragments.dat) {
 		ResolvedItemDefinitionRow row;
@@ -96,6 +99,14 @@ bool ItemDefinitionResolver::resolveDatOnly(const ItemDefinitionFragments& fragm
 		if (row_it == client_to_row.end()) {
 			warnings.push_back(std::format("Skipping items.xml entry {} in dat_only mode because DAT client id {} is missing.", server_id, client_id));
 			continue;
+		}
+		const auto owner_it = xml_server_by_client.find(client_id);
+		if (owner_it != xml_server_by_client.end() && owner_it->second != server_id) {
+			warnings.push_back(std::format("Duplicate items.xml client id {} in dat_only mode for server ids {} and {}. Keeping the first mapping.", client_id, owner_it->second, server_id));
+			continue;
+		}
+		if (owner_it == xml_server_by_client.end()) {
+			xml_server_by_client.emplace(client_id, server_id);
 		}
 
 		ResolvedItemDefinitionRow& row = rows[row_it->second];

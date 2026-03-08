@@ -22,7 +22,6 @@
 #include "io/iomap.h"
 #include "brushes/brush_enums.h"
 #include "brushes/wall/wall_brush.h"
-#include "game/item.h"
 
 // Container
 Container::Container(const uint16_t type) :

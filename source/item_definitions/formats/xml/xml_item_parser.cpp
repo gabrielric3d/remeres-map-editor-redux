@@ -33,9 +33,9 @@ namespace {
 		else if (value == "legs") slot |= SLOTP_LEGS;
 		else if (value == "feet") slot |= SLOTP_FEET;
 		else if (value == "backpack") slot |= SLOTP_BACKPACK;
-		else if (value == "two-handed") slot |= SLOTP_TWO_HAND;
-		else if (value == "right-hand") slot &= ~SLOTP_LEFT;
-		else if (value == "left-hand") slot &= ~SLOTP_RIGHT;
+		else if (value == "two-handed") slot |= SLOTP_HAND | SLOTP_TWO_HAND;
+		else if (value == "right-hand") { slot |= SLOTP_HAND | SLOTP_RIGHT; slot &= ~SLOTP_LEFT; }
+		else if (value == "left-hand") { slot |= SLOTP_HAND | SLOTP_LEFT; slot &= ~SLOTP_RIGHT; }
 		else if (value == "necklace") slot |= SLOTP_NECKLACE;
 		else if (value == "ring") slot |= SLOTP_RING;
 		else if (value == "ammo") slot |= SLOTP_AMMO;

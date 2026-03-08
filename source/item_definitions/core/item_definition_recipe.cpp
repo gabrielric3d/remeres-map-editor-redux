@@ -35,6 +35,7 @@ const ItemDefinitionRecipe& ItemDefinitionRecipeRegistry::get(ItemDefinitionMode
 			return dat_srv;
 		case ItemDefinitionMode::Protobuf:
 			return protobuf;
+		default:
+			return dat_otb;
 	}
-	return dat_otb;
 }

@@ -1,5 +1,6 @@
 #include "item_definitions/core/item_definition_store.h"
 
+#include <cmath>
 #include <stdexcept>
 
 namespace {
@@ -89,8 +90,9 @@ void ItemDefinitionStore::clear() {
 	text_ = {};
 	visual_ = {};
 	editor_ = {};
-	server_to_index_.clear();
+	server_to_index_.fill(0);
 	client_to_servers_.clear();
+	empty_client_results_.clear();
 	max_server_id_ = 0;
 	MajorVersion = 0;
 	MinorVersion = 0;
@@ -153,7 +155,7 @@ void ItemDefinitionStore::append(ResolvedItemDefinitionRow row) {
 	visual_.client_ids.push_back(row.client_id);
 	editor_.data.emplace_back();
 
-	server_to_index_[row.server_id] = index;
+	server_to_index_[row.server_id] = index + 1;
 	if (row.client_id != 0) {
 		client_to_servers_[row.client_id].push_back(row.server_id);
 	}
@@ -161,15 +163,15 @@ void ItemDefinitionStore::append(ResolvedItemDefinitionRow row) {
 }
 
 bool ItemDefinitionStore::exists(ServerItemId server_id) const {
-	return server_to_index_.contains(server_id);
+	return server_to_index_[server_id] != 0;
 }
 
 ItemDefinitionView ItemDefinitionStore::get(ServerItemId server_id) const {
-	const auto it = server_to_index_.find(server_id);
-	if (it == server_to_index_.end()) {
+	const DefinitionId stored_index = server_to_index_[server_id];
+	if (stored_index == 0) {
 		return {};
 	}
-	return ItemDefinitionView(this, it->second);
+	return ItemDefinitionView(this, stored_index - 1);
 }
 
 std::optional<ServerItemId> ItemDefinitionStore::findByClientId(ClientItemId client_id) const {
@@ -245,11 +247,11 @@ void ItemDefinitionStore::setDescription(ServerItemId server_id, std::string val
 }
 
 DefinitionId ItemDefinitionStore::indexOf(ServerItemId server_id) const {
-	const auto it = server_to_index_.find(server_id);
-	if (it == server_to_index_.end()) {
+	const DefinitionId stored_index = server_to_index_[server_id];
+	if (stored_index == 0) {
 		throw std::out_of_range("Unknown item definition id");
 	}
-	return it->second;
+	return stored_index - 1;
 }
 
 bool ItemDefinitionStore::isFlagSet(DefinitionId index, ItemFlag flag) const {
@@ -273,7 +275,7 @@ int64_t ItemDefinitionStore::attributeValue(DefinitionId index, ItemAttributeKey
 		case ItemAttributeKey::Classification: return attributes_.classifications[index];
 		case ItemAttributeKey::GroundEquivalent: return attributes_.ground_equivalents[index];
 		case ItemAttributeKey::BorderGroup: return attributes_.border_groups[index];
-		case ItemAttributeKey::Weight: return static_cast<int64_t>(attributes_.weights[index] * 1000.0f);
+		case ItemAttributeKey::Weight: return static_cast<int64_t>(std::llround(attributes_.weights[index] * 1000.0f));
 		case ItemAttributeKey::Attack: return attributes_.attacks[index];
 		case ItemAttributeKey::Defense: return attributes_.defenses[index];
 		case ItemAttributeKey::Armor: return attributes_.armors[index];

@@ -269,9 +269,6 @@ void DoorBrush::draw(BaseMap* map, Tile* tile, void* parameter) {
 								discarded_id = dt.id;
 								close_match = true;
 							}
-							if (!close_match && discarded_id == 0) {
-								discarded_id = dt.id;
-							}
 						}
 					}
 					if (!perfect_match && discarded_id) {

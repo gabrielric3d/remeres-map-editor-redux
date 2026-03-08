@@ -44,7 +44,21 @@
 // ============================================================================
 // Add Item Window
 
-static constexpr int OUTFIT_COLOR_MAX = 133;
+namespace {
+	void clearItemSelection(wxSpinCtrl* item_id_field, wxStaticText* item_id_label, wxStaticText* item_name_label, DCButton* item_button) {
+		item_id_field->SetValue(0);
+		item_id_label->SetLabelText("ID 0");
+		item_name_label->SetLabelText("\"None\"");
+		item_button->SetSprite(0);
+	}
+
+	void applyItemSelection(wxSpinCtrl* item_id_field, wxStaticText* item_id_label, wxStaticText* item_name_label, DCButton* item_button, const ItemDefinitionView& item) {
+		item_id_field->SetValue(item.serverId());
+		item_id_label->SetLabelText("ID " + i2ws(item.serverId()));
+		item_name_label->SetLabelText("\"" + wxstr(std::string(item.name())) + "\"");
+		item_button->SetSprite(item.clientId());
+	}
+}
 
 AddItemWindow::AddItemWindow(wxWindow* win_parent, TilesetCategoryType categoryType, Tileset* tilesetItem, wxPoint pos) :
 	ObjectPropertiesWindowBase(win_parent, "Add a Item", pos),
@@ -76,7 +90,7 @@ AddItemWindow::AddItemWindow(wxWindow* win_parent, TilesetCategoryType categoryT
 	subsizer->Add(item_button);
 
 	subsizer->Add(newd wxStaticText(this, wxID_ANY, "Item Id"));
-	item_id_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(itemId), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 100, std::numeric_limits<uint16_t>::max());
+	item_id_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(itemId), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, std::numeric_limits<uint16_t>::max());
 	item_id_field->SetToolTip("Enter item ID directly");
 	item_id_field->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &AddItemWindow::OnChangeItemId, this);
 	subsizer->Add(item_id_field, wxSizerFlags(1).Expand());
@@ -128,12 +142,9 @@ void AddItemWindow::OnChangeItemId(wxCommandEvent& WXUNUSED(event)) {
 	uint16_t itemId = item_id_field->GetValue();
 	const auto it = g_item_definitions.get(itemId);
 	if (it) {
-		item_id_label->SetLabelText("ID " + i2ws(it.serverId()));
-		item_name_label->SetLabelText("\"" + wxstr(std::string(it.name())) + "\"");
-
-		item_button->SetSprite(it.clientId());
+		applyItemSelection(item_id_field, item_id_label, item_name_label, item_button, it);
 	} else {
-		item_id_field->SetValue(100);
+		clearItemSelection(item_id_field, item_id_label, item_name_label, item_button);
 	}
 }
 
@@ -154,14 +165,10 @@ void AddItemWindow::SetItemIdToItemButton(uint16_t id) {
 	if (id != 0) {
 		const auto it = g_item_definitions.get(id);
 		if (it) {
-			item_id_field->SetValue(it.serverId());
-			item_id_label->SetLabelText("ID " + i2ws(it.serverId()));
-			item_name_label->SetLabelText("\"" + wxstr(std::string(it.name())) + "\"");
-
-			item_button->SetSprite(it.clientId());
+			applyItemSelection(item_id_field, item_id_label, item_name_label, item_button, it);
 			return;
 		}
 	}
 
-	item_button->SetSprite(0);
+	clearItemSelection(item_id_field, item_id_label, item_name_label, item_button);
 }

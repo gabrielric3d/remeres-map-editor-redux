@@ -64,8 +64,9 @@ void SpriteDrawer::glSetColor(wxColor color) {
 	// For now, ignoring as glBlitTexture/Square takes explicit color.
 }
 
-void SpriteDrawer::BlitSprite(SpriteBatch& sprite_batch, int screenx, int screeny, uint32_t spriteid, DrawColor color) {
-	GameSprite* spr = dynamic_cast<GameSprite*>(g_gui.gfx.getSprite(static_cast<int>(spriteid)));
+void SpriteDrawer::BlitSprite(SpriteBatch& sprite_batch, int screenx, int screeny, ServerItemId server_item_id, DrawColor color) {
+	const auto definition = g_item_definitions.get(server_item_id);
+	GameSprite* spr = definition ? dynamic_cast<GameSprite*>(g_gui.gfx.getSprite(definition.clientId())) : nullptr;
 	if (spr == nullptr) {
 		return;
 	}
