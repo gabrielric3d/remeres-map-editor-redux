@@ -17,7 +17,9 @@
 
 #include "rendering/ui/tooltip_drawer.h"
 #include "rendering/core/graphics.h"
+#include "rendering/core/normal_image.h"
 #include "rendering/core/text_renderer.h"
+#include "ui/theme.h"
 #include <nanovg.h>
 #include <format>
 #include "rendering/core/coordinate_mapper.h"
@@ -88,35 +90,28 @@ void TooltipDrawer::addWaypointTooltip(Position pos, std::string_view name) {
 }
 
 void TooltipDrawer::getHeaderColor(TooltipCategory cat, uint8_t& r, uint8_t& g, uint8_t& b) const {
-	using namespace TooltipColors;
+	wxColour color;
 	switch (cat) {
 		case TooltipCategory::WAYPOINT:
-			r = WAYPOINT_HEADER_R;
-			g = WAYPOINT_HEADER_G;
-			b = WAYPOINT_HEADER_B;
+			color = Theme::Get(Theme::Role::TooltipBorderWaypoint);
 			break;
 		case TooltipCategory::DOOR:
-			r = DOOR_HEADER_R;
-			g = DOOR_HEADER_G;
-			b = DOOR_HEADER_B;
+			color = Theme::Get(Theme::Role::TooltipBorderDoor);
 			break;
 		case TooltipCategory::TELEPORT:
-			r = TELEPORT_HEADER_R;
-			g = TELEPORT_HEADER_G;
-			b = TELEPORT_HEADER_B;
+			color = Theme::Get(Theme::Role::TooltipBorderTeleport);
 			break;
 		case TooltipCategory::TEXT:
-			r = TEXT_HEADER_R;
-			g = TEXT_HEADER_G;
-			b = TEXT_HEADER_B;
+			color = Theme::Get(Theme::Role::TooltipBorderText);
 			break;
 		case TooltipCategory::ITEM:
 		default:
-			r = ITEM_HEADER_R;
-			g = ITEM_HEADER_G;
-			b = ITEM_HEADER_B;
+			color = Theme::Get(Theme::Role::TooltipBorderItem);
 			break;
 	}
+	r = color.Red();
+	g = color.Green();
+	b = color.Blue();
 }
 
 int TooltipDrawer::getSpriteImage(NVGcontext* vg, uint16_t itemId) {
@@ -157,7 +152,7 @@ int TooltipDrawer::getSpriteImage(NVGcontext* vg, uint16_t itemId) {
 
 	if (gameSprite && !gameSprite->spriteList.empty()) {
 		// Use the first frame/part of the sprite
-		GameSprite::NormalImage* img = gameSprite->spriteList[0];
+		NormalImage* img = gameSprite->spriteList[0];
 		if (img) {
 			std::unique_ptr<uint8_t[]> rgba;
 
@@ -222,56 +217,56 @@ int TooltipDrawer::getSpriteImage(NVGcontext* vg, uint16_t itemId) {
 
 void TooltipDrawer::prepareFields(const TooltipData& tooltip) {
 	// Build content lines with word wrapping support
-	using namespace TooltipColors;
 	scratch_fields_count = 0;
 	storage.clear();
 	if (storage.capacity() < 4096) {
 		storage.reserve(4096);
 	}
 
-	auto addField = [&](std::string_view label, std::string_view value, uint8_t r, uint8_t g, uint8_t b) {
+	auto addField = [&](std::string_view label, std::string_view value, Theme::Role colorRole) {
 		if (scratch_fields_count >= scratch_fields.size()) {
 			scratch_fields.emplace_back();
 		}
 		FieldLine& field = scratch_fields[scratch_fields_count++];
 		field.label = label;
 		field.value = value;
-		field.r = r;
-		field.g = g;
-		field.b = b;
+		wxColour c = Theme::Get(colorRole);
+		field.r = c.Red();
+		field.g = c.Green();
+		field.b = c.Blue();
 		field.wrappedLines.clear();
 	};
 
 	if (tooltip.category == TooltipCategory::WAYPOINT) {
-		addField("Waypoint", tooltip.waypointName, WAYPOINT_HEADER_R, WAYPOINT_HEADER_G, WAYPOINT_HEADER_B);
+		addField("Waypoint", tooltip.waypointName, Theme::Role::TooltipWaypoint);
 	} else {
 		if (tooltip.actionId > 0) {
 			size_t start = storage.size();
 			std::format_to(std::back_inserter(storage), "{}", tooltip.actionId);
-			addField("Action ID", std::string_view(storage.data() + start, storage.size() - start), ACTION_ID_R, ACTION_ID_G, ACTION_ID_B);
+			addField("Action ID", std::string_view(storage.data() + start, storage.size() - start), Theme::Role::TooltipActionId);
 		}
 		if (tooltip.uniqueId > 0) {
 			size_t start = storage.size();
 			std::format_to(std::back_inserter(storage), "{}", tooltip.uniqueId);
-			addField("Unique ID", std::string_view(storage.data() + start, storage.size() - start), UNIQUE_ID_R, UNIQUE_ID_G, UNIQUE_ID_B);
+			addField("Unique ID", std::string_view(storage.data() + start, storage.size() - start), Theme::Role::TooltipUniqueId);
 		}
 		if (tooltip.doorId > 0) {
 			size_t start = storage.size();
 			std::format_to(std::back_inserter(storage), "{}", tooltip.doorId);
-			addField("Door ID", std::string_view(storage.data() + start, storage.size() - start), DOOR_ID_R, DOOR_ID_G, DOOR_ID_B);
+			addField("Door ID", std::string_view(storage.data() + start, storage.size() - start), Theme::Role::TooltipDoorId);
 		}
 		if (tooltip.destination.x > 0) {
 			size_t start = storage.size();
 			std::format_to(std::back_inserter(storage), "{}, {}, {}", tooltip.destination.x, tooltip.destination.y, tooltip.destination.z);
-			addField("Destination", std::string_view(storage.data() + start, storage.size() - start), TELEPORT_DEST_R, TELEPORT_DEST_G, TELEPORT_DEST_B);
+			addField("Destination", std::string_view(storage.data() + start, storage.size() - start), Theme::Role::TooltipTeleport);
 		}
 		if (!tooltip.description.empty()) {
-			addField("Description", tooltip.description, BODY_TEXT_R, BODY_TEXT_G, BODY_TEXT_B);
+			addField("Description", tooltip.description, Theme::Role::TooltipBodyText);
 		}
 		if (!tooltip.text.empty()) {
 			size_t start = storage.size();
 			std::format_to(std::back_inserter(storage), "\"{}\"", tooltip.text);
-			addField("Text", std::string_view(storage.data() + start, storage.size() - start), TEXT_R, TEXT_G, TEXT_B);
+			addField("Text", std::string_view(storage.data() + start, storage.size() - start), Theme::Role::TooltipTextValue);
 		}
 	}
 }
@@ -350,8 +345,8 @@ TooltipDrawer::LayoutMetrics TooltipDrawer::calculateLayout(NVGcontext* vg, cons
 	lm.gridSlotSize = 34.0f; // 32px + padding
 	lm.containerHeight = 0.0f;
 
-	lm.numContainerItems = (int)tooltip.containerItems.size();
-	int capacity = (int)tooltip.containerCapacity;
+	lm.numContainerItems = static_cast<int>(tooltip.containerItems.size());
+	int capacity = static_cast<int>(tooltip.containerCapacity);
 	lm.emptyContainerSlots = std::max(0, capacity - lm.numContainerItems);
 	lm.totalContainerSlots = lm.numContainerItems;
 
@@ -406,7 +401,6 @@ TooltipDrawer::LayoutMetrics TooltipDrawer::calculateLayout(NVGcontext* vg, cons
 }
 
 void TooltipDrawer::drawBackground(NVGcontext* vg, float x, float y, float width, float height, float cornerRadius, const TooltipData& tooltip) {
-	using namespace TooltipColors;
 
 	// Get border color based on category
 	uint8_t borderR, borderG, borderB;
@@ -419,14 +413,15 @@ void TooltipDrawer::drawBackground(NVGcontext* vg, float x, float y, float width
 		float offsetY = 3.0f + i * 1.0f;
 		nvgBeginPath(vg);
 		nvgRoundedRect(vg, x - spread, y + offsetY - spread, width + spread * 2, height + spread * 2, cornerRadius + spread);
-		nvgFillColor(vg, nvgRGBA(0, 0, 0, (int)alpha));
+		nvgFillColor(vg, nvgRGBA(0, 0, 0, static_cast<unsigned char>(alpha)));
 		nvgFill(vg);
 	}
 
-	// Main background
+	// Main background - use theme
+	wxColour bgCol = Theme::Get(Theme::Role::TooltipBg);
 	nvgBeginPath(vg);
 	nvgRoundedRect(vg, x, y, width, height, cornerRadius);
-	nvgFillColor(vg, nvgRGBA(BODY_BG_R, BODY_BG_G, BODY_BG_B, 250));
+	nvgFillColor(vg, nvgRGBA(bgCol.Red(), bgCol.Green(), bgCol.Blue(), 250));
 	nvgFill(vg);
 
 	// Full colored border around entire frame
@@ -438,7 +433,6 @@ void TooltipDrawer::drawBackground(NVGcontext* vg, float x, float y, float width
 }
 
 void TooltipDrawer::drawFields(NVGcontext* vg, float x, float y, float valueStartX, float lineHeight, float padding, float fontSize) {
-	using namespace TooltipColors;
 
 	float contentX = x + padding;
 	float cursorY = y + padding;
@@ -452,13 +446,14 @@ void TooltipDrawer::drawFields(NVGcontext* vg, float x, float y, float valueStar
 		bool firstLine = true;
 		for (const auto& line : field.wrappedLines) {
 			if (firstLine) {
-				// Draw label on first line
-				nvgFillColor(vg, nvgRGBA(BODY_TEXT_R, BODY_TEXT_G, BODY_TEXT_B, 160));
+				// Draw label - use theme tooltip label color
+				wxColour labelCol = Theme::Get(Theme::Role::TooltipLabel);
+				nvgFillColor(vg, nvgRGBA(labelCol.Red(), labelCol.Green(), labelCol.Blue(), 200));
 				nvgText(vg, contentX, cursorY, field.label.data(), field.label.data() + field.label.size());
 				firstLine = false;
 			}
 
-			// Draw value line in semantic color
+			// Draw value line in theme-defined semantic color
 			nvgFillColor(vg, nvgRGBA(field.r, field.g, field.b, 255));
 			nvgText(vg, contentX + valueStartX, cursorY, line.data(), line.data() + line.size());
 
@@ -468,7 +463,6 @@ void TooltipDrawer::drawFields(NVGcontext* vg, float x, float y, float valueStar
 }
 
 void TooltipDrawer::drawContainerGrid(NVGcontext* vg, float x, float y, const TooltipData& tooltip, const LayoutMetrics& layout) {
-	using namespace TooltipColors;
 
 	if (layout.totalContainerSlots <= 0) {
 		return;
@@ -498,9 +492,11 @@ void TooltipDrawer::drawContainerGrid(NVGcontext* vg, float x, float y, const To
 
 		// Draw slot background (always)
 		nvgBeginPath(vg);
-		nvgRect(vg, itemX, itemY, 32, 32);
-		nvgFillColor(vg, nvgRGBA(60, 60, 60, 100)); // Dark slot placeholder
-		nvgStrokeColor(vg, nvgRGBA(100, 100, 100, 100)); // Light border
+		wxColour baseCol = Theme::Get(Theme::Role::CardBase);
+		wxColour borderCol = Theme::Get(Theme::Role::Border);
+
+		nvgFillColor(vg, nvgRGBA(baseCol.Red(), baseCol.Green(), baseCol.Blue(), 100)); // Dark slot placeholder
+		nvgStrokeColor(vg, nvgRGBA(borderCol.Red(), borderCol.Green(), borderCol.Blue(), 100)); // Light border
 		nvgStrokeWidth(vg, 1.0f);
 		nvgFill(vg);
 		nvgStroke(vg);
@@ -520,7 +516,8 @@ void TooltipDrawer::drawContainerGrid(NVGcontext* vg, float x, float y, const To
 			nvgText(vg, itemX + 17, itemY + 17, summary.c_str(), nullptr);
 
 			// Text
-			nvgFillColor(vg, nvgRGBA(COUNT_TEXT_R, COUNT_TEXT_G, COUNT_TEXT_B, 255));
+			wxColour countCol = Theme::Get(Theme::Role::TooltipCountText);
+			nvgFillColor(vg, nvgRGBA(countCol.Red(), countCol.Green(), countCol.Blue(), 255));
 			nvgText(vg, itemX + 16, itemY + 16, summary.c_str(), nullptr);
 
 		} else if (idx < layout.numContainerItems) {
@@ -547,7 +544,8 @@ void TooltipDrawer::drawContainerGrid(NVGcontext* vg, float x, float y, const To
 				nvgText(vg, itemX + 33, itemY + 33, countStr.c_str(), nullptr);
 
 				// Text
-				nvgFillColor(vg, nvgRGBA(COUNT_TEXT_R, COUNT_TEXT_G, COUNT_TEXT_B, 255));
+				wxColour countCol = Theme::Get(Theme::Role::TooltipCountText);
+				nvgFillColor(vg, nvgRGBA(countCol.Red(), countCol.Green(), countCol.Blue(), 255));
 				nvgText(vg, itemX + 32, itemY + 32, countStr.c_str(), nullptr);
 			}
 		}

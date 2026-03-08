@@ -201,9 +201,9 @@ void LivePeer::parseHello(NetworkMessage& message) {
 	log->Message(name + " (" + getHostName() + ") connected.");
 
 	NetworkMessage outMessage;
-	if (static_cast<ClientVersionID>(clientVersion) != g_version.GetCurrentVersionID()) {
+	if (clientVersion != g_version.GetCurrentVersion().getProtocolID()) {
 		outMessage.write<uint8_t>(PACKET_CHANGE_CLIENT_VERSION);
-		outMessage.write<uint32_t>(g_version.GetCurrentVersionID());
+		outMessage.write<uint32_t>(g_version.GetCurrentVersion().getProtocolID());
 	} else {
 		outMessage.write<uint8_t>(PACKET_ACCEPTED_CLIENT);
 	}
@@ -280,7 +280,7 @@ void LivePeer::parseReceiveChanges(NetworkMessage& message) {
 		do {
 			std::unique_ptr<Tile> tile = readTile(tileNode, editor, nullptr);
 			if (tile) {
-				action->addChange(std::make_unique<Change>(tile.release()));
+				action->addChange(std::make_unique<Change>(std::move(tile)));
 			}
 		} while (tileNode->advance());
 	}

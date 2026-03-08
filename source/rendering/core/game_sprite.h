@@ -12,6 +12,9 @@
 #include "rendering/core/texture_garbage_collector.h"
 #include "rendering/core/atlas_manager.h"
 #include "rendering/core/render_timer.h"
+#include <atomic>
+#include <cstdint>
+#include <span>
 
 #include <deque>
 #include <memory>
@@ -63,12 +66,16 @@ public:
 	Outfit outfit;
 };
 
+class Image;
+class NormalImage;
+class TemplateImage;
+
 class GameSprite : public Sprite {
 public:
 	GameSprite();
 	~GameSprite() override;
 
-	int getIndex(int width, int height, int layer, int pattern_x, int pattern_y, int pattern_z, int frame) const;
+	size_t getIndex(int width, int height, int layer, int pattern_x, int pattern_y, int pattern_z, int frame) const;
 
 	// Phase 2: Get atlas region for texture array rendering
 	const AtlasRegion* getAtlasRegion(int _x, int _y, int _layer, int _subtype, int _pattern_x, int _pattern_y, int _pattern_z, int _frame);
@@ -97,83 +104,18 @@ public:
 	}
 
 	// Helper for SpritePreloader to decompress data off-thread
-	[[nodiscard]] static std::unique_ptr<uint8_t[]> Decompress(const uint8_t* dump, size_t size, bool use_alpha, int id = 0);
+	[[nodiscard]] static std::unique_ptr<uint8_t[]> Decompress(std::span<const uint8_t> dump, bool use_alpha, int id = 0);
 
+	static void ColorizeTemplatePixels(uint8_t* dest, const uint8_t* mask, size_t pixelCount, int lookHead, int lookBody, int lookLegs, int lookFeet, bool destHasAlpha);
+
+	// Exposed for NormalImage::clean to invalidate cache
+	void invalidateCache(const AtlasRegion* region);
+
+private:
 protected:
-	class Image;
-	class NormalImage;
-	class TemplateImage;
-
 	wxMemoryDC* getDC(SpriteSize size);
 	wxMemoryDC* getDC(SpriteSize size, const Outfit& outfit);
 	TemplateImage* getTemplateImage(int sprite_index, const Outfit& outfit);
-
-	class Image {
-	public:
-		Image();
-		virtual ~Image() = default;
-
-		bool isGLLoaded;
-		time_t lastaccess;
-
-		void visit();
-		virtual void clean(time_t time, int longevity);
-
-		virtual std::unique_ptr<uint8_t[]> getRGBData() = 0;
-		virtual std::unique_ptr<uint8_t[]> getRGBAData() = 0;
-
-	protected:
-		// Helper to handle atlas interactions
-		const AtlasRegion* EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<uint8_t[]> preloaded_data = nullptr);
-	};
-
-	class NormalImage : public Image {
-	public:
-		NormalImage();
-		~NormalImage() override;
-
-		void fulfillPreload(std::unique_ptr<uint8_t[]> data);
-
-		// We use the sprite id as key
-		uint32_t id;
-		const AtlasRegion* atlas_region; // AtlasRegion in texture array (nullptr if not loaded)
-
-		// This contains the pixel data
-		uint16_t size;
-		std::unique_ptr<uint8_t[]> dump;
-
-		virtual void clean(time_t time, int longevity) override;
-
-		virtual std::unique_ptr<uint8_t[]> getRGBData() override;
-		virtual std::unique_ptr<uint8_t[]> getRGBAData() override;
-
-		// Phase 2: Get atlas region (ensures loaded first)
-		const AtlasRegion* getAtlasRegion();
-
-		GameSprite* parent = nullptr;
-	};
-
-	class TemplateImage : public Image {
-	public:
-		TemplateImage(GameSprite* parent, int v, const Outfit& outfit);
-		~TemplateImage() override;
-
-		void clean(time_t time, int longevity) override;
-
-		virtual std::unique_ptr<uint8_t[]> getRGBData() override;
-		virtual std::unique_ptr<uint8_t[]> getRGBAData() override;
-
-		const AtlasRegion* getAtlasRegion();
-		const AtlasRegion* atlas_region;
-
-		uint32_t texture_id; // Unique ID for AtlasManager key
-		GameSprite* parent;
-		int sprite_index;
-		uint8_t lookHead;
-		uint8_t lookBody;
-		uint8_t lookLegs;
-		uint8_t lookFeet;
-	};
 
 	uint32_t id;
 	std::unique_ptr<wxMemoryDC> dc[SPRITE_SIZE_COUNT];
@@ -189,6 +131,10 @@ public:
 	uint8_t pattern_z;
 	uint8_t frames;
 	uint32_t numsprites;
+	uint32_t getId() const {
+		return id;
+	}
+	uint32_t getDebugImageId(size_t index = 0) const;
 
 	std::unique_ptr<Animator> animator;
 
@@ -246,11 +192,21 @@ public:
 		return cached_default_region;
 	}
 
+	// DEBUG: Get the actual image ID that would be rendered for these coordinates
+	uint32_t getSpriteId(int frameIndex, int pattern_x, int pattern_y) const;
+
 	bool isSimpleAndLoaded() const;
+
+	bool is_simple = false;
+	void updateSimpleStatus() {
+		is_simple = (numsprites == 1 && frames == 1 && layers == 1 && width == 1 && height == 1 && !spriteList.empty());
+	}
 
 protected:
 	// Cache for default state (0,0,0,0) to avoid lookups/virtual calls for simple sprites
 	mutable const AtlasRegion* cached_default_region = nullptr;
+	uint32_t cached_generation_id = 0;
+	uint32_t cached_sprite_id = 0;
 };
 
 #endif

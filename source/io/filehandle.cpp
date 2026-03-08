@@ -234,8 +234,8 @@ DiskNodeFileReadHandle::DiskNodeFileReadHandle(const std::string& name, const st
 
 		if (ver[0] != 0 || ver[1] != 0 || ver[2] != 0 || ver[3] != 0) {
 			bool accepted = false;
-			for (std::vector<std::string>::const_iterator id_iter = acceptable_identifiers.begin(); id_iter != acceptable_identifiers.end(); ++id_iter) {
-				if (memcmp(ver, id_iter->c_str(), 4) == 0) {
+			for (const auto& id : acceptable_identifiers) {
+				if (memcmp(ver, id.c_str(), 4) == 0) {
 					accepted = true;
 					break;
 				}
@@ -372,6 +372,9 @@ BinaryNode* BinaryNode::advance() {
 	while (child) {
 		// both functions modify ourselves and sets child to nullptr, so loop will be aborted
 		// possibly change to assignment ?
+		if (file->error_code != FILE_NO_ERROR) {
+			return nullptr;
+		}
 		child->getChild();
 		child->advance();
 	}
@@ -612,7 +615,7 @@ MemoryNodeFileWriteHandle::~MemoryNodeFileWriteHandle() {
 }
 
 void MemoryNodeFileWriteHandle::reset() {
-	std::fill(cache.begin(), cache.end(), 0xAA);
+	std::ranges::fill(cache, 0xAA);
 	local_write_index = 0;
 }
 
@@ -673,28 +676,23 @@ bool NodeFileWriteHandle::endNode() {
 }
 
 bool NodeFileWriteHandle::addU8(uint8_t u8) {
-	writeBytes(&u8, sizeof(u8));
-	return error_code == FILE_NO_ERROR;
+	return addValue(u8);
 }
 
 bool NodeFileWriteHandle::addByte(uint8_t u8) {
-	writeBytes(&u8, sizeof(u8));
-	return error_code == FILE_NO_ERROR;
+	return addValue(u8);
 }
 
 bool NodeFileWriteHandle::addU16(uint16_t u16) {
-	writeBytes(reinterpret_cast<uint8_t*>(&u16), sizeof(u16));
-	return error_code == FILE_NO_ERROR;
+	return addValue(u16);
 }
 
 bool NodeFileWriteHandle::addU32(uint32_t u32) {
-	writeBytes(reinterpret_cast<uint8_t*>(&u32), sizeof(u32));
-	return error_code == FILE_NO_ERROR;
+	return addValue(u32);
 }
 
 bool NodeFileWriteHandle::addU64(uint64_t u64) {
-	writeBytes(reinterpret_cast<uint8_t*>(&u64), sizeof(u64));
-	return error_code == FILE_NO_ERROR;
+	return addValue(u64);
 }
 
 bool NodeFileWriteHandle::addString(const std::string& str) {
@@ -703,13 +701,13 @@ bool NodeFileWriteHandle::addString(const std::string& str) {
 		return false;
 	}
 	addU16(uint16_t(str.size()));
-	addRAW((const uint8_t*)str.c_str(), str.size());
+	addRAW(reinterpret_cast<const uint8_t*>(str.c_str()), str.size());
 	return error_code == FILE_NO_ERROR;
 }
 
 bool NodeFileWriteHandle::addLongString(const std::string& str) {
 	addU32(uint32_t(str.size()));
-	addRAW((const uint8_t*)str.c_str(), str.size());
+	addRAW(reinterpret_cast<const uint8_t*>(str.c_str()), str.size());
 	return error_code == FILE_NO_ERROR;
 }
 

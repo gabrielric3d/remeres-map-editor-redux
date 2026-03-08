@@ -22,11 +22,14 @@
 
 class Waypoint {
 public:
+	Waypoint() = default;
+	Waypoint(std::string name, Position pos) : name(std::move(name)), pos(pos) { }
+
 	std::string name;
 	Position pos;
 };
 
-using WaypointMap = std::map<std::string, Waypoint*>;
+using WaypointMap = std::map<std::string, std::unique_ptr<Waypoint>>;
 
 class Waypoints {
 	Map& map;
@@ -34,13 +37,9 @@ class Waypoints {
 public:
 	Waypoints(Map& map) :
 		map(map) { }
-	~Waypoints() {
-		for (WaypointMap::iterator iter = waypoints.begin(); iter != waypoints.end(); ++iter) {
-			delete iter->second;
-		}
-	}
+	~Waypoints() = default;
 
-	void addWaypoint(Waypoint* wp);
+	void addWaypoint(std::unique_ptr<Waypoint> wp, bool replace = true);
 	Waypoint* getWaypoint(std::string name);
 	Waypoint* getWaypoint(TileLocation* location);
 	void removeWaypoint(std::string name);
@@ -58,6 +57,14 @@ public:
 	}
 	WaypointMap::const_iterator end() const {
 		return waypoints.end();
+	}
+
+	size_t size() const {
+		return waypoints.size();
+	}
+
+	bool empty() const {
+		return waypoints.empty();
 	}
 };
 

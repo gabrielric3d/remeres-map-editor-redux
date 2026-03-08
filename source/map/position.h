@@ -151,7 +151,7 @@ inline std::istream& operator>>(std::istream& is, Position& pos) {
 }
 
 inline bool Position::isValid() const {
-	return x >= 0 && x <= MAP_MAX_WIDTH && y >= 0 && y <= MAP_MAX_HEIGHT && z >= 0 && z <= MAP_MAX_LAYER;
+	return static_cast<unsigned>(x) <= MAP_MAX_WIDTH && static_cast<unsigned>(y) <= MAP_MAX_HEIGHT && static_cast<unsigned>(z) <= MAP_MAX_LAYER;
 }
 
 inline Position abs(const Position& position) {
@@ -161,6 +161,13 @@ inline Position abs(const Position& position) {
 		std::abs(position.z)
 	);
 }
+
+struct MapBounds {
+	int x1, y1, x2, y2;
+	bool contains(int px, int py) const {
+		return px >= x1 && px <= x2 && py >= y1 && py <= y2;
+	}
+};
 
 using PositionVector = std::vector<Position>;
 using PositionList = std::list<Position>;

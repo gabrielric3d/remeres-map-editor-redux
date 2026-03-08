@@ -232,7 +232,7 @@ bool EditorManager::NewMap() {
 }
 
 void EditorManager::OpenMap() {
-	wxString wildcard = g_settings.getInteger(Config::USE_OTGZ) != 0 ? MAP_LOAD_FILE_WILDCARD_OTGZ : MAP_LOAD_FILE_WILDCARD;
+	wxString wildcard = MAP_LOAD_FILE_WILDCARD;
 	wxFileDialog dialog(g_gui.root, "Open map file", wxEmptyString, wxEmptyString, wildcard, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
 	if (dialog.ShowModal() == wxID_OK) {
@@ -248,7 +248,7 @@ void EditorManager::SaveMap() {
 	if (GetCurrentMap().hasFile()) {
 		SaveCurrentMap(FileName(""), true);
 	} else {
-		wxString wildcard = g_settings.getInteger(Config::USE_OTGZ) != 0 ? MAP_SAVE_FILE_WILDCARD_OTGZ : MAP_SAVE_FILE_WILDCARD;
+		wxString wildcard = MAP_SAVE_FILE_WILDCARD;
 		wxFileDialog dialog(g_gui.root, "Save...", wxEmptyString, wxEmptyString, wildcard, wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
 		if (dialog.ShowModal() == wxID_OK) {
@@ -262,7 +262,7 @@ void EditorManager::SaveMapAs() {
 		return;
 	}
 
-	wxString wildcard = g_settings.getInteger(Config::USE_OTGZ) != 0 ? MAP_SAVE_FILE_WILDCARD_OTGZ : MAP_SAVE_FILE_WILDCARD;
+	wxString wildcard = MAP_SAVE_FILE_WILDCARD;
 	wxFileDialog dialog(g_gui.root, "Save As...", "", "", wildcard, wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
 	if (dialog.ShowModal() == wxID_OK) {
@@ -293,18 +293,25 @@ bool EditorManager::LoadMap(const FileName& fileName) {
 			throw std::runtime_error(std::format("Could not open file \"{}\".\nThis is not a valid OTBM file or it does not exist.", nstr(fileName.GetFullPath())));
 		}
 
-		if (g_version.GetCurrentVersionID() != ver.client) {
+		ClientVersion* current = g_version.getLoadedVersion();
+		if (!current || current->getProtocolID() != ver.client) {
 			wxString error;
 			std::vector<std::string> warnings;
 			if (CloseAllEditors()) {
-				if (!g_version.LoadVersion(ver.client, error, warnings)) {
+				ClientVersion* target = ClientVersion::getBestMatch(ver.client);
+				if (!target) {
+					throw std::runtime_error(std::format("Unsupported client version (OtbId: {})", static_cast<int>(ver.client)));
+				}
+				if (!g_version.LoadVersion(target->getID(), error, warnings)) {
 					g_status.SetStatusText("Failed to load map.");
 					DialogUtil::PopupDialog("Error", error, wxOK);
 					return false;
 				}
-				DialogUtil::ListDialog("Warnings", warnings);
+				if (!warnings.empty()) {
+					DialogUtil::ListDialog("Warnings", warnings);
+				}
 			} else {
-				throw std::runtime_error("All maps of different versions were not closed.");
+				return false;
 			}
 		}
 

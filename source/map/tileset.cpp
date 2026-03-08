@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <format>
 #include "map/tileset.h"
 #include "game/creatures.h"
 #include "brushes/creature/creature_brush.h"
@@ -135,8 +136,9 @@ void Tileset::loadCategory(pugi::xml_node node, std::vector<std::string>& warnin
 				if (ctype->brush) {
 					brush = ctype->brush;
 				} else {
-					brush = ctype->brush = newd CreatureBrush(ctype);
-					brushes.addBrush(brush);
+					auto creature_brush = std::make_unique<CreatureBrush>(ctype);
+					brush = ctype->brush = creature_brush.get();
+					brushes.addBrush(std::move(creature_brush));
 				}
 				brush->flagAsVisible();
 				category->brushlist.push_back(brush);
@@ -224,7 +226,7 @@ void TilesetCategory::loadBrush(pugi::xml_node node, std::vector<std::string>& w
 		for (uint16_t id = fromId; id <= toId; ++id) {
 			ItemType& it = g_items[id];
 			if (it.id == 0) {
-				warnings.push_back(std::string(wxString::Format("Tileset: %s, Brush: %s, Previous %d, From: %d, To: %d", wxstr(tileset.name), wxstr(brushName), tileset.previousId, fromId, toId).mb_str()));
+				warnings.push_back(std::format("Tileset: {}, Brush: {}, Previous {}, From: {}, To: {}", tileset.name, brushName, tileset.previousId, fromId, toId));
 				warnings.push_back("Unknown item id #" + std::to_string(id) + ".");
 				continue;
 			}
@@ -236,12 +238,13 @@ void TilesetCategory::loadBrush(pugi::xml_node node, std::vector<std::string>& w
 					it.raw_brush->setCollection();
 				}
 			} else {
-				brush = it.raw_brush = newd RAWBrush(it.id);
+				auto raw_brush = std::make_unique<RAWBrush>(it.id);
+				brush = it.raw_brush = raw_brush.get();
 				it.has_raw = true;
 				if (type == TILESET_COLLECTION) {
 					it.raw_brush->setCollection();
 				}
-				tileset.brushes.addBrush(brush); // This will take care of cleaning up afterwards
+				tileset.brushes.addBrush(std::move(raw_brush)); // This will take care of cleaning up afterwards
 			}
 
 			if (type == TILESET_COLLECTION) {

@@ -125,10 +125,10 @@ void MapDrawer::SetupVars() {
 	options.current_house_id = 0;
 	Brush* brush = g_gui.GetCurrentBrush();
 	if (brush) {
-		if (brush->isHouse()) {
-			options.current_house_id = brush->asHouse()->getHouseID();
-		} else if (brush->isHouseExit()) {
-			options.current_house_id = brush->asHouseExit()->getHouseID();
+		if (brush->is<HouseBrush>()) {
+			options.current_house_id = brush->as<HouseBrush>()->getHouseID();
+		} else if (brush->is<HouseExitBrush>()) {
+			options.current_house_id = brush->as<HouseExitBrush>()->getHouseID();
 		}
 	}
 
@@ -145,9 +145,6 @@ void MapDrawer::SetupVars() {
 }
 
 void MapDrawer::SetupGL() {
-	// Reset texture cache at the start of each frame
-	sprite_drawer->ResetCache();
-
 	view.SetupGL();
 
 	// Ensure renderers are initialized
@@ -242,6 +239,7 @@ void MapDrawer::UpdateFBO(const RenderView& view, const DrawingOptions& options)
 	int target_w = std::max(1, static_cast<int>(view.screensize_x * scale_factor));
 	int target_h = std::max(1, static_cast<int>(view.screensize_y * scale_factor));
 
+	bool fbo_resized = false;
 	if (fbo_width != target_w || fbo_height != target_h || !scale_fbo) {
 		fbo_width = target_w;
 		fbo_height = target_h;
@@ -261,13 +259,15 @@ void MapDrawer::UpdateFBO(const RenderView& view, const DrawingOptions& options)
 			// This should be impossible due to std::max, but good for invariant documentation
 			spdlog::error("MapDrawer: FBO dimension is zero ({}, {})!", fbo_width, fbo_height);
 		}
+		fbo_resized = true;
 	}
 
-	// Always update filtering parameters (supports toggling AA without resize)
-	if (scale_texture) {
+	// Update filtering parameters when scaling is enabled and either the FBO was resized or the AA mode changed (scale_texture && (fbo_resized || options.anti_aliasing != m_lastAaMode))
+	if (scale_texture && (fbo_resized || options.anti_aliasing != m_lastAaMode)) {
 		GLenum filter = options.anti_aliasing ? GL_LINEAR : GL_NEAREST;
 		glTextureParameteri(scale_texture->GetID(), GL_TEXTURE_MIN_FILTER, filter);
 		glTextureParameteri(scale_texture->GetID(), GL_TEXTURE_MAG_FILTER, filter);
+		m_lastAaMode = options.anti_aliasing;
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, scale_fbo->GetID());
@@ -283,9 +283,24 @@ void MapDrawer::Draw() {
 
 	light_buffer.Clear();
 	creature_name_drawer->clear();
+	options.transient_selection_bounds = std::nullopt;
+
+	if (options.boundbox_selection) {
+		options.transient_selection_bounds = MapBounds {
+			.x1 = std::min(canvas->last_click_map_x, canvas->last_cursor_map_x),
+			.y1 = std::min(canvas->last_click_map_y, canvas->last_cursor_map_y),
+			.x2 = std::max(canvas->last_click_map_x, canvas->last_cursor_map_x),
+			.y2 = std::max(canvas->last_click_map_y, canvas->last_cursor_map_y)
+		};
+	}
+
+	if (!g_gui.gfx.ensureAtlasManager()) {
+		return;
+	}
+	auto* atlas = g_gui.gfx.getAtlasManager();
 
 	// Begin Batches
-	sprite_batch->begin(view.projectionMatrix);
+	sprite_batch->begin(view.projectionMatrix, *atlas);
 	primitive_renderer->setProjectionMatrix(view.projectionMatrix);
 
 	// Check Framebuffer Logic
@@ -300,12 +315,14 @@ void MapDrawer::Draw() {
 	}
 
 	DrawBackground(); // Clear screen (or FBO)
+
+	// Save original view bounds before DrawMap modifies them per-floor
+	const ViewBounds original_bounds { view.start_x, view.start_y, view.end_x, view.end_y };
+
 	DrawMap();
 
 	// Flush Map for Light Pass
-	if (g_gui.gfx.ensureAtlasManager()) {
-		sprite_batch->end(*g_gui.gfx.getAtlasManager());
-	}
+	sprite_batch->end(*atlas);
 	primitive_renderer->flush();
 
 	if (options.isDrawLight()) {
@@ -321,15 +338,12 @@ void MapDrawer::Draw() {
 	}
 
 	// Resume Batch for Overlays
-	sprite_batch->begin(view.projectionMatrix);
+	sprite_batch->begin(view.projectionMatrix, *atlas);
 
 	if (drag_shadow_drawer) {
 		drag_shadow_drawer->draw(*sprite_batch, *primitive_renderer, this, item_drawer.get(), sprite_drawer.get(), creature_drawer.get(), view, options);
 	}
 
-	if (options.boundbox_selection) {
-		selection_drawer->draw(*sprite_batch, view, canvas, options);
-	}
 	live_cursor_drawer->draw(*sprite_batch, view, editor, options);
 
 	brush_overlay_drawer->draw(*sprite_batch, *primitive_renderer, this, item_drawer.get(), sprite_drawer.get(), creature_drawer.get(), view, options, editor);
@@ -339,18 +353,16 @@ void MapDrawer::Draw() {
 	}
 
 	if (options.show_grid) {
-		DrawGrid();
+		DrawGrid(original_bounds);
 	}
 	if (options.show_ingame_box) {
-		DrawIngameBox();
+		DrawIngameBox(original_bounds);
 	}
 
 	// Draw creature names (Overlay) moved to DrawCreatureNames()
 
 	// End Batches and Flush
-	if (g_gui.gfx.ensureAtlasManager()) {
-		sprite_batch->end(*g_gui.gfx.getAtlasManager());
-	}
+	sprite_batch->end(*atlas);
 	primitive_renderer->flush();
 
 	// Tooltips are now drawn in MapCanvas::OnPaint (UI Pass)
@@ -385,12 +397,12 @@ void MapDrawer::DrawMap() {
 	}
 }
 
-void MapDrawer::DrawIngameBox() {
-	grid_drawer->DrawIngameBox(*sprite_batch, view, options);
+void MapDrawer::DrawIngameBox(const ViewBounds& bounds) {
+	grid_drawer->DrawIngameBox(*sprite_batch, view, options, bounds);
 }
 
-void MapDrawer::DrawGrid() {
-	grid_drawer->DrawGrid(*sprite_batch, view, options);
+void MapDrawer::DrawGrid(const ViewBounds& bounds) {
+	grid_drawer->DrawGrid(*sprite_batch, view, options, bounds);
 }
 
 void MapDrawer::DrawTooltips(NVGcontext* vg) {

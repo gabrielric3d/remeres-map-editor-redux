@@ -20,6 +20,7 @@
 #include "rendering/utilities/light_calculator.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <format>
+#include <limits>
 #include "map/tile.h"
 #include "game/item.h"
 #include "rendering/core/drawing_options.h"
@@ -76,28 +77,18 @@ void LightDrawer::draw(const RenderView& view, bool fog, const LightBuffer& ligh
 		InitFBO();
 	}
 
-	int map_x = view.start_x;
-	int map_y = view.start_y;
-	int end_x = view.end_x;
-	int end_y = view.end_y;
+	int buffer_w = view.screensize_x;
+	int buffer_h = view.screensize_y;
 
-	int w = end_x - map_x;
-	int h = end_y - map_y;
-
-	if (w <= 0 || h <= 0) {
+	if (buffer_w <= 0 || buffer_h <= 0) {
 		return;
 	}
 
-	int TileSize = 32;
-	int pixel_width = w * TileSize;
-	int pixel_height = h * TileSize;
-
-	// 1. Resize FBO if needed (ensure it covers the visible map area)
-	// We check if current buffer is smaller than needed
-	if (buffer_width < pixel_width || buffer_height < pixel_height) {
+	// 1. Resize FBO if needed (ensure it covers the visible screen area)
+	if (buffer_width < buffer_w || buffer_height < buffer_h) {
 		// Re-create texture if we need to grow
 		fbo_texture = std::make_unique<GLTextureResource>(GL_TEXTURE_2D);
-		ResizeFBO(std::max(buffer_width, pixel_width), std::max(buffer_height, pixel_height));
+		ResizeFBO(std::max(buffer_width, buffer_w), std::max(buffer_height, buffer_h));
 		glNamedFramebufferTexture(fbo->GetID(), GL_COLOR_ATTACHMENT0, fbo_texture->GetID(), 0);
 	}
 
@@ -106,37 +97,26 @@ void LightDrawer::draw(const RenderView& view, bool fog, const LightBuffer& ligh
 	gpu_lights_.clear();
 	gpu_lights_.reserve(light_buffer.lights.size());
 
-	float map_draw_start_x = (float)(map_x * TileSize - view.view_scroll_x);
-	float map_draw_start_y = (float)(map_y * TileSize - view.view_scroll_y);
-
-	// Offset logic:
-	// The FBO represents the rectangle [map_x * 32, map_x * 32 + pixel_width] in map coordinates.
-	// We want to render lights into this FBO.
-	// Light Position in FBO = (LightMapX * 32 - FBO_StartX_In_Pixels, ...)
-	// FBO Start X in pure Map Pixel Coords = map_x * 32.
-
-	float fbo_origin_x = (float)(map_x * TileSize);
-	float fbo_origin_y = (float)(map_y * TileSize);
-
 	for (const auto& light : light_buffer.lights) {
-		// Cull lights that are definitely out of FBO range
-		// Radius approx light.intensity * TileSize
-		int radius_px = light.intensity * TileSize + 16;
-		int lx_px = light.map_x * TileSize + TileSize / 2;
-		int ly_px = light.map_y * TileSize + TileSize / 2;
+		int lx_px = light.map_x * TILE_SIZE + TILE_SIZE / 2;
+		int ly_px = light.map_y * TILE_SIZE + TILE_SIZE / 2;
 
-		// Check overlap with FBO rect
-		if (lx_px + radius_px < fbo_origin_x || lx_px - radius_px > fbo_origin_x + pixel_width || ly_px + radius_px < fbo_origin_y || ly_px - radius_px > fbo_origin_y + pixel_height) {
+		float map_pos_x = static_cast<float>(lx_px - view.view_scroll_x);
+		float map_pos_y = static_cast<float>(ly_px - view.view_scroll_y);
+
+		// Convert to Screen Pixels
+		float screen_x = map_pos_x / view.zoom;
+		float screen_y = map_pos_y / view.zoom;
+		float screen_radius = (light.intensity * TILE_SIZE) / view.zoom;
+
+		// Check overlap with Screen Rect
+		if (screen_x + screen_radius < 0 || screen_x - screen_radius > buffer_w || screen_y + screen_radius < 0 || screen_y - screen_radius > buffer_h) {
 			continue;
 		}
 
 		wxColor c = colorFromEightBit(light.color);
 
-		// Position relative to FBO
-		float rel_x = lx_px - fbo_origin_x;
-		float rel_y = ly_px - fbo_origin_y;
-
-		gpu_lights_.push_back({ .position = { rel_x, rel_y }, .intensity = static_cast<float>(light.intensity), .padding = 0.0f,
+		gpu_lights_.push_back({ .position = { screen_x, screen_y }, .intensity = static_cast<float>(light.intensity), .padding = 0.0f,
 								// Pre-multiply intensity here if needed, or in shader
 								.color = { (c.Red() / 255.0f) * light_intensity, (c.Green() / 255.0f) * light_intensity, (c.Blue() / 255.0f) * light_intensity, 1.0f } });
 	}
@@ -152,7 +132,9 @@ void LightDrawer::draw(const RenderView& view, bool fog, const LightBuffer& ligh
 			if (light_ssbo_capacity_ < 1024) {
 				light_ssbo_capacity_ = 1024;
 			}
-			glNamedBufferData(light_ssbo->GetID(), light_ssbo_capacity_, nullptr, GL_DYNAMIC_DRAW);
+			// Destroy and recreate buffer for Immutable Storage
+			light_ssbo = std::make_unique<GLBuffer>();
+			glNamedBufferStorage(light_ssbo->GetID(), light_ssbo_capacity_, nullptr, GL_DYNAMIC_STORAGE_BIT);
 		}
 		glNamedBufferSubData(light_ssbo->GetID(), 0, needed_size, gpu_lights_.data());
 	}
@@ -160,7 +142,7 @@ void LightDrawer::draw(const RenderView& view, bool fog, const LightBuffer& ligh
 	// 3. Render to FBO
 	{
 		ScopedGLFramebuffer fboScope(GL_FRAMEBUFFER, fbo->GetID());
-		ScopedGLViewport viewportScope(0, 0, buffer_width, buffer_height);
+		ScopedGLViewport viewportScope(0, 0, buffer_w, buffer_h);
 
 		// Clear to Ambient Color
 		float ambient_r = (global_color.Red() / 255.0f) * ambient_light_level;
@@ -181,11 +163,11 @@ void LightDrawer::draw(const RenderView& view, bool fog, const LightBuffer& ligh
 		if (!gpu_lights_.empty()) {
 			shader->Use();
 
-			// Setup Projection for FBO: Ortho 0..buffer_width, buffer_height..0 (Y-down)
+			// Setup Projection for FBO: Ortho 0..buffer_w, buffer_h..0 (Y-down)
 			// This matches screen coordinate system and avoids flips
-			glm::mat4 fbo_projection = glm::ortho(0.0f, (float)buffer_width, (float)buffer_height, 0.0f);
+			glm::mat4 fbo_projection = glm::ortho(0.0f, static_cast<float>(buffer_w), static_cast<float>(buffer_h), 0.0f);
 			shader->SetMat4("uProjection", fbo_projection);
-			shader->SetFloat("uTileSize", (float)TileSize);
+			shader->SetFloat("uTileSize", static_cast<float>(TILE_SIZE) / view.zoom);
 
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, light_ssbo->GetID());
 			glBindVertexArray(vao->GetID());
@@ -195,7 +177,11 @@ void LightDrawer::draw(const RenderView& view, bool fog, const LightBuffer& ligh
 				ScopedGLCapability blendCap(GL_BLEND);
 				ScopedGLBlend blendState(GL_ONE, GL_ONE, GL_MAX); // Factors don't matter much for MAX, but usually 1,1 is safe
 
-				glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, (GLsizei)gpu_lights_.size());
+				if (gpu_lights_.size() > static_cast<size_t>(std::numeric_limits<GLsizei>::max())) {
+					spdlog::error("Too many lights for glDrawArraysInstanced");
+					return;
+				}
+				glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, static_cast<GLsizei>(gpu_lights_.size()));
 			}
 
 			glBindVertexArray(0);
@@ -235,33 +221,20 @@ void LightDrawer::draw(const RenderView& view, bool fog, const LightBuffer& ligh
 	shader->SetInt("uTexture", 0);
 
 	// Quad Transform for Screen
-	float draw_dest_x = map_draw_start_x;
-	float draw_dest_y = map_draw_start_y;
-	float draw_dest_w = (float)pixel_width;
-	float draw_dest_h = (float)pixel_height;
+	float draw_dest_x = 0.0f;
+	float draw_dest_y = 0.0f;
+	float draw_dest_w = static_cast<float>(buffer_w) * view.zoom;
+	float draw_dest_h = static_cast<float>(buffer_h) * view.zoom;
 
 	glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(draw_dest_x, draw_dest_y, 0.0f));
 	model = glm::scale(model, glm::vec3(draw_dest_w, draw_dest_h, 1.0f));
 	shader->SetMat4("uProjection", view.projectionMatrix * view.viewMatrix * model); // reusing uProjection as MVP
 
-	// Calculate UVs based on used part of FBO
-	// Since we use Y-down ortho, small Y is at Top of FBO.
-	// OpenGL textures have Y=0 at Bottom.
-	// So Map Top (Y=0) is at FBO Top (V=1 if using Y-down ortho with full height).
-	// But we only use [0..pixel_height] of [0..buffer_height].
-	// FBO Top is at Y=0. FBO Bottom is at Y=buffer_height.
-	// If we use Y-down ortho: Y=0 -> V=1, Y=buffer_height -> V=0.
-	// Map Top (Y=0) -> V=1. Map Bottom (Y=pixel_height) -> V = 1.0 - (pixel_height / buffer_height).
+	float uv_w = static_cast<float>(buffer_w) / static_cast<float>(buffer_width);
+	float uv_h = static_cast<float>(buffer_h) / static_cast<float>(buffer_height);
 
-	float uv_w = (float)pixel_width / (float)buffer_width;
-	float uv_h = (float)pixel_height / (float)buffer_height;
-
-	// We pass UV range to shader. Shader should map aPos.y (0..1) to correct range.
-	// If screen aPos.y=0 is Top, it should get texture Map Top.
-	// With Y-down ortho into FBO, Map Top is at top of viewport, which is V=1 in GL.
-	// So aPos.y=0 -> V=1, aPos.y=1 -> V = 1.0 - uv_h.
-	shader->SetVec2("uUVMin", glm::vec2(0.0f, 1.0f));
-	shader->SetVec2("uUVMax", glm::vec2(uv_w, 1.0f - uv_h));
+	shader->SetVec2("uUVMin", glm::vec2(0.0f, uv_h));
+	shader->SetVec2("uUVMax", glm::vec2(uv_w, 0.0f));
 
 	// Blending: Dst * Src
 	{
@@ -310,7 +283,7 @@ void LightDrawer::initRenderResources() {
 				// Radius spans 0..1 in distance math
 				// Quad size should cover the light radius
 				// light.intensity is in 'tiles'. 
-				// The falloff is 1.0 at center, 0.0 at radius = intensity * TileSize.
+				// The falloff is 1.0 at center, 0.0 at radius = intensity * TILE_SIZE.
 				float radiusPx = l.intensity * uTileSize;
 				float size = radiusPx * 2.0;
 				
@@ -380,7 +353,7 @@ void LightDrawer::initRenderResources() {
 	vbo = std::make_unique<GLBuffer>();
 	light_ssbo = std::make_unique<GLBuffer>();
 
-	glNamedBufferData(vbo->GetID(), sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glNamedBufferStorage(vbo->GetID(), sizeof(vertices), vertices, 0);
 
 	glVertexArrayVertexBuffer(vao->GetID(), 0, vbo->GetID(), 0, 2 * sizeof(float));
 

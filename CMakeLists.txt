@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.28)
 
+
 project(rme)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -19,6 +20,7 @@ if(MSVC)
 	set(CMAKE_CXX_FLAGS_MINSIZEREL     "/O1 /DNDEBUG")
 	set(CMAKE_CXX_FLAGS_RELEASE        "/O2 /DNDEBUG")
 	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/O2 /Zi /DNDEBUG")
+	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 else()
 	set(CMAKE_CXX_FLAGS                "-Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -Wno-deprecated-declarations -Wno-overloaded-virtual -Wno-strict-aliasing -Wno-sign-compare -Wno-unused-function -Wunused-result")
 	set(CMAKE_CXX_FLAGS_DEBUG          "-O0 -g -D__DEBUG__")
@@ -29,17 +31,13 @@ endif()
 
 find_package(OpenGL REQUIRED)
 
-if(APPLE)
-    set(CMAKE_PREFIX_PATH /usr/local/opt/libarchive)
-endif()
-find_package(LibArchive REQUIRED)
 
 if(WIN32)
     set(Boost_THREADAPI win32)
 endif()
 find_package(Boost 1.34.0 COMPONENTS thread system REQUIRED)
 
-find_package(wxWidgets COMPONENTS html aui gl adv core net base REQUIRED)
+find_package(wxWidgets 3.2 COMPONENTS html aui gl adv core net base propgrid REQUIRED)
 
 
 find_package(ZLIB REQUIRED)
@@ -53,6 +51,7 @@ endif()
 find_package(glad CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
+find_package(tomlplusplus CONFIG REQUIRED)
 
 # nanovg: try vcpkg/Conan first, fallback to ext/nanovg
 find_package(nanovg CONFIG QUIET)
@@ -96,7 +95,6 @@ endif()
 # Include directories (for legacy find modules)
 target_include_directories(rme PRIVATE
 	${Boost_INCLUDE_DIRS}
-	${LibArchive_INCLUDE_DIRS}
 	${OPENGL_INCLUDE_DIR}
 
 	${ZLIB_INCLUDE_DIR}
@@ -110,13 +108,6 @@ else()
 	target_link_libraries(rme PRIVATE ${Boost_LIBRARIES})
 endif()
 
-if(TARGET LibArchive::LibArchive)
-	target_link_libraries(rme PRIVATE LibArchive::LibArchive)
-else()
-	target_link_libraries(rme PRIVATE ${LibArchive_LIBRARIES})
-endif()
-
-
 
 if(TARGET ZLIB::ZLIB)
 	target_link_libraries(rme PRIVATE ZLIB::ZLIB)
@@ -129,56 +120,9 @@ target_link_libraries(rme PRIVATE glad::glad)
 target_link_libraries(rme PRIVATE glm::glm)
 target_link_libraries(rme PRIVATE nanovg::nanovg)
 target_link_libraries(rme PRIVATE spdlog::spdlog)
+target_link_libraries(rme PRIVATE tomlplusplus::tomlplusplus)
 
-option(RME_BUILD_TESTS "Build test executables" OFF)
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT "rme")
 
-if(RME_BUILD_TESTS)
-	# Filter out application.cpp from tests to avoid multiple main() definitions
-	set(rme_SRC_TEST ${rme_SRC})
-	list(FILTER rme_SRC_TEST EXCLUDE REGEX "app/application\\.cpp$")
 
-	# Test executable for autoborder preview - uses same sources as main target
-	add_executable(test_autoborder_preview ${rme_H} ${rme_SRC_TEST} ${CMAKE_CURRENT_SOURCE_DIR}/source/test_autoborder_preview.cpp)
-	target_compile_definitions(test_autoborder_preview PRIVATE WXWIN_COMPATIBILITY_3_3 NANOVG_GL3)
 
-	# Include directories
-	target_include_directories(test_autoborder_preview PRIVATE
-		${Boost_INCLUDE_DIRS}
-		${LibArchive_INCLUDE_DIRS}
-		${OPENGL_INCLUDE_DIR}
-		${ZLIB_INCLUDE_DIR}
-		${CMAKE_CURRENT_SOURCE_DIR}/source
-	)
-
-	# Link libraries (same as main rme target)
-	if(TARGET wxWidgets::wxWidgets)
-		target_link_libraries(test_autoborder_preview PRIVATE wxWidgets::wxWidgets)
-	else()
-		target_link_libraries(test_autoborder_preview PRIVATE ${wxWidgets_LIBRARIES})
-	endif()
-
-	if(TARGET Boost::boost)
-		target_link_libraries(test_autoborder_preview PRIVATE Boost::boost Boost::thread Boost::system)
-	else()
-		target_link_libraries(test_autoborder_preview PRIVATE ${Boost_LIBRARIES})
-	endif()
-
-	if(TARGET LibArchive::LibArchive)
-		target_link_libraries(test_autoborder_preview PRIVATE LibArchive::LibArchive)
-	else()
-		target_link_libraries(test_autoborder_preview PRIVATE ${LibArchive_LIBRARIES})
-	endif()
-
-	if(TARGET ZLIB::ZLIB)
-		target_link_libraries(test_autoborder_preview PRIVATE ZLIB::ZLIB)
-	else()
-		target_link_libraries(test_autoborder_preview PRIVATE ${ZLIB_LIBRARIES})
-	endif()
-
-	target_link_libraries(test_autoborder_preview PRIVATE ${OPENGL_LIBRARIES})
-	target_link_libraries(test_autoborder_preview PRIVATE glad::glad)
-	target_link_libraries(test_autoborder_preview PRIVATE glm::glm)
-	target_link_libraries(test_autoborder_preview PRIVATE nanovg::nanovg)
-	target_link_libraries(test_autoborder_preview PRIVATE spdlog::spdlog)
-
-endif()

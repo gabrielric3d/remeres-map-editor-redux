@@ -32,6 +32,7 @@
 #include "game/sprites.h"
 #include "map/map.h"
 #include "map/tile.h"
+#include "game/item.h"
 #include "ui/properties/old_properties_window.h"
 #include "ui/properties/properties_window.h"
 #include "ui/tileset_window.h"
@@ -111,8 +112,8 @@ MapCanvas::MapCanvas(MapWindow* parent, Editor& editor, int* attriblist) :
 	last_click_abs_y(-1),
 	last_click_x(-1),
 	last_click_y(-1),
-
-	last_mmb_click_y(-1) {
+	last_mmb_click_y(-1),
+	m_last_gc_time(0) {
 	// Context creation must happen on the main/UI thread
 	m_glContext = std::make_unique<wxGLContext>(this, g_gui.GetGLContext(this));
 	if (!m_glContext->IsOK()) {
@@ -150,11 +151,21 @@ MapCanvas::MapCanvas(MapWindow* parent, Editor& editor, int* attriblist) :
 }
 
 MapCanvas::~MapCanvas() {
-	if (auto context = g_gui.GetGLContext(this)) {
-		SetCurrent(*context);
-		drawer.reset();
-		m_nvg.reset();
+	bool context_ok = false;
+	if (m_glContext) {
+		context_ok = g_gl_context.EnsureContextCurrent(*m_glContext, this);
+	} else if (auto context = g_gui.GetGLContext(this)) {
+		context_ok = g_gl_context.EnsureContextCurrent(*context, this);
 	}
+
+	if (!context_ok) {
+		spdlog::warn("MapCanvas: Destroying canvas without a current OpenGL context. Cleanup might fail or assert.");
+	}
+
+	drawer.reset();
+	m_nvg.reset();
+
+	g_gl_context.UnregisterCanvas(this);
 }
 
 void MapCanvas::Refresh() {
@@ -178,13 +189,7 @@ MapWindow* MapCanvas::GetMapWindow() const {
 	return static_cast<MapWindow*>(GetParent());
 }
 
-void MapCanvas::OnPaint(wxPaintEvent& event) {
-	wxPaintDC dc(this); // validates the paint event
-	if (m_glContext) {
-		SetCurrent(*m_glContext);
-	}
-
-	// proper nvg pointer wrapper
+void MapCanvas::EnsureNanoVG() {
 	if (!m_nvg) {
 		if (!gladLoadGL()) {
 			spdlog::error("MapCanvas: Failed to initialize GLAD");
@@ -196,8 +201,66 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 			spdlog::error("MapCanvas: Failed to initialize NanoVG");
 		}
 	}
+}
+
+void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
+	if (!vg) {
+		return;
+	}
+
+	// Sanitize state before handover to NanoVG
+	glUseProgram(0);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glClear(GL_STENCIL_BUFFER_BIT);
+	TextRenderer::BeginFrame(vg, GetSize().x, GetSize().y, GetContentScaleFactor());
+
+	if (options.show_creatures) {
+		drawer->DrawCreatureNames(vg);
+	}
+	if (options.show_tooltips) {
+		drawer->DrawTooltips(vg);
+	}
+	if (options.show_hooks) {
+		drawer->DrawHookIndicators(vg);
+	}
+	if (options.highlight_locked_doors) {
+		drawer->DrawDoorIndicators(vg);
+	}
+
+	TextRenderer::EndFrame(vg);
+
+	// Sanitize state after NanoVG to avoid polluting the next frame or other tabs
+	glUseProgram(0);
+	glBindVertexArray(0);
+}
+
+void MapCanvas::PerformGarbageCollection() {
+	// Clean unused textures once every second
+	// Only run GC if this is the active tab to prevent multiple tabs from fighting over resources
+	long current_time = wxGetLocalTime();
+	if (current_time - m_last_gc_time >= 1 && g_gui.GetCurrentMapTab() == GetParent()) {
+		g_gui.gfx.garbageCollection();
+		m_last_gc_time = current_time;
+	}
+}
+
+void MapCanvas::OnPaint(wxPaintEvent& event) {
+	wxPaintDC dc(this); // validates the paint event
+	if (m_glContext) {
+		g_gl_context.EnsureContextCurrent(*m_glContext, this);
+		g_gl_context.SetFallbackCanvas(this);
+	}
+
+	EnsureNanoVG();
 
 	if (g_gui.IsRenderingEnabled()) {
+		// Advance graphics clock and drain the preloader queue before rendering
+		g_gui.gfx.updateTime();
+
 		DrawingOptions& options = drawer->getOptions();
 		if (screenshot_controller->IsCapturing()) {
 			options.SetIngame();
@@ -210,8 +273,10 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 
 		if (options.show_preview) {
 			animation_timer->Start();
+			g_gui.gfx.resumeAnimation();
 		} else {
 			animation_timer->Stop();
+			g_gui.gfx.pauseAnimation();
 		}
 
 		// BatchRenderer calls removed - MapDrawer handles its own renderers
@@ -227,99 +292,12 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 		drawer->Release();
 
 		// Draw UI (Tooltips, Overlays & HUD) using NanoVG
-		if (NVGcontext* vg = m_nvg.get()) {
-			// Sanitize state before handover to NanoVG
-			glUseProgram(0);
-			glBindVertexArray(0);
-			glBindBuffer(GL_ARRAY_BUFFER, 0);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-			glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-
-			glClear(GL_STENCIL_BUFFER_BIT);
-			TextRenderer::BeginFrame(vg, GetSize().x, GetSize().y, GetContentScaleFactor());
-
-			if (options.show_creatures) {
-				drawer->DrawCreatureNames(vg);
-			}
-			if (options.show_tooltips) {
-				drawer->DrawTooltips(vg);
-			}
-			if (options.show_hooks) {
-				drawer->DrawHookIndicators(vg);
-			}
-			if (options.highlight_locked_doors) {
-				drawer->DrawDoorIndicators(vg);
-			}
-
-			// Floating HUD (Selection & Cursor Info)
-			int w = GetSize().x;
-			int h = GetSize().y;
-
-			const float hudFontSize = 16.0f;
-			nvgFontSize(vg, hudFontSize);
-			nvgFontFace(vg, "sans");
-
-			bool needs_update = (editor.selection.size() != hud_cached_selection_count || last_cursor_map_x != hud_cached_x || last_cursor_map_y != hud_cached_y || last_cursor_map_z != hud_cached_z || zoom != hud_cached_zoom);
-
-			if (needs_update || hud_cached_text.empty()) {
-				if (!editor.selection.empty()) {
-					hud_cached_text = std::format("Pos: {}, {}, {} | Zoom: {:.0f}% | Sel: {}", last_cursor_map_x, last_cursor_map_y, last_cursor_map_z, zoom * 100, editor.selection.size());
-				} else {
-					hud_cached_text = std::format("Pos: {}, {}, {} | Zoom: {:.0f}%", last_cursor_map_x, last_cursor_map_y, last_cursor_map_z, zoom * 100);
-				}
-
-				hud_cached_selection_count = editor.selection.size();
-				hud_cached_x = last_cursor_map_x;
-				hud_cached_y = last_cursor_map_y;
-				hud_cached_z = last_cursor_map_z;
-				hud_cached_zoom = zoom;
-
-				nvgTextBounds(vg, 0, 0, hud_cached_text.c_str(), nullptr, hud_cached_bounds);
-			}
-
-			float textW = hud_cached_bounds[2] - hud_cached_bounds[0];
-			float padding = 8.0f;
-			float hudW = textW + padding * 2;
-			float hudH = 28.0f;
-			float hudX = 10.0f;
-			float hudY = h - hudH - 10.0f;
-
-			// Background
-			nvgBeginPath(vg);
-			nvgRoundedRect(vg, hudX, hudY, hudW, hudH, 4.0f);
-			nvgFillColor(vg, nvgRGBA(0, 0, 0, 160));
-			nvgFill(vg);
-
-			// Border
-			nvgBeginPath(vg);
-			nvgRoundedRect(vg, hudX, hudY, hudW, hudH, 4.0f);
-			nvgStrokeColor(vg, nvgRGBA(255, 255, 255, 40));
-			nvgStrokeWidth(vg, 1.0f);
-			nvgStroke(vg);
-
-			// Text
-			nvgFillColor(vg, nvgRGBA(255, 255, 255, 220));
-			nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
-			nvgText(vg, hudX + padding, hudY + hudH * 0.5f, hud_cached_text.c_str(), nullptr);
-
-			TextRenderer::EndFrame(vg);
-
-			// Sanitize state after NanoVG to avoid polluting the next frame or other tabs
-			glUseProgram(0);
-			glBindVertexArray(0);
-		}
+		DrawOverlays(m_nvg.get(), options);
 
 		drawer->ClearFrameOverlays();
 	}
 
-	// Clean unused textures once every second
-	// Only run GC if this is the active tab to prevent multiple tabs from fighting over resources
-	static long last_gc_time = 0;
-	long current_time = wxGetLocalTime();
-	if (current_time - last_gc_time >= 1 && g_gui.GetCurrentMapTab() == GetParent()) {
-		g_gui.gfx.garbageCollection();
-		last_gc_time = current_time;
-	}
+	PerformGarbageCollection();
 
 	SwapBuffers();
 
@@ -344,7 +322,7 @@ void MapCanvas::ScreenToMap(int screen_x, int screen_y, int* map_x, int* map_y) 
 }
 #if 0
 
-*map_y = int(start_y + (screen_y * zoom)) / TileSize;
+*map_y = int(start_y + (screen_y * zoom)) / TILE_SIZE;
 }
 
 if (floor <= GROUND_LAYER) {

@@ -98,16 +98,25 @@ MapPropertiesWindow::MapPropertiesWindow(wxWindow* parent, MapTab* view, Editor&
 	);
 	spawn_filename_ctrl->SetToolTip("External spawn XML file (leave empty for internal)");
 
+	grid_sizer->Add(
+		newd wxStaticText(this, wxID_ANY, "External Waypointfile")
+	);
+
+	grid_sizer->Add(
+		waypoint_filename_ctrl = newd wxTextCtrl(this, wxID_ANY, wxstr(map.getWaypointFilename())), 1, wxEXPAND
+	);
+	waypoint_filename_ctrl->SetToolTip("External waypoint XML file (leave empty for internal)");
+
 	topsizer->Add(grid_sizer, wxSizerFlags(1).Expand().Border(wxALL, 20));
 
 	wxSizer* subsizer = newd wxBoxSizer(wxHORIZONTAL);
 	wxButton* okBtn = newd wxButton(this, wxID_OK, "OK");
-	okBtn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_CHECK, wxSize(16, 16)));
+	okBtn->SetBitmap(IMAGE_MANAGER.GetBitmapBundle(ICON_CHECK));
 	okBtn->SetToolTip("Confirm changes");
 	subsizer->Add(okBtn, wxSizerFlags(1).Center());
 
 	wxButton* cancelBtn = newd wxButton(this, wxID_CANCEL, "Cancel");
-	cancelBtn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_XMARK, wxSize(16, 16)));
+	cancelBtn->SetBitmap(IMAGE_MANAGER.GetBitmapBundle(ICON_XMARK));
 	cancelBtn->SetToolTip("Discard changes");
 	subsizer->Add(cancelBtn, wxSizerFlags(1).Center());
 	topsizer->Add(subsizer, wxSizerFlags(0).Center().Border(wxLEFT | wxRIGHT | wxBOTTOM, 20));
@@ -116,16 +125,16 @@ MapPropertiesWindow::MapPropertiesWindow(wxWindow* parent, MapTab* view, Editor&
 	Centre(wxBOTH);
 	UpdateProtocolList();
 
-	ClientVersion* current_version = ClientVersion::get(map.getVersion().client);
-	protocol_choice->SetStringSelection(wxstr(current_version->getName()));
+	ClientVersion* current_version = ClientVersion::getBestMatch(map.getVersion().client);
+	if (current_version) {
+		protocol_choice->SetStringSelection(wxstr(current_version->getName()));
+	}
 
 	version_choice->Bind(wxEVT_CHOICE, &MapPropertiesWindow::OnChangeVersion, this);
 	okBtn->Bind(wxEVT_BUTTON, &MapPropertiesWindow::OnClickOK, this);
 	cancelBtn->Bind(wxEVT_BUTTON, &MapPropertiesWindow::OnClickCancel, this);
 
-	wxIcon icon;
-	icon.CopyFromBitmap(IMAGE_MANAGER.GetBitmap(ICON_GEAR, wxSize(32, 32)));
-	SetIcon(icon);
+	SetIcons(IMAGE_MANAGER.GetIconBundle(ICON_GEAR));
 }
 
 void MapPropertiesWindow::UpdateProtocolList() {
@@ -170,7 +179,7 @@ void MapPropertiesWindow::OnClickOK(wxCommandEvent& WXUNUSED(event)) {
 
 	wxString ver = version_choice->GetStringSelection();
 
-	new_ver.client = ClientVersion::get(nstr(protocol_choice->GetStringSelection()))->getID();
+	new_ver.client = ClientVersion::get(nstr(protocol_choice->GetStringSelection()))->getProtocolID();
 	if (ver.Contains("0.5.0")) {
 		new_ver.otbm = MAP_OTBM_1;
 	} else if (ver.Contains("0.6.0")) {
@@ -188,6 +197,7 @@ void MapPropertiesWindow::OnClickOK(wxCommandEvent& WXUNUSED(event)) {
 	map.setMapDescription(nstr(description_ctrl->GetValue()));
 	map.setHouseFilename(nstr(house_filename_ctrl->GetValue()));
 	map.setSpawnFilename(nstr(spawn_filename_ctrl->GetValue()));
+	map.setWaypointFilename(nstr(waypoint_filename_ctrl->GetValue()));
 
 	// Only resize if we have to
 	int new_map_width = width_spin->GetValue();

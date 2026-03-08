@@ -76,7 +76,7 @@ namespace IngamePreview {
 		// Setup RenderView and DrawingOptions
 		RenderView view;
 		view.zoom = zoom;
-		view.tile_size = TileSize;
+		view.tile_size = TILE_SIZE;
 		view.floor = camera_pos.z;
 		view.screensize_x = viewport_width;
 		view.screensize_y = viewport_height;
@@ -90,9 +90,9 @@ namespace IngamePreview {
 
 		// Proper coordinate alignment
 		// We want camera_pos to be at the center of the viewport
-		int offset = (camera_pos.z <= GROUND_LAYER) ? (GROUND_LAYER - camera_pos.z) * TileSize : 0;
-		view.view_scroll_x = (camera_pos.x * TileSize) + (TileSize / 2) - offset + offset_x - static_cast<int>(viewport_width * zoom / 2.0f);
-		view.view_scroll_y = (camera_pos.y * TileSize) + (TileSize / 2) - offset + offset_y - static_cast<int>(viewport_height * zoom / 2.0f);
+		int offset = (camera_pos.z <= GROUND_LAYER) ? (GROUND_LAYER - camera_pos.z) * TILE_SIZE : 0;
+		view.view_scroll_x = (camera_pos.x * TILE_SIZE) + (TILE_SIZE / 2) - offset + offset_x - static_cast<int>(viewport_width * zoom / 2.0f);
+		view.view_scroll_y = (camera_pos.y * TILE_SIZE) + (TILE_SIZE / 2) - offset + offset_y - static_cast<int>(viewport_height * zoom / 2.0f);
 
 		// Matching RME's projection (width * zoom x height * zoom)
 		view.projectionMatrix = glm::ortho(0.0f, static_cast<float>(viewport_width) * zoom, static_cast<float>(viewport_height) * zoom, 0.0f, -1.0f, 1.0f);
@@ -120,6 +120,7 @@ namespace IngamePreview {
 		if (!g_gui.gfx.ensureAtlasManager()) {
 			return;
 		}
+		auto* atlas = g_gui.gfx.getAtlasManager();
 
 		// Render floors from bottom to top
 		for (int z = last_visible; z >= 0; z--) {
@@ -129,24 +130,24 @@ namespace IngamePreview {
 			}
 
 			// Sync viewport and start batch for this floor
-			sprite_batch->begin(view.projectionMatrix);
-			sprite_batch->setGlobalTint(1.0f, 1.0f, 1.0f, alpha, *g_gui.gfx.getAtlasManager());
+			sprite_batch->begin(view.projectionMatrix, *atlas);
+			sprite_batch->setGlobalTint(1.0f, 1.0f, 1.0f, alpha, *atlas);
 
 			// Pre-calculate view offsets for this floor
 			int floor_offset = (z <= GROUND_LAYER)
-				? (GROUND_LAYER - z) * TileSize
-				: TileSize * (view.floor - z);
+				? (GROUND_LAYER - z) * TILE_SIZE
+				: TILE_SIZE * (view.floor - z);
 			int camera_offset = (camera_pos.z <= GROUND_LAYER)
-				? (GROUND_LAYER - camera_pos.z) * TileSize
+				? (GROUND_LAYER - camera_pos.z) * TILE_SIZE
 				: 0;
 			// offset_diff accounts for the diagonal shift between the camera floor and this floor
 			int offset_diff = floor_offset - camera_offset;
 
-			// Dynamic viewport culling — adjusted per floor
+			// Dynamic viewport culling â€” adjusted per floor
 			// Use EXTREMELY large margins to guarantee no tiles are ever culled
 			// The camera floor (z == camera_pos.z) uses view_scroll directly
 			// Other floors are shifted by floor_offset, so we need to expand bounds
-			constexpr int margin = TileSize * 16; // 16 tiles margin = 512 pixels
+			constexpr int margin = TILE_SIZE * 16; // 16 tiles margin = 512 pixels
 
 			// For viewport bounds, we need to consider the camera floor's coordinate system
 			// The camera floor uses view_scroll directly (floor_offset = camera_offset)
@@ -154,13 +155,13 @@ namespace IngamePreview {
 			// To ensure ALL visible tiles on ANY floor are rendered, we expand bounds by max possible offset
 			int max_floor_offset = std::max(
 				std::abs(floor_offset - camera_offset),
-				TileSize * MAP_MAX_LAYER // Maximum possible floor offset
+				TILE_SIZE * MAP_MAX_LAYER // Maximum possible floor offset
 			);
 
-			view.start_x = static_cast<int>(std::floor((view.view_scroll_x - margin - max_floor_offset) / static_cast<float>(TileSize)));
-			view.start_y = static_cast<int>(std::floor((view.view_scroll_y - margin - max_floor_offset) / static_cast<float>(TileSize)));
-			view.end_x = static_cast<int>(std::ceil((view.view_scroll_x + viewport_width * zoom + margin + max_floor_offset) / static_cast<float>(TileSize)));
-			view.end_y = static_cast<int>(std::ceil((view.view_scroll_y + viewport_height * zoom + margin + max_floor_offset) / static_cast<float>(TileSize)));
+			view.start_x = static_cast<int>(std::floor((view.view_scroll_x - margin - max_floor_offset) / static_cast<float>(TILE_SIZE)));
+			view.start_y = static_cast<int>(std::floor((view.view_scroll_y - margin - max_floor_offset) / static_cast<float>(TILE_SIZE)));
+			view.end_x = static_cast<int>(std::ceil((view.view_scroll_x + viewport_width * zoom + margin + max_floor_offset) / static_cast<float>(TILE_SIZE)));
+			view.end_y = static_cast<int>(std::ceil((view.view_scroll_y + viewport_height * zoom + margin + max_floor_offset) / static_cast<float>(TILE_SIZE)));
 
 			int base_draw_x = -view.view_scroll_x - floor_offset;
 			int base_draw_y = -view.view_scroll_y - floor_offset;
@@ -169,12 +170,10 @@ namespace IngamePreview {
 				for (int y = view.start_y; y <= view.end_y; ++y) {
 					const Tile* tile = map.getTile(x, y, z);
 					if (tile) {
-						int draw_x = (x * TileSize) + base_draw_x;
-						int draw_y = (y * TileSize) + base_draw_y;
-						tile_renderer->DrawTile(*sprite_batch, tile->location, view, options, 0, draw_x, draw_y);
-						if (lighting_enabled) {
-							tile_renderer->AddLight(tile->location, view, options, *light_buffer);
-						}
+						int draw_x = (x * TILE_SIZE) + base_draw_x;
+						int draw_y = (y * TILE_SIZE) + base_draw_y;
+						tile_renderer->DrawTile(*sprite_batch, tile->location, view, options, 0, draw_x, draw_y, lighting_enabled ? light_buffer.get() : nullptr);
+
 						// Add names of creatures on this floor
 						if (creature_name_drawer && z == camera_pos.z) {
 							if (tile->creature) {
@@ -184,14 +183,14 @@ namespace IngamePreview {
 					}
 				}
 			}
-			sprite_batch->end(*g_gui.gfx.getAtlasManager());
+			sprite_batch->end(*atlas);
 		}
 
 		// Draw Preview Character (Center Screen)
 		// Only if on the camera Z floor (or always visible as "player"?) - Request says "center of the screen".
 		// Assuming always drawn on top.
 		{
-			sprite_batch->begin(view.projectionMatrix);
+			sprite_batch->begin(view.projectionMatrix, *atlas);
 
 			// Calculate center position in logical coordinates
 			int center_x = static_cast<int>((viewport_width * zoom) / 2.0f);
@@ -219,9 +218,9 @@ namespace IngamePreview {
 			// while the map moves smoothly under it.
 			// So we DO NOT add offset_x/y to draw_x/y again.
 
-			creature_drawer->BlitCreature(*sprite_batch, sprite_drawer.get(), draw_x, draw_y, preview_outfit, preview_direction, 255, 255, 255, 255, animation_phase);
+			creature_drawer->BlitCreature(*sprite_batch, sprite_drawer.get(), draw_x, draw_y, preview_outfit, preview_direction, CreatureDrawOptions { .animationPhase = animation_phase });
 
-			sprite_batch->end(*g_gui.gfx.getAtlasManager());
+			sprite_batch->end(*atlas);
 		}
 
 		if (lighting_enabled && light_drawer) {
@@ -249,8 +248,8 @@ namespace IngamePreview {
 				// Total elevation offset was calculated above.
 				// For the label to stay synced, we should probably fetch it again or store it.
 				// Since we are at the center of the screen, we can just use screen-relative coords.
-				float screenCenterX = (float)viewport_width / 2.0f;
-				float screenCenterY = (float)viewport_height / 2.0f;
+				float screenCenterX = static_cast<float>(viewport_width) / 2.0f;
+				float screenCenterY = static_cast<float>(viewport_height) / 2.0f;
 
 				// Fetch elevation again to be precise
 				int elevation_offset = GetTileElevationOffset(map.getTile(camera_pos));

@@ -14,13 +14,24 @@
 class SpriteDrawer;
 class SpriteBatch;
 
+#include <optional>
+#include "map/position.h"
+
+struct CreatureDrawOptions {
+	DrawColor color;
+	bool ingame = false;
+	int animationPhase = 0;
+	Position map_pos;
+	std::optional<MapBounds> transient_selection_bounds;
+};
+
 class CreatureDrawer {
 public:
 	CreatureDrawer();
 	~CreatureDrawer();
 
-	void BlitCreature(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer, int screenx, int screeny, const Creature* c, int red = 255, int green = 255, int blue = 255, int alpha = 255, bool ingame = false, int animationPhase = 0);
-	void BlitCreature(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer, int screenx, int screeny, const Outfit& outfit, Direction dir, int red = 255, int green = 255, int blue = 255, int alpha = 255, int animationPhase = 0);
+	void BlitCreature(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer, int screenx, int screeny, const Creature* c, const CreatureDrawOptions& options = {});
+	void BlitCreature(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer, int screenx, int screeny, const Outfit& outfit, Direction dir, const CreatureDrawOptions& options = {});
 };
 
 #endif

@@ -20,6 +20,8 @@
 #include "game/complexitem.h"
 
 #include "io/iomap.h"
+#include "brushes/brush_enums.h"
+#include "brushes/wall/wall_brush.h"
 
 // Container
 Container::Container(const uint16_t type) :
@@ -35,6 +37,7 @@ std::unique_ptr<Item> Container::deepCopy() const {
 	std::unique_ptr<Item> copy = Item::deepCopy();
 	Container* copyContainer = dynamic_cast<Container*>(copy.get());
 	if (copyContainer) {
+		copyContainer->contents.reserve(contents.size());
 		for (const auto& item : contents) {
 			copyContainer->contents.push_back(item->deepCopy());
 		}
@@ -51,6 +54,15 @@ Item* Container::getItem(size_t index) const {
 
 double Container::getWeight() const {
 	return g_items[id].weight;
+}
+
+uint32_t Container::memsize() const {
+	uint32_t size = sizeof(*this);
+	size += sizeof(std::unique_ptr<Item>) * contents.capacity();
+	for (const auto& item : contents) {
+		size += item->memsize();
+	}
+	return size;
 }
 
 // Teleport
@@ -83,6 +95,40 @@ std::unique_ptr<Item> Door::deepCopy() const {
 	return copy;
 }
 
+void Door::setDoorID(uint8_t id) {
+	doorId = isRealDoor() ? id : 0;
+}
+
+uint8_t Door::getDoorID() const {
+	return isRealDoor() ? doorId : 0;
+}
+
+bool Door::isRealDoor() const {
+	const DoorType dt = getDoorType();
+	// doors with no wallbrush will appear as WALL_UNDEFINED
+	// this is for compatibility
+	switch (dt) {
+		case WALL_UNDEFINED:
+		case WALL_DOOR_NORMAL:
+		case WALL_DOOR_LOCKED:
+		case WALL_DOOR_QUEST:
+		case WALL_DOOR_MAGIC:
+		case WALL_DOOR_NORMAL_ALT:
+			return true;
+		default:
+			return false;
+	}
+}
+
+DoorType Door::getDoorType() const {
+	WallBrush* wb = getWallBrush();
+	if (!wb) {
+		return WALL_UNDEFINED;
+	}
+
+	return wb->getDoorTypeFromID(id);
+}
+
 // Depot
 Depot::Depot(const uint16_t type) :
 	Item(type, 0),
@@ -101,7 +147,7 @@ std::unique_ptr<Item> Depot::deepCopy() const {
 // Podium
 Podium::Podium(const uint16_t type) :
 	Item(type, 0),
-	outfit(Outfit()), showOutfit(true), showMount(true), showPlatform(true), direction(0) {
+	outfit(Outfit()), direction(0), showOutfit(true), showMount(true), showPlatform(true) {
 	////
 }
 

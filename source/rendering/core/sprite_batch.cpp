@@ -125,17 +125,19 @@ bool SpriteBatch::initialize() {
 	return true;
 }
 
-void SpriteBatch::begin(const glm::mat4& projection) {
+void SpriteBatch::begin(const glm::mat4& projection, const AtlasManager& atlas_manager) {
 	projection_ = projection;
+	current_atlas_manager_ = &atlas_manager;
 	pending_sprites_.clear();
 	in_batch_ = true;
 	draw_call_count_ = 0;
 	sprite_count_ = 0;
-	sprite_count_ = 0;
 	global_tint_ = glm::vec4(1.0f);
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	// Enable Blend State (RAII)
+	// We use emplace to construct the Scoped objects in-place, which saves the previous state
+	blend_capability_.emplace(GL_BLEND);
+	blend_func_.emplace(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	shader_->Use();
 	shader_->SetMat4("uMVP", projection_);
@@ -172,6 +174,10 @@ void SpriteBatch::draw(float x, float y, float w, float h, const AtlasRegion& re
 		return;
 	}
 
+	if (pending_sprites_.size() >= MAX_SPRITES_PER_BATCH && current_atlas_manager_) {
+		flush(*current_atlas_manager_);
+	}
+
 	SpriteInstance& inst = pending_sprites_.emplace_back();
 	inst.x = x;
 	inst.y = y;
@@ -186,8 +192,6 @@ void SpriteBatch::draw(float x, float y, float w, float h, const AtlasRegion& re
 	inst.b = b;
 	inst.a = a;
 	inst.atlas_layer = static_cast<float>(region.atlas_index);
-	// Pad initialized to 0 implicitly or structurally? C++ struct fields not init
-	inst._pad1 = inst._pad2 = inst._pad3 = 0.0f;
 }
 
 void SpriteBatch::drawRect(float x, float y, float w, float h, const glm::vec4& color, const AtlasManager& atlas_manager) {
@@ -261,6 +265,7 @@ void SpriteBatch::flush(const AtlasManager& atlas_manager) {
 			// (If we just flushed above, the fence was placed, and waitAndMap will block correctly if GPU is slow)
 			void* ptr = ring_buffer_.waitAndMap(batch_size);
 			if (!ptr) {
+				spdlog::error("SpriteBatch: RingBuffer mapping failed (MDI path). Aborting batch.");
 				break;
 			}
 
@@ -280,7 +285,7 @@ void SpriteBatch::flush(const AtlasManager& atlas_manager) {
 			ring_buffer_.advance();
 
 			processed += batch_size;
-			sprite_count_ += (int)batch_size;
+			sprite_count_ += static_cast<int>(batch_size);
 		}
 
 		// Flush remaining commands
@@ -304,6 +309,7 @@ void SpriteBatch::flush(const AtlasManager& atlas_manager) {
 			size_t batch_size = std::min(total - processed, max_batch);
 			void* ptr = ring_buffer_.waitAndMap(batch_size);
 			if (!ptr) {
+				spdlog::error("SpriteBatch: RingBuffer mapping failed (Fallback path). Aborting batch.");
 				break;
 			}
 
@@ -316,14 +322,14 @@ void SpriteBatch::flush(const AtlasManager& atlas_manager) {
 			// Binding point 1 is used for instance data (Attributes 2, 3, 4, 5)
 			glVertexArrayVertexBuffer(vao_->GetID(), 1, ring_buffer_.getBufferId(), offset, sizeof(SpriteInstance));
 
-			glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, (GLsizei)batch_size);
+			glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, static_cast<GLsizei>(batch_size));
 
 			// Standard signal: Fence current and advance
 			ring_buffer_.signalFinished();
 
 			processed += batch_size;
 			draw_call_count_++;
-			sprite_count_ += (int)batch_size;
+			sprite_count_ += static_cast<int>(batch_size);
 		}
 	}
 
@@ -338,6 +344,12 @@ void SpriteBatch::end(const AtlasManager& atlas_manager) {
 	flush(atlas_manager);
 
 	in_batch_ = false;
+	current_atlas_manager_ = nullptr;
 	glBindVertexArray(0);
-	glDisable(GL_BLEND);
+
+	// Restore state (reverse order of construction)
+	// blend_func_ was constructed second, so destroy it first
+	blend_func_.reset();
+	// blend_capability_ was constructed first, so destroy it last
+	blend_capability_.reset();
 }

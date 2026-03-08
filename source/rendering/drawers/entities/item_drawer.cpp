@@ -16,6 +16,7 @@
 #include "rendering/drawers/entities/sprite_drawer.h"
 #include "rendering/drawers/entities/creature_drawer.h"
 #include "rendering/core/drawing_options.h"
+#include "rendering/utilities/pattern_calculator.h"
 #include "map/tile.h"
 #include "game/item.h"
 #include "game/items.h"
@@ -23,19 +24,34 @@
 #include "game/sprites.h"
 #include "ui/gui.h"
 
+BlitItemParams::BlitItemParams(const Tile* t, Item* i, const DrawingOptions& o) : tile(t), item(i), options(&o) {
+	if (t) {
+		pos = t->getPosition();
+	}
+}
+
+BlitItemParams::BlitItemParams(const Position& p, Item* i, const DrawingOptions& o) : pos(p), item(i), options(&o) {
+}
+
 ItemDrawer::ItemDrawer() {
 }
 
 ItemDrawer::~ItemDrawer() {
 }
 
-void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer, CreatureDrawer* creature_drawer, int& draw_x, int& draw_y, const Tile* tile, Item* item, const DrawingOptions& options, bool ephemeral, int red, int green, int blue, int alpha) {
-	const Position& pos = tile->getPosition();
-	BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, pos, item, options, ephemeral, red, green, blue, alpha, tile);
-}
+void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer, CreatureDrawer* creature_drawer, int& draw_x, int& draw_y, const BlitItemParams& params) {
+	const Position& pos = params.pos;
+	Item* item = params.item;
+	const Tile* tile = params.tile;
+	const DrawingOptions& options = *params.options;
+	bool ephemeral = params.ephemeral;
+	int red = params.red;
+	int green = params.green;
+	int blue = params.blue;
+	int alpha = params.alpha;
+	const SpritePatterns* cached_patterns = params.patterns;
 
-void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer, CreatureDrawer* creature_drawer, int& draw_x, int& draw_y, const Position& pos, Item* item, const DrawingOptions& options, bool ephemeral, int red, int green, int blue, int alpha, const Tile* tile) {
-	ItemType& it = g_items[item->getID()];
+	const ItemType& it = params.item_type ? *params.item_type : item->getType();
 
 	// Locked door indicator
 	if (!options.ingame && options.highlight_locked_doors && it.isDoor()) {
@@ -52,7 +68,8 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 		}
 	}
 
-	if (!options.ingame && !ephemeral && item->isSelected()) {
+	bool is_transient_selected = !ephemeral && options.transient_selection_bounds && options.transient_selection_bounds->contains(pos.x, pos.y);
+	if (!options.ingame && (item->isSelected() || is_transient_selected)) {
 		red /= 2;
 		blue /= 2;
 		green /= 2;
@@ -66,14 +83,14 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 	if (!options.ingame && options.show_tech_items) {
 		// Red invalid client id
 		if (it.id == 0) {
-			sprite_drawer->glBlitSquare(sprite_batch, draw_x, draw_y, red, 0, 0, alpha);
+			sprite_drawer->glBlitSquare(sprite_batch, draw_x, draw_y, DrawColor(red, 0, 0, alpha));
 			return;
 		}
 
 		switch (it.clientID) {
 			// Yellow invisible stairs tile (459)
 			case 469:
-				sprite_drawer->glBlitSquare(sprite_batch, draw_x, draw_y, red, green, 0, (alpha * 171) >> 8);
+				sprite_drawer->glBlitSquare(sprite_batch, draw_x, draw_y, DrawColor(red, green, 0, (alpha * 171) >> 8));
 				return;
 
 			// Red invisible walkable tile (460)
@@ -81,12 +98,12 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 			case 17970:
 			case 20028:
 			case 34168:
-				sprite_drawer->glBlitSquare(sprite_batch, draw_x, draw_y, red, 0, 0, (alpha * 171) >> 8);
+				sprite_drawer->glBlitSquare(sprite_batch, draw_x, draw_y, DrawColor(red, 0, 0, (alpha * 171) >> 8));
 				return;
 
 			// Cyan invisible wall (1548)
 			case 2187:
-				sprite_drawer->glBlitSquare(sprite_batch, draw_x, draw_y, 0, green, blue, 80);
+				sprite_drawer->glBlitSquare(sprite_batch, draw_x, draw_y, DrawColor(0, green, blue, 80));
 				return;
 
 			default:
@@ -117,41 +134,18 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 	draw_x -= spr->draw_height;
 	draw_y -= spr->draw_height;
 
-	int subtype = -1;
-
-	int pattern_x = (spr->pattern_x > 1) ? pos.x % spr->pattern_x : 0;
-	int pattern_y = (spr->pattern_y > 1) ? pos.y % spr->pattern_y : 0;
-	int pattern_z = (spr->pattern_z > 1) ? pos.z % spr->pattern_z : 0;
-
-	if (it.isSplash() || it.isFluidContainer()) {
-		subtype = item->getSubtype();
-	} else if (it.isHangable) {
-		if (tile && tile->hasHookSouth()) {
-			pattern_x = 1;
-		} else if (tile && tile->hasHookEast()) {
-			pattern_x = 2;
-		} else {
-			pattern_x = 0;
-		}
-	} else if (it.stackable) {
-		if (item->getSubtype() <= 1) {
-			subtype = 0;
-		} else if (item->getSubtype() <= 2) {
-			subtype = 1;
-		} else if (item->getSubtype() <= 3) {
-			subtype = 2;
-		} else if (item->getSubtype() <= 4) {
-			subtype = 3;
-		} else if (item->getSubtype() < 10) {
-			subtype = 4;
-		} else if (item->getSubtype() < 25) {
-			subtype = 5;
-		} else if (item->getSubtype() < 50) {
-			subtype = 6;
-		} else {
-			subtype = 7;
-		}
+	SpritePatterns patterns;
+	if (cached_patterns && spr == it.sprite) {
+		patterns = *cached_patterns;
+	} else {
+		patterns = PatternCalculator::Calculate(spr, it, item, tile, pos);
 	}
+
+	int subtype = patterns.subtype;
+	int pattern_x = patterns.x;
+	int pattern_y = patterns.y;
+	int pattern_z = patterns.z;
+	int frame = patterns.frame;
 
 	if (!ephemeral && options.transparent_items && (!it.isGroundTile() || spr->width > 1 || spr->height > 1) && !it.isSplash() && (!it.isBorder || spr->width > 1 || spr->height > 1)) {
 		alpha /= 2;
@@ -172,21 +166,26 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 	// g_gui.gfx.ensureAtlasManager();
 	// BatchRenderer::SetAtlasManager(g_gui.gfx.getAtlasManager());
 
-	int frame = (spr->animator) ? spr->animator->getFrame() : 0;
 	if (spr->width == 1 && spr->height == 1 && spr->layers == 1) {
 		const AtlasRegion* region;
 		if (subtype == -1 && pattern_x == 0 && pattern_y == 0 && pattern_z == 0 && frame == 0) {
-			region = spr->getCachedDefaultRegion();
-			if (!region) {
-				// Fallback to slow path to populate cache
-				region = spr->getAtlasRegion(0, 0, 0, -1, 0, 0, 0, 0);
-			}
+			region = spr->getAtlasRegion(0, 0, 0, -1, 0, 0, 0, 0);
 		} else {
 			region = spr->getAtlasRegion(0, 0, 0, subtype, pattern_x, pattern_y, pattern_z, frame);
 		}
 
 		if (region) {
-			sprite_drawer->glBlitAtlasQuad(sprite_batch, screenx, screeny, region, red, green, blue, alpha);
+#ifdef DEBUG
+			// DEBUG: Check for mismatch on Item 369 using PRECISE sub-sprite ID
+			if (item->getID() == 369) {
+				// Use 0,0 as pattern coordinates for 1x1 items
+				uint32_t precise_expected_id = spr->getSpriteId(frame, 0, 0);
+				if (region->debug_sprite_id != 0 && precise_expected_id != 0 && region->debug_sprite_id != precise_expected_id) {
+					spdlog::error("SPRITE MISMATCH DETECTED: Item 369 (Expected Sprite ID {}, Actual Region Owner {})", precise_expected_id, region->debug_sprite_id);
+				}
+			}
+#endif
+			sprite_drawer->glBlitAtlasQuad(sprite_batch, screenx, screeny, region, DrawColor(red, green, blue, alpha));
 		}
 	} else {
 		for (int cx = 0; cx != spr->width; cx++) {
@@ -194,7 +193,7 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 				for (int cf = 0; cf != spr->layers; cf++) {
 					const AtlasRegion* region = spr->getAtlasRegion(cx, cy, cf, subtype, pattern_x, pattern_y, pattern_z, frame);
 					if (region) {
-						sprite_drawer->glBlitAtlasQuad(sprite_batch, screenx - cx * TileSize, screeny - cy * TileSize, region, red, green, blue, alpha);
+						sprite_drawer->glBlitAtlasQuad(sprite_batch, screenx - cx * TILE_SIZE, screeny - cy * TILE_SIZE, region, DrawColor(red, green, blue, alpha));
 					}
 				}
 			}
@@ -221,7 +220,7 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 			outfit.lookMount = 0;
 		}
 
-		creature_drawer->BlitCreature(sprite_batch, sprite_drawer, draw_x, draw_y, outfit, static_cast<Direction>(podium->getDirection()), red, green, blue, 255);
+		creature_drawer->BlitCreature(sprite_batch, sprite_drawer, draw_x, draw_y, outfit, static_cast<Direction>(podium->getDirection()), CreatureDrawOptions { .color = DrawColor(red, green, blue, alpha) });
 	}
 
 	// draw wall hook
@@ -240,14 +239,14 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 			uint8_t byteA = 255;
 
 			int startOffset = std::max<int>(16, 32 - light.intensity);
-			int sqSize = TileSize - startOffset;
+			int sqSize = TILE_SIZE - startOffset;
 
 			// We need to disable texture 2d for BlitSquare. SpriteDrawer::glBlitSquare does NOT disable texture 2d automatically?
 			// SpriteDrawer::glBlitSquare internally uses BatchRenderer::DrawQuad which sets blank texture if needed.
 			// So we don't need manual enable/disable here anymore.
 
-			sprite_drawer->glBlitSquare(sprite_batch, draw_x + startOffset - 2, draw_y + startOffset - 2, 0, 0, 0, byteA, sqSize + 2);
-			sprite_drawer->glBlitSquare(sprite_batch, draw_x + startOffset - 1, draw_y + startOffset - 1, byteR, byteG, byteB, byteA, sqSize);
+			sprite_drawer->glBlitSquare(sprite_batch, draw_x + startOffset - 2, draw_y + startOffset - 2, DrawColor(0, 0, 0, byteA), sqSize + 2);
+			sprite_drawer->glBlitSquare(sprite_batch, draw_x + startOffset - 1, draw_y + startOffset - 1, DrawColor(byteR, byteG, byteB, byteA), sqSize);
 		}
 	}
 }
@@ -290,7 +289,7 @@ void ItemDrawer::DrawRawBrush(SpriteBatch& sprite_batch, SpriteDrawer* sprite_dr
 		alpha = (alpha * 171) >> 8;
 	}
 
-	sprite_drawer->BlitSprite(sprite_batch, screenx, screeny, spr, r, g, b, alpha);
+	sprite_drawer->BlitSprite(sprite_batch, screenx, screeny, spr, DrawColor(r, g, b, alpha));
 }
 
 void ItemDrawer::DrawHookIndicator(const ItemType& type, const Position& pos) {

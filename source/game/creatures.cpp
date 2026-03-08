@@ -22,6 +22,7 @@
 #include "brushes/brush.h"
 #include "game/creatures.h"
 #include "brushes/creature/creature_brush.h"
+#include <algorithm>
 
 CreatureDatabase g_creatures;
 
@@ -59,6 +60,18 @@ CreatureType& CreatureType::operator=(const CreatureType& ct) {
 
 CreatureType::~CreatureType() {
 	////
+}
+
+void CreatureType::preserve_assign_creature_fields(CreatureType* dest, const CreatureType& src) {
+	CreatureBrush* oldBrush = dest->brush;
+	bool oldInTileset = dest->in_other_tileset;
+	bool oldStandard = dest->standard;
+
+	*dest = src;
+
+	dest->brush = oldBrush;
+	dest->in_other_tileset = oldInTileset;
+	dest->standard = oldStandard;
 }
 
 CreatureType* CreatureType::loadFromXML(pugi::xml_node node, std::vector<std::string>& warnings) {
@@ -233,14 +246,14 @@ CreatureDatabase::~CreatureDatabase() {
 }
 
 void CreatureDatabase::clear() {
-	for (CreatureMap::iterator iter = creature_map.begin(); iter != creature_map.end(); ++iter) {
-		delete iter->second;
+	for (auto& [_, creature] : creature_map) {
+		delete creature;
 	}
 	creature_map.clear();
 }
 
 CreatureType* CreatureDatabase::operator[](const std::string& name) {
-	CreatureMap::iterator iter = creature_map.find(as_lower_str(name));
+	auto iter = creature_map.find(as_lower_str(name));
 	if (iter != creature_map.end()) {
 		return iter->second;
 	}
@@ -279,12 +292,9 @@ CreatureType* CreatureDatabase::addCreatureType(const std::string& name, bool is
 }
 
 bool CreatureDatabase::hasMissing() const {
-	for (CreatureMap::const_iterator iter = creature_map.begin(); iter != creature_map.end(); ++iter) {
-		if (iter->second->missing) {
-			return true;
-		}
-	}
-	return false;
+	return std::ranges::any_of(creature_map, [](const auto& pair) {
+		return pair.second->missing;
+	});
 }
 
 bool CreatureDatabase::loadFromXML(const FileName& filename, bool standard, wxString& error, std::vector<std::string>& warnings) {
@@ -320,6 +330,28 @@ bool CreatureDatabase::loadFromXML(const FileName& filename, bool standard, wxSt
 	return true;
 }
 
+static void ensureCreatureBrush(CreatureType* creatureType) {
+	if (creatureType->brush) {
+		return;
+	}
+
+	Tileset* tileSet = nullptr;
+	if (creatureType->isNpc) {
+		tileSet = g_materials.tilesets["NPCs"];
+	} else {
+		tileSet = g_materials.tilesets["Others"];
+	}
+	ASSERT(tileSet != nullptr);
+
+	auto brush = std::make_unique<CreatureBrush>(creatureType);
+	creatureType->brush = brush.get();
+	g_brushes.addBrush(std::move(brush));
+	creatureType->in_other_tileset = true;
+
+	TilesetCategory* tileSetCategory = tileSet->getCategory(TILESET_CREATURE);
+	tileSetCategory->brushlist.push_back(creatureType->brush);
+}
+
 bool CreatureDatabase::importXMLFromOT(const FileName& filename, wxString& error, std::vector<std::string>& warnings) {
 	pugi::xml_document doc;
 	pugi::xml_parse_result result = doc.load_file(filename.GetFullPath().mb_str());
@@ -353,25 +385,12 @@ bool CreatureDatabase::importXMLFromOT(const FileName& filename, wxString& error
 			if (creatureType) {
 				CreatureType* current = (*this)[creatureType->name];
 				if (current) {
-					*current = *creatureType;
+					CreatureType::preserve_assign_creature_fields(current, *creatureType);
 					delete creatureType;
 				} else {
 					creature_map[as_lower_str(creatureType->name)] = creatureType;
 
-					Tileset* tileSet = nullptr;
-					if (creatureType->isNpc) {
-						tileSet = g_materials.tilesets["NPCs"];
-					} else {
-						tileSet = g_materials.tilesets["Others"];
-					}
-					ASSERT(tileSet != nullptr);
-
-					creatureType->brush = newd CreatureBrush(creatureType);
-					g_brushes.addBrush(creatureType->brush);
-					creatureType->in_other_tileset = true;
-
-					TilesetCategory* tileSetCategory = tileSet->getCategory(TILESET_CREATURE);
-					tileSetCategory->brushlist.push_back(creatureType->brush);
+					ensureCreatureBrush(creatureType);
 				}
 			}
 		}
@@ -381,25 +400,12 @@ bool CreatureDatabase::importXMLFromOT(const FileName& filename, wxString& error
 			CreatureType* current = (*this)[creatureType->name];
 
 			if (current) {
-				*current = *creatureType;
+				CreatureType::preserve_assign_creature_fields(current, *creatureType);
 				delete creatureType;
 			} else {
 				creature_map[as_lower_str(creatureType->name)] = creatureType;
 
-				Tileset* tileSet = nullptr;
-				if (creatureType->isNpc) {
-					tileSet = g_materials.tilesets["NPCs"];
-				} else {
-					tileSet = g_materials.tilesets["Others"];
-				}
-				ASSERT(tileSet != nullptr);
-
-				creatureType->brush = newd CreatureBrush(creatureType);
-				g_brushes.addBrush(creatureType->brush);
-				creatureType->in_other_tileset = true;
-
-				TilesetCategory* tileSetCategory = tileSet->getCategory(TILESET_CREATURE);
-				tileSetCategory->brushlist.push_back(creatureType->brush);
+				ensureCreatureBrush(creatureType);
 			}
 		}
 	} else {

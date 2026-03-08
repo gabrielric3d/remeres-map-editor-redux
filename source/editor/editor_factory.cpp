@@ -9,13 +9,22 @@
 #include "io/iomap.h"
 #include "live/live_client.h"
 
+#include "ui/tile_properties/tile_properties_panel.h"
+#include "map/tile.h"
+#include "game/creature.h"
+#include "game/spawn.h"
+
 void SetupCallbacks(Editor* editor) {
-	editor->onStateChange = []() {
+	editor->onStateChange = [editor]() {
 		g_gui.UpdateTitle();
 		g_gui.UpdateMenus();
+
+		if (g_gui.tile_properties_panel) {
+			g_gui.tile_properties_panel->UpdateFromEditor(editor);
+		}
 	};
 
-	editor->selection.onSelectionChange = [](size_t count) {
+	editor->selection.onSelectionChange = [editor](size_t count) {
 		if (count > 0) {
 			wxString ss;
 			if (count == 1) {
@@ -28,13 +37,28 @@ void SetupCallbacks(Editor* editor) {
 			// Optional: Clear status text if nothing selected, or keep previous behavior
 			// Previous behavior didn't clear it explicitly in updateSelectionCount if size <= 0
 		}
+
+		if (g_gui.tile_properties_panel) {
+			g_gui.tile_properties_panel->UpdateFromEditor(editor);
+		}
 	};
 }
 
 std::unique_ptr<Editor> EditorFactory::CreateEmpty(CopyBuffer& copybuffer) {
-	ClientVersionID defaultVersion = ClientVersionID(g_settings.getInteger(Config::DEFAULT_CLIENT_VERSION));
+	ClientVersionID defaultVersion = CLIENT_VERSION_NONE;
+	OtbVersionID protocolId = g_settings.getInteger(Config::DEFAULT_CLIENT_VERSION);
+	if (protocolId != 0) {
+		ClientVersion* match = ClientVersion::getBestMatch(protocolId);
+		if (match) {
+			defaultVersion = match->getID();
+		}
+	}
+
 	if (defaultVersion == CLIENT_VERSION_NONE) {
-		defaultVersion = ClientVersion::getLatestVersion()->getID();
+		ClientVersion* latest = ClientVersion::getLatestVersion();
+		if (latest) {
+			defaultVersion = latest->getID();
+		}
 	}
 
 	if (!EnsureVersion(defaultVersion)) {
@@ -43,7 +67,7 @@ std::unique_ptr<Editor> EditorFactory::CreateEmpty(CopyBuffer& copybuffer) {
 
 	MapVersion mapVersion;
 	mapVersion.otbm = g_version.GetCurrentVersion().getPrefferedMapVersionID();
-	mapVersion.client = g_version.GetCurrentVersionID();
+	mapVersion.client = g_version.GetCurrentVersion().getProtocolID();
 
 	std::unique_ptr<Editor> editor = std::make_unique<Editor>(copybuffer, mapVersion);
 	SetupCallbacks(editor.get());
@@ -57,7 +81,7 @@ std::unique_ptr<Editor> EditorFactory::LoadFromFile(CopyBuffer& copybuffer, cons
 
 	MapVersion mapVersion;
 	mapVersion.otbm = g_version.GetCurrentVersion().getPrefferedMapVersionID();
-	mapVersion.client = g_version.GetCurrentVersionID();
+	mapVersion.client = g_version.GetCurrentVersion().getProtocolID();
 
 	std::unique_ptr<Editor> editor = std::make_unique<Editor>(copybuffer, mapVersion, fn);
 	SetupCallbacks(editor.get());
@@ -67,7 +91,7 @@ std::unique_ptr<Editor> EditorFactory::LoadFromFile(CopyBuffer& copybuffer, cons
 std::unique_ptr<Editor> EditorFactory::JoinLive(CopyBuffer& copybuffer, std::unique_ptr<LiveClient> client) {
 	MapVersion mapVersion;
 	mapVersion.otbm = g_version.GetCurrentVersion().getPrefferedMapVersionID();
-	mapVersion.client = g_version.GetCurrentVersionID();
+	mapVersion.client = g_version.GetCurrentVersion().getProtocolID();
 
 	std::unique_ptr<Editor> editor = std::make_unique<Editor>(copybuffer, mapVersion, std::move(client));
 	SetupCallbacks(editor.get());

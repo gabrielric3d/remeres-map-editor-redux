@@ -21,6 +21,10 @@
 #include "map/position.h"
 #include "game/item.h"
 
+namespace TileOperations {
+	void update(class Tile* tile);
+}
+
 class TileLocation;
 class GroundBrush;
 class WallBrush;
@@ -29,6 +33,9 @@ class Map;
 #include "app/rme_forward_declarations.h"
 #include <unordered_set>
 #include <memory>
+#include <vector>
+
+// TileOperations functions are now in tile_operations.h
 
 enum {
 	TILESTATE_NONE = 0x0000,
@@ -48,6 +55,7 @@ enum {
 	TILESTATE_MODIFIED = 0x0040,
 	TILESTATE_HOOK_SOUTH = 0x0080,
 	TILESTATE_HOOK_EAST = 0x0100,
+	TILESTATE_HAS_LIGHT = 0x0200,
 };
 
 enum : uint8_t {
@@ -62,6 +70,9 @@ public: // Members
 	std::unique_ptr<Creature> creature;
 	std::unique_ptr<Spawn> spawn;
 	uint32_t house_id; // House id for this tile (pointer not safe)
+	uint16_t mapflags;
+	uint16_t statflags;
+	uint8_t minimapColor;
 
 public:
 	// ALWAYS use this constructor if the Tile is EVER going to be placed on a map
@@ -71,8 +82,8 @@ public:
 
 	~Tile();
 
-	// Argument is a the map to allocate the tile from
-	std::unique_ptr<Tile> deepCopy(BaseMap& map);
+	Tile(const Tile&) = delete;
+	Tile& operator=(const Tile&) = delete;
 
 	// The location of the tile
 	// Stores state that remains between the tile being moved (like house exits)
@@ -94,9 +105,6 @@ public:
 	int getZ() const;
 
 public: // Functions
-	// Absorb the other tile into this tile
-	void merge(Tile* other);
-
 	// Compare the content (ground and items) of two tiles
 	bool isContentEqual(const Tile* other) const;
 
@@ -143,25 +151,12 @@ public: // Functions
 	Item* getItemAt(int index) const;
 	void addItem(std::unique_ptr<Item> item);
 
-	void select();
-	void deselect();
-	// This selects borders too
-	void selectGround();
-	void deselectGround();
-
 	bool isSelected() const {
 		return testFlags(statflags, TILESTATE_SELECTED);
 	}
 	bool hasUniqueItem() const {
 		return testFlags(statflags, TILESTATE_UNIQUE);
 	}
-
-	std::vector<std::unique_ptr<Item>> popSelectedItems(bool ignoreTileSelected = false);
-	ItemVector getSelectedItems(bool unzoomed = false);
-	Item* getTopSelectedItem();
-
-	// Refresh internal flags (such as selected etc.)
-	void update();
 
 	uint8_t getMiniMapColor() const;
 
@@ -175,9 +170,6 @@ public: // Functions
 
 	// Get the border brush of this tile
 	GroundBrush* getGroundBrush() const;
-
-	// Add a border item (added at the bottom of all items)
-	void addBorderItem(std::unique_ptr<Item> item);
 
 	bool hasTable() const {
 		return testFlags(statflags, TILESTATE_HAS_TABLE);
@@ -197,6 +189,10 @@ public: // Functions
 		return testFlags(statflags, TILESTATE_HOOK_EAST);
 	}
 
+	bool hasLight() const {
+		return testFlags(statflags, TILESTATE_HAS_LIGHT);
+	}
+
 	bool hasOptionalBorder() const {
 		return testFlags(statflags, TILESTATE_OP_BORDER);
 	}
@@ -211,15 +207,12 @@ public: // Functions
 	// Get the (first) wall of this tile
 	Item* getWall() const;
 	bool hasWall() const;
-	// Add a wall item (same as just addItem, but an additional check to verify that it is a wall)
-	void addWallItem(std::unique_ptr<Item> item);
 
 	// Has to do with houses
 	bool isHouseTile() const;
 	uint32_t getHouseID() const;
 	void setHouseID(uint32_t newHouseId);
-	void addHouseExit(House* h);
-	void removeHouseExit(House* h);
+
 	bool isHouseExit() const;
 	bool isTownExit(Map& map) const;
 	const HouseExitList* getHouseExits() const;
@@ -236,22 +229,6 @@ public: // Functions
 	void setStatFlags(uint16_t _flags);
 	void unsetStatFlags(uint16_t _flags);
 	uint16_t getStatFlags() const;
-
-protected:
-	union {
-		struct {
-			uint16_t mapflags;
-			uint16_t statflags;
-		};
-		uint32_t flags;
-	};
-
-private:
-	uint8_t minimapColor;
-
-	Tile(const Tile& tile); // No copy
-	Tile& operator=(const Tile& i); // Can't copy
-	Tile& operator==(const Tile& i); // Can't compare
 };
 
 bool tilePositionLessThan(const Tile* a, const Tile* b);

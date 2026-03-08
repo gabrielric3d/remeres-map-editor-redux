@@ -20,6 +20,9 @@
 
 #include "app/main.h"
 
+#include <toml++/toml.h>
+#include <variant>
+
 namespace Config {
 	enum Key {
 		NONE,
@@ -84,7 +87,6 @@ namespace Config {
 		WARN_FOR_DUPLICATE_ID,
 		USE_UPDATER,
 		USE_OTBM_4_FOR_ALL_MAPS,
-		USE_OTGZ,
 		SAVE_WITH_OTB_MAGIC_NUMBER,
 		REPLACE_SIZE,
 
@@ -182,8 +184,12 @@ namespace Config {
 		TOOLBAR_POSITION_LAYOUT,
 		TOOLBAR_SIZES_LAYOUT,
 
+		PREFERENCES_WINDOW_WIDTH,
+		PREFERENCES_WINDOW_HEIGHT,
+
 		// add new settings at the end to make sure nothing gets misread
 		DRAW_LOCKED_DOOR,
+		THEME,
 		HIGHLIGHT_LOCKED_DOORS,
 		PALETTE_COLLECTION_STYLE,
 		USE_LARGE_COLLECTION_TOOLBAR,
@@ -210,8 +216,6 @@ namespace Config {
 	};
 }
 
-class wxConfigBase;
-
 class Settings {
 public:
 	Settings();
@@ -226,7 +230,7 @@ public:
 	void setFloat(uint32_t key, float newval);
 	void setString(uint32_t key, std::string newval);
 
-	wxConfigBase& getConfigObject();
+	toml::table& getTable();
 	void setDefaults() {
 		IO(DEFAULT);
 	}
@@ -234,57 +238,14 @@ public:
 	void save(bool endoftheworld = false);
 
 public:
-	enum DynamicType {
-		TYPE_NONE,
-		TYPE_STR,
-		TYPE_INT,
-		TYPE_FLOAT,
-	};
 	class DynamicValue {
 	public:
-		DynamicValue() :
-			type(TYPE_NONE) {
-			intval = 0;
-		};
-		DynamicValue(DynamicType t) :
-			type(t) {
-			if (t == TYPE_STR) {
-				strval = nullptr;
-			} else if (t == TYPE_INT) {
-				intval = 0;
-			} else if (t == TYPE_FLOAT) {
-				floatval = 0.0;
-			} else {
-				intval = 0;
-			}
-		};
-		~DynamicValue() {
-			if (type == TYPE_STR) {
-				delete strval;
-			}
-		}
-		DynamicValue(const DynamicValue& dv) :
-			type(dv.type) {
-			if (dv.type == TYPE_STR) {
-				strval = newd std::string(*dv.strval);
-			} else if (dv.type == TYPE_INT) {
-				intval = dv.intval;
-			} else if (dv.type == TYPE_FLOAT) {
-				floatval = dv.floatval;
-			} else {
-				intval = 0;
-			}
-		};
+		DynamicValue() = default;
 
 		std::string str();
 
 	private:
-		DynamicType type;
-		union {
-			int intval;
-			std::string* strval;
-			float floatval;
-		};
+		std::variant<std::monostate, int, float, std::string> val;
 
 		friend class Settings;
 	};
@@ -297,9 +258,6 @@ private:
 	};
 	void IO(IOMode mode);
 	std::vector<DynamicValue> store;
-#ifdef __WINDOWS__
-	bool use_file_cfg;
-#endif
 };
 
 extern Settings g_settings;

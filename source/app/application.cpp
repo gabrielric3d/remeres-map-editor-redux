@@ -17,6 +17,7 @@
 
 #include "app/main.h"
 
+#include "ui/theme.h"
 #include "ui/dialog_util.h"
 #include "app/application.h"
 #include "util/file_system.h"
@@ -45,6 +46,7 @@
 #include "ingame_preview/ingame_preview_manager.h"
 
 #include <wx/snglinst.h>
+#include <wx/stdpaths.h>
 #include <spdlog/spdlog.h>
 #include <thread>
 #include <chrono>
@@ -76,10 +78,10 @@ bool Application::OnInit() {
 	MSWEnableDarkMode(wxApp::DarkMode_Always);
 #endif
 
+
 #if defined __DEBUG_MODE__ && defined __WINDOWS__
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
-
 	// #ifdef __WINDOWS__
 	// 	// Allocate console for debug output
 	// 	AllocConsole();
@@ -88,8 +90,8 @@ bool Application::OnInit() {
 	// 	freopen_s(&fp, "CONOUT$", "w", stderr);
 	// #endif
 
-	// Configure spdlog for debug output
-	spdlog::set_level(spdlog::level::debug);
+	// Configure spdlog for info output
+	spdlog::set_level(spdlog::level::info);
 	spdlog::flush_on(spdlog::level::info);
 	spdlog::info("RME starting up - logging enabled");
 
@@ -97,8 +99,55 @@ bool Application::OnInit() {
 	spdlog::info("There is NO WARRANTY, to the extent permitted by law.");
 	spdlog::info("Review COPYING in RME distribution for details.");
 
+	// Load settings early for theme support
+	g_settings.load();
+
+	int rawTheme = g_settings.getInteger(Config::THEME);
+	Theme::Type theme = Theme::Type::System;
+	if (rawTheme >= static_cast<int>(Theme::Type::System) && rawTheme <= static_cast<int>(Theme::Type::Light)) {
+		theme = static_cast<Theme::Type>(rawTheme);
+	}
+	Theme::setType(theme);
+
+	// Enable modern appearance handling (wxWidgets 3.3+)
+#if wxCHECK_VERSION(3, 3, 0)
+	switch (theme) {
+		case Theme::Type::Dark:
+			SetAppearance(wxApp::Appearance::Dark);
+			break;
+		case Theme::Type::Light:
+			SetAppearance(wxApp::Appearance::Light);
+			break;
+		case Theme::Type::System:
+		default:
+			SetAppearance(wxApp::Appearance::System);
+			break;
+	}
+#endif
+
+#ifdef __WXMSW__
+	#if wxCHECK_VERSION(3, 3, 0)
+	// Enable dark mode support for Windows
+	// Note: SetAppearance() above handles this internally in newer versions,
+	// but explicit calls here ensure improved behavior on some system configurations.
+	switch (theme) {
+		case Theme::Type::Dark:
+			MSWEnableDarkMode(wxApp::DarkMode_Always);
+			break;
+		case Theme::Type::Light:
+			// "DarkMode_Never" is not available in wxWidgets 3.3.1 API.
+			// Light mode is the default on MSW, so no action is required here.
+			break;
+		case Theme::Type::System:
+		default:
+			MSWEnableDarkMode(wxApp::DarkMode_Auto);
+			break;
+	}
+	#endif
+#endif
+
 	// Discover data directory
-	FileSystem::DiscoverDataDirectory("clients.xml");
+	FileSystem::DiscoverDataDirectory("menubar.xml");
 
 	// Tell that we are the real thing
 	wxAppConsole::SetInstance(this);
@@ -110,7 +159,7 @@ bool Application::OnInit() {
 #endif
 
 	// Load some internal stuff
-	g_settings.load();
+	// g_settings.load(); - Already loaded above
 	FixVersionDiscrapencies();
 	g_hotkeys.LoadHotkeys();
 	ClientVersion::loadVersions();
@@ -197,8 +246,8 @@ bool Application::OnInit() {
 		}
 	}
 	if (g_settings.getInteger(Config::USE_UPDATER) == 1) {
-		// UpdateChecker updater;
-		// updater.connect(g_gui.root);
+		m_updater = std::make_unique<UpdateChecker>();
+		m_updater->connect(g_gui.root);
 	}
 #endif
 
@@ -291,15 +340,22 @@ void Application::FixVersionDiscrapencies() {
 	}
 
 	if (g_settings.getInteger(Config::VERSION_ID) < __RME_VERSION_ID__ && ClientVersion::getLatestVersion() != nullptr) {
-		g_settings.setInteger(Config::DEFAULT_CLIENT_VERSION, ClientVersion::getLatestVersion()->getID());
+		g_settings.setInteger(Config::DEFAULT_CLIENT_VERSION, ClientVersion::getLatestVersion()->getProtocolID());
 	}
 
 	wxString ss = wxstr(g_settings.getString(Config::SCREENSHOT_DIRECTORY));
 	if (ss.empty()) {
-		ss = wxStandardPaths::Get().GetDocumentsDir();
-#ifdef __WINDOWS__
-		ss += "/My Pictures/RME/";
-#endif
+		wxFileName fn(wxStandardPaths::Get().GetDocumentsDir(), "");
+		if (fn.GetDirCount() > 0) {
+			fn.RemoveLastDir(); // Move from "Documents" to user root
+		}
+		fn.AppendDir("Pictures");
+		fn.AppendDir("RME");
+
+		if (!fn.DirExists()) {
+			fn.Mkdir(wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
+		}
+		ss = fn.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
 	}
 	g_settings.setString(Config::SCREENSHOT_DIRECTORY, nstr(ss));
 
@@ -309,6 +365,11 @@ void Application::FixVersionDiscrapencies() {
 
 void Application::Unload() {
 	spdlog::info("Application::Unload started");
+
+#ifdef _USE_UPDATER_
+	m_updater.reset();
+#endif
+
 	g_gui.CloseAllEditors();
 	g_version.UnloadVersion();
 	g_hotkeys.SaveHotkeys();

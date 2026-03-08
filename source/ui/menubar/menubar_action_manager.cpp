@@ -127,11 +127,12 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::map<std::string
 
 	MAKE_ACTION(EXPERIMENTAL_FOG, wxITEM_CHECK, OnChangeViewSettings); // experimental
 
-	MAKE_ACTION(WIN_MINIMAP, wxITEM_NORMAL, OnMinimapWindow);
-	MAKE_ACTION(WIN_TOOL_OPTIONS, wxITEM_NORMAL, OnToolOptionsWindow);
-	MAKE_ACTION(WIN_INGAME_PREVIEW, wxITEM_NORMAL, OnIngamePreviewWindow);
-	MAKE_ACTION(NEW_PALETTE, wxITEM_NORMAL, OnNewPalette);
-	MAKE_ACTION(TAKE_SCREENSHOT, wxITEM_NORMAL, OnTakeScreenshot);
+	MAKE_ACTION_ICON(WIN_MINIMAP, wxITEM_NORMAL, ICON_MAP, OnMinimapWindow);
+	MAKE_ACTION_ICON(WIN_TOOL_OPTIONS, wxITEM_NORMAL, ICON_SLIDERS, OnToolOptionsWindow);
+	MAKE_ACTION_ICON(WIN_INGAME_PREVIEW, wxITEM_NORMAL, ICON_GAMEPAD, OnIngamePreviewWindow);
+	MAKE_ACTION_ICON(WIN_TILE_PROPERTIES, wxITEM_NORMAL, ICON_LIST, OnTilePropertiesWindow);
+	MAKE_ACTION_ICON(NEW_PALETTE, wxITEM_NORMAL, ICON_PLUS, OnNewPalette);
+	MAKE_ACTION_ICON(TAKE_SCREENSHOT, wxITEM_NORMAL, ICON_CAMERA, OnTakeScreenshot);
 
 	MAKE_ACTION(LIVE_START, wxITEM_NORMAL, OnStartLive);
 	MAKE_ACTION(LIVE_JOIN, wxITEM_NORMAL, OnJoinLive);
@@ -267,6 +268,7 @@ void MenuBarActionManager::UpdateState(MainMenuBar* mb) {
 	mb->EnableItem(WIN_MINIMAP, loaded);
 	mb->EnableItem(WIN_TOOL_OPTIONS, loaded);
 	mb->EnableItem(WIN_INGAME_PREVIEW, loaded);
+	mb->EnableItem(WIN_TILE_PROPERTIES, loaded);
 	mb->EnableItem(NEW_PALETTE, loaded);
 	mb->EnableItem(SELECT_TERRAIN, loaded);
 	mb->EnableItem(SELECT_DOODAD, loaded);

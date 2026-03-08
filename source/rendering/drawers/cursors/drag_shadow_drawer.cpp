@@ -2,6 +2,7 @@
 // This file is part of Remere's Map Editor
 //////////////////////////////////////////////////////////////////////
 
+#include "map/tile_operations.h"
 #include "app/main.h"
 
 // glut include removed
@@ -61,32 +62,44 @@ void DragShadowDrawer::draw(SpriteBatch& sprite_batch, MapDrawer* drawer, ItemDr
 			if (pos.x + 2 > view.start_x && pos.x < view.end_x && pos.y + 2 > view.start_y && pos.y < view.end_y && (move_x != 0 || move_y != 0 || move_z != 0)) {
 				int offset;
 				if (pos.z <= GROUND_LAYER) {
-					offset = (GROUND_LAYER - pos.z) * TileSize;
+					offset = (GROUND_LAYER - pos.z) * TILE_SIZE;
 				} else {
-					offset = TileSize * (view.floor - pos.z);
+					offset = TILE_SIZE * (view.floor - pos.z);
 				}
 
-				int draw_x = ((pos.x * TileSize) - view.view_scroll_x) - offset;
-				int draw_y = ((pos.y * TileSize) - view.view_scroll_y) - offset;
+				int draw_x = ((pos.x * TILE_SIZE) - view.view_scroll_x) - offset;
+				int draw_y = ((pos.y * TILE_SIZE) - view.view_scroll_y) - offset;
 
 				// save performance when moving large chunks unzoomed
-				ItemVector toRender = tile->getSelectedItems(view.zoom > 3.0);
+				ItemVector toRender = TileOperations::getSelectedItems(tile, view.zoom > 3.0);
 				Tile* desttile = drawer->editor.map.getTile(pos);
-				for (ItemVector::const_iterator iit = toRender.begin(); iit != toRender.end(); iit++) {
+				for (const auto& item : toRender) {
 					if (desttile) {
-						item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, desttile, *iit, options, true, 160, 160, 160, 160);
+						BlitItemParams params(desttile, item, options);
+						params.ephemeral = true;
+						params.red = 160;
+						params.green = 160;
+						params.blue = 160;
+						params.alpha = 160;
+						item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, params);
 					} else {
-						item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, pos, *iit, options, true, 160, 160, 160, 160);
+						BlitItemParams params(pos, item, options);
+						params.ephemeral = true;
+						params.red = 160;
+						params.green = 160;
+						params.blue = 160;
+						params.alpha = 160;
+						item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, params);
 					}
 				}
 
 				// save performance when moving large chunks unzoomed
 				if (view.zoom <= 3.0) {
 					if (tile->creature && tile->creature->isSelected() && options.show_creatures) {
-						creature_drawer->BlitCreature(sprite_batch, sprite_drawer, draw_x, draw_y, tile->creature.get());
+						creature_drawer->BlitCreature(sprite_batch, sprite_drawer, draw_x, draw_y, tile->creature.get(), CreatureDrawOptions { .color = DrawColor(160, 160, 160, 160) });
 					}
 					if (tile->spawn && tile->spawn->isSelected()) {
-						sprite_drawer->BlitSprite(sprite_batch, draw_x, draw_y, SPRITE_SPAWN, 160, 160, 160, 160);
+						sprite_drawer->BlitSprite(sprite_batch, draw_x, draw_y, SPRITE_SPAWN, DrawColor(160, 160, 160, 160));
 					}
 				}
 			}

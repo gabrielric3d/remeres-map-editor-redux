@@ -105,7 +105,7 @@ void WallBrush::draw(BaseMap* map, Tile* tile, void* parameter) {
 		}
 	}
 
-	tile->addWallItem(Item::Create(id));
+	TileOperations::addWallItem(tile, Item::Create(id));
 }
 
 void WallBrush::doWalls(BaseMap* map, Tile* tile) {
@@ -183,7 +183,7 @@ void WallDecorationBrush::draw(BaseMap* map, Tile* tile, void* parameter) {
 
 			// Is it just a decoration, like what we're trying to add?
 			WallBrush* brush = item->getWallBrush();
-			if (brush && brush->isWallDecoration()) {
+			if (brush && brush->is<WallDecorationBrush>()) {
 				// It is, discard and advance!
 				++iter;
 				continue;

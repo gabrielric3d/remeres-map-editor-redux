@@ -41,6 +41,7 @@ private:
 
 	struct Task {
 		uint32_t id;
+		uint32_t generation_id;
 		std::string spritefile;
 		bool is_extended;
 		bool has_transparency;
@@ -48,22 +49,27 @@ private:
 
 	struct Result {
 		uint32_t id;
+		uint32_t generation_id;
 		std::unique_ptr<uint8_t[]> data;
 		std::string spritefile;
 	};
 
 	void workerLoop(std::stop_token stop_token);
 
+	static constexpr unsigned int MIN_WORKER_THREADS = 2u;
+	static constexpr unsigned int MAX_WORKER_THREADS = 8u;
+
 	static constexpr size_t MAX_QUEUE_SIZE = 50000; // Limit pending tasks to prevent memory blowup
 
 	std::mutex queue_mutex;
 	std::condition_variable cv;
 	bool stopping = false;
-	std::jthread worker;
+	std::vector<std::jthread> workers;
 
 	std::queue<Task> task_queue;
 	std::queue<Result> result_queue;
 	std::unordered_set<uint32_t> pending_ids; // To avoid duplicate tasks
+	std::unordered_set<uint32_t> cancelled_ids; // IDs that were cleared and should be ignored
 };
 
 namespace rme {

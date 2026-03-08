@@ -15,6 +15,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
+#include "map/tile_operations.h"
 #include "app/main.h"
 
 #include "map/map.h"
@@ -23,21 +24,30 @@
 #include "map/tile.h"
 #include "rendering/core/graphics.h"
 #include "ui/gui.h"
+#include <wx/listbox.h>
 #include "ui/browse_tile_window.h"
 #include "util/image_manager.h"
+#include "util/nanovg_listbox.h"
+#include <glad/glad.h>
+#include <format>
+#include <nanovg.h>
 
 // ============================================================================
 //
 
-class BrowseTileListBox : public wxVListBox {
+class BrowseTileListBox : public NanoVGListBox {
 public:
 	BrowseTileListBox(wxWindow* parent, wxWindowID id, Tile* tile);
 	~BrowseTileListBox();
 
-	void OnDrawItem(wxDC& dc, const wxRect& rect, size_t index) const;
-	wxCoord OnMeasureItem(size_t index) const;
+	void OnDrawItem(NVGcontext* vg, const wxRect& rect, size_t index) override;
+	int OnMeasureItem(size_t index) const override;
 	Item* GetSelectedItem();
 	void RemoveSelected();
+
+	void SetSelection(int index) override;
+	void Select(int index, bool select = true) override;
+	void ClearSelection() override;
 
 protected:
 	void UpdateItems();
@@ -48,7 +58,8 @@ protected:
 };
 
 BrowseTileListBox::BrowseTileListBox(wxWindow* parent, wxWindowID id, Tile* tile) :
-	wxVListBox(parent, id, wxDefaultPosition, FROM_DIP(parent, wxSize(200, 180)), wxLB_MULTIPLE), edit_tile(tile) {
+	NanoVGListBox(parent, id, wxLB_SINGLE), edit_tile(tile) {
+	SetMinSize(FromDIP(wxSize(200, 180)));
 	UpdateItems();
 }
 
@@ -56,33 +67,40 @@ BrowseTileListBox::~BrowseTileListBox() {
 	////
 }
 
-void BrowseTileListBox::OnDrawItem(wxDC& dc, const wxRect& rect, size_t n) const {
+void BrowseTileListBox::OnDrawItem(NVGcontext* vg, const wxRect& rect, size_t n) {
 	Item* item = items[n];
 
 	Sprite* sprite = g_gui.gfx.getSprite(item->getClientID());
 	if (sprite) {
-		sprite->DrawTo(&dc, SPRITE_SIZE_32x32, rect.GetX(), rect.GetY(), rect.GetWidth(), rect.GetHeight());
+		int tex = GetOrCreateSpriteTexture(vg, sprite);
+		if (tex > 0) {
+			int icon_size = 32;
+			NVGpaint imgPaint = nvgImagePattern(vg, rect.x, rect.y, icon_size, icon_size, 0, tex, 1.0f);
+			nvgBeginPath(vg);
+			nvgRect(vg, rect.x, rect.y, icon_size, icon_size);
+			nvgFillPaint(vg, imgPaint);
+			nvgFill(vg);
+		}
 	}
 
 	if (IsSelected(n)) {
-		item->select();
-		if (HasFocus()) {
-			dc.SetTextForeground(wxColor(0xFF, 0xFF, 0xFF));
-		} else {
-			dc.SetTextForeground(wxColor(0x00, 0x00, 0xFF));
-		}
+		wxColour textColour = wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHTTEXT);
+		nvgFillColor(vg, nvgRGBA(textColour.Red(), textColour.Green(), textColour.Blue(), 255));
 	} else {
-		item->deselect();
-		dc.SetTextForeground(wxColor(0x00, 0x00, 0x00));
+		wxColour textColour = wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOXTEXT);
+		nvgFillColor(vg, nvgRGBA(textColour.Red(), textColour.Green(), textColour.Blue(), 255));
 	}
 
-	wxString label;
-	label << item->getID() << " - " << wxstr(item->getName());
-	dc.DrawText(label, rect.GetX() + 40, rect.GetY() + 6);
+	std::string label = std::format("{} - {}", item->getID(), item->getName());
+
+	nvgFontSize(vg, 12.0f);
+	nvgFontFace(vg, "sans");
+	nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
+	nvgText(vg, rect.x + 40, rect.y + rect.height / 2.0f, label.c_str(), nullptr);
 }
 
-wxCoord BrowseTileListBox::OnMeasureItem(size_t n) const {
-	return 32;
+int BrowseTileListBox::OnMeasureItem(size_t n) const {
+	return FromDIP(32);
 }
 
 Item* BrowseTileListBox::GetSelectedItem() {
@@ -90,7 +108,7 @@ Item* BrowseTileListBox::GetSelectedItem() {
 		return nullptr;
 	}
 
-	return edit_tile->getTopSelectedItem();
+	return TileOperations::getTopSelectedItem(edit_tile);
 }
 
 void BrowseTileListBox::RemoveSelected() {
@@ -98,15 +116,43 @@ void BrowseTileListBox::RemoveSelected() {
 		return;
 	}
 
-	Clear();
+	ClearSelection();
 	items.clear();
 
 	// Delete the items from the tile
-	auto tile_selection = edit_tile->popSelectedItems(true);
+	auto tile_selection = TileOperations::popSelectedItems(edit_tile, true);
 	// items are automatically deleted when tile_selection goes out of scope
 
 	UpdateItems();
 	Refresh();
+}
+
+void BrowseTileListBox::SetSelection(int index) {
+	if (m_selection != -1 && (size_t)m_selection < items.size()) {
+		items[m_selection]->deselect();
+	}
+	NanoVGListBox::SetSelection(index);
+	if (m_selection != -1 && (size_t)m_selection < items.size()) {
+		items[m_selection]->select();
+	}
+}
+
+void BrowseTileListBox::Select(int index, bool select) {
+	if (index >= 0 && (size_t)index < items.size()) {
+		if (select) {
+			items[index]->select();
+		} else {
+			items[index]->deselect();
+		}
+	}
+	NanoVGListBox::Select(index, select);
+}
+
+void BrowseTileListBox::ClearSelection() {
+	for (Item* item : items) {
+		item->deselect();
+	}
+	NanoVGListBox::ClearSelection();
 }
 
 void BrowseTileListBox::UpdateItems() {
@@ -138,13 +184,13 @@ BrowseTileWindow::BrowseTileWindow(wxWindow* parent, Tile* tile, wxPoint positio
 	wxSizer* infoSizer = newd wxBoxSizer(wxVERTICAL);
 	wxBoxSizer* buttons = newd wxBoxSizer(wxHORIZONTAL);
 	delete_button = newd wxButton(this, wxID_REMOVE, "Delete");
-	delete_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_TRASH_CAN, wxSize(16, 16)));
+	delete_button->SetBitmap(IMAGE_MANAGER.GetBitmapBundle(ICON_TRASH_CAN));
 	delete_button->SetToolTip("Delete selected item");
 	delete_button->Enable(false);
 	buttons->Add(delete_button);
 	buttons->AddSpacer(5);
 	select_raw_button = newd wxButton(this, wxID_FIND, "Select RAW");
-	select_raw_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_SEARCH, wxSize(16, 16)));
+	select_raw_button->SetBitmap(IMAGE_MANAGER.GetBitmapBundle(ICON_SEARCH));
 	select_raw_button->SetToolTip("Select this item in RAW palette");
 	select_raw_button->Enable(false);
 	buttons->Add(select_raw_button);
@@ -163,11 +209,11 @@ BrowseTileWindow::BrowseTileWindow(wxWindow* parent, Tile* tile, wxPoint positio
 	// OK/Cancel buttons
 	wxSizer* btnSizer = newd wxBoxSizer(wxHORIZONTAL);
 	auto okBtn = newd wxButton(this, wxID_OK, "OK");
-	okBtn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_CHECK, wxSize(16, 16)));
+	okBtn->SetBitmap(IMAGE_MANAGER.GetBitmapBundle(ICON_CHECK));
 	okBtn->SetToolTip("Confirm selection");
 	btnSizer->Add(okBtn, wxSizerFlags(0).Center());
 	auto cancelBtn = newd wxButton(this, wxID_CANCEL, "Cancel");
-	cancelBtn->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_XMARK, wxSize(16, 16)));
+	cancelBtn->SetBitmap(IMAGE_MANAGER.GetBitmapBundle(ICON_XMARK));
 	cancelBtn->SetToolTip("Cancel");
 	btnSizer->Add(cancelBtn, wxSizerFlags(0).Center());
 	sizer->Add(btnSizer, wxSizerFlags(0).Center().DoubleBorder());

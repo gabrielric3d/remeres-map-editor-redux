@@ -47,6 +47,9 @@ class Animator;
 #include "rendering/core/render_timer.h"
 #include "rendering/core/atlas_manager.h"
 #include "rendering/core/game_sprite.h"
+#include "rendering/core/image.h"
+#include "rendering/core/normal_image.h"
+#include "rendering/core/template_image.h"
 
 class GraphicManager {
 public:
@@ -58,6 +61,13 @@ public:
 
 	Sprite* getSprite(int id);
 	void updateTime();
+
+	void pauseAnimation() {
+		animation_timer->Pause();
+	}
+	void resumeAnimation() {
+		animation_timer->Resume();
+	}
 	GameSprite* getCreatureSprite(int id);
 	void insertSprite(int id, std::unique_ptr<Sprite> sprite);
 	// Overload for compatibility with existing raw pointer calls (takes ownership)
@@ -82,12 +92,10 @@ public:
 	// This fills the item / creature adress space
 
 	// This fills the item / creature adress space
-	bool loadOTFI(const FileName& filename, wxString& error, std::vector<std::string>& warnings);
 	bool loadSpriteMetadata(const FileName& datafile, wxString& error, std::vector<std::string>& warnings);
 	bool loadSpriteData(const FileName& datafile, wxString& error, std::vector<std::string>& warnings);
 
 	friend class GameSpriteLoader;
-	friend class OtfiLoader;
 	friend class DatLoader;
 	friend class SprLoader;
 
@@ -96,10 +104,10 @@ public:
 	void addSpriteToCleanup(GameSprite* spr);
 
 	wxFileName getMetadataFileName() const {
-		return metadata_file;
+		return client_version ? client_version->getMetadataPath() : wxFileName();
 	}
 	wxFileName getSpritesFileName() const {
-		return sprites_file;
+		return client_version ? client_version->getSpritesPath() : wxFileName();
 	}
 
 	bool hasTransparency() const;
@@ -136,7 +144,7 @@ private:
 	// These are indexed by ID for O(1) access
 	using SpriteVector = std::vector<std::unique_ptr<Sprite>>;
 	SpriteVector sprite_space;
-	using ImageVector = std::vector<std::unique_ptr<GameSprite::Image>>;
+	using ImageVector = std::vector<std::unique_ptr<Image>>;
 	ImageVector image_space;
 
 	// Editor sprites use negative IDs, so they need a separate map
@@ -150,22 +158,18 @@ private:
 	DatFormat dat_format;
 	uint16_t item_count;
 	uint16_t creature_count;
-	bool otfi_found;
 	bool is_extended;
 	bool has_transparency;
 	bool has_frame_durations;
 	bool has_frame_groups;
-	wxFileName metadata_file;
-	wxFileName sprites_file;
-
 	TextureGarbageCollector collector;
 
 	std::unique_ptr<RenderTimer> animation_timer;
 	time_t cached_time_ = 0;
 
-	friend class GameSprite::Image;
-	friend class GameSprite::NormalImage;
-	friend class GameSprite::TemplateImage;
+	friend class Image;
+	friend class NormalImage;
+	friend class TemplateImage;
 	friend class SpritePreloader;
 };
 

@@ -69,6 +69,7 @@ GUI::GUI() :
 	tabbook(nullptr),
 	root(nullptr),
 	tool_options(nullptr),
+	tile_properties_panel(nullptr),
 	pasting(false),
 	disabled_counter(0),
 	hotkeys_enabled(true) {
@@ -130,7 +131,7 @@ void GUI::SetSelectionMode() {
 		return;
 	}
 
-	if (GetCurrentBrush() && GetCurrentBrush()->isDoodad()) {
+	if (GetCurrentBrush() && GetCurrentBrush()->is<DoodadBrush>()) {
 		if (mapTab) {
 			mapTab->GetSession()->secondary_map = nullptr;
 		}
@@ -147,7 +148,7 @@ void GUI::SetDrawingMode() {
 
 	mapTab->OnSwitchEditorMode(DRAWING_MODE);
 
-	if (GetCurrentBrush() && GetCurrentBrush()->isDoodad()) {
+	if (GetCurrentBrush() && GetCurrentBrush()->is<DoodadBrush>()) {
 		if (mapTab) {
 			mapTab->GetSession()->secondary_map = g_doodad_preview.GetBufferMap();
 		}

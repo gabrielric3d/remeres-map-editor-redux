@@ -13,6 +13,11 @@
 #include "app/settings.h"
 #include "brushes/brush_utility.h"
 #include "editor/editor.h"
+#include "brushes/door/door_brush.h"
+#include "brushes/wall/wall_brush.h"
+#include "brushes/ground/ground_brush.h"
+#include "brushes/table/table_brush.h"
+#include "brushes/carpet/carpet_brush.h"
 
 AutoborderPreviewManager g_autoborder_preview;
 
@@ -79,8 +84,8 @@ void AutoborderPreviewManager::CopyMapArea(Editor& editor, const Position& pos) 
 			if (src_tile) {
 				// deeply copies tile and its items to buffer map
 				// deepCopy now correctly uses the destination map's TileLocation
-				std::unique_ptr<Tile> new_tile = src_tile->deepCopy(*preview_buffer_map);
-				preview_buffer_map->setTile(std::move(new_tile));
+				std::unique_ptr<Tile> new_tile = TileOperations::deepCopy(src_tile, *preview_buffer_map);
+				(void)preview_buffer_map->setTile(std::move(new_tile));
 			}
 		}
 	}
@@ -92,8 +97,8 @@ void AutoborderPreviewManager::SimulateBrush(Editor& editor, const Position& pos
 		return;
 	}
 
-	bool is_wall = brush->isWall() || brush->isDoor();
-	bool is_ground = brush->isGround();
+	bool is_wall = brush->is<WallBrush>() || brush->is<DoorBrush>();
+	bool is_ground = brush->is<GroundBrush>();
 
 	// Apply draw
 	for (const auto& p : tilestodraw) {
@@ -107,7 +112,7 @@ void AutoborderPreviewManager::SimulateBrush(Editor& editor, const Position& pos
 		ASSERT(tile->getLocation() != nullptr);
 
 		if (is_wall) {
-			TileOperations::cleanWalls(tile, false);
+			TileOperations::cleanWalls(tile);
 		} else if (is_ground) {
 			TileOperations::cleanBorders(tile);
 		}
@@ -134,10 +139,10 @@ void AutoborderPreviewManager::ApplyBorders(const std::vector<Position>& tilesto
 		return;
 	}
 
-	bool is_eraser = brush->isEraser();
-	bool is_wall = brush->isWall() || brush->isDoor();
-	bool is_table = brush->isTable();
-	bool is_carpet = brush->isCarpet();
+	bool is_eraser = brush->is<EraserBrush>();
+	bool is_wall = brush->is<WallBrush>() || brush->is<DoorBrush>();
+	bool is_table = brush->is<TableBrush>();
+	bool is_carpet = brush->is<CarpetBrush>();
 
 	auto process_tile = [&](const Position& p) {
 		Tile* tile = preview_buffer_map->getTile(p);
@@ -201,7 +206,7 @@ void AutoborderPreviewManager::PruneUnchanged(Editor& editor, const Position& po
 
 			if (equal) {
 				// Remove unmodified tile from buffer to prevent ghosting
-				preview_buffer_map->setTile(x, y, z, std::unique_ptr<Tile>());
+				(void)preview_buffer_map->setTile(x, y, z, std::unique_ptr<Tile>());
 			}
 		}
 	}

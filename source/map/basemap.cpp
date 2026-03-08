@@ -29,17 +29,15 @@ BaseMap::BaseMap() :
 }
 
 void BaseMap::clear(bool del) {
-	PositionVector pos_vec;
-	for (MapIterator map_iter = begin(); map_iter != end(); ++map_iter) {
-		Tile* t = map_iter->get();
-		pos_vec.push_back(t->getPosition());
-	}
-	for (PositionVector::iterator pos_iter = pos_vec.begin(); pos_iter != pos_vec.end(); ++pos_iter) {
-		std::unique_ptr<Tile> t = setTile(*pos_iter, nullptr);
-		if (!del) {
-			t.release();
+	std::ranges::for_each(tiles(), [&](auto& loc) {
+		if (loc.tile) {
+			std::unique_ptr<Tile> t = std::move(loc.tile);
+			if (!del) {
+				t.release();
+			}
+			--tilecount;
 		}
-	}
+	});
 }
 
 void BaseMap::clearVisible(uint32_t mask) {
@@ -83,9 +81,16 @@ TileLocation* BaseMap::getTileL(int x, int y, int z) {
 }
 
 const TileLocation* BaseMap::getTileL(int x, int y, int z) const {
-	// Don't create static const maps!
-	BaseMap* self = const_cast<BaseMap*>(this);
-	return self->getTileL(x, y, z);
+	ASSERT(z < MAP_LAYERS);
+	const MapNode* leaf = grid.getLeaf(x, y);
+	if (leaf) {
+		const Floor* floor = leaf->getFloor(z);
+		if (floor) {
+			return &floor->locs[(x & 3) * 4 + (y & 3)];
+		}
+	}
+
+	return nullptr;
 }
 
 TileLocation* BaseMap::getTileL(const Position& pos) {
@@ -140,7 +145,7 @@ MapIterator::MapIterator(BaseMap* _map) :
 	current_tile(nullptr),
 	map(_map) {
 	if (map) {
-		cell_it = map->grid.cells.begin();
+		cell_it = map->grid.cells_.begin();
 	}
 }
 
@@ -156,13 +161,13 @@ MapIterator::MapIterator(const MapIterator& other) :
 
 MapIterator BaseMap::begin() {
 	MapIterator it(this);
-	it.cell_it = grid.cells.begin();
+	it.cell_it = grid.cells_.begin();
 	it.node_i = 0;
 	it.floor_i = 0;
 	it.tile_i = 0;
 	it.current_tile = nullptr;
 
-	if (it.cell_it != grid.cells.end()) {
+	if (it.cell_it != grid.cells_.end()) {
 		if (!it.findNext()) {
 			return end();
 		}
@@ -174,7 +179,7 @@ MapIterator BaseMap::begin() {
 
 MapIterator BaseMap::end() {
 	MapIterator it(this);
-	it.cell_it = grid.cells.end();
+	it.cell_it = grid.cells_.end();
 	it.current_tile = nullptr;
 	return it;
 }
@@ -188,7 +193,7 @@ bool MapIterator::operator==(const MapIterator& other) const noexcept {
 		return false;
 	}
 	if (cell_it == other.cell_it) {
-		if (map && cell_it == map->getGrid().cells.end()) {
+		if (map && cell_it == map->getGrid().cells_.end()) {
 			return true;
 		}
 		return node_i == other.node_i && floor_i == other.floor_i && tile_i == other.tile_i;
@@ -197,8 +202,8 @@ bool MapIterator::operator==(const MapIterator& other) const noexcept {
 }
 
 bool MapIterator::findNext() {
-	while (cell_it != map->grid.cells.end()) {
-		SpatialHashGrid::GridCell* cell = cell_it->second.get();
+	while (cell_it != map->grid.cells_.end()) {
+		SpatialHashGrid::GridCell* cell = cell_it->cell.get();
 		if (!cell) {
 			++cell_it;
 			continue;

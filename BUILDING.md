@@ -30,30 +30,73 @@ C:\vcpkg\bootstrap-vcpkg.bat
 ```cmd
 build_windows.bat
 ```
-Output: `build\Release\rme.exe`  
-Log: `build.log`
+This script will:
+1. Configure the project using CMake and vcpkg.
+2. **Regenerate the Visual Studio solution** in `build\rme.sln` using CMake presets.
+3. Perform a parallel build of the project.
+
+**Project Output:** `build\Release\rme.exe`  
+**VS Solution:** `build\rme.sln` (Use this file for development)  
+**Build Log:** `build.log`
+
+---
+
+## Standalone Visual Studio Workspace
+
+If you prefer to work natively in Visual Studio 2022 without using the automated build scripts, you can generate a dedicated workspace:
+
+1.  Run `generate_vcproj.bat`.
+2.  Open `vcproj\rme.sln`.
+
+This will create a permanent solution in the `vcproj\ ` folder that is fully configured with all dependencies.
+
+> [!TIP]
+> Use `build_windows.bat` for quick automated builds and `generate_vcproj.bat` when you want a persistent IDE environment.
+
+> [!IMPORTANT]
+> The solution is now automatically managed by CMake. You can open `build/rme.sln` or `vcproj/rme.sln` directly to work on the project, and it will stay in sync with the source code.
 
 ---
 
 ## Linux (Ubuntu) Setup
 
-### 1. Install Build Tools & wxWidgets
+### 1. Install Dependencies
+You can use the optimized setup script which handles both `apt` and `Conan` dependencies:
+
 ```bash
-sudo apt update
-sudo apt install -y build-essential cmake git python3 python3-pip ninja-build
-sudo apt install -y libgtk-3-dev libgl1-mesa-dev libglu1-mesa-dev libwxgtk3.2-dev
+chmod +x setup_conan.sh
+./setup_conan.sh
 ```
 
-### 2. Install Conan
-```bash
-pip3 install conan
-export PATH="$HOME/.local/bin:$PATH"  # Add to ~/.bashrc
-```
+> [!NOTE]
+> This script is optimized for **Jules AI** and low-resource environments. It uses local gitignored directories for logs and ensures that only necessary binary libraries are downloaded.
+> Since Linux only fetches a few small libraries from Conan (the rest are from `apt`), it uses `--build=missing` to guarantee a successful run without wasting time.
 
-### 3. Build
+### 2. Build
+
+#### Option A: Optimized Clang Build (Recommended for AI/Jules)
+This is the fastest build path, using `Clang`, `Ninja`, and `Mold`. It is specifically optimized to run on 8GB RAM without timing out.
+
 ```bash
-chmod +x build_linux.sh
-./build_linux.sh
+chmod +x build_clang.sh
+./build_clang.sh
 ```
-Output: `build_conan/build/rme`  
-Log: `build.log`
+- **Mode:** Debug (`-O0 -g0` for maximum speed)
+- **Parallelism:** Limited to 2 jobs to prevent OOM.
+- **Output:** `build_clang/build/Debug/rme`
+- **Log:** `build_clang/build_clang.log` (Errors are also printed to screen)
+
+#### Option B: Standard GCC Build
+```bash
+chmod +x linux_build.sh
+./linux_build.sh
+```
+- **Output:** `linux_build/build/Release/rme`
+- **Log:** `linux_build/build_linux.log`
+
+---
+
+## Technical Notes for Jules AI
+- Use `setup_conan.sh` for initial environment setup.
+- Always use `build_clang.sh` for compilation. It is designed to be "blazing fast" and "token efficient" by only echoing errors to the terminal.
+- Optimized scripts use gitignored directories (`build_conan/` and `build_clang/`) to ensure the workspace remains clean for integrity checks. Standard builds use `linux_build/`.

@@ -32,26 +32,35 @@ void FloorDrawer::draw(SpriteBatch& sprite_batch, ItemDrawer* item_drawer, Sprit
 				if (tile) {
 					int offset;
 					if (map_z <= GROUND_LAYER) {
-						offset = (GROUND_LAYER - map_z) * TileSize;
+						offset = (GROUND_LAYER - map_z) * TILE_SIZE;
 					} else {
-						offset = TileSize * (view.floor - map_z);
+						offset = TILE_SIZE * (view.floor - map_z);
 					}
 
-					int draw_x = ((map_x * TileSize) - view.view_scroll_x) - offset;
-					int draw_y = ((map_y * TileSize) - view.view_scroll_y) - offset;
+					int draw_x = ((map_x * TILE_SIZE) - view.view_scroll_x) - offset;
+					int draw_y = ((map_y * TILE_SIZE) - view.view_scroll_y) - offset;
 
 					// Position pos = tile->getPosition();
 
 					if (tile->ground) {
+						BlitItemParams params(tile, tile->ground.get(), options);
+						params.alpha = 96;
 						if (tile->isPZ()) {
-							item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, tile, tile->ground.get(), options, false, 128, 255, 128, 96);
+							params.red = 128;
+							params.green = 255;
+							params.blue = 128;
 						} else {
-							item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, tile, tile->ground.get(), options, false, 255, 255, 255, 96);
+							params.red = 255;
+							params.green = 255;
+							params.blue = 255;
 						}
+						item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, params);
 					}
 					if (view.zoom <= 10.0 || !options.hide_items_when_zoomed) {
 						for (const auto& item : tile->items) {
-							item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, tile, item.get(), options, false, 255, 255, 255, 96);
+							BlitItemParams params(tile, item.get(), options);
+							params.alpha = 96;
+							item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, params);
 						}
 					}
 				}

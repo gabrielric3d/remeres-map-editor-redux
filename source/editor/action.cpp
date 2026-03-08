@@ -15,12 +15,14 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
+#include "map/tile_operations.h"
 #include "app/main.h"
 
 #include "editor/action.h"
 #include "editor/dirty_list.h"
 #include "app/settings.h"
 #include "map/map.h"
+#include "map/tile.h"
 #include "editor/editor.h"
 #include "ui/gui.h"
 
@@ -32,10 +34,9 @@ Change::Change() :
 	////
 }
 
-Change::Change(Tile* t) :
-	type(CHANGE_TILE) {
-	ASSERT(t);
-	data = std::unique_ptr<Tile>(t);
+Change::Change(std::unique_ptr<Tile> t) :
+	type(CHANGE_TILE), data(std::move(t)) {
+	ASSERT(std::get<std::unique_ptr<Tile>>(data));
 }
 
 Change* Change::Create(House* house, const Position& where) {
@@ -147,7 +148,6 @@ void Action::commit(DirtyList* dirty_list) {
 					if (!nd || !nd->isVisible(pos.z > GROUND_LAYER)) {
 						// Delete all changes that affect tiles outside our view
 						c->clear();
-						uptr.reset();
 						++it;
 						continue;
 					}
@@ -162,7 +162,7 @@ void Action::commit(DirtyList* dirty_list) {
 					dirty_list->AddPosition(pos.x, pos.y, pos.z);
 				}
 
-				newtile->update();
+				TileOperations::update(newtile);
 
 				if (newtile->isSelected()) {
 					editor.selection.addInternal(newtile);

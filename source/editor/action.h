@@ -20,6 +20,7 @@
 
 #include "map/position.h"
 #include "game/camera_paths.h"
+#include "map/tile.h"
 
 #include <cstdint>
 #include <deque>
@@ -69,7 +70,7 @@ private:
 	Change();
 
 public:
-	Change(Tile* tile);
+	explicit Change(std::unique_ptr<Tile> tile);
 	static Change* Create(House* house, const Position& where);
 	static Change* Create(Waypoint* wp, const Position& where);
 	static Change* Create(const CameraPathsSnapshot& snapshot);

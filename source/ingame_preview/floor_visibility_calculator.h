@@ -15,7 +15,7 @@ namespace IngamePreview {
 	 *
 	 * Implements OTClient's floor visibility algorithm:
 	 * - On surface (Z <= 7): Sees floors 0-7, upper floors hidden by roofs
-	 * - Underground (Z > 7): Sees Z ± 2 floors
+	 * - Underground (Z > 7): Sees Z Â± 2 floors
 	 */
 	class FloorVisibilityCalculator {
 	public:
@@ -25,22 +25,22 @@ namespace IngamePreview {
 		/**
 		 * Calculate first (topmost) visible floor from camera position.
 		 */
-		int CalcFirstVisibleFloor(const BaseMap& map, int camera_x, int camera_y, int camera_z) const;
+		[[nodiscard]] int CalcFirstVisibleFloor(const BaseMap& map, int camera_x, int camera_y, int camera_z) const;
 
 		/**
 		 * Calculate last (deepest) visible floor from camera position.
 		 */
-		int CalcLastVisibleFloor(int camera_z) const;
+		[[nodiscard]] int CalcLastVisibleFloor(int camera_z) const;
 
 		/**
 		 * Check if a tile limits the view of floors above it (roofs/solid ground).
 		 */
-		bool TileLimitsFloorsView(const Tile* tile) const;
+		[[nodiscard]] bool TileLimitsFloorsView(const Tile* tile) const;
 
 		/**
 		 * Check if a tile allows looking through (windows, certain doors).
 		 */
-		bool IsLookPossible(const Tile* tile) const;
+		[[nodiscard]] bool IsLookPossible(const Tile* tile) const;
 
 	private:
 		static constexpr int AWARE_UNDERGROUND_FLOOR_RANGE = 2;

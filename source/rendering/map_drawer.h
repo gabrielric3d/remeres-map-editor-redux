@@ -96,6 +96,7 @@ class MapDrawer {
 	std::unique_ptr<GLTextureResource> scale_texture;
 	int fbo_width = 0;
 	int fbo_height = 0;
+	bool m_lastAaMode = false;
 
 	std::unique_ptr<GLVertexArray> pp_vao;
 	std::unique_ptr<GLBuffer> pp_vbo;
@@ -122,9 +123,9 @@ public:
 	void DrawBackground();
 	void DrawMap();
 	void DrawLiveCursors();
-	void DrawIngameBox();
+	void DrawIngameBox(const ViewBounds& bounds);
 
-	void DrawGrid();
+	void DrawGrid(const ViewBounds& bounds);
 	void DrawTooltips(NVGcontext* vg);
 	void DrawHookIndicators(NVGcontext* vg);
 	void DrawDoorIndicators(NVGcontext* vg);

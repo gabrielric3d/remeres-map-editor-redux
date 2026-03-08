@@ -23,9 +23,17 @@
 #include <stdexcept>
 #include <string>
 #include <stack>
+
 #include <stdio.h>
 #include <memory>
+#include <type_traits>
 #include <vector>
+#include <format>
+#include <iterator>
+#include <cstring>
+
+class wxFileName;
+using FileName = wxFileName;
 
 #ifndef FORCEINLINE
 	#ifdef _MSV_VER
@@ -61,8 +69,11 @@ struct FileDeleter {
 };
 using FilePtr = std::unique_ptr<FILE, FileDeleter>;
 
-class FileHandle : boost::noncopyable {
+class FileHandle {
 public:
+	FileHandle(const FileHandle&) = delete;
+	FileHandle& operator=(const FileHandle&) = delete;
+
 	FileHandle() :
 		error_code(FILE_NO_ERROR), file(nullptr) { }
 	virtual ~FileHandle() {
@@ -174,9 +185,82 @@ public:
 	bool getString(std::string& str);
 	bool getLongString(std::string& str);
 
+	// Diagnostic accessors
+	size_t getDataSize() const {
+		return data.size();
+	}
+	size_t getReadOffset() const {
+		return read_offset;
+	}
+	std::string hexDump(size_t maxBytes = 32) const {
+		size_t count = std::min(maxBytes, data.size());
+		std::string result;
+		result.reserve(count * 3 + (data.size() > maxBytes ? 3 : 0));
+
+		for (size_t i = 0; i < count; ++i) {
+			std::format_to(std::back_inserter(result), "{:02X} ", static_cast<uint8_t>(data[i]));
+		}
+
+		if (data.size() > maxBytes) {
+			result += "...";
+		}
+		return result;
+	}
+
 	BinaryNode* getChild();
 	// Returns this on success, nullptr on failure
 	BinaryNode* advance();
+
+	// Range support (Single-pass input iterator)
+	struct Iterator {
+		using iterator_category = std::input_iterator_tag;
+		using value_type = BinaryNode*;
+		using difference_type = std::ptrdiff_t;
+		using pointer = BinaryNode*;
+		using reference = BinaryNode*;
+
+		BinaryNode* current;
+
+		Iterator(BinaryNode* node) : current(node) { }
+
+		BinaryNode* operator*() const {
+			return current;
+		}
+		BinaryNode* operator->() const {
+			return current;
+		}
+		Iterator& operator++() {
+			if (current) {
+				current = current->advance();
+			}
+			return *this;
+		}
+		Iterator operator++(int) {
+			Iterator tmp = *this;
+			++(*this);
+			return tmp;
+		}
+		bool operator!=(const Iterator& other) const {
+			return current != other.current;
+		}
+		bool operator==(const Iterator& other) const {
+			return current == other.current;
+		}
+	};
+
+	struct ChildRange {
+		BinaryNode* parent;
+		Iterator begin() {
+			return Iterator(parent->getChild());
+		}
+		Iterator end() {
+			return Iterator(nullptr);
+		}
+	};
+
+	ChildRange children() {
+		return ChildRange { this };
+	}
 
 protected:
 	template <class T>
@@ -341,6 +425,13 @@ public:
 		return addRAW(reinterpret_cast<const uint8_t*>(c), strlen(c));
 	}
 
+	template <typename T>
+		requires std::is_trivially_copyable_v<T>
+	bool addValue(T val) {
+		writeBytes(reinterpret_cast<uint8_t*>(&val), sizeof(val));
+		return error_code == FILE_NO_ERROR;
+	}
+
 protected:
 	virtual bool renewCache() = 0;
 
@@ -353,25 +444,23 @@ protected:
 	size_t local_write_index;
 
 	FORCEINLINE void writeBytes(const uint8_t* ptr, size_t sz) {
-		if (sz) {
-			do {
-				if (*ptr == NODE_START || *ptr == NODE_END || *ptr == ESCAPE_CHAR) {
-					cache[local_write_index++] = ESCAPE_CHAR;
-					if (local_write_index >= cache.size()) {
-						if (!renewCache()) {
-							return;
-						}
-					}
-				}
-				cache[local_write_index++] = *ptr;
+		while (sz > 0) {
+			if (*ptr == NODE_START || *ptr == NODE_END || *ptr == ESCAPE_CHAR) {
+				cache[local_write_index++] = ESCAPE_CHAR;
 				if (local_write_index >= cache.size()) {
 					if (!renewCache()) {
 						return;
 					}
 				}
-				++ptr;
-				--sz;
-			} while (sz != 0);
+			}
+			cache[local_write_index++] = *ptr;
+			if (local_write_index >= cache.size()) {
+				if (!renewCache()) {
+					return;
+				}
+			}
+			++ptr;
+			--sz;
 		}
 	}
 };

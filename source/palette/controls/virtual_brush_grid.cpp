@@ -8,7 +8,21 @@
 #include <nanovg.h>
 #include <nanovg_gl.h>
 
+#include "util/nvg_utils.h"
+#include "ui/theme.h"
+
 #include <spdlog/spdlog.h>
+
+namespace {
+	static constexpr float GROW_FACTOR = 2.0f;
+	static constexpr float SHADOW_ALPHA_BASE = 20.0f;
+	static constexpr float SHADOW_ALPHA_FACTOR = 64.0f;
+	static constexpr float SHADOW_BLUR_BASE = 6.0f;
+	static constexpr float SHADOW_BLUR_FACTOR = 4.0f;
+	static constexpr int TIMER_INTERVAL = 16;
+	static constexpr float INTER_THRESHOLD = 0.01f;
+	static constexpr float INTER_FACTOR = 0.2f;
+}
 
 VirtualBrushGrid::VirtualBrushGrid(wxWindow* parent, const TilesetCategory* _tileset, RenderSize rsz) :
 	NanoVGCanvas(parent, wxID_ANY, wxVSCROLL | wxWANTS_CHARS),
@@ -19,7 +33,7 @@ VirtualBrushGrid::VirtualBrushGrid(wxWindow* parent, const TilesetCategory* _til
 	columns(1),
 	item_size(0),
 	padding(4),
-	m_animTimer(new wxTimer(this)) {
+	m_animTimer(this) {
 
 	if (icon_size == RENDER_SIZE_16x16) {
 		item_size = 18;
@@ -35,10 +49,7 @@ VirtualBrushGrid::VirtualBrushGrid(wxWindow* parent, const TilesetCategory* _til
 	UpdateLayout();
 }
 
-VirtualBrushGrid::~VirtualBrushGrid() {
-	m_animTimer->Stop();
-	delete m_animTimer;
-}
+VirtualBrushGrid::~VirtualBrushGrid() = default;
 
 void VirtualBrushGrid::SetDisplayMode(DisplayMode mode) {
 	if (display_mode != mode) {
@@ -93,6 +104,15 @@ void VirtualBrushGrid::DrawBrushItem(NVGcontext* vg, int i, const wxRect& rect) 
 	float w = static_cast<float>(rect.width);
 	float h = static_cast<float>(rect.height);
 
+	// Animation scaling
+	if (i == hover_index) {
+		float grow = GROW_FACTOR * hover_anim;
+		x -= grow;
+		y -= grow;
+		w += grow * 2.0f;
+		h += grow * 2.0f;
+	}
+
 	// Shadow / Glow
 	if (i == selected_index) {
 		// Glow for selected
@@ -104,10 +124,12 @@ void VirtualBrushGrid::DrawBrushItem(NVGcontext* vg, int i, const wxRect& rect) 
 		nvgFillPaint(vg, shadowPaint);
 		nvgFill(vg);
 	} else if (i == hover_index) {
-		// Subtle shadow/glow for hover
-		NVGpaint shadowPaint = nvgBoxGradient(vg, x, y + 2, w, h, 4.0f, 6.0f, nvgRGBA(0, 0, 0, 64), nvgRGBA(0, 0, 0, 0));
+		// Animated shadow for hover
+		float shadowAlpha = SHADOW_ALPHA_FACTOR * hover_anim + SHADOW_ALPHA_BASE;
+		float shadowBlur = SHADOW_BLUR_BASE + SHADOW_BLUR_FACTOR * hover_anim;
+		NVGpaint shadowPaint = nvgBoxGradient(vg, x, y + 2, w, h, 4.0f, shadowBlur, nvgRGBA(0, 0, 0, static_cast<int>(shadowAlpha)), nvgRGBA(0, 0, 0, 0));
 		nvgBeginPath(vg);
-		nvgRect(vg, x - 5, y - 5, w + 10, h + 10);
+		nvgRect(vg, x - 10, y - 10, w + 20, h + 20);
 		nvgRoundedRect(vg, x, y, w, h, 4.0f);
 		nvgPathWinding(vg, NVG_HOLE);
 		nvgFillPaint(vg, shadowPaint);
@@ -119,13 +141,14 @@ void VirtualBrushGrid::DrawBrushItem(NVGcontext* vg, int i, const wxRect& rect) 
 	nvgRoundedRect(vg, x, y, w, h, 4.0f);
 
 	if (i == selected_index) {
-		nvgFillColor(vg, nvgRGBA(80, 100, 120, 255));
+		NVGcolor selCol = NvgUtils::ToNvColor(Theme::Get(Theme::Role::Accent));
+		selCol.a = 1.0f; // Force opaque for background
+		nvgFillColor(vg, selCol);
 	} else if (i == hover_index) {
-		nvgFillColor(vg, nvgRGBA(70, 70, 75, 255));
+		nvgFillColor(vg, NvgUtils::ToNvColor(Theme::Get(Theme::Role::CardBaseHover)));
 	} else {
-		// Normal - dark card with subtle gradient
-		NVGpaint bgPaint = nvgLinearGradient(vg, x, y, x, y + h, nvgRGBA(60, 60, 65, 255), nvgRGBA(50, 50, 55, 255));
-		nvgFillPaint(vg, bgPaint);
+		// Normal - theme card base
+		nvgFillColor(vg, NvgUtils::ToNvColor(Theme::Get(Theme::Role::CardBase)));
 	}
 	nvgFill(vg);
 
@@ -133,7 +156,7 @@ void VirtualBrushGrid::DrawBrushItem(NVGcontext* vg, int i, const wxRect& rect) 
 	if (i == selected_index) {
 		nvgBeginPath(vg);
 		nvgRoundedRect(vg, x + 0.5f, y + 0.5f, w - 1.0f, h - 1.0f, 4.0f);
-		nvgStrokeColor(vg, nvgRGBA(100, 180, 255, 255));
+		nvgStrokeColor(vg, NvgUtils::ToNvColor(Theme::Get(Theme::Role::Accent)));
 		nvgStrokeWidth(vg, 2.0f);
 		nvgStroke(vg);
 	}
@@ -168,7 +191,7 @@ void VirtualBrushGrid::DrawBrushItem(NVGcontext* vg, int i, const wxRect& rect) 
 			nvgFontSize(vg, 14.0f);
 			nvgFontFace(vg, "sans");
 			nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
-			nvgFillColor(vg, nvgRGBA(255, 255, 255, 255));
+			nvgFillColor(vg, NvgUtils::ToNvColor(Theme::Get(Theme::Role::Text)));
 
 			auto it = m_utf8NameCache.find(brush);
 			if (it == m_utf8NameCache.end()) {
@@ -263,7 +286,15 @@ void VirtualBrushGrid::OnMotion(wxMouseEvent& event) {
 
 	if (index != hover_index) {
 		hover_index = index;
+		if (index != -1) {
+			hover_anim = 0.0f; // Reset animation for new target
+		}
+		if (!m_animTimer.IsRunning()) {
+			m_animTimer.Start(TIMER_INTERVAL);
+		}
 		Refresh();
+	} else if (hover_index != -1 && !m_animTimer.IsRunning()) {
+		m_animTimer.Start(TIMER_INTERVAL);
 	}
 
 	// Tooltip
@@ -283,8 +314,16 @@ void VirtualBrushGrid::OnMotion(wxMouseEvent& event) {
 }
 
 void VirtualBrushGrid::OnTimer(wxTimerEvent& event) {
-	// Animation tick for hover effects (optional - can be enhanced later)
-	Refresh();
+	float target = (hover_index != -1) ? 1.0f : 0.0f;
+	if (std::abs(hover_anim - target) > INTER_THRESHOLD) {
+		hover_anim += (target - hover_anim) * INTER_FACTOR;
+		Refresh();
+	} else {
+		hover_anim = target;
+		if (hover_index == -1) {
+			m_animTimer.Stop();
+		}
+	}
 }
 
 void VirtualBrushGrid::OnSize(wxSizeEvent& event) {

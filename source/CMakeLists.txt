@@ -5,6 +5,12 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/app/extension.h
     ${CMAKE_CURRENT_LIST_DIR}/app/main.h
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences.h
+    ${CMAKE_CURRENT_LIST_DIR}/app/preferences/preferences_page.h
+    ${CMAKE_CURRENT_LIST_DIR}/app/preferences/general_page.h
+    ${CMAKE_CURRENT_LIST_DIR}/app/preferences/editor_page.h
+    ${CMAKE_CURRENT_LIST_DIR}/app/preferences/graphics_page.h
+    ${CMAKE_CURRENT_LIST_DIR}/app/preferences/interface_page.h
+    ${CMAKE_CURRENT_LIST_DIR}/app/preferences/client_version_page.h
     ${CMAKE_CURRENT_LIST_DIR}/app/rme_forward_declarations.h
     ${CMAKE_CURRENT_LIST_DIR}/app/settings.h
     ${CMAKE_CURRENT_LIST_DIR}/app/threads.h
@@ -70,6 +76,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/game/house.h
     ${CMAKE_CURRENT_LIST_DIR}/game/item.h
     ${CMAKE_CURRENT_LIST_DIR}/game/item_attributes.h
+    ${CMAKE_CURRENT_LIST_DIR}/game/item_loaders.h
     ${CMAKE_CURRENT_LIST_DIR}/game/items.h
     ${CMAKE_CURRENT_LIST_DIR}/game/materials.h
     ${CMAKE_CURRENT_LIST_DIR}/game/outfit.h
@@ -91,11 +98,16 @@ set(rme_H
 
     ${CMAKE_CURRENT_LIST_DIR}/io/filehandle.h
     ${CMAKE_CURRENT_LIST_DIR}/io/loaders/dat_loader.h
-    ${CMAKE_CURRENT_LIST_DIR}/io/loaders/otfi_loader.h
+
     ${CMAKE_CURRENT_LIST_DIR}/io/loaders/spr_loader.h
     ${CMAKE_CURRENT_LIST_DIR}/io/iomap.h
     ${CMAKE_CURRENT_LIST_DIR}/io/iomap_otbm.h
-    #${CMAKE_CURRENT_LIST_DIR}/io/iomap_otmm.h
+    ${CMAKE_CURRENT_LIST_DIR}/io/map_xml_io.h
+    ${CMAKE_CURRENT_LIST_DIR}/io/otbm/item_serialization_otbm.h
+    ${CMAKE_CURRENT_LIST_DIR}/io/otbm/header_serialization_otbm.h
+    ${CMAKE_CURRENT_LIST_DIR}/io/otbm/waypoint_serialization_otbm.h
+    ${CMAKE_CURRENT_LIST_DIR}/io/otbm/tile_serialization_otbm.h
+    ${CMAKE_CURRENT_LIST_DIR}/io/otbm/town_serialization_otbm.h
     ${CMAKE_CURRENT_LIST_DIR}/io/templates.h
     ${CMAKE_CURRENT_LIST_DIR}/live/live_action.h
     ${CMAKE_CURRENT_LIST_DIR}/live/live_client.h
@@ -112,7 +124,9 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/map/map_region.h
     ${CMAKE_CURRENT_LIST_DIR}/map/map_search.h
     ${CMAKE_CURRENT_LIST_DIR}/map/map_statistics.h
-    ${CMAKE_CURRENT_LIST_DIR}/map/otml.h
+    ${CMAKE_CURRENT_LIST_DIR}/map/map_converter.h
+    ${CMAKE_CURRENT_LIST_DIR}/map/map_spawn_manager.h
+
     ${CMAKE_CURRENT_LIST_DIR}/map/position.h
     ${CMAKE_CURRENT_LIST_DIR}/map/spatial_hash_grid.h
     ${CMAKE_CURRENT_LIST_DIR}/map/tile.h
@@ -139,6 +153,10 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/editor_sprite.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/game_sprite.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/graphics.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/image.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/normal_image.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/template_image.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/sprite_preloader.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/light_buffer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/minimap_colors.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/multi_draw_indirect_renderer.h
@@ -210,6 +228,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/artprovider.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/browse_tile_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/controls/item_buttons.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/controls/outfit_color_palette.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/controls/sortable_list_box.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/controls/modern_button.h
 
@@ -226,6 +245,19 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/writable_properties_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/splash_properties_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/depot_properties_window.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/tile_properties_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/browse_field_list.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/spawn_creature_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/map_flags_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/custom_property_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/item_property_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/container_grid_canvas.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/container_property_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/depot_property_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/teleport_property_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/door_property_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/spawn_property_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/creature_property_panel.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dat_debug_view.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dcbutton.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialog_helper.h
@@ -254,6 +286,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/managers/welcome_manager.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/managers/gl_context_manager.h
 
+    ${CMAKE_CURRENT_LIST_DIR}/ui/theme.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/main_frame.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/main_menubar.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/menubar/menubar_action_manager.h
@@ -294,35 +327,13 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/util/con_vector.h
     ${CMAKE_CURRENT_LIST_DIR}/util/json.h
     ${CMAKE_CURRENT_LIST_DIR}/util/nanovg_canvas.h
+    ${CMAKE_CURRENT_LIST_DIR}/util/nanovg_listbox.h
+    ${CMAKE_CURRENT_LIST_DIR}/util/virtual_item_grid.h
 )
 
-include(FetchContent)
-FetchContent_Declare(
-    wxmaterialdesignartprovider
-    GIT_REPOSITORY https://github.com/perazz/wxMaterialDesignArtProvider.git
-    GIT_TAG        main
-)
-FetchContent_GetProperties(wxmaterialdesignartprovider)
-if(NOT wxmaterialdesignartprovider_POPULATED)
-    FetchContent_Populate(wxmaterialdesignartprovider)
-endif()
-
-include_directories(${wxmaterialdesignartprovider_SOURCE_DIR})
 
 set(rme_H
     ${rme_H}
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxAwesomeBrandsArt.hpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxAwesomeRegularArt.hpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxAwesomeSolidArt.hpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxFluentuiFilledArt.hpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxFluentuiRegularArt.hpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxMaterialDesignArtProvider.hpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxMaterialFilledArt.hpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxMaterialOutlinedArt.hpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxMaterialRoundArt.hpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxMaterialSharpArt.hpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxMaterialTwoToneArt.hpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxSimpleIconsArt.hpp
 )
 
 set(rme_SRC
@@ -330,6 +341,11 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/app/client_version.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/extension.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/app/preferences/general_page.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/app/preferences/editor_page.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/app/preferences/graphics_page.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/app/preferences/interface_page.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/app/preferences/client_version_page.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/settings.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/updater.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/managers/version_manager.cpp
@@ -395,6 +411,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/game/house.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/item.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/item_attributes.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/game/item_loaders.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/items.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/materials.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/spawn.cpp
@@ -414,11 +431,16 @@ set(rme_SRC
 
     ${CMAKE_CURRENT_LIST_DIR}/io/filehandle.cpp
     ${CMAKE_CURRENT_LIST_DIR}/io/loaders/dat_loader.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/io/loaders/otfi_loader.cpp
+
     ${CMAKE_CURRENT_LIST_DIR}/io/loaders/spr_loader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/io/iomap.cpp
     ${CMAKE_CURRENT_LIST_DIR}/io/iomap_otbm.cpp
-    #${CMAKE_CURRENT_LIST_DIR}/io/iomap_otmm.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/io/map_xml_io.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/io/otbm/item_serialization_otbm.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/io/otbm/header_serialization_otbm.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/io/otbm/waypoint_serialization_otbm.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/io/otbm/tile_serialization_otbm.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/io/otbm/town_serialization_otbm.cpp
     ${CMAKE_CURRENT_LIST_DIR}/live/live_action.cpp
     ${CMAKE_CURRENT_LIST_DIR}/live/live_client.cpp
     ${CMAKE_CURRENT_LIST_DIR}/live/live_manager.cpp
@@ -432,7 +454,9 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/map/map_region.cpp
     ${CMAKE_CURRENT_LIST_DIR}/map/map_search.cpp
     ${CMAKE_CURRENT_LIST_DIR}/map/map_statistics.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/map/otml.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/map/map_converter.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/map/map_spawn_manager.cpp
+
     ${CMAKE_CURRENT_LIST_DIR}/map/tile.cpp
     ${CMAKE_CURRENT_LIST_DIR}/map/tileset.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mkpch.cpp
@@ -458,6 +482,10 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/editor_sprite.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/game_sprite.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/graphics.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/image.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/normal_image.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/template_image.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/sprite_preloader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/light_buffer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/multi_draw_indirect_renderer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/outfit_colorizer.cpp
@@ -527,6 +555,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/add_tileset_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/artprovider.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/browse_tile_window.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/controls/outfit_color_palette.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/controls/sortable_list_box.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/controls/modern_button.cpp
 
@@ -543,6 +572,18 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/writable_properties_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/splash_properties_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/depot_properties_window.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/tile_properties_panel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/browse_field_list.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/spawn_creature_panel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/map_flags_panel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/item_property_panel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/container_grid_canvas.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/container_property_panel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/depot_property_panel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/teleport_property_panel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/door_property_panel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/spawn_property_panel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/tile_properties/creature_property_panel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dat_debug_view.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dcbutton.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialog_helper.cpp
@@ -601,25 +642,21 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/replace_items_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/result_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/tileset_window.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/theme.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/welcome_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/map_statistics_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/live_dialogs.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/menubar_loader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/util/common.cpp
     ${CMAKE_CURRENT_LIST_DIR}/util/nanovg_canvas.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/util/nanovg_listbox.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/util/virtual_item_grid.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/tool_options_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/tool_options_surface.cpp
     ${CMAKE_CURRENT_LIST_DIR}/util/file_system.cpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxAwesomeBrandsArt.cpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxAwesomeRegularArt.cpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxAwesomeSolidArt.cpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxFluentuiFilledArt.cpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxFluentuiRegularArt.cpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxMaterialDesignArtProvider.cpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxMaterialFilledArt.cpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxMaterialOutlinedArt.cpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxMaterialRoundArt.cpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxMaterialSharpArt.cpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxMaterialTwoToneArt.cpp
-    ${wxmaterialdesignartprovider_SOURCE_DIR}/MaterialDesign/wxSimpleIconsArt.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/util/image_manager.cpp
 )
+
+if(WIN32)
+	set(rme_SRC ${rme_SRC} ${CMAKE_CURRENT_LIST_DIR}/Editor.rc)
+endif()

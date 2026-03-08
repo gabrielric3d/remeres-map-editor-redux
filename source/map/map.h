@@ -28,6 +28,9 @@
 #include "game/camera_paths.h"
 #include "io/templates.h"
 
+class MapConverter;
+class MapSpawnManager;
+
 class Map : public BaseMap {
 public:
 	// ctor and dtor
@@ -120,6 +123,11 @@ public:
 	void setMapDescription(const std::string& new_description);
 	void setHouseFilename(const std::string& new_housefile);
 	void setSpawnFilename(const std::string& new_spawnfile);
+	void setWaypointFilename(const std::string& new_waypointfile);
+
+	std::string getWaypointFilename() const {
+		return waypointfile;
+	}
 
 	void flagAsNamed() {
 		unnamed = false;
@@ -132,8 +140,6 @@ protected:
 	bool open(const std::string& identifier);
 
 protected:
-	void removeSpawnInternal(Tile* tile);
-
 	std::vector<std::string> warnings;
 	wxString error;
 
@@ -160,11 +166,14 @@ protected:
 	bool unnamed; // If the map has yet to receive a name
 
 	friend class IOMapOTBM;
-	friend class IOMapOTMM;
 	friend class Editor;
 	friend class SelectionOperations;
 	friend class MapProcessor;
 	friend class EditorPersistence;
+	friend class MapXMLIO;
+	friend class HeaderSerializationOTBM;
+	friend class MapConverter;
+	friend class MapSpawnManager;
 
 public:
 	Waypoints waypoints;
@@ -237,7 +246,7 @@ inline long long remove_if_TileOnMap(Map& map, RemoveIfType& remove_if) {
 	std::ranges::for_each(map.tiles(), [&](auto& tile_loc) {
 		Tile* tile = tile_loc.get();
 		if (remove_if(map, tile, removed, done, total)) {
-			map.setTile(tile->getPosition(), std::unique_ptr<Tile>());
+			(void)map.setTile(tile->getPosition(), std::unique_ptr<Tile>());
 			++removed;
 		}
 		++done;

@@ -26,10 +26,14 @@
 #include <iomanip>
 #include <string>
 #include <string_view>
+#include <concepts>
+#include <type_traits>
 
 //
-inline bool testFlags(size_t flags, size_t test) {
-	return (flags & test) != 0;
+template <typename T1, typename T2>
+	requires(std::integral<T1> || std::is_enum_v<T1>) && (std::integral<T2> || std::is_enum_v<T2>)
+inline bool testFlags(T1 flags, T2 test) {
+	return (static_cast<uint64_t>(flags) & static_cast<uint64_t>(test)) != 0;
 }
 
 int32_t uniform_random(int32_t minNumber, int32_t maxNumber);
@@ -38,8 +42,8 @@ int32_t uniform_random(int32_t maxNumber);
 // Function-like convertions between float, int and doubles
 std::string i2s(int i);
 std::string f2s(double i);
-int s2i(std::string s);
-double s2f(std::string s);
+int s2i(const std::string& s);
+double s2f(const std::string& s);
 wxString i2ws(int i);
 wxString f2ws(double i);
 int ws2i(wxString s);
@@ -60,8 +64,8 @@ inline wxString wxstr(const char* str) {
 // replaces all instances of sought in str with replacement
 void replaceString(std::string& str, std::string_view sought, std::string_view replacement);
 // Removes all characters in t from source (from either start or beginning of the string)
-void trim_right(std::string& source, const std::string& t);
-void trim_left(std::string& source, const std::string& t);
+void trim_right(std::string& source, std::string_view t);
+void trim_left(std::string& source, std::string_view t);
 // Converts the argument to lower/uppercase
 void to_lower_str(std::string& source);
 void to_upper_str(std::string& source);
@@ -70,8 +74,8 @@ std::string as_upper_str(const std::string& other);
 
 // isFalseString returns true if the string is either "0", "false", "no", "not" or blank
 // isTrueString returns the opposite value of isFalseString
-bool isFalseString(std::string& str);
-bool isTrueString(std::string& str);
+bool isFalseString(const std::string& str);
+bool isTrueString(const std::string& str);
 
 // Generates a random number between low and high using the Mersenne Twister algorithm (std::mt19937).
 // Swaps low and high if low > high for a more intuitive behavior.

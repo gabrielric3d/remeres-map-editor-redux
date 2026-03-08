@@ -80,7 +80,8 @@ protected:
 	mutable std::unordered_map<const Brush*, std::string> m_utf8NameCache;
 
 	// Animation state
-	wxTimer* m_animTimer;
+	wxTimer m_animTimer;
+	float hover_anim = 0.0f;
 	void OnTimer(wxTimerEvent& event);
 };
 

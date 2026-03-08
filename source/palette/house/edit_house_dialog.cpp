@@ -47,12 +47,12 @@ EditHouseDialog::EditHouseDialog(wxWindow* parent, Map* map, House* house) :
 
 	if (towns.count() > 0) {
 		bool found = false;
-		for (TownMap::const_iterator town_iter = towns.begin(); town_iter != towns.end(); ++town_iter) {
-			if (town_iter->second->getID() == houseTownId) {
+		for (const auto& [id, town_ptr] : towns) {
+			if (town_ptr->getID() == houseTownId) {
 				found = true;
 			}
-			town_id_field->Append(wxstr(town_iter->second->getName()));
-			town_ids_.push_back(town_iter->second->getID());
+			town_id_field->Append(wxstr(town_ptr->getName()));
+			town_ids_.push_back(town_ptr->getID());
 			if (!found) {
 				++to_select_index;
 			}
@@ -77,7 +77,7 @@ EditHouseDialog::EditHouseDialog(wxWindow* parent, Map* map, House* house) :
 	wxFlexGridSizer* houseSizer = newd wxFlexGridSizer(2, 10, 10);
 
 	houseSizer->Add(newd wxStaticText(static_cast<wxStaticBoxSizer*>(boxsizer)->GetStaticBox(), wxID_ANY, "ID:"), wxSizerFlags(0).Center());
-	id_field = newd wxSpinCtrl(static_cast<wxStaticBoxSizer*>(boxsizer)->GetStaticBox(), wxID_ANY, "", wxDefaultPosition, wxSize(40, 20), wxSP_ARROW_KEYS, 1, 0xFFFF, house->getID());
+	id_field = newd wxSpinCtrl(static_cast<wxStaticBoxSizer*>(boxsizer)->GetStaticBox(), wxID_ANY, "", wxDefaultPosition, FROM_DIP(this, wxSize(64, 20)), wxSP_ARROW_KEYS, 1, 0xFFFF, house->getID());
 	houseSizer->Add(id_field, wxSizerFlags(1).Expand());
 	subsizerRight->Add(houseSizer, wxSizerFlags(1).Expand());
 

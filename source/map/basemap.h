@@ -66,7 +66,7 @@ public:
 private:
 	bool findNext();
 
-	using CellIterator = std::unordered_map<uint64_t, std::unique_ptr<SpatialHashGrid::GridCell>>::iterator;
+	using CellIterator = std::vector<SpatialHashGrid::CellEntry>::const_iterator;
 	CellIterator cell_it;
 	int node_i, floor_i, tile_i;
 
@@ -108,6 +108,9 @@ public:
 
 	// Get a Map Node from the map
 	MapNode* getLeaf(int x, int y) {
+		return grid.getLeaf(x, y);
+	}
+	const MapNode* getLeaf(int x, int y) const {
 		return grid.getLeaf(x, y);
 	}
 	MapNode* createLeaf(int x, int y) {

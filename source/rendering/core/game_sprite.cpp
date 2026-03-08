@@ -10,12 +10,13 @@
 #include "rendering/utilities/sprite_icon_generator.h"
 #include "rendering/core/outfit_colorizer.h"
 #include "rendering/core/outfit_colors.h"
+#include "rendering/core/normal_image.h"
+#include "rendering/core/template_image.h"
 #include <spdlog/spdlog.h>
 #include <atomic>
 #include <algorithm>
 #include <ranges>
-
-static std::atomic<uint32_t> template_id_generator(0x1000000);
+#include <span>
 
 constexpr int RGB_COMPONENTS = 3;
 constexpr int RGBA_COMPONENTS = 4;
@@ -68,13 +69,50 @@ GameSprite::GameSprite() :
 	draw_height(0),
 	drawoffset_x(0),
 	drawoffset_y(0),
-	minimap_color(0) {
+	minimap_color(0),
+	is_simple(false) {
 	// dc initialized to nullptr by unique_ptr default ctor
 }
 
 GameSprite::~GameSprite() {
 	unloadDC();
 	// instanced_templates and animator cleaned up automatically by unique_ptr
+}
+
+void GameSprite::invalidateCache(const AtlasRegion* region) {
+	if (cached_default_region == region) {
+		cached_default_region = nullptr;
+		cached_generation_id = 0;
+		cached_sprite_id = 0;
+	}
+}
+
+void GameSprite::ColorizeTemplatePixels(uint8_t* dest, const uint8_t* mask, size_t pixelCount, int lookHead, int lookBody, int lookLegs, int lookFeet, bool destHasAlpha) {
+	const int dest_step = destHasAlpha ? RGBA_COMPONENTS : RGB_COMPONENTS;
+	const int mask_step = RGB_COMPONENTS;
+
+	std::span<uint8_t> destSpan(dest, pixelCount * dest_step);
+	std::span<const uint8_t> maskSpan(mask, pixelCount * mask_step);
+
+	for (size_t i : std::views::iota(0u, pixelCount)) {
+		uint8_t& red = destSpan[i * dest_step + 0];
+		uint8_t& green = destSpan[i * dest_step + 1];
+		uint8_t& blue = destSpan[i * dest_step + 2];
+
+		const uint8_t& tred = maskSpan[i * mask_step + 0];
+		const uint8_t& tgreen = maskSpan[i * mask_step + 1];
+		const uint8_t& tblue = maskSpan[i * mask_step + 2];
+
+		if (tred && tgreen && !tblue) { // yellow => head
+			OutfitColorizer::ColorizePixel(lookHead, red, green, blue);
+		} else if (tred && !tgreen && !tblue) { // red => body
+			OutfitColorizer::ColorizePixel(lookBody, red, green, blue);
+		} else if (!tred && tgreen && !tblue) { // green => legs
+			OutfitColorizer::ColorizePixel(lookLegs, red, green, blue);
+		} else if (!tred && !tgreen && tblue) { // blue => feet
+			OutfitColorizer::ColorizePixel(lookFeet, red, green, blue);
+		}
+	}
 }
 
 void GameSprite::clean(time_t time, int longevity) {
@@ -98,12 +136,22 @@ int GameSprite::getDrawHeight() const {
 }
 
 bool GameSprite::isSimpleAndLoaded() const {
-	if (numsprites == 1 && !spriteList.empty()) {
-		if (NormalImage* img = spriteList[0]) {
-			return img->isGLLoaded;
-		}
+	return is_simple && spriteList[0]->isGLLoaded;
+}
+
+uint32_t GameSprite::getDebugImageId(size_t index) const {
+	if (index < spriteList.size() && spriteList[index]->isNormalImage()) {
+		return static_cast<const NormalImage*>(spriteList[index])->id;
 	}
-	return false;
+	return 0;
+}
+
+uint32_t GameSprite::getSpriteId(int frameIndex, int pattern_x, int pattern_y) const {
+	auto idx = getIndex(width, height, 0, pattern_x, pattern_y, 0, frameIndex); // Assuming layer, pattern_z are 0 for this context
+	if (idx >= 0 && static_cast<size_t>(idx) < spriteList.size() && spriteList[idx]->isNormalImage()) {
+		return static_cast<const NormalImage*>(spriteList[idx])->id;
+	}
+	return 0;
 }
 
 std::pair<int, int> GameSprite::getDrawOffset() const {
@@ -114,11 +162,29 @@ uint8_t GameSprite::getMiniMapColor() const {
 	return minimap_color;
 }
 
-int GameSprite::getIndex(int width, int height, int layer, int pattern_x, int pattern_y, int pattern_z, int frame) const {
-	return ((((((frame % this->frames) * this->pattern_z + pattern_z) * this->pattern_y + pattern_y) * this->pattern_x + pattern_x) * this->layers + layer) * this->height + height) * this->width + width;
+size_t GameSprite::getIndex(int width, int height, int layer, int pattern_x, int pattern_y, int pattern_z, int frame) const {
+	if (is_simple) {
+		return 0;
+	}
+	if (this->frames == 0) {
+		return 0;
+	}
+	size_t idx = (this->frames > 1) ? frame % this->frames : 0;
+	// Cast operands to size_t to force 64-bit arithmetic and avoid overflow
+	idx = idx * static_cast<size_t>(this->pattern_z) + static_cast<size_t>(pattern_z);
+	idx = idx * static_cast<size_t>(this->pattern_y) + static_cast<size_t>(pattern_y);
+	idx = idx * static_cast<size_t>(this->pattern_x) + static_cast<size_t>(pattern_x);
+	idx = idx * static_cast<size_t>(this->layers) + static_cast<size_t>(layer);
+	idx = idx * static_cast<size_t>(this->height) + static_cast<size_t>(height);
+	idx = idx * static_cast<size_t>(this->width) + static_cast<size_t>(width);
+	return idx;
 }
 
 const AtlasRegion* GameSprite::getAtlasRegion(int _x, int _y, int _layer, int _count, int _pattern_x, int _pattern_y, int _pattern_z, int _frame) {
+	if (numsprites == 0) {
+		return nullptr;
+	}
+
 	// Optimization for simple static sprites (1x1, 1 frame, etc.)
 	// Most ground tiles fall into this category.
 	if (_count == -1 && numsprites == 1 && frames == 1 && layers == 1 && width == 1 && height == 1) {
@@ -126,21 +192,28 @@ const AtlasRegion* GameSprite::getAtlasRegion(int _x, int _y, int _layer, int _c
 		if (_x == 0 && _y == 0 && _layer == 0 && _frame == 0 && _pattern_x == 0 && _pattern_y == 0 && _pattern_z == 0) {
 			// Check cache
 			// We rely on spriteList[0] being valid for simple sprites
-			// Check isGLLoaded to ensure validity of cached region (it must correspond to loaded texture)
-			if (cached_default_region && spriteList[0]->isGLLoaded) {
+			// shared Sprite Fix: Verify generation ID matches what we cached.
+			// Wrong Sprite Fix: Verify sprite ID matches what we cached.
+			// Optimization: Check lightweight fields BEFORE calling heavy getAtlasRegion()
+			if (cached_default_region && spriteList[0]->isGLLoaded && cached_generation_id == spriteList[0]->generation_id && cached_sprite_id == spriteList[0]->id) {
 				return cached_default_region;
 			}
 
-			// Lazy set parent for cache invalidation
-			spriteList[0]->parent = this;
-
-			const AtlasRegion* r = spriteList[0]->getAtlasRegion();
-			if (spriteList[0]->isGLLoaded) {
-				cached_default_region = r;
+			// Cache miss or staleness suspected: Use the getter to ensure self-healing check runs
+			const AtlasRegion* valid_region = spriteList[0]->getAtlasRegion();
+			if (valid_region && spriteList[0]->isGLLoaded) {
+				cached_default_region = valid_region;
+				cached_generation_id = spriteList[0]->generation_id;
+				cached_sprite_id = spriteList[0]->id;
 			} else {
 				cached_default_region = nullptr;
+				cached_generation_id = 0;
+				cached_sprite_id = 0;
 			}
-			return r;
+
+			// Lazy set parent for cache invalidation (legacy path, kept for safety)
+			spriteList[0]->parent = this;
+			return valid_region;
 		}
 	}
 
@@ -161,12 +234,12 @@ const AtlasRegion* GameSprite::getAtlasRegion(int _x, int _y, int _layer, int _c
 	// Ensure parent is set for invalidation (even in slow path)
 	if (spriteList[v]) {
 		spriteList[v]->parent = this;
+		return spriteList[v]->getAtlasRegion();
 	}
-
-	return spriteList[v]->getAtlasRegion();
+	return nullptr;
 }
 
-GameSprite::TemplateImage* GameSprite::getTemplateImage(int sprite_index, const Outfit& outfit) {
+TemplateImage* GameSprite::getTemplateImage(int sprite_index, const Outfit& outfit) {
 	// While this is linear lookup, it is very rare for the list to contain more than 4-8 entries,
 	// so it's faster than a hashmap anyways.
 	auto it = std::ranges::find_if(instanced_templates, [sprite_index, &outfit](const auto& img) {
@@ -178,6 +251,11 @@ GameSprite::TemplateImage* GameSprite::getTemplateImage(int sprite_index, const 
 	});
 
 	if (it != instanced_templates.end()) {
+		// Move-to-front optimization
+		if (it != instanced_templates.begin()) {
+			std::iter_swap(it, instanced_templates.begin());
+			return instanced_templates.front().get();
+		}
 		return it->get();
 	}
 
@@ -188,6 +266,10 @@ GameSprite::TemplateImage* GameSprite::getTemplateImage(int sprite_index, const 
 }
 
 const AtlasRegion* GameSprite::getAtlasRegion(int _x, int _y, int _dir, int _addon, int _pattern_z, const Outfit& _outfit, int _frame) {
+	if (numsprites == 0) {
+		return nullptr;
+	}
+
 	uint32_t v = getIndex(_x, _y, 0, _dir, _addon, _pattern_z, _frame);
 	if (v >= numsprites) {
 		if (numsprites == 1) {
@@ -200,7 +282,11 @@ const AtlasRegion* GameSprite::getAtlasRegion(int _x, int _y, int _dir, int _add
 		TemplateImage* img = getTemplateImage(v, _outfit);
 		return img->getAtlasRegion();
 	}
-	return spriteList[v]->getAtlasRegion();
+	if (spriteList[v]) {
+		spriteList[v]->parent = this;
+		return spriteList[v]->getAtlasRegion();
+	}
+	return nullptr;
 }
 
 wxMemoryDC* GameSprite::getDC(SpriteSize size) {
@@ -292,221 +378,59 @@ void GameSprite::DrawTo(wxDC* dc, SpriteSize sz, const Outfit& outfit, int start
 	}
 }
 
-GameSprite::Image::Image() :
-	isGLLoaded(false),
-	lastaccess(0) {
-}
+namespace {
 
-void GameSprite::Image::visit() {
-	lastaccess = g_gui.gfx.getCachedTime();
-}
+	struct DecompressionContext {
+		int id;
+		uint8_t bpp;
+		bool use_alpha;
+		bool& non_zero_alpha_found;
+		bool& non_black_pixel_found;
+	};
 
-void GameSprite::Image::clean(time_t time, int longevity) {
-	// Legacy texture cleanup logic removed
-}
-
-const AtlasRegion* GameSprite::Image::EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<uint8_t[]> preloaded_data) {
-	if (g_gui.gfx.ensureAtlasManager()) {
-		AtlasManager* atlas_mgr = g_gui.gfx.getAtlasManager();
-
-		// 1. Check if already loaded
-		const AtlasRegion* region = atlas_mgr->getRegion(sprite_id);
-		if (region) {
-			return region;
+	bool ProcessTransparencyRun(std::span<const uint8_t> dump, size_t& read, std::span<uint8_t> data, size_t& write, DecompressionContext ctx) {
+		if (read + 1 >= dump.size()) {
+			return false;
 		}
-
-		// 2. Load data
-		std::unique_ptr<uint8_t[]> rgba;
-		if (preloaded_data) {
-			rgba = std::move(preloaded_data);
-		} else {
-			rgba = getRGBAData();
-		}
-
-		if (!rgba) {
-			// Fallback: Create a magenta texture to distinguish failure from garbage
-			// Use literal 32 to ensure compilation (OT sprites are always 32x32)
-			rgba = std::make_unique<uint8_t[]>(32 * 32 * RGBA_COMPONENTS);
-			for (int i = 0; i < 32 * 32; ++i) {
-				rgba[i * RGBA_COMPONENTS + 0] = 255;
-				rgba[i * RGBA_COMPONENTS + 1] = 0;
-				rgba[i * RGBA_COMPONENTS + 2] = 255;
-				rgba[i * RGBA_COMPONENTS + 3] = 255;
-			}
-			spdlog::warn("getRGBAData returned null for sprite_id={} - using fallback", sprite_id);
-		}
-
-		// 3. Add to Atlas
-		if (rgba) {
-			region = atlas_mgr->addSprite(sprite_id, rgba.get());
-
-			if (region) {
-				isGLLoaded = true;
-				g_gui.gfx.resident_images.push_back(this); // Add to resident set
-				g_gui.gfx.collector.NotifyTextureLoaded();
-				return region;
-			} else {
-				spdlog::warn("Atlas addSprite failed for sprite_id={}", sprite_id);
-			}
-		}
-	} else {
-		spdlog::error("AtlasManager not available for sprite_id={}", sprite_id);
-	}
-	return nullptr;
-}
-
-GameSprite::NormalImage::NormalImage() :
-	id(0),
-	atlas_region(nullptr),
-	size(0),
-	dump(nullptr) {
-}
-
-GameSprite::NormalImage::~NormalImage() {
-	// dump auto-deleted
-	if (isGLLoaded) {
-		if (g_gui.gfx.hasAtlasManager()) {
-			g_gui.gfx.getAtlasManager()->removeSprite(id);
-		}
-	}
-}
-
-void GameSprite::NormalImage::fulfillPreload(std::unique_ptr<uint8_t[]> data) {
-	atlas_region = EnsureAtlasSprite(id, std::move(data));
-}
-
-void GameSprite::NormalImage::clean(time_t time, int longevity) {
-	// Evict from atlas if expired
-	if (longevity == -1) {
-		longevity = g_settings.getInteger(Config::TEXTURE_LONGEVITY);
-	}
-	if (isGLLoaded && time - lastaccess > longevity) {
-		if (g_gui.gfx.hasAtlasManager()) {
-			g_gui.gfx.getAtlasManager()->removeSprite(id);
-		}
-		isGLLoaded = false;
-		atlas_region = nullptr;
-
-		if (parent) {
-			parent->cached_default_region = nullptr;
-		}
-
-		// resident_images removal is handled by GC loop using swap-and-pop
-		g_gui.gfx.collector.NotifyTextureUnloaded();
-	}
-
-	if (time - lastaccess > 5 && !g_settings.getInteger(Config::USE_MEMCACHED_SPRITES)) { // We keep dumps around for 5 seconds.
-		dump.reset();
-	}
-}
-
-std::unique_ptr<uint8_t[]> GameSprite::NormalImage::getRGBData() {
-	if (id == 0) {
-		const int pixels_data_size = SPRITE_PIXELS * SPRITE_PIXELS * 3;
-		return std::make_unique<uint8_t[]>(pixels_data_size); // Value-initialized (zeroed)
-	}
-
-	if (!dump) {
-		if (g_settings.getInteger(Config::USE_MEMCACHED_SPRITES)) {
-			return nullptr;
-		}
-
-		if (!g_gui.gfx.loadSpriteDump(dump, size, id)) {
-			return nullptr;
-		}
-	}
-
-	const int pixels_data_size = SPRITE_PIXELS * SPRITE_PIXELS * 3;
-	auto data = std::make_unique<uint8_t[]>(pixels_data_size);
-	uint8_t bpp = g_gui.gfx.hasTransparency() ? 4 : 3;
-	int write = 0;
-	int read = 0;
-
-	// decompress pixels
-	while (read < size && write < pixels_data_size) {
-		int transparent = dump[read] | dump[read + 1] << 8;
-		read += 2;
-		for (int i = 0; i < transparent && write < pixels_data_size; i++) {
-			data[write + 0] = 0xFF; // red
-			data[write + 1] = 0x00; // green
-			data[write + 2] = 0xFF; // blue
-			write += RGB_COMPONENTS;
-		}
-
-		int colored = dump[read] | dump[read + 1] << 8;
-		read += 2;
-		for (int i = 0; i < colored && write < pixels_data_size; i++) {
-			data[write + 0] = dump[read + 0]; // red
-			data[write + 1] = dump[read + 1]; // green
-			data[write + 2] = dump[read + 2]; // blue
-			write += RGB_COMPONENTS;
-			read += bpp;
-		}
-	}
-
-	// fill remaining pixels
-	while (write < pixels_data_size) {
-		data[write + 0] = 0xFF; // red
-		data[write + 1] = 0x00; // green
-		data[write + 2] = 0xFF; // blue
-		write += RGB_COMPONENTS;
-	}
-	return data;
-}
-
-std::unique_ptr<uint8_t[]> GameSprite::Decompress(const uint8_t* dump, size_t size, bool use_alpha, int id) {
-	const int pixels_data_size = SPRITE_PIXELS_SIZE * 4;
-	auto data = std::make_unique<uint8_t[]>(pixels_data_size);
-	uint8_t bpp = use_alpha ? 4 : 3;
-	size_t write = 0;
-	size_t read = 0;
-	bool non_zero_alpha_found = false;
-	bool non_black_pixel_found = false;
-
-	// decompress pixels
-	while (read < size && write < pixels_data_size) {
 		int transparent = dump[read] | dump[read + 1] << 8;
 
 		// Integrity check for transparency run
-		if (write + (transparent * 4) > pixels_data_size) {
-			spdlog::warn("Sprite {}: Transparency run overrun (transparent={}, write={}, max={})", id, transparent, write, pixels_data_size);
-			transparent = (pixels_data_size - write) / 4;
+		if (write + (transparent * RGBA_COMPONENTS) > data.size()) {
+			spdlog::warn("Sprite {}: Transparency run overrun (transparent={}, write={}, max={})", ctx.id, transparent, write, data.size());
+			transparent = (data.size() - write) / RGBA_COMPONENTS;
 		}
 
 		read += 2;
-		for (int i = 0; i < transparent && write < pixels_data_size; i++) {
-			data[write + 0] = 0x00; // red
-			data[write + 1] = 0x00; // green
-			data[write + 2] = 0x00; // blue
-			data[write + 3] = 0x00; // alpha
-			write += RGBA_COMPONENTS;
-		}
+		std::ranges::fill(data.subspan(write, transparent * RGBA_COMPONENTS), 0);
+		write += transparent * RGBA_COMPONENTS;
+		return true;
+	}
 
-		if (read >= size || write >= pixels_data_size) {
-			break;
+	bool ProcessColoredRun(std::span<const uint8_t> dump, size_t& read, std::span<uint8_t> data, size_t& write, DecompressionContext ctx) {
+		if (read + 1 >= dump.size()) {
+			return false;
 		}
-
 		int colored = dump[read] | dump[read + 1] << 8;
 		read += 2;
 
 		// Integrity check for colored run
-		if (write + (colored * 4) > pixels_data_size) {
-			spdlog::warn("Sprite {}: Colored run overrun (colored={}, write={}, max={})", id, colored, write, pixels_data_size);
-			colored = (pixels_data_size - write) / 4;
+		if (write + (colored * RGBA_COMPONENTS) > data.size()) {
+			spdlog::warn("Sprite {}: Colored run overrun (colored={}, write={}, max={})", ctx.id, colored, write, data.size());
+			colored = (data.size() - write) / RGBA_COMPONENTS;
 		}
 
 		// Integrity check for read buffer
-		if (read + (colored * bpp) > size) {
-			spdlog::warn("Sprite {}: Read buffer overrun (colored={}, bpp={}, read={}, size={})", id, colored, bpp, read, size);
+		if (read + (colored * ctx.bpp) > dump.size()) {
+			spdlog::warn("Sprite {}: Read buffer overrun (colored={}, bpp={}, read={}, size={})", ctx.id, colored, ctx.bpp, read, dump.size());
 			// We can't easily recover here without risking reading garbage, so stop
-			break;
+			return false;
 		}
 
-		for (int i = 0; i < colored && write < pixels_data_size; i++) {
+		for (int cnt = 0; cnt < colored; ++cnt) {
 			uint8_t r = dump[read + 0];
 			uint8_t g = dump[read + 1];
 			uint8_t b = dump[read + 2];
-			uint8_t a = use_alpha ? dump[read + 3] : 0xFF;
+			uint8_t a = ctx.use_alpha ? dump[read + 3] : 0xFF;
 
 			data[write + 0] = r;
 			data[write + 1] = g;
@@ -514,19 +438,57 @@ std::unique_ptr<uint8_t[]> GameSprite::Decompress(const uint8_t* dump, size_t si
 			data[write + 3] = a;
 
 			if (a > 0) {
-				non_zero_alpha_found = true;
+				ctx.non_zero_alpha_found = true;
 			}
 			if (r > 0 || g > 0 || b > 0) {
-				non_black_pixel_found = true;
+				ctx.non_black_pixel_found = true;
 			}
 
 			write += RGBA_COMPONENTS;
-			read += bpp;
+			read += ctx.bpp;
+		}
+		return true;
+	}
+
+} // namespace
+
+std::unique_ptr<uint8_t[]> GameSprite::Decompress(std::span<const uint8_t> dump, bool use_alpha, int id) {
+	const int pixels_data_size = SPRITE_PIXELS_SIZE * RGBA_COMPONENTS;
+	auto data_buffer = std::make_unique<uint8_t[]>(pixels_data_size);
+
+	std::span<uint8_t> data(data_buffer.get(), pixels_data_size);
+
+	uint8_t bpp = use_alpha ? 4 : 3;
+	size_t write = 0;
+	size_t read = 0;
+	bool non_zero_alpha_found = false;
+	bool non_black_pixel_found = false;
+
+	DecompressionContext ctx {
+		.id = id,
+		.bpp = bpp,
+		.use_alpha = use_alpha,
+		.non_zero_alpha_found = non_zero_alpha_found,
+		.non_black_pixel_found = non_black_pixel_found
+	};
+
+	// decompress pixels
+	while (read < dump.size() && write < data.size()) {
+		if (!ProcessTransparencyRun(dump, read, data, write, ctx)) {
+			break;
+		}
+
+		if (read >= dump.size() || write >= data.size()) {
+			break;
+		}
+
+		if (!ProcessColoredRun(dump, read, data, write, ctx)) {
+			break;
 		}
 	}
 
 	// fill remaining pixels
-	while (write < pixels_data_size) {
+	while (write < data.size()) {
 		data[write + 0] = 0x00; // red
 		data[write + 1] = 0x00; // green
 		data[write + 2] = 0x00; // blue
@@ -535,194 +497,17 @@ std::unique_ptr<uint8_t[]> GameSprite::Decompress(const uint8_t* dump, size_t si
 	}
 
 	// Debug logging for diagnostic - verify if we are decoding pure transparency or pure blackness
-	// Only log for a few arbitrary IDs to avoid spamming, or if suspicious
 	if (!non_zero_alpha_found && id > 100) {
-		// This sprite is 100% invisible. This might be correct (magic fields?) but worth noting if ALL are invisible.
 		static int empty_log_count = 0;
 		if (empty_log_count++ < 10) {
-			spdlog::info("Sprite {}: Decoded fully transparent sprite. bpp used: {}, dump size: {}", id, bpp, size);
+			spdlog::info("Sprite {}: Decoded fully transparent sprite. bpp used: {}, dump size: {}", id, bpp, dump.size());
 		}
 	} else if (!non_black_pixel_found && non_zero_alpha_found && id > 100) {
-		// This sprite has alpha but all RGB are 0. It is a "black shadow" or "darkness".
-		// If ALL sprites look like this, we have a problem.
 		static int black_log_count = 0;
 		if (black_log_count++ < 10) {
-			spdlog::warn("Sprite {}: Decoded PURE BLACK sprite (Alpha > 0, RGB = 0). bpp used: {}, dump size: {}. Check hasTransparency() config!", id, bpp, size);
+			spdlog::warn("Sprite {}: Decoded PURE BLACK sprite (Alpha > 0, RGB = 0). bpp used: {}, dump size: {}. Check hasTransparency() config!", id, bpp, dump.size());
 		}
 	}
 
-	return data;
-}
-
-std::unique_ptr<uint8_t[]> GameSprite::NormalImage::getRGBAData() {
-	// Robust ID 0 handling
-	if (id == 0) {
-		const int pixels_data_size = SPRITE_PIXELS_SIZE * 4;
-		return std::make_unique<uint8_t[]>(pixels_data_size); // Value-initialized (zeroed)
-	}
-
-	if (!dump) {
-		if (g_settings.getInteger(Config::USE_MEMCACHED_SPRITES)) {
-			return nullptr;
-		}
-
-		if (!g_gui.gfx.loadSpriteDump(dump, size, id)) {
-			// This is the only case where we return nullptr for non-zero ID
-			// effectively warning the caller that the sprite is missing from file
-			return nullptr;
-		}
-	}
-
-	return GameSprite::Decompress(dump.get(), size, g_gui.gfx.hasTransparency(), id);
-}
-
-const AtlasRegion* GameSprite::NormalImage::getAtlasRegion() {
-	if (!isGLLoaded) {
-		atlas_region = EnsureAtlasSprite(id);
-	}
-	visit();
-	return atlas_region;
-}
-
-GameSprite::TemplateImage::TemplateImage(GameSprite* parent, int v, const Outfit& outfit) :
-	parent(parent),
-	sprite_index(v),
-	lookHead(outfit.lookHead),
-	lookBody(outfit.lookBody),
-	lookLegs(outfit.lookLegs),
-	lookFeet(outfit.lookFeet),
-	atlas_region(nullptr),
-	texture_id(template_id_generator.fetch_add(1)) { // Generate unique ID for Atlas
-}
-
-GameSprite::TemplateImage::~TemplateImage() {
-	if (isGLLoaded) {
-		if (g_gui.gfx.hasAtlasManager()) {
-			g_gui.gfx.getAtlasManager()->removeSprite(texture_id);
-		}
-	}
-}
-
-void GameSprite::TemplateImage::clean(time_t time, int longevity) {
-	// Evict from atlas if expired
-	if (longevity == -1) {
-		longevity = g_settings.getInteger(Config::TEXTURE_LONGEVITY);
-	}
-	if (isGLLoaded && time - lastaccess > longevity) {
-		if (g_gui.gfx.hasAtlasManager()) {
-			g_gui.gfx.getAtlasManager()->removeSprite(texture_id);
-		}
-		isGLLoaded = false;
-		atlas_region = nullptr;
-		g_gui.gfx.collector.NotifyTextureUnloaded();
-	}
-}
-
-std::unique_ptr<uint8_t[]> GameSprite::TemplateImage::getRGBData() {
-	auto rgbdata = parent->spriteList[sprite_index]->getRGBData();
-	auto template_rgbdata = parent->spriteList[sprite_index + parent->height * parent->width]->getRGBData();
-
-	if (!rgbdata) {
-		// template_rgbdata auto-deleted
-		return nullptr;
-	}
-	if (!template_rgbdata) {
-		// rgbdata auto-deleted
-		return nullptr;
-	}
-
-	if (lookHead > TemplateOutfitLookupTableSize) {
-		lookHead = 0;
-	}
-	if (lookBody > TemplateOutfitLookupTableSize) {
-		lookBody = 0;
-	}
-	if (lookLegs > TemplateOutfitLookupTableSize) {
-		lookLegs = 0;
-	}
-	if (lookFeet > TemplateOutfitLookupTableSize) {
-		lookFeet = 0;
-	}
-
-	for (int i = 0; i < SPRITE_PIXELS * SPRITE_PIXELS; ++i) {
-		uint8_t& red = rgbdata[i * RGB_COMPONENTS + 0];
-		uint8_t& green = rgbdata[i * RGB_COMPONENTS + 1];
-		uint8_t& blue = rgbdata[i * RGB_COMPONENTS + 2];
-
-		const uint8_t& tred = template_rgbdata[i * RGB_COMPONENTS + 0];
-		const uint8_t& tgreen = template_rgbdata[i * RGB_COMPONENTS + 1];
-		const uint8_t& tblue = template_rgbdata[i * RGB_COMPONENTS + 2];
-
-		if (tred && tgreen && !tblue) { // yellow => head
-			OutfitColorizer::ColorizePixel(lookHead, red, green, blue);
-		} else if (tred && !tgreen && !tblue) { // red => body
-			OutfitColorizer::ColorizePixel(lookBody, red, green, blue);
-		} else if (!tred && tgreen && !tblue) { // green => legs
-			OutfitColorizer::ColorizePixel(lookLegs, red, green, blue);
-		} else if (!tred && !tgreen && tblue) { // blue => feet
-			OutfitColorizer::ColorizePixel(lookFeet, red, green, blue);
-		}
-	}
-	// template_rgbdata auto-deleted
-	return rgbdata;
-}
-
-std::unique_ptr<uint8_t[]> GameSprite::TemplateImage::getRGBAData() {
-	auto rgbadata = parent->spriteList[sprite_index]->getRGBAData();
-	auto template_rgbdata = parent->spriteList[sprite_index + parent->height * parent->width]->getRGBData();
-
-	if (!rgbadata) {
-		spdlog::warn("TemplateImage: Failed to load BASE sprite data for sprite_index={} (template_id={}). Parent width={}, height={}", sprite_index, texture_id, parent->width, parent->height);
-		// template_rgbdata auto-deleted
-		return nullptr;
-	}
-	if (!template_rgbdata) {
-		spdlog::warn("TemplateImage: Failed to load MASK sprite data for sprite_index={} (template_id={}) (mask_index={})", sprite_index, texture_id, sprite_index + parent->height * parent->width);
-		// rgbadata auto-deleted
-		return nullptr;
-	}
-
-	if (lookHead > TemplateOutfitLookupTableSize) {
-		lookHead = 0;
-	}
-	if (lookBody > TemplateOutfitLookupTableSize) {
-		lookBody = 0;
-	}
-	if (lookLegs > TemplateOutfitLookupTableSize) {
-		lookLegs = 0;
-	}
-	if (lookFeet > TemplateOutfitLookupTableSize) {
-		lookFeet = 0;
-	}
-
-	// Note: the base data is RGBA (4 channels) while the mask data is RGB (3 channels).
-	for (int i = 0; i < SPRITE_PIXELS * SPRITE_PIXELS; ++i) {
-		uint8_t& red = rgbadata[i * RGBA_COMPONENTS + 0];
-		uint8_t& green = rgbadata[i * RGBA_COMPONENTS + 1];
-		uint8_t& blue = rgbadata[i * RGBA_COMPONENTS + 2];
-
-		const uint8_t& tred = template_rgbdata[i * RGB_COMPONENTS + 0];
-		const uint8_t& tgreen = template_rgbdata[i * RGB_COMPONENTS + 1];
-		const uint8_t& tblue = template_rgbdata[i * RGB_COMPONENTS + 2];
-
-		if (tred && tgreen && !tblue) { // yellow => head
-			OutfitColorizer::ColorizePixel(lookHead, red, green, blue);
-		} else if (tred && !tgreen && !tblue) { // red => body
-			OutfitColorizer::ColorizePixel(lookBody, red, green, blue);
-		} else if (!tred && tgreen && !tblue) { // green => legs
-			OutfitColorizer::ColorizePixel(lookLegs, red, green, blue);
-		} else if (!tred && !tgreen && tblue) { // blue => feet
-			OutfitColorizer::ColorizePixel(lookFeet, red, green, blue);
-		}
-	}
-	// template_rgbdata auto-deleted
-	return rgbadata;
-}
-
-const AtlasRegion* GameSprite::TemplateImage::getAtlasRegion() {
-	if (!isGLLoaded) {
-		atlas_region = EnsureAtlasSprite(texture_id);
-	}
-	visit();
-	return atlas_region;
+	return data_buffer;
 }

@@ -2,6 +2,7 @@
 #include "util/nanovg_canvas.h"
 #include "util/image_manager.h"
 #include "rendering/core/text_renderer.h"
+#include "ui/theme.h"
 
 #include <glad/glad.h>
 
@@ -9,9 +10,12 @@
 #include "util/nvg_utils.h"
 #include <nanovg_gl.h>
 #include "rendering/core/graphics.h"
+#include "ui/gui.h"
 
 #include <wx/dcclient.h>
 #include <algorithm>
+#include <span>
+#include <ranges>
 
 ScopedGLContext::ScopedGLContext(NanoVGCanvas* canvas) : m_canvas(canvas) {
 	if (m_canvas) {
@@ -41,9 +45,11 @@ NanoVGCanvas::NanoVGCanvas(wxWindow* parent, wxWindowID id, long style) :
 
 NanoVGCanvas::~NanoVGCanvas() {
 	if (m_glContext) {
-		SetCurrent(*m_glContext);
-		ClearImageCache();
+		if (MakeContextCurrent()) {
+			ClearImageCache();
+		}
 	}
+	g_gl_context.UnregisterCanvas(this);
 }
 
 void NanoVGCanvas::InitGL() {
@@ -51,7 +57,7 @@ void NanoVGCanvas::InitGL() {
 		return;
 	}
 
-	m_glContext = std::make_unique<wxGLContext>(this);
+	m_glContext = std::make_unique<wxGLContext>(this, g_gui.GetGLContext(this));
 	if (!m_glContext->IsOK()) {
 		m_glContext.reset();
 		return;
@@ -75,8 +81,7 @@ bool NanoVGCanvas::MakeContextCurrent() {
 	if (!m_glContext) {
 		return false;
 	}
-	SetCurrent(*m_glContext);
-	return true;
+	return g_gl_context.EnsureContextCurrent(*m_glContext, this);
 }
 
 void NanoVGCanvas::OnPaint(wxPaintEvent&) {
@@ -93,7 +98,10 @@ void NanoVGCanvas::OnPaint(wxPaintEvent&) {
 	GetClientSize(&w, &h);
 
 	glViewport(0, 0, w, h);
-	glClearColor(m_bgRed, m_bgGreen, m_bgBlue, 1.0f);
+
+	// Use theme background
+	wxColour bg = Theme::Get(Theme::Role::Surface);
+	glClearColor(bg.Red() / 255.0f, bg.Green() / 255.0f, bg.Blue() / 255.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 	NVGcontext* vg = m_nvg.get();
@@ -321,14 +329,22 @@ int NanoVGCanvas::CreateGenericSpriteTexture(NVGcontext* vg, Sprite* sprite, uin
 	const uint8_t* alpha = img.GetAlpha();
 	bool hasAlpha = img.HasAlpha();
 
-	for (int i = 0; i < w * h; ++i) {
-		rgba[i * 4 + 0] = data[i * 3 + 0];
-		rgba[i * 4 + 1] = data[i * 3 + 1];
-		rgba[i * 4 + 2] = data[i * 3 + 2];
-		if (hasAlpha && alpha) {
-			rgba[i * 4 + 3] = alpha[i];
-		} else {
-			rgba[i * 4 + 3] = 255;
+	std::span<uint8_t> dest(rgba);
+	std::span<const uint8_t> src(data, w * h * 3);
+
+	if (hasAlpha && alpha) {
+		for (int i : std::views::iota(0, w * h)) {
+			dest[i * 4 + 0] = src[i * 3 + 0];
+			dest[i * 4 + 1] = src[i * 3 + 1];
+			dest[i * 4 + 2] = src[i * 3 + 2];
+			dest[i * 4 + 3] = alpha[i];
+		}
+	} else {
+		for (int i : std::views::iota(0, w * h)) {
+			dest[i * 4 + 0] = src[i * 3 + 0];
+			dest[i * 4 + 1] = src[i * 3 + 1];
+			dest[i * 4 + 2] = src[i * 3 + 2];
+			dest[i * 4 + 3] = 255;
 		}
 	}
 
@@ -415,6 +431,7 @@ void NanoVGCanvas::ClearImageCache() {
 		nvgDeleteImage(m_nvg.get(), tex);
 	}
 	m_imageCache.clear();
+	m_lruList.clear();
 }
 
 int NanoVGCanvas::GetCachedImage(uint64_t id) const {

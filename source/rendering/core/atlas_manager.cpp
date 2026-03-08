@@ -20,9 +20,14 @@ bool AtlasManager::ensureInitialized() {
 
 	spdlog::info("AtlasManager: Texture array initialized ({}x{}, {} initial layers)", TextureAtlas::ATLAS_SIZE, TextureAtlas::ATLAS_SIZE, INITIAL_LAYERS);
 
-	// Ensure white pixel exists (ID 0xFFFFFFFF)
+	// Ensure white pixel exists (ID AtlasRegion::INVALID_SENTINEL)
 	std::vector<uint8_t> white_data(32 * 32 * 4, 255);
-	addSprite(WHITE_PIXEL_ID, white_data.data());
+	white_pixel_cache_ = addSprite(WHITE_PIXEL_ID, white_data.data());
+
+	if (!white_pixel_cache_) {
+		spdlog::error("AtlasManager: Failed to register white pixel sprite");
+		return false;
+	}
 
 	return true;
 }
@@ -60,6 +65,7 @@ const AtlasRegion* AtlasManager::addSprite(uint32_t sprite_id, const uint8_t* rg
 	AtlasRegion* ptr = &region_storage_.back();
 
 	// Store pointer in hash map
+	ptr->debug_sprite_id = sprite_id;
 	sprite_regions_.emplace(sprite_id, ptr);
 
 	// Also store in direct lookup for O(1) access
@@ -71,25 +77,53 @@ const AtlasRegion* AtlasManager::addSprite(uint32_t sprite_id, const uint8_t* rg
 }
 
 void AtlasManager::removeSprite(uint32_t sprite_id) {
+	if (sprite_id == WHITE_PIXEL_ID) {
+		white_pixel_cache_ = nullptr;
+	}
+
+	AtlasRegion* region = nullptr;
+
 	if (sprite_id < DIRECT_LOOKUP_SIZE) {
 		if (direct_lookup_[sprite_id] != nullptr) {
-			const AtlasRegion* region = direct_lookup_[sprite_id];
-			atlas_.freeSlot(*region);
+			region = direct_lookup_[sprite_id];
 			direct_lookup_[sprite_id] = nullptr;
 			sprite_regions_.erase(sprite_id);
-			// We can't easily remove from region_storage_ (deque), but it's okay, pointers remain valid.
-			// The slot in atlas is freed for reuse.
 		}
 	} else {
 		auto it = sprite_regions_.find(sprite_id);
 		if (it != sprite_regions_.end()) {
-			atlas_.freeSlot(*(it->second));
+			region = it->second;
 			sprite_regions_.erase(it);
 		}
 	}
+
+	if (region) {
+		// 1. Free the slot in the texture array (requires valid UVs)
+		atlas_.freeSlot(*region);
+
+		// 2. MARK AS INVALID to trigger Self-Healing in stale GameSprites
+		// This prevents "Double Allocation" visual bugs where a stale sprite references
+		// this region object after the slot has been reused for a new sprite.
+		region->debug_sprite_id = AtlasRegion::INVALID_SENTINEL;
+		region->atlas_index = AtlasRegion::INVALID_SENTINEL;
+	}
+}
+
+void AtlasManager::clearMapping(uint32_t sprite_id) {
+	if (sprite_id == WHITE_PIXEL_ID) {
+		white_pixel_cache_ = nullptr;
+	}
+
+	if (sprite_id < DIRECT_LOOKUP_SIZE) {
+		direct_lookup_[sprite_id] = nullptr;
+	}
+	sprite_regions_.erase(sprite_id);
 }
 
 const AtlasRegion* AtlasManager::getWhitePixel() const {
+	if (white_pixel_cache_) {
+		return white_pixel_cache_;
+	}
 	if (sprite_regions_.count(WHITE_PIXEL_ID)) {
 		return sprite_regions_.at(WHITE_PIXEL_ID);
 	}
@@ -117,5 +151,6 @@ void AtlasManager::clear() {
 	region_storage_.clear();
 	sprite_regions_.clear();
 	std::fill(direct_lookup_.begin(), direct_lookup_.end(), nullptr);
+	white_pixel_cache_ = nullptr;
 	spdlog::info("AtlasManager cleared");
 }

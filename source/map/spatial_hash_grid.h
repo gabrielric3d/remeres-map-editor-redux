@@ -2,14 +2,13 @@
 #define RME_MAP_SPATIAL_HASH_GRID_H
 
 #include "app/main.h"
-#include <unordered_map>
 #include <cstdint>
 #include <memory>
 #include <vector>
 #include <utility>
-#include <ranges>
 #include <algorithm>
-#include <tuple>
+#include <limits>
+#include <array>
 
 class MapNode;
 class BaseMap;
@@ -25,13 +24,21 @@ public:
 	static constexpr int NODES_IN_CELL = NODES_PER_CELL * NODES_PER_CELL; // 256 nodes per cell
 
 	struct GridCell {
-		std::unique_ptr<MapNode> nodes[NODES_IN_CELL];
+		std::array<std::unique_ptr<MapNode>, NODES_IN_CELL> nodes;
 		GridCell();
 		~GridCell();
 	};
 
+	// CellEntry: the flat sorted storage element
+	struct CellEntry {
+		uint64_t key;
+		std::unique_ptr<GridCell> cell;
+	};
+
+	// SortedGridCell: lightweight view for external consumers (search, serialization)
 	struct SortedGridCell {
 		uint64_t key;
+		int cx, cy;
 		GridCell* cell;
 	};
 
@@ -40,16 +47,28 @@ public:
 
 	// Returns observer pointer (non-owning)
 	MapNode* getLeaf(int x, int y);
+	const MapNode* getLeaf(int x, int y) const;
 	// Forces leaf creation. Throws std::bad_alloc on memory failure.
 	MapNode* getLeafForce(int x, int y);
 
 	void clear();
 	void clearVisible(uint32_t mask);
 
+	// Returns a snapshot of cells sorted by key, for external iteration (search, serialization)
 	std::vector<SortedGridCell> getSortedCells() const;
+	static void getCellCoordsFromKey(uint64_t key, int& cx, int& cy);
+
+	// Cell count for strategy decisions
+	[[nodiscard]] size_t cellCount() const {
+		return cells_.size();
+	}
 
 	template <typename Func>
 	void visitLeaves(int min_x, int min_y, int max_x, int max_y, Func&& func) {
+		if (max_x <= min_x || max_y <= min_y) {
+			return;
+		}
+
 		int start_nx = min_x >> NODE_SHIFT;
 		int start_ny = min_y >> NODE_SHIFT;
 		int end_nx = (max_x - 1) >> NODE_SHIFT;
@@ -60,53 +79,90 @@ public:
 		int end_cx = end_nx >> NODES_PER_CELL_SHIFT;
 		int end_cy = end_ny >> NODES_PER_CELL_SHIFT;
 
-		// Cast operands to long long to avoid subtraction overflow before the final multiplication.
-		// (static_cast<long long>(end_cx) - start_cx + 1) ensures the expression is evaluated in 64-bit.
-		long long num_viewport_cells = (static_cast<long long>(end_cx) - start_cx + 1) * (static_cast<long long>(end_cy) - start_cy + 1);
-
-		// Strategy selection heuristic:
-		// If the number of cells in the viewport is greater than the total number of allocated cells,
-		// it's more efficient to iterate over allocated cells and check if they are within the viewport.
-		// Otherwise, we iterate over the viewport cells and look them up in the hash map.
-		// Mixing signed long long and unsigned size_t is safe here as both are non-negative.
-		if (num_viewport_cells > static_cast<long long>(cells.size())) {
-			visitLeavesByCells(start_nx, start_ny, end_nx, end_ny, start_cx, start_cy, end_cx, end_cy, std::forward<Func>(func));
-		} else {
-			visitLeavesByViewport(start_nx, start_ny, end_nx, end_ny, start_cx, start_cy, end_cx, end_cy, std::forward<Func>(func));
-		}
+		visitLeavesImpl(start_nx, start_ny, end_nx, end_ny, start_cx, start_cy, end_cx, end_cy, std::forward<Func>(func));
 	}
 
-	auto begin() {
-		return cells.begin();
+	// Iterator support for MapIterator â€” const-only to protect sorted invariant
+	auto begin() const {
+		return cells_.cbegin();
 	}
-	auto end() {
-		return cells.end();
+	auto end() const {
+		return cells_.cend();
 	}
 
 protected:
 	BaseMap& map;
-	std::unordered_map<uint64_t, std::unique_ptr<GridCell>> cells;
+	std::vector<CellEntry> cells_; // Sorted by key â€” contiguous, cache-friendly
 
-	// Traverses cells by iterating over the viewport coordinates.
-	// Efficient for small or dense viewports.
+	mutable uint64_t last_key_ = 0;
+	mutable size_t last_idx_ = 0; // Index into cells_ for 1-element cache
+	mutable bool last_valid_ = false;
+
+	struct RowCellInfo {
+		GridCell* cell;
+		int cell_start_nx;
+		int local_start_nx;
+		int local_end_nx;
+	};
+
+	static constexpr auto cell_key_less = [](const CellEntry& entry, uint64_t k) { return entry.key < k; };
+
+	// Binary search for a cell by key. Returns index, or cells_.size() if not found.
+	[[nodiscard]] size_t findCellIndex(uint64_t key) const {
+		auto it = std::lower_bound(cells_.begin(), cells_.end(), key, cell_key_less);
+		if (it != cells_.end() && it->key == key) {
+			return static_cast<size_t>(it - cells_.begin());
+		}
+		return cells_.size();
+	}
+
+	// Find or insert a cell, returning its index.
+	// Allocates GridCell immediately on insertion â€” no null entries left behind.
+	// Maintains sorted order via insertion at the correct position.
+	size_t findOrInsertCell(uint64_t key) {
+		auto it = std::lower_bound(cells_.begin(), cells_.end(), key, cell_key_less);
+		if (it != cells_.end() && it->key == key) {
+			return static_cast<size_t>(it - cells_.begin());
+		}
+		// Insert at sorted position with a fully allocated GridCell
+		auto inserted = cells_.insert(it, CellEntry { key, std::make_unique<GridCell>() });
+		// Invalidate cache since vector may have reallocated
+		last_valid_ = false;
+		return static_cast<size_t>(inserted - cells_.begin());
+	}
+
+	// Single unified traversal using binary search per row instead of hash lookups.
 	template <typename Func>
-	void visitLeavesByViewport(int start_nx, int start_ny, int end_nx, int end_ny, int start_cx, int start_cy, int end_cx, int end_cy, Func&& func) {
-		struct RowCellInfo {
-			GridCell* cell;
-			int start_nx;
-		};
-		std::vector<RowCellInfo> row_cells;
+	void visitLeavesImpl(int start_nx, int start_ny, int end_nx, int end_ny, int start_cx, int start_cy, int end_cx, int end_cy, Func&& func) {
+		if (cells_.empty()) {
+			return;
+		}
+
+		static thread_local std::vector<RowCellInfo> row_cells;
+		row_cells.clear();
 		row_cells.reserve(end_cx - start_cx + 1);
 
 		for (int cy = start_cy; cy <= end_cy; ++cy) {
 			row_cells.clear();
 
-			for (int cx = start_cx; cx <= end_cx; ++cx) {
-				uint64_t key = makeKeyFromCell(cx, cy);
-				auto it = cells.find(key);
-				if (it != cells.end()) {
-					row_cells.push_back({ .cell = it->second.get(), .start_nx = (cx << NODES_PER_CELL_SHIFT) });
+			// Binary search for the first cell in this row
+			uint64_t row_start_key = makeKeyFromCell(start_cx, cy);
+			uint64_t row_end_key = makeKeyFromCell(end_cx, cy);
+
+			auto it = std::lower_bound(cells_.begin(), cells_.end(), row_start_key, cell_key_less);
+
+			// Scan linearly through matching cells in this row (contiguous in sorted order!)
+			while (it != cells_.end() && it->key <= row_end_key) {
+				int cx, cell_cy;
+				getCellCoordsFromKey(it->key, cx, cell_cy);
+				if (cell_cy != cy) {
+					break; // Moved past this row
 				}
+				if (cx >= start_cx && cx <= end_cx) {
+					int cell_start_nx = cx << NODES_PER_CELL_SHIFT;
+					row_cells.push_back({ .cell = it->cell.get(), .cell_start_nx = cell_start_nx, .local_start_nx = std::max(start_nx, cell_start_nx) - cell_start_nx, .local_end_nx = std::min(end_nx, cell_start_nx + NODES_PER_CELL - 1) - cell_start_nx });
+				}
+				++it;
 			}
 
 			if (row_cells.empty()) {
@@ -116,81 +172,15 @@ protected:
 			int row_start_ny = std::max(start_ny, cy << NODES_PER_CELL_SHIFT);
 			int row_end_ny = std::min(end_ny, ((cy + 1) << NODES_PER_CELL_SHIFT) - 1);
 
-			for (int ny : std::views::iota(row_start_ny, row_end_ny + 1)) {
+			for (int ny = row_start_ny; ny <= row_end_ny; ++ny) {
 				int local_ny = ny & (NODES_PER_CELL - 1);
+				int idx_base = local_ny * NODES_PER_CELL;
 
-				for (const auto& [cell, cell_start_nx] : row_cells) {
-					int local_start_nx = std::max(start_nx, cell_start_nx) - cell_start_nx;
-					int local_end_nx = std::min(end_nx, cell_start_nx + NODES_PER_CELL - 1) - cell_start_nx;
-
-					for (int lnx = local_start_nx; lnx <= local_end_nx; ++lnx) {
-						int idx = local_ny * NODES_PER_CELL + lnx;
-						if (MapNode* node = cell->nodes[idx].get()) {
-							func(node, (cell_start_nx + lnx) << NODE_SHIFT, ny << NODE_SHIFT);
+				for (const auto& row_cell : row_cells) {
+					for (int lnx = row_cell.local_start_nx; lnx <= row_cell.local_end_nx; ++lnx) {
+						if (MapNode* node = row_cell.cell->nodes[idx_base + lnx].get()) {
+							func(node, (row_cell.cell_start_nx + lnx) << NODE_SHIFT, ny << NODE_SHIFT);
 						}
-					}
-				}
-			}
-		}
-	}
-
-	// Traverses cells by iterating over pre-filtered allocated cells.
-	// Efficient for huge or sparse viewports.
-	template <typename Func>
-	void visitLeavesByCells(int start_nx, int start_ny, int end_nx, int end_ny, int start_cx, int start_cy, int end_cx, int end_cy, Func&& func) {
-		struct CellEntry {
-			int cx;
-			int cy;
-			GridCell* cell;
-		};
-		std::vector<CellEntry> visible_cells;
-		visible_cells.reserve(std::min(cells.size(), static_cast<size_t>((static_cast<long long>(end_cx) - start_cx + 1) * (static_cast<long long>(end_cy) - start_cy + 1))));
-
-		for (const auto& [key, cell_ptr] : cells) {
-			int cx, cy;
-			getCellCoordsFromKey(key, cx, cy);
-
-			if (cx >= start_cx && cx <= end_cx && cy >= start_cy && cy <= end_cy) {
-				visible_cells.push_back({ .cx = cx, .cy = cy, .cell = cell_ptr.get() });
-			}
-		}
-
-		if (visible_cells.empty()) {
-			return;
-		}
-
-		if (visible_cells.size() > 1) {
-			std::sort(visible_cells.begin(), visible_cells.end(), [](const CellEntry& a, const CellEntry& b) {
-				return std::tie(a.cy, a.cx) < std::tie(b.cy, b.cx);
-			});
-		}
-
-		size_t first_in_row_idx = 0;
-		size_t num_visible = visible_cells.size();
-
-		for (int ny : std::views::iota(start_ny, end_ny + 1)) {
-			int current_cy = ny >> NODES_PER_CELL_SHIFT;
-			int local_ny = ny & (NODES_PER_CELL - 1);
-
-			// Advance to current row. This correctly handles gaps in Y coordinates.
-			while (first_in_row_idx < num_visible && visible_cells[first_in_row_idx].cy < current_cy) {
-				first_in_row_idx++;
-			}
-
-			// Iterate cells in current row
-			for (size_t i = first_in_row_idx; i < num_visible && visible_cells[i].cy == current_cy; ++i) {
-				const auto& entry = visible_cells[i];
-				GridCell* cell = entry.cell;
-				int cx = entry.cx;
-
-				int cell_start_nx = cx << NODES_PER_CELL_SHIFT;
-				int local_start_nx = std::max(start_nx, cell_start_nx) - cell_start_nx;
-				int local_end_nx = std::min(end_nx, cell_start_nx + NODES_PER_CELL - 1) - cell_start_nx;
-
-				for (int lnx = local_start_nx; lnx <= local_end_nx; ++lnx) {
-					int idx = local_ny * NODES_PER_CELL + lnx;
-					if (MapNode* node = cell->nodes[idx].get()) {
-						func(node, (cell_start_nx + lnx) << NODE_SHIFT, ny << NODE_SHIFT);
 					}
 				}
 			}
@@ -199,12 +189,7 @@ protected:
 
 	static uint64_t makeKeyFromCell(int cx, int cy) {
 		static_assert(sizeof(int) == 4, "Key packing assumes exactly 32-bit integers");
-		return (static_cast<uint64_t>(static_cast<uint32_t>(cx)) << 32) | static_cast<uint32_t>(cy);
-	}
-
-	static void getCellCoordsFromKey(uint64_t key, int& cx, int& cy) {
-		cx = static_cast<int32_t>(key >> 32);
-		cy = static_cast<int32_t>(key);
+		return (static_cast<uint64_t>(static_cast<uint32_t>(cy) ^ 0x80000000u) << 32) | (static_cast<uint32_t>(cx) ^ 0x80000000u);
 	}
 
 	static uint64_t makeKey(int x, int y) {

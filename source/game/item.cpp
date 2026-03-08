@@ -31,6 +31,8 @@
 #include "brushes/carpet/carpet_brush.h"
 #include "brushes/table/table_brush.h"
 #include "brushes/wall/wall_brush.h"
+#include <array>
+#include <string_view>
 
 std::unique_ptr<Item> Item::Create(uint16_t _type, uint16_t _subtype /*= 0xFFFF*/) {
 	if (_type == 0) {
@@ -93,61 +95,6 @@ std::unique_ptr<Item> Item::deepCopy() const {
 		}
 	}
 	return copy;
-}
-
-Item* transformItem(Item* old_item, uint16_t new_id, Tile* parent) {
-	if (old_item == nullptr) {
-		return nullptr;
-	}
-
-	old_item->setID(new_id);
-	// Through the magic of deepCopy, this will now be a pointer to an item of the correct type.
-	std::unique_ptr<Item> new_item_ptr = old_item->deepCopy();
-	Item* new_item = new_item_ptr.get();
-
-	if (parent) {
-		// Find the old item and remove it from the tile, insert this one instead!
-		if (old_item == parent->ground.get()) {
-			parent->ground = std::move(new_item_ptr);
-			return new_item;
-		}
-
-		std::queue<Container*> containers;
-		for (auto it = parent->items.begin(); it != parent->items.end(); ++it) {
-			if (it->get() == old_item) {
-				it = parent->items.erase(it);
-				parent->items.insert(it, std::move(new_item_ptr));
-				return new_item;
-			}
-
-			Container* c = (*it)->asContainer();
-			if (c) {
-				containers.push(c);
-			}
-		}
-
-		while (containers.size() != 0) {
-			Container* container = containers.front();
-			auto& v = container->getVector();
-			for (auto it = v.begin(); it != v.end(); ++it) {
-				Item* i = it->get();
-				Container* c = i->asContainer();
-				if (c) {
-					containers.push(c);
-				}
-
-				if (i == old_item) {
-					// Found it!
-					it = v.erase(it);
-					v.insert(it, std::move(new_item_ptr));
-					return new_item;
-				}
-			}
-			containers.pop();
-		}
-	}
-
-	return nullptr;
 }
 
 uint32_t Item::memsize() const {
@@ -305,11 +252,7 @@ void Item::setTier(unsigned short n) {
 }
 
 double Item::getWeight() {
-	ItemType& it = g_items[id];
-	if (it.isStackable()) {
-		return it.weight * subtype;
-	}
-	return it.weight;
+	return const_cast<const Item*>(this)->getWeight();
 }
 
 bool Item::canHoldText() const {
@@ -330,35 +273,35 @@ uint8_t Item::getMiniMapColor() const {
 
 GroundBrush* Item::getGroundBrush() const {
 	ItemType& item_type = g_items.getItemType(id);
-	if (item_type.isGroundTile() && item_type.brush && item_type.brush->isGround()) {
-		return item_type.brush->asGround();
+	if (item_type.isGroundTile() && item_type.brush && item_type.brush->is<GroundBrush>()) {
+		return item_type.brush->as<GroundBrush>();
 	}
 	return nullptr;
 }
 
 TableBrush* Item::getTableBrush() const {
 	ItemType& item_type = g_items.getItemType(id);
-	if (item_type.isTable && item_type.brush && item_type.brush->isTable()) {
-		return item_type.brush->asTable();
+	if (item_type.isTable && item_type.brush && item_type.brush->is<TableBrush>()) {
+		return item_type.brush->as<TableBrush>();
 	}
 	return nullptr;
 }
 
 CarpetBrush* Item::getCarpetBrush() const {
 	ItemType& item_type = g_items.getItemType(id);
-	if (item_type.isCarpet && item_type.brush && item_type.brush->isCarpet()) {
-		return item_type.brush->asCarpet();
+	if (item_type.isCarpet && item_type.brush && item_type.brush->is<CarpetBrush>()) {
+		return item_type.brush->as<CarpetBrush>();
 	}
 	return nullptr;
 }
 
 DoorBrush* Item::getDoorBrush() const {
 	ItemType& item_type = g_items.getItemType(id);
-	if (!item_type.isWall || !item_type.isBrushDoor || !item_type.brush || !item_type.brush->isWall()) {
+	if (!item_type.isWall || !item_type.isBrushDoor || !item_type.brush || !item_type.brush->is<WallBrush>()) {
 		return nullptr;
 	}
 
-	DoorType door_type = item_type.brush->asWall()->getDoorTypeFromID(id);
+	DoorType door_type = item_type.brush->as<WallBrush>()->getDoorTypeFromID(id);
 	DoorBrush* door_brush = nullptr;
 	// Quite a horrible dependency on a global here, meh.
 	switch (door_type) {
@@ -403,8 +346,8 @@ DoorBrush* Item::getDoorBrush() const {
 
 WallBrush* Item::getWallBrush() const {
 	ItemType& item_type = g_items.getItemType(id);
-	if (item_type.isWall && item_type.brush && item_type.brush->isWall()) {
-		return item_type.brush->asWall();
+	if (item_type.isWall && item_type.brush && item_type.brush->is<WallBrush>()) {
+		return item_type.brush->as<WallBrush>();
 	}
 	return nullptr;
 }
@@ -425,57 +368,58 @@ BorderType Item::getBorderAlignment() const {
 // ============================================================================
 // Static conversions
 
-std::string Item::LiquidID2Name(uint16_t id) {
-	switch (id) {
-		case LIQUID_NONE:
-			return "None";
-		case LIQUID_WATER:
-			return "Water";
-		case LIQUID_BLOOD:
-			return "Blood";
-		case LIQUID_BEER:
-			return "Beer";
-		case LIQUID_SLIME:
-			return "Slime";
-		case LIQUID_LEMONADE:
-			return "Lemonade";
-		case LIQUID_MILK:
-			return "Milk";
-		case LIQUID_MANAFLUID:
-			return "Manafluid";
-		case LIQUID_WATER2:
-			return "Water";
-		case LIQUID_LIFEFLUID:
-			return "Lifefluid";
-		case LIQUID_OIL:
-			return "Oil";
-		case LIQUID_SLIME2:
-			return "Slime";
-		case LIQUID_URINE:
-			return "Urine";
-		case LIQUID_COCONUT_MILK:
-			return "Coconut Milk";
-		case LIQUID_WINE:
-			return "Wine";
-		case LIQUID_MUD:
-			return "Mud";
-		case LIQUID_FRUIT_JUICE:
-			return "Fruit Juice";
-		case LIQUID_LAVA:
-			return "Lava";
-		case LIQUID_RUM:
-			return "Rum";
-		case LIQUID_SWAMP:
-			return "Swamp";
-		case LIQUID_INK:
-			return "Ink";
-		case LIQUID_TEA:
-			return "Tea";
-		case LIQUID_MEAD:
-			return "Mead";
-		default:
-			return "Unknown";
+std::string_view Item::LiquidID2Name(uint16_t id) {
+	static constexpr std::array<std::string_view, 44> liquid_names = {
+		"None", // LIQUID_NONE (0)
+		"Water", // LIQUID_WATER (1)
+		"Blood", // LIQUID_BLOOD (2)
+		"Beer", // LIQUID_BEER (3)
+		"Slime", // LIQUID_SLIME (4)
+		"Lemonade", // LIQUID_LEMONADE (5)
+		"Milk", // LIQUID_MILK (6)
+		"Manafluid", // LIQUID_MANAFLUID (7)
+		"Ink", // LIQUID_INK (8)
+		"Water", // LIQUID_WATER2 (9)
+		"Lifefluid", // LIQUID_LIFEFLUID (10)
+		"Oil", // LIQUID_OIL (11)
+		"Slime", // LIQUID_SLIME2 (12)
+		"Urine", // LIQUID_URINE (13)
+		"Coconut Milk", // LIQUID_COCONUT_MILK (14)
+		"Wine", // LIQUID_WINE (15)
+		"Unknown", // 16
+		"Unknown", // 17
+		"Unknown", // 18
+		"Mud", // LIQUID_MUD (19)
+		"Unknown", // 20
+		"Fruit Juice", // LIQUID_FRUIT_JUICE (21)
+		"Unknown", // 22
+		"Unknown", // 23
+		"Unknown", // 24
+		"Unknown", // 25
+		"Lava", // LIQUID_LAVA (26)
+		"Rum", // LIQUID_RUM (27)
+		"Swamp", // LIQUID_SWAMP (28)
+		"Unknown", // 29
+		"Unknown", // 30
+		"Unknown", // 31
+		"Unknown", // 32
+		"Unknown", // 33
+		"Unknown", // 34
+		"Tea", // LIQUID_TEA (35)
+		"Unknown", // 36
+		"Unknown", // 37
+		"Unknown", // 38
+		"Unknown", // 39
+		"Unknown", // 40
+		"Unknown", // 41
+		"Unknown", // 42
+		"Mead" // LIQUID_MEAD (43)
+	};
+
+	if (id < liquid_names.size()) {
+		return liquid_names[id];
 	}
+	return "Unknown";
 }
 
 uint16_t Item::LiquidName2ID(std::string liquid) {
