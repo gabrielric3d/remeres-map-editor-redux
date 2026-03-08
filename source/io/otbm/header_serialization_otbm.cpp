@@ -122,21 +122,21 @@ bool HeaderSerializationOTBM::readMapAttributes(Map& map, BinaryNode* mapHeaderN
 			case OTBM_ATTR_DESCRIPTION: {
 				if (!mapHeaderNode->getString(map.description)) {
 					spdlog::warn("Invalid map description tag");
-					return false;
+					return true;
 				}
 				break;
 			}
 			case OTBM_ATTR_EXT_SPAWN_FILE: {
 				if (!mapHeaderNode->getString(map.spawnfile)) {
 					spdlog::warn("Invalid map spawnfile tag");
-					return false;
+					return true;
 				}
 				break;
 			}
 			case OTBM_ATTR_EXT_HOUSE_FILE: {
 				if (!mapHeaderNode->getString(map.housefile)) {
 					spdlog::warn("Invalid map housefile tag");
-					return false;
+					return true;
 				}
 				break;
 			}
@@ -145,13 +145,13 @@ bool HeaderSerializationOTBM::readMapAttributes(Map& map, BinaryNode* mapHeaderN
 				std::string stringToSkip;
 				if (!mapHeaderNode->getString(stringToSkip)) {
 					spdlog::warn("Invalid map NPC spawnfile tag");
-					return false;
+					return true;
 				}
 				break;
 			}
 			default: {
-				spdlog::warn("Unknown header attribute: {}", static_cast<int>(attribute));
-				return false;
+				spdlog::warn("Unknown header attribute: {}. Continuing map load without parsing the remaining header attributes.", static_cast<int>(attribute));
+				return true;
 			}
 		}
 	}
