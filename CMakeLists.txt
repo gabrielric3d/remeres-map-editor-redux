@@ -1,7 +1,23 @@
 cmake_minimum_required(VERSION 3.28)
 
+# CMake 4.x removed compatibility with cmake_minimum_required < 3.5.
+# Some vcpkg ports (e.g. glad) still use older minimum versions.
+# This setting allows those ports to configure without errors.
+if(POLICY CMP0174)
+	cmake_policy(SET CMP0174 OLD)
+endif()
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "Minimum CMake policy version for compatibility with older vcpkg ports")
 
 project(rme)
+
+# Limit parallel compilation to 20 threads
+if(MSVC)
+	add_compile_options(/MP20)
+else()
+	set(CMAKE_JOB_POOL_COMPILE compile_pool)
+	set(CMAKE_JOB_POOL_LINK link_pool)
+	set_property(GLOBAL PROPERTY JOB_POOLS compile_pool=20 link_pool=4)
+endif()
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
