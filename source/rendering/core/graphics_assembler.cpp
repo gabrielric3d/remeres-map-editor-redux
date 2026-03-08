@@ -6,6 +6,7 @@
 #include "rendering/core/graphics.h"
 #include "rendering/core/normal_image.h"
 #include "rendering/core/sprite_archive.h"
+#include "rendering/core/sprite_preloader.h"
 
 #include <algorithm>
 #include <format>
@@ -15,6 +16,26 @@
 namespace {
 	[[nodiscard]] size_t imageSpaceSize(const DatCatalog& catalog) {
 		return std::max<size_t>(1, static_cast<size_t>(catalog.max_sprite_id) + 1);
+	}
+
+	bool validateCatalog(const DatCatalog& catalog, wxString& error) {
+		if (catalog.max_sprite_id >= MAX_SPRITES) {
+			error = wxString::FromUTF8(std::format(
+				"DAT catalog references sprite id {} which exceeds MAX_SPRITES={}.",
+				catalog.max_sprite_id,
+				MAX_SPRITES));
+			return false;
+		}
+
+		for (uint32_t client_id = 100; client_id <= catalog.lastEntryId(); ++client_id) {
+			const auto* entry = catalog.entry(client_id);
+			if (!entry) {
+				error = wxString::FromUTF8(std::format("Missing DAT catalog entry for client id {}.", client_id));
+				return false;
+			}
+		}
+
+		return true;
 	}
 }
 
@@ -85,6 +106,10 @@ bool GraphicsAssembler::installSpriteEntry(GraphicManager& manager, const DatCat
 }
 
 void GraphicsAssembler::resetRuntimeState(GraphicManager& manager) {
+	SpritePreloader::get().clear();
+	manager.unloaded = true;
+	manager.sprite_archive_.reset();
+	manager.spritefile.clear();
 	manager.sprite_space.clear();
 	manager.image_space.clear();
 	manager.resident_images.clear();
@@ -102,29 +127,16 @@ bool GraphicsAssembler::install(GraphicManager& manager, const DatCatalog& catal
 		return false;
 	}
 
-	resetRuntimeState(manager);
-
-	manager.dat_format = catalog.format;
-	manager.item_count = catalog.item_count;
-	manager.creature_count = catalog.creature_count;
-	manager.is_extended = catalog.is_extended;
-	manager.has_transparency = catalog.has_transparency;
-	manager.has_frame_durations = catalog.has_frame_durations;
-	manager.has_frame_groups = catalog.has_frame_groups;
-	manager.sprite_archive_ = std::move(sprite_archive);
-	manager.spritefile = manager.sprite_archive_->fileName();
-	manager.unloaded = false;
-
-	if (catalog.max_sprite_id >= MAX_SPRITES) {
-		error = wxString::FromUTF8(std::format(
-			"DAT catalog references sprite id {} which exceeds MAX_SPRITES={}.",
-			catalog.max_sprite_id,
-			MAX_SPRITES));
+	if (!validateCatalog(catalog, error)) {
 		return false;
 	}
 
-	manager.sprite_space.resize(static_cast<size_t>(catalog.lastEntryId()) + 1);
-	manager.image_space.resize(imageSpaceSize(catalog));
+	const auto sprite_space_size = static_cast<size_t>(catalog.lastEntryId()) + 1;
+	const auto image_space_size = imageSpaceSize(catalog);
+
+	resetRuntimeState(manager);
+	manager.sprite_space.resize(sprite_space_size);
+	manager.image_space.resize(image_space_size);
 
 	for (uint32_t client_id = 100; client_id <= catalog.lastEntryId(); ++client_id) {
 		const auto* entry = catalog.entry(client_id);
@@ -137,6 +149,17 @@ bool GraphicsAssembler::install(GraphicManager& manager, const DatCatalog& catal
 			return false;
 		}
 	}
+
+	manager.dat_format = catalog.format;
+	manager.item_count = catalog.item_count;
+	manager.creature_count = catalog.creature_count;
+	manager.is_extended = catalog.is_extended;
+	manager.has_transparency = catalog.has_transparency;
+	manager.has_frame_durations = catalog.has_frame_durations;
+	manager.has_frame_groups = catalog.has_frame_groups;
+	manager.sprite_archive_ = std::move(sprite_archive);
+	manager.spritefile = manager.sprite_archive_->fileName();
+	manager.unloaded = false;
 
 	return true;
 }

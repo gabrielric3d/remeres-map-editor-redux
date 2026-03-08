@@ -11,6 +11,7 @@
 #include <mutex>
 #include <thread>
 #include <condition_variable>
+#include <cstdint>
 #include <queue>
 #include <unordered_set>
 
@@ -57,16 +58,31 @@ private:
 		}
 	};
 
-	struct Task {
+	struct PendingSpriteKey {
 		ArchiveSpriteKey key;
-		uint32_t generation_id;
+		uint32_t generation_id = 0;
+		uint64_t epoch = 0;
+
+		bool operator==(const PendingSpriteKey& other) const = default;
+	};
+
+	struct PendingSpriteKeyHash {
+		size_t operator()(const PendingSpriteKey& key) const noexcept {
+			size_t seed = ArchiveSpriteKeyHash {}(key.key);
+			seed ^= std::hash<uint32_t> {}(key.generation_id) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			seed ^= std::hash<uint64_t> {}(key.epoch) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			return seed;
+		}
+	};
+
+	struct Task {
+		PendingSpriteKey pending;
 		std::shared_ptr<SpriteArchive> archive;
 		bool has_transparency;
 	};
 
 	struct Result {
-		ArchiveSpriteKey key;
-		uint32_t generation_id;
+		PendingSpriteKey pending;
 		std::unique_ptr<uint8_t[]> data;
 		std::shared_ptr<SpriteArchive> archive;
 	};
@@ -85,8 +101,8 @@ private:
 
 	std::queue<Task> task_queue;
 	std::queue<Result> result_queue;
-	std::unordered_set<ArchiveSpriteKey, ArchiveSpriteKeyHash> pending_ids; // To avoid duplicate tasks per archive
-	std::unordered_set<ArchiveSpriteKey, ArchiveSpriteKeyHash> cancelled_ids; // Keys that were cleared and should be ignored
+	std::unordered_set<PendingSpriteKey, PendingSpriteKeyHash> pending_ids; // To avoid duplicate tasks for the same archive/id/generation/epoch
+	uint64_t active_epoch = 0;
 };
 
 namespace rme {

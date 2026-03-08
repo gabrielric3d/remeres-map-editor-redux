@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <climits>
 #include <format>
+#include <limits>
 
 namespace {
 	constexpr uint64_t flagMask(ItemFlag flag) {
@@ -150,6 +151,15 @@ namespace {
 				uint16_t intensity = 0;
 				uint16_t color = 0;
 				if (!file.getU16(intensity) || !file.getU16(color)) {
+					return false;
+				}
+				constexpr auto kMaxSpriteLightValue = static_cast<uint16_t>(std::numeric_limits<uint8_t>::max());
+				if (intensity > kMaxSpriteLightValue || color > kMaxSpriteLightValue) {
+					warnings.push_back(std::format(
+						"DAT catalog: light values intensity={} color={} exceed SpriteLight range for client id {}.",
+						intensity,
+						color,
+						entry.client_id));
 					return false;
 				}
 				entry.has_light = true;
@@ -315,6 +325,27 @@ namespace {
 		}
 
 		if (width == 0 || height == 0 || layers == 0 || pattern_x == 0 || pattern_y == 0 || pattern_z == 0 || frames == 0) {
+			std::string zero_dimensions;
+			const auto append_zero_dimension = [&](bool is_zero, const char* name) {
+				if (!is_zero) {
+					return;
+				}
+				if (!zero_dimensions.empty()) {
+					zero_dimensions += ", ";
+				}
+				zero_dimensions += name;
+			};
+			append_zero_dimension(width == 0, "width");
+			append_zero_dimension(height == 0, "height");
+			append_zero_dimension(layers == 0, "layers");
+			append_zero_dimension(pattern_x == 0, "pattern_x");
+			append_zero_dimension(pattern_y == 0, "pattern_y");
+			append_zero_dimension(pattern_z == 0, "pattern_z");
+			append_zero_dimension(frames == 0, "frames");
+			warnings.push_back(std::format(
+				"DAT catalog: sprite group for client id {} has zero dimension(s): {}.",
+				entry.client_id,
+				zero_dimensions));
 			return false;
 		}
 

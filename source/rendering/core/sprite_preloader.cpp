@@ -47,11 +47,8 @@ void SpritePreloader::shutdown() {
 
 void SpritePreloader::clear() {
 	std::lock_guard<std::mutex> lock(queue_mutex);
-	// When clearing, we must ensure any in-flight tasks are ignored when they complete.
-	// We move all pending archive/id keys to the cancelled set.
-	for (const auto& key : pending_ids) {
-		cancelled_ids.insert(key);
-	}
+	// Bump the epoch so any in-flight worker result becomes stale.
+	++active_epoch;
 	task_queue = std::queue<Task>();
 	result_queue = std::queue<Result>();
 	pending_ids.clear();
@@ -116,8 +113,13 @@ void SpritePreloader::preload(GameSprite* spr, int pattern_x, int pattern_y, int
 		}
 
 		for (const auto& pending : ids_to_enqueue) {
-			if (pending_ids.insert(pending.key).second) {
-				task_queue.push({ pending.key, pending.generation_id, archive, has_transparency });
+			const PendingSpriteKey pending_key {
+				.key = pending.key,
+				.generation_id = pending.generation_id,
+				.epoch = active_epoch,
+			};
+			if (pending_ids.insert(pending_key).second) {
+				task_queue.push({ pending_key, archive, has_transparency });
 			}
 		}
 		cv.notify_all();
@@ -139,19 +141,19 @@ void SpritePreloader::workerLoop(std::stop_token stop_token) {
 
 		std::unique_ptr<uint8_t[]> dump;
 		uint16_t size = 0;
-		const bool success = task.archive && task.archive->readCompressed(task.key.id, dump, size);
+		const bool success = task.archive && task.archive->readCompressed(task.pending.key.id, dump, size);
 
 		std::unique_ptr<uint8_t[]> rgba;
 		if (success && dump) {
-			rgba = GameSprite::Decompress(std::span { dump.get(), size }, task.has_transparency, task.key.id);
+			rgba = GameSprite::Decompress(std::span { dump.get(), size }, task.has_transparency, task.pending.key.id);
 		}
 
 		{
 			std::lock_guard<std::mutex> lock(queue_mutex);
 			if (rgba) {
-				result_queue.push({ task.key, task.generation_id, std::move(rgba), std::move(task.archive) });
+				result_queue.push({ task.pending, std::move(rgba), std::move(task.archive) });
 			} else {
-				pending_ids.erase(task.key);
+				pending_ids.erase(task.pending);
 			}
 		}
 	}
@@ -161,19 +163,19 @@ void SpritePreloader::update() {
 	// CRITICAL: This method MUST only be called from the main GUI/OpenGL thread.
 	assert(wxIsMainThread());
 
-	// Move results to a local queue and cancelled_ids to a local set under lock to minimize holding time
+	// Move results to a local queue under lock to minimize holding time.
 	std::queue<Result> results;
-	std::unordered_set<ArchiveSpriteKey, ArchiveSpriteKeyHash> local_cancelled;
+	uint64_t current_epoch = 0;
 	{
 		std::lock_guard<std::mutex> lock(queue_mutex);
 		if (result_queue.empty()) {
 			return;
 		}
 		results = std::move(result_queue);
-		local_cancelled = std::move(cancelled_ids); // Move all cancelled IDs for batch checking
+		current_epoch = active_epoch;
 	}
 
-	thread_local std::vector<ArchiveSpriteKey> keys_processed;
+	thread_local std::vector<PendingSpriteKey> keys_processed;
 	keys_processed.clear();
 	keys_processed.reserve(results.size());
 
@@ -184,12 +186,11 @@ void SpritePreloader::update() {
 		Result res = std::move(results.front());
 		results.pop();
 
-		const auto key = res.key;
-		const auto id = key.id;
-		keys_processed.push_back(key);
+		const auto pending = res.pending;
+		const auto id = pending.key.id;
+		keys_processed.push_back(pending);
 
-		// Check if this archive/id pair was cancelled (moved to local set under one lock)
-		if (local_cancelled.contains(key)) {
+		if (pending.epoch != current_epoch) {
 			continue;
 		}
 
@@ -202,7 +203,7 @@ void SpritePreloader::update() {
 
 				// Validate Sprite Identity & Generation
 				// Check ID match, Generation match, and GLLoaded state
-				if (img->id == id && img->generation_id == res.generation_id && !img->isGLLoaded) {
+				if (img->id == id && img->generation_id == pending.generation_id && !img->isGLLoaded) {
 					img->fulfillPreload(std::move(res.data));
 				}
 			}
@@ -211,8 +212,8 @@ void SpritePreloader::update() {
 
 	if (!keys_processed.empty()) {
 		std::lock_guard<std::mutex> lock(queue_mutex);
-		for (const auto& key : keys_processed) {
-			pending_ids.erase(key);
+		for (const auto& pending : keys_processed) {
+			pending_ids.erase(pending);
 		}
 	}
 }
