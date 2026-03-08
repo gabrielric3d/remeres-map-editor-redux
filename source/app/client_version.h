@@ -229,6 +229,7 @@ public:
 
 	static ClientVersion* get(const ClientVersionID& id);
 	static ClientVersion* getBestMatch(OtbVersionID id);
+	static ClientVersion* getByItemsVersion(uint32_t major, uint32_t minor);
 	static ClientVersionList getVisible(std::string from, std::string to);
 	static ClientVersionList getAll();
 	static ClientVersionList getAllVisible();

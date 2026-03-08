@@ -75,6 +75,8 @@ struct OTBM_HouseTile_coords {
 struct OTBMStartupPeekResult {
 	wxString map_name;
 	wxString client_version = "Placeholder";
+	uint16_t width = 0;
+	uint16_t height = 0;
 	int otbm_version = 0;
 	uint32_t items_major_version = 0;
 	uint32_t items_minor_version = 0;

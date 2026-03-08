@@ -60,8 +60,7 @@ bool HeaderSerializationOTBM::peekStartupInfo(NodeFileReadHandle& f, OTBMStartup
 	}
 	out_info.otbm_version = toDisplayOTBMVersion(raw_otbm_version);
 
-	uint16_t ignored_dimension = 0;
-	if (!root->getU16(ignored_dimension) || !root->getU16(ignored_dimension) || !root->getU32(out_info.items_major_version) || !root->getU32(out_info.items_minor_version)) {
+	if (!root->getU16(out_info.width) || !root->getU16(out_info.height) || !root->getU32(out_info.items_major_version) || !root->getU32(out_info.items_minor_version)) {
 		return false;
 	}
 

@@ -47,6 +47,7 @@ struct StartupInfoField {
 	wxString value;
 	std::string icon_art_id;
 	wxColour value_colour = wxNullColour;
+	bool separator_after = false;
 };
 
 #endif

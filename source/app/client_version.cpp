@@ -391,6 +391,27 @@ ClientVersion* ClientVersion::getBestMatch(OtbVersionID id) {
 	return nullptr;
 }
 
+ClientVersion* ClientVersion::getByItemsVersion(uint32_t major, uint32_t minor) {
+	for (const auto& client_version : client_versions) {
+		ClientVersion* candidate = client_version.get();
+		if (!candidate->isVisible()) {
+			continue;
+		}
+		if (candidate->getOtbMajor() == major && candidate->getOtbId() == minor) {
+			return candidate;
+		}
+	}
+
+	for (const auto& client_version : client_versions) {
+		ClientVersion* candidate = client_version.get();
+		if (candidate->getOtbMajor() == major && candidate->getOtbId() == minor) {
+			return candidate;
+		}
+	}
+
+	return nullptr;
+}
+
 ClientVersionList ClientVersion::getAll() {
 	ClientVersionList l;
 	for (const auto& cv : client_versions) {

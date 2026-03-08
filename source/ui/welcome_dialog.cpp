@@ -27,6 +27,19 @@ constexpr int ID_RECENT_LIST = wxID_HIGHEST + 101;
 constexpr int ID_CLIENT_LIST = wxID_HIGHEST + 102;
 constexpr int ID_FORCE_LOAD = wxID_HIGHEST + 103;
 constexpr int ID_LOAD_BUTTON = wxID_HIGHEST + 104;
+
+wxString BuildHeaderTitle(const wxString& title_text, const wxString& version_text) {
+	if (version_text.empty()) {
+		return title_text;
+	}
+
+	wxString compact_version = version_text;
+	if (compact_version.StartsWith("Version ")) {
+		compact_version = compact_version.AfterFirst(' ');
+	}
+
+	return compact_version.empty() ? title_text : title_text + " " + compact_version;
+}
 }
 
 WelcomeDialog::WelcomeDialog(const wxString& title_text, const wxString& version_text, const wxSize& size, const wxBitmap& rme_logo, const std::vector<wxString>& recent_files) :
@@ -48,6 +61,7 @@ WelcomeDialog::WelcomeDialog(const wxString& title_text, const wxString& version
 	}
 
 	BuildInterface(title_text, version_text, rme_logo);
+	Bind(wxEVT_SIZE, &WelcomeDialog::OnSize, this);
 
 	if (!m_configured_clients.empty()) {
 		const ClientVersion* latest = ClientVersion::getLatestVersion();
@@ -86,7 +100,7 @@ void WelcomeDialog::BuildInterface(const wxString& title_text, const wxString& v
 	header_sizer->Add(logo, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(14));
 
 	auto* title_sizer = new wxBoxSizer(wxVERTICAL);
-	auto* title_label = new wxStaticText(header_panel, wxID_ANY, title_text);
+	auto* title_label = new wxStaticText(header_panel, wxID_ANY, BuildHeaderTitle(title_text, version_text));
 	title_label->SetFont(Theme::GetFont(15, true));
 	title_label->SetForegroundColour(Theme::Get(Theme::Role::Text));
 	title_label->SetBackgroundColour(header_panel->GetBackgroundColour());
@@ -155,38 +169,39 @@ void WelcomeDialog::BuildInterface(const wxString& title_text, const wxString& v
 	footer_panel->SetBackgroundColour(Theme::Get(Theme::Role::FooterSurface));
 	auto* footer_root_sizer = new wxBoxSizer(wxVERTICAL);
 
-	m_status_text = new wxStaticText(footer_panel, wxID_ANY, "");
-	m_status_text->SetFont(Theme::GetFont(9, false));
-	m_status_text->SetForegroundColour(Theme::Get(Theme::Role::TextSubtle));
-	m_status_text->SetBackgroundColour(footer_panel->GetBackgroundColour());
-	footer_root_sizer->Add(m_status_text, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(12));
-
 	auto* footer_actions = new wxBoxSizer(wxHORIZONTAL);
+	auto* footer_left = new wxBoxSizer(wxHORIZONTAL);
 	auto* exit_button = new StartupButton(footer_panel, wxID_EXIT, "Exit", StartupButtonVariant::Secondary);
 	exit_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_POWER_OFF, FromDIP(wxSize(18, 18))));
 	exit_button->Bind(wxEVT_BUTTON, &WelcomeDialog::OnExit, this);
-	footer_actions->Add(exit_button, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+	footer_left->Add(exit_button, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+	footer_actions->Add(footer_left, 1, wxALIGN_CENTER_VERTICAL);
 
-	footer_actions->AddStretchSpacer();
+	m_status_card = new StartupCardPanel(footer_panel, "", true);
+	m_status_card->SetMinSize(wxSize(FromDIP(420), -1));
+	m_status_text = new wxStaticText(m_status_card, wxID_ANY, "");
+	m_status_text->SetFont(Theme::GetFont(9, false));
+	m_status_text->SetForegroundColour(Theme::Get(Theme::Role::TextSubtle));
+	m_status_text->SetBackgroundColour(m_status_card->GetBackgroundColour());
+	m_status_card->GetBodySizer()->Add(m_status_text, 1, wxEXPAND);
+	footer_actions->Add(m_status_card, 2, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(10));
 
-	m_version_text = new wxStaticText(footer_panel, wxID_ANY, version_text);
-	m_version_text->SetFont(Theme::GetFont(8, false));
-	m_version_text->SetForegroundColour(Theme::Get(Theme::Role::TextSubtle));
-	m_version_text->SetBackgroundColour(footer_panel->GetBackgroundColour());
-	footer_actions->Add(m_version_text, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(16));
+	auto* footer_right = new wxBoxSizer(wxHORIZONTAL);
+	footer_right->AddStretchSpacer();
 
 	m_force_load_checkbox = new wxCheckBox(footer_panel, ID_FORCE_LOAD, "Force Load");
 	m_force_load_checkbox->SetForegroundColour(Theme::Get(Theme::Role::Text));
 	m_force_load_checkbox->SetBackgroundColour(footer_panel->GetBackgroundColour());
 	m_force_load_checkbox->Bind(wxEVT_CHECKBOX, &WelcomeDialog::OnForceLoadChanged, this);
-	footer_actions->Add(m_force_load_checkbox, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(12));
+	footer_right->Add(m_force_load_checkbox, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(12));
 
 	m_load_button = new StartupButton(footer_panel, ID_LOAD_BUTTON, "Load Map", StartupButtonVariant::Primary);
 	m_load_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_OPEN, FromDIP(wxSize(18, 18))));
 	m_load_button->Bind(wxEVT_BUTTON, &WelcomeDialog::OnLoadRequested, this);
-	footer_actions->Add(m_load_button, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+	footer_right->Add(m_load_button, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+	footer_actions->Add(footer_right, 1, wxEXPAND);
 
-	footer_root_sizer->Add(footer_actions, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
+	footer_root_sizer->Add(footer_actions, 0, wxEXPAND);
 	footer_panel->SetSizer(footer_root_sizer);
 	root_sizer->Add(footer_panel, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
 
@@ -237,6 +252,11 @@ void WelcomeDialog::OnForceLoadChanged(wxCommandEvent& WXUNUSED(event)) {
 	RefreshFooterState();
 }
 
+void WelcomeDialog::OnSize(wxSizeEvent& event) {
+	UpdateStatusWrap();
+	event.Skip();
+}
+
 void WelcomeDialog::RefreshRecentMapList() {
 	std::vector<StartupListItem> items;
 	items.reserve(m_recent_maps.size());
@@ -260,7 +280,7 @@ void WelcomeDialog::RefreshClientList() {
 	for (const auto& client_entry : m_configured_clients) {
 		items.push_back({
 			client_entry.name,
-			client_entry.client_path,
+			FormatStartupClientPath(client_entry.client_path),
 			std::string(ICON_HARD_DRIVE),
 		});
 	}
@@ -283,7 +303,6 @@ void WelcomeDialog::RefreshFooterState() {
 	const StartupCompatibilityStatus status = GetCompatibilityStatus();
 	m_status_text->SetLabel(BuildCompatibilityMessage());
 	m_status_text->SetForegroundColour(StartupStatusColour(status));
-	m_status_text->Wrap(std::max(GetClientSize().GetWidth() - FromDIP(320), FromDIP(240)));
 
 	const bool mismatch = status == StartupCompatibilityStatus::ForceRequired || status == StartupCompatibilityStatus::Forced;
 	if (!mismatch && m_force_load_checkbox->GetValue()) {
@@ -295,6 +314,19 @@ void WelcomeDialog::RefreshFooterState() {
 	m_load_button->Enable(can_load);
 
 	Layout();
+	UpdateStatusWrap();
+	Layout();
+}
+
+void WelcomeDialog::UpdateStatusWrap() {
+	if (!m_status_text) {
+		return;
+	}
+
+	const int wrap_width = m_status_card != nullptr ?
+		std::max(m_status_card->GetClientSize().GetWidth() - FromDIP(20), FromDIP(220)) :
+		std::max(GetClientSize().GetWidth() - FromDIP(320), FromDIP(240));
+	m_status_text->Wrap(wrap_width);
 }
 
 void WelcomeDialog::SetSelectedMapIndex(int index) {

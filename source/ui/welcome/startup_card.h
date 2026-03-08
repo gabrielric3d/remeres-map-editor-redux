@@ -6,7 +6,7 @@
 
 class StartupCardPanel : public wxPanel {
 public:
-	StartupCardPanel(wxWindow* parent, const wxString& title);
+	StartupCardPanel(wxWindow* parent, const wxString& title, bool compact = false);
 
 	wxSizer* GetBodySizer() const {
 		return m_body_sizer;
@@ -16,6 +16,7 @@ private:
 	void OnPaint(wxPaintEvent& event);
 
 	wxString m_title;
+	bool m_compact = false;
 	wxStaticText* m_title_label = nullptr;
 	wxBoxSizer* m_body_sizer = nullptr;
 };

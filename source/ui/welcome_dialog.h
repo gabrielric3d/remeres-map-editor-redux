@@ -11,6 +11,7 @@
 #include "ui/welcome/startup_types.h"
 
 class StartupButton;
+class StartupCardPanel;
 class StartupInfoPanel;
 class StartupListBox;
 
@@ -35,12 +36,14 @@ private:
 	void OnRecentMapActivated(wxCommandEvent& event);
 	void OnClientSelected(wxCommandEvent& event);
 	void OnForceLoadChanged(wxCommandEvent& event);
+	void OnSize(wxSizeEvent& event);
 
 	void RefreshRecentMapList();
 	void RefreshClientList();
 	void RefreshMapInfoPanel();
 	void RefreshClientInfoPanel();
 	void RefreshFooterState();
+	void UpdateStatusWrap();
 
 	void SetSelectedMapIndex(int index);
 	void SetSelectedClientIndex(int index, bool manual_selection);
@@ -69,10 +72,9 @@ private:
 	StartupInfoPanel* m_map_info_panel = nullptr;
 	StartupInfoPanel* m_client_info_panel = nullptr;
 	StartupButton* m_load_button = nullptr;
+	StartupCardPanel* m_status_card = nullptr;
 	wxCheckBox* m_force_load_checkbox = nullptr;
 	wxStaticText* m_status_text = nullptr;
-	wxStaticText* m_version_text = nullptr;
-
 	int m_selected_map_index = wxNOT_FOUND;
 	int m_selected_client_index = wxNOT_FOUND;
 	bool m_has_manual_client_selection = false;

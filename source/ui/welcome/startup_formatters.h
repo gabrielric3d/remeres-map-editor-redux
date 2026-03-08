@@ -13,5 +13,6 @@ class ClientVersion;
 wxColour StartupStatusColour(StartupCompatibilityStatus status);
 std::vector<StartupInfoField> BuildStartupMapFields(const OTBMStartupPeekResult* info);
 std::vector<StartupInfoField> BuildStartupClientFields(ClientVersion* client);
+wxString FormatStartupClientPath(const wxString& full_path);
 
 #endif
