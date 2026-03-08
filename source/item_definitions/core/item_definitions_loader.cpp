@@ -10,7 +10,18 @@
 
 #include <memory>
 
-bool ItemDefinitionsLoader::load(const ItemDefinitionLoadInput& input, wxString& error, std::vector<std::string>& warnings) const {
+namespace {
+	void seedVersionInfoFromClient(const ItemDefinitionLoadInput& input, ItemDefinitionFragments& fragments) {
+		if (input.client_version == nullptr) {
+			return;
+		}
+
+		fragments.version.major_version = input.client_version->getOtbMajor();
+		fragments.version.minor_version = input.client_version->getOtbId();
+	}
+}
+
+bool ItemDefinitionsLoader::assemble(const ItemDefinitionLoadInput& input, ItemDefinitionFragments& fragments, std::vector<ResolvedItemDefinitionRow>& rows, wxString& error, std::vector<std::string>& warnings) const {
 	const ItemDefinitionRecipe& recipe = ItemDefinitionRecipeRegistry::get(input.mode);
 	if (!recipe.runnable) {
 		error = "Selected item definition mode is not implemented yet.";
@@ -22,7 +33,9 @@ bool ItemDefinitionsLoader::load(const ItemDefinitionLoadInput& input, wxString&
 		return false;
 	}
 
-	ItemDefinitionFragments fragments;
+	fragments = {};
+	rows.clear();
+	seedVersionInfoFromClient(input, fragments);
 
 	DatItemParser dat_parser;
 	OtbItemParser otb_parser;
@@ -52,11 +65,19 @@ bool ItemDefinitionsLoader::load(const ItemDefinitionLoadInput& input, wxString&
 		}
 	}
 
-	std::vector<ResolvedItemDefinitionRow> rows;
 	if (!ItemDefinitionResolver::resolve(input, fragments, rows, error, warnings)) {
 		return false;
 	}
 
+	return true;
+}
+
+bool ItemDefinitionsLoader::load(const ItemDefinitionLoadInput& input, wxString& error, std::vector<std::string>& warnings) const {
+	ItemDefinitionFragments fragments;
+	std::vector<ResolvedItemDefinitionRow> rows;
+	if (!assemble(input, fragments, rows, error, warnings)) {
+		return false;
+	}
 	ItemDefinitionStoreBuilder::build(g_item_definitions, fragments.version, rows);
 	return true;
 }

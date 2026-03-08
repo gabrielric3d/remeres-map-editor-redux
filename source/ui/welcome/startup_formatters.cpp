@@ -71,6 +71,15 @@ wxString formatClientDescription(ClientVersion* client) {
 	const wxString description = wxstr(client->getDescription());
 	return description.empty() ? wxString("-") : description;
 }
+
+wxString formatClientConfigType(ClientVersion* client) {
+	if (!client) {
+		return "-";
+	}
+
+	const wxString config_type = wxstr(client->getConfigType());
+	return config_type.empty() ? wxString("-") : config_type;
+}
 }
 
 wxColour StartupStatusColour(StartupCompatibilityStatus status) {
@@ -129,7 +138,8 @@ std::vector<StartupInfoField> BuildStartupClientFields(ClientVersion* client) {
 			{ "Items Minor Version", "-", std::string(ICON_LIST), wxNullColour, true },
 			{ "DAT Signature", "-", std::string(ICON_FILE), wxNullColour, false },
 			{ "SPR Signature", "-", std::string(ICON_FILE), wxNullColour, false },
-			{ "Description", "-", std::string(ICON_FILE_LINES), wxNullColour, false },
+			{ "Description", "-", std::string(ICON_FILE_LINES), wxNullColour, true },
+			{ "Configuration Type", "-", std::string(ICON_GEAR), wxNullColour, false },
 		};
 	}
 
@@ -142,7 +152,8 @@ std::vector<StartupInfoField> BuildStartupClientFields(ClientVersion* client) {
 		{ "Items Minor Version", wxString::Format("%u", client->getOtbId()), std::string(ICON_LIST), wxNullColour, true },
 		{ "DAT Signature", wxString::Format("%X", client->getDatSignature()), std::string(ICON_FILE), wxNullColour, false },
 		{ "SPR Signature", wxString::Format("%X", client->getSprSignature()), std::string(ICON_FILE), wxNullColour, false },
-		{ "Description", formatClientDescription(client), std::string(ICON_FILE_LINES), wxNullColour, false },
+		{ "Description", formatClientDescription(client), std::string(ICON_FILE_LINES), wxNullColour, true },
+		{ "Configuration Type", formatClientConfigType(client), std::string(ICON_GEAR), wxNullColour, false },
 	};
 }
 
