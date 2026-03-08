@@ -270,6 +270,7 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 
 		options.dragging = selection_controller->IsDragging();
 		options.boundbox_selection = selection_controller->IsBoundboxSelection();
+		options.lasso_selection = selection_controller->IsLassoSelection();
 
 		if (options.show_preview) {
 			animation_timer->Start();

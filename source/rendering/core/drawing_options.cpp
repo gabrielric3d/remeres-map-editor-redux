@@ -18,6 +18,7 @@ void DrawingOptions::SetDefault() {
 	ingame = false;
 	dragging = false;
 	boundbox_selection = false;
+	lasso_selection = false;
 
 	show_grid = 0;
 	show_all_floors = true;
@@ -58,6 +59,7 @@ void DrawingOptions::SetIngame() {
 	ingame = true;
 	dragging = false;
 	boundbox_selection = false;
+	lasso_selection = false;
 
 	show_grid = 0;
 	show_all_floors = true;

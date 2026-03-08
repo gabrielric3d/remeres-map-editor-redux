@@ -329,6 +329,10 @@ void MainMenuBar::OnSelectionTypeChange(wxCommandEvent& event) {
 	viewSettingsHandler->OnSelectionTypeChange(event);
 }
 
+void MainMenuBar::OnSelectionLassoToggle(wxCommandEvent& event) {
+	viewSettingsHandler->OnSelectionLassoToggle(event);
+}
+
 void MainMenuBar::OnCopy(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.DoCopy();
 }

@@ -342,6 +342,7 @@ void Settings::IO(IOMode mode) {
 	Bool(SHOW_FPS_COUNTER, false);
 	Int(ANTI_ALIASING, 0);
 	String(SCREEN_SHADER, "None");
+	Bool(SELECTION_LASSO, false);
 
 	Int(CURSOR_RED, 0);
 	Int(CURSOR_GREEN, 166);

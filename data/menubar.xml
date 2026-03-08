@@ -129,6 +129,7 @@
 		</menu>
 		<separator/>
 		<menu name="Selection Mode">
+			<item name="Lasso Selection" action="SELECT_MODE_LASSO" help="Enable lasso (freeform polygon) selection tool."/>
 			<item name="Compensate Selection" action="SELECT_MODE_COMPENSATE" help="Compensate for floor difference when selecting."/>
 			<separator/>
 			<item name="Current Floor" action="SELECT_MODE_CURRENT" help="Select only current floor."/>

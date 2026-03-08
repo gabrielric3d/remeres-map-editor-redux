@@ -25,6 +25,7 @@ struct DrawingOptions {
 	bool ingame;
 	bool dragging;
 	bool boundbox_selection;
+	bool lasso_selection;
 
 	std::optional<MapBounds> transient_selection_bounds;
 

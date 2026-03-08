@@ -19,6 +19,7 @@ void ViewSettingsHandler::LoadValues() {
 	menuBar->CheckItem(VIEW_TOOLBARS_STANDARD, g_settings.getBoolean(Config::SHOW_TOOLBAR_STANDARD));
 
 	menuBar->CheckItem(SELECT_MODE_COMPENSATE, g_settings.getBoolean(Config::COMPENSATED_SELECT));
+	menuBar->CheckItem(SELECT_MODE_LASSO, g_settings.getBoolean(Config::SELECTION_LASSO));
 
 	if (menuBar->IsItemChecked(MenuBar::SELECT_MODE_CURRENT)) {
 		g_settings.setInteger(Config::SELECTION_TYPE, SELECT_CURRENT_FLOOR);
@@ -180,5 +181,17 @@ void ViewSettingsHandler::OnSelectionTypeChange(wxCommandEvent& WXUNUSED(event))
 		g_settings.setInteger(Config::SELECTION_TYPE, SELECT_ALL_FLOORS);
 	} else if (menuBar->IsItemChecked(SELECT_MODE_VISIBLE)) {
 		g_settings.setInteger(Config::SELECTION_TYPE, SELECT_VISIBLE_FLOORS);
+	}
+}
+
+void ViewSettingsHandler::OnSelectionLassoToggle(wxCommandEvent& WXUNUSED(event)) {
+	using namespace MenuBar;
+	bool enabled = menuBar->IsItemChecked(SELECT_MODE_LASSO);
+	g_settings.setInteger(Config::SELECTION_LASSO, enabled ? 1 : 0);
+
+	if (enabled) {
+		g_gui.SetStatusText("Lasso selection enabled.");
+	} else {
+		g_gui.SetStatusText("Lasso selection disabled.");
 	}
 }

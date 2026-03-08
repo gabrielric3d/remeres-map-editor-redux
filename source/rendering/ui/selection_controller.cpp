@@ -20,15 +20,74 @@
 #include "brushes/raw/raw_brush.h"
 #include "ui/dialog_helper.h"
 
+namespace {
+	bool IsPointInPolygon(const std::vector<wxPoint>& polygon, double x, double y) {
+		if (polygon.size() < 3) {
+			return false;
+		}
+
+		bool inside = false;
+		size_t count = polygon.size();
+		for (size_t i = 0, j = count - 1; i < count; j = i++) {
+			double xi = polygon[i].x;
+			double yi = polygon[i].y;
+			double xj = polygon[j].x;
+			double yj = polygon[j].y;
+
+			bool intersect = ((yi > y) != (yj > y)) &&
+				(x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+			if (intersect) {
+				inside = !inside;
+			}
+		}
+		return inside;
+	}
+}
+
 SelectionController::SelectionController(MapCanvas* canvas, Editor& editor) :
 	canvas(canvas),
 	editor(editor),
 	dragging(false),
 	boundbox_selection(false),
+	lasso_active(false),
 	drag_start_pos(Position()) {
 }
 
 SelectionController::~SelectionController() {
+}
+
+bool SelectionController::IsLassoEnabled() const {
+	return g_settings.getBoolean(Config::SELECTION_LASSO);
+}
+
+bool SelectionController::HasLassoSelection() const {
+	return lasso_active && lasso_map_points.size() >= 3;
+}
+
+void SelectionController::ClearLassoSelection() {
+	lasso_screen_points.clear();
+	lasso_map_points.clear();
+	lasso_active = false;
+}
+
+void SelectionController::StartLassoSelection(int screen_x, int screen_y, int map_x, int map_y) {
+	ClearLassoSelection();
+	lasso_active = true;
+	AddLassoPoint(screen_x, screen_y, map_x, map_y);
+}
+
+void SelectionController::AddLassoPoint(int screen_x, int screen_y, int map_x, int map_y) {
+	if (!lasso_screen_points.empty()) {
+		const wxPoint& last = lasso_screen_points.back();
+		int dx = screen_x - last.x;
+		int dy = screen_y - last.y;
+		if (dx * dx + dy * dy < LASSO_MIN_DISTANCE_SQ) {
+			return;
+		}
+	}
+
+	lasso_screen_points.push_back(wxPoint(screen_x, screen_y));
+	lasso_map_points.push_back(wxPoint(map_x, map_y));
 }
 
 void SelectionController::HandleClick(const Position& mouse_map_pos, bool shift_down, bool ctrl_down, bool alt_down) {
@@ -64,6 +123,12 @@ void SelectionController::HandleClick(const Position& mouse_map_pos, bool shift_
 			boundbox_selection = false;
 			if (shift_down) {
 				boundbox_selection = true;
+
+				if (IsLassoEnabled()) {
+					int screen_x = canvas->cursor_x;
+					int screen_y = canvas->cursor_y;
+					StartLassoSelection(screen_x, screen_y, mouse_map_pos.x, mouse_map_pos.y);
+				}
 
 				if (!ctrl_down) {
 					editor.selection.start(); // Start selection session
@@ -107,6 +172,7 @@ void SelectionController::HandleClick(const Position& mouse_map_pos, bool shift_
 					}
 				}
 			} else {
+				ClearLassoSelection();
 				Tile* tile = editor.map.getTile(mouse_map_pos);
 				if (!tile) {
 					editor.selection.start(); // Start selection session
@@ -159,12 +225,22 @@ void SelectionController::HandleDrag(const Position& mouse_map_pos, bool shift_d
 
 			canvas->Refresh();
 		} else if (boundbox_selection) {
-			// Calculate selection size
-			int move_x = std::abs(canvas->last_click_map_x - mouse_map_pos.x);
-			int move_y = std::abs(canvas->last_click_map_y - mouse_map_pos.y);
-			wxString ss;
-			ss << "Selection " << move_x + 1 << ":" << move_y + 1;
-			g_gui.SetStatusText(ss);
+			if (IsLassoEnabled() && lasso_active) {
+				int screen_x = canvas->cursor_x;
+				int screen_y = canvas->cursor_y;
+				AddLassoPoint(screen_x, screen_y, mouse_map_pos.x, mouse_map_pos.y);
+
+				wxString ss;
+				ss << "Lasso Selection (" << lasso_map_points.size() << " points)";
+				g_gui.SetStatusText(ss);
+			} else {
+				// Calculate selection size
+				int move_x = std::abs(canvas->last_click_map_x - mouse_map_pos.x);
+				int move_y = std::abs(canvas->last_click_map_y - mouse_map_pos.y);
+				wxString ss;
+				ss << "Selection " << move_x + 1 << ":" << move_y + 1;
+				g_gui.SetStatusText(ss);
+			}
 
 			canvas->Refresh();
 		}
@@ -181,7 +257,15 @@ void SelectionController::HandleRelease(const Position& mouse_map_pos, bool shif
 			editor.moveSelection(Position(move_x, move_y, move_z));
 		} else {
 			if (boundbox_selection) {
-				if (mouse_map_pos.x == canvas->last_click_map_x && mouse_map_pos.y == canvas->last_click_map_y && ctrl_down) {
+				if (IsLassoEnabled() && lasso_active) {
+					// Add final point
+					AddLassoPoint(canvas->cursor_x, canvas->cursor_y, mouse_map_pos.x, mouse_map_pos.y);
+
+					if (lasso_map_points.size() >= 3) {
+						ExecuteLassoSelection(mouse_map_pos.z);
+					}
+					ClearLassoSelection();
+				} else if (mouse_map_pos.x == canvas->last_click_map_x && mouse_map_pos.y == canvas->last_click_map_y && ctrl_down) {
 					// Mouse hasn't moved, do control+shift thingy!
 					Tile* tile = editor.map.getTile(mouse_map_pos);
 					if (tile) {
@@ -248,6 +332,12 @@ void SelectionController::HandlePropertiesClick(const Position& mouse_map_pos, b
 	if (shift_down) {
 		boundbox_selection = true;
 
+		if (IsLassoEnabled()) {
+			int screen_x = canvas->cursor_x;
+			int screen_y = canvas->cursor_y;
+			StartLassoSelection(screen_x, screen_y, mouse_map_pos.x, mouse_map_pos.y);
+		}
+
 		if (!ctrl_down) {
 			editor.selection.start(); // Start selection session
 			editor.selection.clear(); // Clear out selection
@@ -286,7 +376,14 @@ void SelectionController::HandlePropertiesRelease(const Position& mouse_map_pos,
 	}
 
 	if (boundbox_selection) {
-		if (mouse_map_pos.x == canvas->last_click_map_x && mouse_map_pos.y == canvas->last_click_map_y && ctrl_down) {
+		if (IsLassoEnabled() && lasso_active) {
+			AddLassoPoint(canvas->cursor_x, canvas->cursor_y, mouse_map_pos.x, mouse_map_pos.y);
+
+			if (lasso_map_points.size() >= 3) {
+				ExecuteLassoSelection(mouse_map_pos.z);
+			}
+			ClearLassoSelection();
+		} else if (mouse_map_pos.x == canvas->last_click_map_x && mouse_map_pos.y == canvas->last_click_map_y && ctrl_down) {
 			// Mouse hasn't move, do control+shift thingy!
 			Tile* tile = editor.map.getTile(mouse_map_pos);
 			if (tile) {
@@ -428,6 +525,79 @@ void SelectionController::ExecuteBoundboxSelection(const Position& start_pos, co
 	for (auto& thread : threads) {
 		editor.selection.join(std::move(thread));
 	}
+	editor.selection.finish(); // Finish the selection session
+	editor.selection.updateSelectionCount();
+}
+
+void SelectionController::ExecuteLassoSelection(int floor) {
+	if (lasso_map_points.size() < 3) {
+		return;
+	}
+
+	// Compute bounding box of the polygon
+	int min_x = lasso_map_points.front().x;
+	int max_x = lasso_map_points.front().x;
+	int min_y = lasso_map_points.front().y;
+	int max_y = lasso_map_points.front().y;
+	for (const wxPoint& point : lasso_map_points) {
+		min_x = std::min(min_x, point.x);
+		max_x = std::max(max_x, point.x);
+		min_y = std::min(min_y, point.y);
+		max_y = std::max(max_y, point.y);
+	}
+
+	// Determine floor range based on selection type
+	int start_z = floor;
+	int end_z = floor;
+	switch (g_settings.getInteger(Config::SELECTION_TYPE)) {
+		case SELECT_ALL_FLOORS:
+			start_z = MAP_MAX_LAYER;
+			end_z = floor;
+			break;
+		case SELECT_VISIBLE_FLOORS:
+			start_z = (floor <= GROUND_LAYER) ? GROUND_LAYER : std::min(MAP_MAX_LAYER, floor + 2);
+			end_z = floor;
+			break;
+		case SELECT_CURRENT_FLOOR:
+		default:
+			start_z = end_z = floor;
+			break;
+	}
+
+	const bool compensated = g_settings.getInteger(Config::COMPENSATED_SELECT) &&
+		floor < GROUND_LAYER;
+
+	editor.selection.start(); // Start a selection session
+
+	for (int z = start_z; z >= end_z; --z) {
+		int offset = 0;
+		if (compensated) {
+			if (z > GROUND_LAYER) {
+				offset = floor - GROUND_LAYER;
+			} else {
+				offset = floor - z;
+			}
+		}
+
+		const int sx = min_x + offset;
+		const int ex = max_x + offset;
+		const int sy = min_y + offset;
+		const int ey = max_y + offset;
+
+		for (int x = sx; x <= ex; ++x) {
+			for (int y = sy; y <= ey; ++y) {
+				double px = x + 0.5;
+				double py = y + 0.5;
+				if (IsPointInPolygon(lasso_map_points, px - offset, py - offset)) {
+					Tile* tile = editor.map.getTile(x, y, z);
+					if (tile) {
+						editor.selection.add(tile);
+					}
+				}
+			}
+		}
+	}
+
 	editor.selection.finish(); // Finish the selection session
 	editor.selection.updateSelectionCount();
 }

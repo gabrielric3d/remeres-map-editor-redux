@@ -210,6 +210,8 @@ namespace Config {
 		ANTI_ALIASING,
 		SCREEN_SHADER,
 
+		SELECTION_LASSO,
+
 		LAST,
 	};
 }

@@ -64,6 +64,7 @@ namespace MenuBar {
 		SELECT_MODE_CURRENT,
 		SELECT_MODE_LOWER,
 		SELECT_MODE_VISIBLE,
+		SELECT_MODE_LASSO,
 		AUTOMAGIC,
 		BORDERIZE_SELECTION,
 		BORDERIZE_MAP,
@@ -234,6 +235,7 @@ public:
 	void OnRemoveItemOnSelection(wxCommandEvent& event);
 
 	void OnSelectionTypeChange(wxCommandEvent& event);
+	void OnSelectionLassoToggle(wxCommandEvent& event);
 
 	void OnCopy(wxCommandEvent& event);
 	void OnCut(wxCommandEvent& event);

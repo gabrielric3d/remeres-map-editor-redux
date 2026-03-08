@@ -51,6 +51,7 @@
 #include "rendering/drawers/overlays/grid_drawer.h"
 #include "rendering/drawers/cursors/live_cursor_drawer.h"
 #include "rendering/drawers/overlays/selection_drawer.h"
+#include "rendering/ui/selection_controller.h"
 #include "rendering/drawers/cursors/brush_cursor_drawer.h"
 #include "rendering/drawers/overlays/brush_overlay_drawer.h"
 #include "rendering/drawers/cursors/drag_shadow_drawer.h"
@@ -358,6 +359,15 @@ void MapDrawer::Draw() {
 	}
 	if (options.show_ingame_box) {
 		DrawIngameBox(original_bounds);
+	}
+
+	// Draw selection overlay (bounding box or lasso)
+	if (options.boundbox_selection && !options.ingame) {
+		if (options.lasso_selection) {
+			selection_drawer->drawLasso(*primitive_renderer, view, canvas->selection_controller->GetLassoScreenPoints(), canvas->cursor_x, canvas->cursor_y);
+		} else {
+			selection_drawer->draw(*primitive_renderer, view, canvas, options);
+		}
 	}
 
 	// Draw creature names (Overlay) moved to DrawCreatureNames()
