@@ -130,21 +130,12 @@ bool VersionManager::LoadDataFiles(wxString& error, std::vector<std::string>& wa
 		warnings.push_back(std::format("Couldn't load creatures.xml: {}", error.ToStdString()));
 	}
 
-	// g_loading.SetLoadDone(45, "Loading user creatures.xml ...");
-	// {
-	// 	FileName cdb = getLoadedVersion()->getLocalDataPath();
-	// 	cdb.SetFullName("creatures.xml");
-	// 	wxString nerr;
-	// 	wxArrayString nwarn;
-	// 	if (!g_creatures.loadFromXML(cdb, false, nerr, nwarn)) {
-	// 		warnings.push_back("Couldn't load user creatures.xml: " + nerr);
-	// 		spdlog::error("Couldn't load user creatures.xml: {}", nerr.ToStdString());
-	// 	}
-	// 	for (const auto& warn : nwarn) {
-	// 		warnings.push_back(warn);
-	// 		spdlog::warn("User creature XML warning: {}", warn.ToStdString());
-	// 	}
-	// }
+	if (wxFileName::FileExists(base_data_path + "creatures.json")) {
+		g_loading.SetLoadDone(47, "Loading creatures.json ...");
+		if (!g_creatures.loadFromJSON(base_data_path + "creatures.json", true, error, warnings)) {
+			warnings.push_back(std::format("Couldn't load creatures.json: {}", error.ToStdString()));
+		}
+	}
 
 	g_loading.SetLoadDone(50, "Loading materials.xml ...");
 	if (!g_materials.loadMaterials(base_data_path + "materials.xml", error, warnings)) {

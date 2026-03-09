@@ -73,6 +73,28 @@ void FileMenuHandler::OnImportMonsterData(wxCommandEvent& WXUNUSED(event)) {
 	}
 }
 
+void FileMenuHandler::OnImportMonsterJSON(wxCommandEvent& WXUNUSED(event)) {
+	wxFileDialog dlg(g_gui.root, "Import monster/npc JSON file", "", "", "*.json", wxFD_OPEN | wxFD_MULTIPLE | wxFD_FILE_MUST_EXIST);
+	if (dlg.ShowModal() == wxID_OK) {
+		wxArrayString paths;
+		dlg.GetPaths(paths);
+		for (uint32_t i = 0; i < paths.GetCount(); ++i) {
+			wxString error;
+			std::vector<std::string> warnings;
+			bool ok = g_creatures.loadFromJSON(FileName(paths[i]), false, error, warnings);
+			if (ok) {
+				if (!warnings.empty()) {
+					DialogUtil::ListDialog("Monster JSON loader warnings", warnings);
+				} else {
+					wxMessageBox("Monsters imported successfully from \"" + paths[i] + "\".", "Success", wxOK | wxICON_INFORMATION, g_gui.root);
+				}
+			} else {
+				wxMessageBox("Error loading JSON monster file \"" + paths[i] + "\".\n" + error, "Error", wxOK | wxICON_ERROR, g_gui.root);
+			}
+		}
+	}
+}
+
 void FileMenuHandler::OnImportMinimap(wxCommandEvent& WXUNUSED(event)) {
 	ASSERT(g_gui.IsEditorOpen());
 }

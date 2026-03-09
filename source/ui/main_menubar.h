@@ -36,6 +36,7 @@ namespace MenuBar {
 		CLOSE,
 		IMPORT_MAP,
 		IMPORT_MONSTERS,
+		IMPORT_MONSTERS_JSON,
 		IMPORT_MINIMAP,
 
 		EXPORT_TILESETS,
@@ -166,6 +167,7 @@ namespace MenuBar {
 		ABOUT,
 
 		EXPERIMENTAL_FOG,
+		AREA_DECORATION,
 	};
 }
 
@@ -207,6 +209,7 @@ public:
 
 	void OnImportMap(wxCommandEvent& event);
 	void OnImportMonsterData(wxCommandEvent& event);
+	void OnImportMonsterJSON(wxCommandEvent& event);
 	void OnImportMinimap(wxCommandEvent& event);
 
 	void OnExportTilesets(wxCommandEvent& event);
@@ -304,6 +307,7 @@ public:
 	void OnSelectRawPalette(wxCommandEvent& event);
 
 	void OnDebugViewDat(wxCommandEvent& event);
+	void OnAreaDecoration(wxCommandEvent& event);
 
 	void OnOpenRecent(wxCommandEvent& event);
 

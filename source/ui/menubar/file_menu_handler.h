@@ -21,6 +21,7 @@ public:
 
 	void OnImportMap(wxCommandEvent& event);
 	void OnImportMonsterData(wxCommandEvent& event);
+	void OnImportMonsterJSON(wxCommandEvent& event);
 	void OnImportMinimap(wxCommandEvent& event);
 
 	void OnExportTilesets(wxCommandEvent& event);

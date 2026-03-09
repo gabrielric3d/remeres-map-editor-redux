@@ -40,6 +40,7 @@
 		<menu name="Import">
 			<item name="Import Map..." action="IMPORT_MAP" help="Import map data from another map file."/>
 			<item name="Import Monsters/NPC..." action="IMPORT_MONSTERS" help="Import either a monsters.xml file or a specific monster/NPC."/>
+			<item name="Import Monsters JSON..." action="IMPORT_MONSTERS_JSON" help="Import monsters from a JSON file."/>
 			<!-- this was never implemented
 			<item name="Import Minimap..." action="IMPORT_MINIMAP" help="Import map data from a .bmp file."/>
 			-->
@@ -236,6 +237,9 @@
 		<item name="Debug .dat" action="DEBUG_VIEW_DAT" help="View all item sprites available."/>
 	</menu>
 	-->
+	<menu name="Tools">
+		<item name="Area Decoration" action="AREA_DECORATION" help="Opens the area decoration tool for placing decorative items in regions."/>
+	</menu>
 	<menu name="Experimental">
 		<item name="Fog in light view" hotkey="" action="EXPERIMENTAL_FOG" help="Apply fog filter to light effect."/>
 		<separator/>

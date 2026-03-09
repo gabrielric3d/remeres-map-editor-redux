@@ -23,6 +23,8 @@
 #include "game/creatures.h"
 #include "brushes/creature/creature_brush.h"
 #include <algorithm>
+#include <fstream>
+#include <nlohmann/json.hpp>
 
 CreatureDatabase g_creatures;
 
@@ -446,4 +448,62 @@ bool CreatureDatabase::saveToXML(const FileName& filename) {
 		}
 	}
 	return doc.save_file(filename.GetFullPath().mb_str(), "\t", pugi::format_default, pugi::encoding_utf8);
+}
+
+bool CreatureDatabase::loadFromJSON(const FileName& filename, bool standard, wxString& error, std::vector<std::string>& warnings) {
+	std::ifstream file(filename.GetFullPath().ToStdString());
+	if (!file.is_open()) {
+		error = "Couldn't open file \"" + filename.GetFullName() + "\".";
+		return false;
+	}
+
+	nlohmann::json jsonData;
+	try {
+		file >> jsonData;
+	} catch (const std::exception& e) {
+		error = "Invalid JSON format: " + wxString(e.what());
+		return false;
+	}
+
+	if (!jsonData.is_object()) {
+		error = "Invalid monster JSON format";
+		return false;
+	}
+
+	for (auto it = jsonData.begin(); it != jsonData.end(); ++it) {
+		std::string creatureName = it.key();
+		const auto& creatureData = it.value();
+
+		CreatureType* creatureType = newd CreatureType();
+		creatureType->name = creatureName;
+		creatureType->isNpc = false;
+		creatureType->standard = standard;
+
+		if (creatureData.contains("outfit") && creatureData["outfit"].is_object()) {
+			const auto& outfit = creatureData["outfit"];
+			if (outfit.contains("lookType")) creatureType->outfit.lookType = outfit["lookType"];
+			if (outfit.contains("lookItem")) creatureType->outfit.lookItem = outfit["lookItem"];
+			if (outfit.contains("lookMount")) creatureType->outfit.lookMount = outfit["lookMount"];
+			if (outfit.contains("lookAddon")) creatureType->outfit.lookAddon = outfit["lookAddon"];
+			if (outfit.contains("lookHead")) creatureType->outfit.lookHead = outfit["lookHead"];
+			if (outfit.contains("lookBody")) creatureType->outfit.lookBody = outfit["lookBody"];
+			if (outfit.contains("lookLegs")) creatureType->outfit.lookLegs = outfit["lookLegs"];
+			if (outfit.contains("lookFeet")) creatureType->outfit.lookFeet = outfit["lookFeet"];
+			if (outfit.contains("lookMountHead")) creatureType->outfit.lookMountHead = outfit["lookMountHead"];
+			if (outfit.contains("lookMountBody")) creatureType->outfit.lookMountBody = outfit["lookMountBody"];
+			if (outfit.contains("lookMountLegs")) creatureType->outfit.lookMountLegs = outfit["lookMountLegs"];
+			if (outfit.contains("lookMountFeet")) creatureType->outfit.lookMountFeet = outfit["lookMountFeet"];
+		}
+
+		if ((*this)[creatureType->name]) {
+			warnings.push_back((wxString("Duplicate creature name \"") + wxstr(creatureType->name) + "\"! Discarding...").ToStdString());
+			delete creatureType;
+			continue;
+		}
+
+		creature_map[as_lower_str(creatureType->name)] = creatureType;
+
+		ensureCreatureBrush(creatureType);
+	}
+	return true;
 }

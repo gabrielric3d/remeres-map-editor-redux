@@ -57,6 +57,8 @@ public:
 	bool importXMLFromOT(const FileName& filename, wxString& error, std::vector<std::string>& warnings);
 
 	bool saveToXML(const FileName& filename);
+
+	bool loadFromJSON(const FileName& filename, bool standard, wxString& error, std::vector<std::string>& warnings);
 };
 
 class CreatureType {

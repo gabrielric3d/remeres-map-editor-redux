@@ -49,6 +49,7 @@
 #include "ui/menubar/palette_menu_handler.h"
 #include "ui/menubar/menubar_action_manager.h"
 #include "ingame_preview/ingame_preview_manager.h"
+#include "ui/dialogs/area_decoration_dialog.h"
 
 #include <wx/chartype.h>
 
@@ -225,6 +226,10 @@ void MainMenuBar::OnImportMap(wxCommandEvent& event) {
 
 void MainMenuBar::OnImportMonsterData(wxCommandEvent& event) {
 	fileMenuHandler->OnImportMonsterData(event);
+}
+
+void MainMenuBar::OnImportMonsterJSON(wxCommandEvent& event) {
+	fileMenuHandler->OnImportMonsterJSON(event);
 }
 
 void MainMenuBar::OnImportMinimap(wxCommandEvent& event) {
@@ -578,4 +583,8 @@ void MainMenuBar::OnCloseLive(wxCommandEvent& event) {
 	}
 
 	Update();
+}
+
+void MainMenuBar::OnAreaDecoration(wxCommandEvent& WXUNUSED(event)) {
+	g_gui.ShowAreaDecorationDialog();
 }

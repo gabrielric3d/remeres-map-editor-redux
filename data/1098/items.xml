@@ -20473,6 +20473,15 @@ e o newmarketitems.json vai estar em appdata
 			pt="É uma runa adornada de tempestade." />
 		<attribute key="slotType" value="rune" />
 	</item>
+	<item id="52499" name="Silver Rune: Extended Push">
+		<attribute key="slotType" value="rune" />
+	</item>
+	<item id="52500" name="Golden Rune: Extended Push">
+		<attribute key="slotType" value="rune" />
+	</item>
+	<item id="52501" name="Platinum Rune: Extended Push">
+		<attribute key="slotType" value="rune" />
+	</item>
 	<item id="12607" name="elite draken mail">
 		<attribute key="armor" value="15" />
 		<attribute key="slotType" value="body" />
@@ -42027,6 +42036,10 @@ e o newmarketitems.json vai estar em appdata
 	<item id="52498" article="a" name="Judgement Pearl">
 		<attribute key="description" value="A radiant pearl from the Gate of Judgement depths. Collect 200 to enhance your diving equipment. Requires Level 400." />
 	</item>
-
+	<item id="52505" name="pearl thief scroll">
+		<attribute key="description" 
+			value="Use to increase spawn rate of pearl thieves by 100% for 1 hour." 
+			pt="Use para aumentar a chance de spawnar Ladrões de Perolas em 100% por 1 hora." />
+	</item>
 </items>
 

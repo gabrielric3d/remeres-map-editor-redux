@@ -7,14 +7,16 @@
 #include "editor/action_queue.h"
 #include "app/preferences.h"
 #include "ui/managers/recent_files_manager.h"
+#include "util/image_manager.h"
 
-void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::map<std::string, MenuBar::Action*>& actions) {
+void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<std::string, std::unique_ptr<MenuBar::Action>>& actions) {
 	using namespace MenuBar;
 
-#define MAKE_ACTION(id, kind, handler) actions[#id] = new MenuBar::Action(#id, id, kind, wxCommandEventFunction(&MainMenuBar::handler))
+#define MAKE_ACTION(id, kind, handler) actions[#id] = std::make_unique<MenuBar::Action>(#id, id, kind, wxCommandEventFunction(&MainMenuBar::handler))
+#define MAKE_ACTION_ICON(id, kind, icon, handler) actions[#id] = std::make_unique<MenuBar::Action>(#id, std::string_view(icon), id, kind, wxCommandEventFunction(&MainMenuBar::handler))
 #define MAKE_SET_ACTION(id, kind, setting_, handler)                                                  \
-	actions[#id] = new MenuBar::Action(#id, id, kind, wxCommandEventFunction(&MainMenuBar::handler)); \
-	actions[#id].setting = setting_
+	actions[#id] = std::make_unique<MenuBar::Action>(#id, id, kind, wxCommandEventFunction(&MainMenuBar::handler)); \
+	actions[#id]->setting = setting_
 
 	MAKE_ACTION(NEW, wxITEM_NORMAL, OnNew);
 	MAKE_ACTION(OPEN, wxITEM_NORMAL, OnOpen);
@@ -25,6 +27,7 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::map<std::string
 
 	MAKE_ACTION(IMPORT_MAP, wxITEM_NORMAL, OnImportMap);
 	MAKE_ACTION(IMPORT_MONSTERS, wxITEM_NORMAL, OnImportMonsterData);
+	MAKE_ACTION(IMPORT_MONSTERS_JSON, wxITEM_NORMAL, OnImportMonsterJSON);
 	MAKE_ACTION(IMPORT_MINIMAP, wxITEM_NORMAL, OnImportMinimap);
 
 	MAKE_ACTION(EXPORT_TILESETS, wxITEM_NORMAL, OnExportTilesets);
@@ -166,12 +169,14 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::map<std::string
 	MAKE_ACTION(FLOOR_14, wxITEM_RADIO, OnChangeFloor);
 	MAKE_ACTION(FLOOR_15, wxITEM_RADIO, OnChangeFloor);
 
+	MAKE_ACTION(AREA_DECORATION, wxITEM_NORMAL, OnAreaDecoration);
 	MAKE_ACTION(DEBUG_VIEW_DAT, wxITEM_NORMAL, OnDebugViewDat);
 	MAKE_ACTION(EXTENSIONS, wxITEM_NORMAL, OnListExtensions);
 	MAKE_ACTION(GOTO_WEBSITE, wxITEM_NORMAL, OnGotoWebsite);
 	MAKE_ACTION(ABOUT, wxITEM_NORMAL, OnAbout);
 
 #undef MAKE_ACTION
+#undef MAKE_ACTION_ICON
 #undef MAKE_SET_ACTION
 }
 
@@ -210,6 +215,7 @@ void MenuBarActionManager::UpdateState(MainMenuBar* mb) {
 
 	mb->EnableItem(IMPORT_MAP, is_local);
 	mb->EnableItem(IMPORT_MONSTERS, is_local);
+	mb->EnableItem(IMPORT_MONSTERS_JSON, is_local);
 	mb->EnableItem(IMPORT_MINIMAP, false);
 
 	mb->EnableItem(EXPORT_TILESETS, loaded);
@@ -285,6 +291,7 @@ void MenuBarActionManager::UpdateState(MainMenuBar* mb) {
 	mb->EnableItem(LIVE_JOIN, loaded);
 	mb->EnableItem(LIVE_CLOSE, is_live);
 
+	mb->EnableItem(AREA_DECORATION, has_map);
 	mb->EnableItem(DEBUG_VIEW_DAT, loaded);
 
 	mb->UpdateFloorMenu();
