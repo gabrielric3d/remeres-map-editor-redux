@@ -125,3 +125,5 @@ compile_commands.json
 /data/canary
 /data — kopia
 /assets
+/build-ninja-codex/vcpkg_installed
+/build-ninja-codex
