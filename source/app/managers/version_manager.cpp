@@ -4,6 +4,7 @@
 
 #include "app/main.h"
 #include "app/managers/version_manager.h"
+#include "app/settings.h"
 
 #include <spdlog/spdlog.h>
 
@@ -130,10 +131,20 @@ bool VersionManager::LoadDataFiles(wxString& error, std::vector<std::string>& wa
 		warnings.push_back(std::format("Couldn't load creatures.xml: {}", error.ToStdString()));
 	}
 
+	// Load creatures.json from data directory if it exists
 	if (wxFileName::FileExists(base_data_path + "creatures.json")) {
 		g_loading.SetLoadDone(47, "Loading creatures.json ...");
 		if (!g_creatures.loadFromJSON(base_data_path + "creatures.json", true, error, warnings)) {
 			warnings.push_back(std::format("Couldn't load creatures.json: {}", error.ToStdString()));
+		}
+	}
+
+	// Load creatures from custom JSON path if configured
+	std::string custom_json_path = g_settings.getString(Config::CREATURES_JSON_PATH);
+	if (!custom_json_path.empty() && wxFileName::FileExists(custom_json_path)) {
+		g_loading.SetLoadDone(48, "Loading custom creatures.json ...");
+		if (!g_creatures.loadFromJSON(FileName(custom_json_path), false, error, warnings)) {
+			warnings.push_back(std::format("Couldn't load custom creatures.json '{}': {}", custom_json_path, error.ToStdString()));
 		}
 	}
 

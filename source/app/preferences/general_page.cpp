@@ -70,6 +70,20 @@ GeneralPage::GeneralPage(wxWindow* parent) : PreferencesPage(parent) {
 	sizer->Add(position_format, wxSizerFlags().Expand().Border(wxALL, 5));
 	SetWindowToolTip(position_format, "The position format when copying from the map.");
 
+	sizer->AddSpacer(10);
+
+	// Creatures JSON file picker
+	wxStaticBoxSizer* creature_sizer = newd wxStaticBoxSizer(wxVERTICAL, this, "Creature Data");
+	wxBoxSizer* json_path_sizer = newd wxBoxSizer(wxHORIZONTAL);
+	json_path_sizer->Add(newd wxStaticText(this, wxID_ANY, "Creatures JSON file:"), wxSizerFlags().Align(wxALIGN_CENTER_VERTICAL).Border(wxRIGHT, 5));
+	creatures_json_picker = newd wxFilePickerCtrl(this, wxID_ANY, wxstr(g_settings.getString(Config::CREATURES_JSON_PATH)),
+		"Select creatures JSON file", "JSON files (*.json)|*.json|All files (*.*)|*.*",
+		wxDefaultPosition, wxDefaultSize, wxFLP_DEFAULT_STYLE | wxFLP_USE_TEXTCTRL);
+	creatures_json_picker->SetToolTip("Path to a creatures.json file to always load on startup. Leave empty to disable.");
+	json_path_sizer->Add(creatures_json_picker, wxSizerFlags(1).Expand());
+	creature_sizer->Add(json_path_sizer, wxSizerFlags().Expand().Border(wxALL, 5));
+	sizer->Add(creature_sizer, wxSizerFlags().Expand().Border(wxLEFT | wxRIGHT | wxBOTTOM, 5));
+
 	SetSizerAndFit(sizer);
 }
 
@@ -88,4 +102,6 @@ void GeneralPage::Apply() {
 		g_gui.RebuildPalettes();
 	}
 	g_settings.setInteger(Config::SHOW_TILESET_EDITOR, enable_tileset_editing_chkbox->GetValue());
+
+	g_settings.setString(Config::CREATURES_JSON_PATH, nstr(creatures_json_picker->GetPath()));
 }

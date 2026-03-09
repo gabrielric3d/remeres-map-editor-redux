@@ -5,6 +5,7 @@
 #include <wx/checkbox.h>
 #include <wx/spinctrl.h>
 #include <wx/radiobox.h>
+#include <wx/filepicker.h>
 
 class GeneralPage : public PreferencesPage {
 public:
@@ -24,6 +25,8 @@ private:
 	wxSpinCtrl* replace_size_spin;
 
 	wxRadioBox* position_format;
+
+	wxFilePickerCtrl* creatures_json_picker;
 };
 
 #endif

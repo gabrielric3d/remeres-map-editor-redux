@@ -345,6 +345,8 @@ void Settings::IO(IOMode mode) {
 	Int(ANTI_ALIASING, 0);
 	String(SCREEN_SHADER, "None");
 	Bool(SELECTION_LASSO, false);
+	String(CREATURE_FAVORITES, "");
+	String(CREATURES_JSON_PATH, "");
 
 	Int(CURSOR_RED, 0);
 	Int(CURSOR_GREEN, 166);
