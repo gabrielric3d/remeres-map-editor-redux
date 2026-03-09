@@ -27,6 +27,7 @@
 #include "palette/panels/brush_palette_panel.h"
 #include "palette/palette_creature.h"
 #include "palette/palette_waypoints.h"
+#include "palette/palette_camera_paths.h"
 #include "util/image_manager.h"
 
 // Removed includes for size/tool panels as they are no longer managed here
@@ -46,6 +47,7 @@ PaletteWindow::PaletteWindow(wxWindow* parent, const TilesetContainer& tilesets)
 	collection_palette(nullptr),
 	creature_palette(nullptr),
 	waypoint_palette(nullptr),
+	camera_path_palette(nullptr),
 	raw_palette(nullptr) {
 	SetMinSize(wxSize(225, 250));
 
@@ -60,6 +62,7 @@ PaletteWindow::PaletteWindow(wxWindow* parent, const TilesetContainer& tilesets)
 	imageList->Add(IMAGE_MANAGER.GetBitmap(ICON_FLAG, wxSize(16, 16)));
 	imageList->Add(IMAGE_MANAGER.GetBitmap(ICON_DRAGON, wxSize(16, 16)));
 	imageList->Add(IMAGE_MANAGER.GetBitmap(ICON_CUBES, wxSize(16, 16)));
+	imageList->Add(IMAGE_MANAGER.GetBitmap(ICON_VIDEO, wxSize(16, 16)));
 	choicebook->AssignImageList(imageList);
 
 	Bind(wxEVT_CHOICEBOOK_PAGE_CHANGING, &PaletteWindow::OnSwitchingPage, this, PALETTE_CHOICEBOOK);
@@ -83,6 +86,9 @@ PaletteWindow::PaletteWindow(wxWindow* parent, const TilesetContainer& tilesets)
 
 	creature_palette = static_cast<CreaturePalettePanel*>(CreateCreaturePalette(choicebook, tilesets));
 	choicebook->AddPage(creature_palette, creature_palette->GetName(), false, 5);
+
+	camera_path_palette = static_cast<CameraPathPalettePanel*>(CreateCameraPathPalette(choicebook, tilesets));
+	choicebook->AddPage(camera_path_palette, camera_path_palette->GetName(), false, 7);
 
 	raw_palette = static_cast<BrushPalettePanel*>(CreateRAWPalette(choicebook, tilesets));
 	choicebook->AddPage(raw_palette, raw_palette->GetName(), false, 6);
@@ -146,6 +152,11 @@ PalettePanel* PaletteWindow::CreateCreaturePalette(wxWindow* parent, const Tiles
 	return panel;
 }
 
+PalettePanel* PaletteWindow::CreateCameraPathPalette(wxWindow* parent, const TilesetContainer& tilesets) {
+	CameraPathPalettePanel* panel = newd CameraPathPalettePanel(parent);
+	return panel;
+}
+
 PalettePanel* PaletteWindow::CreateRAWPalette(wxWindow* parent, const TilesetContainer& tilesets) {
 	BrushPalettePanel* panel = newd BrushPalettePanel(parent, tilesets, TILESET_RAW);
 	panel->SetListType(wxstr(g_settings.getString(Config::PALETTE_RAW_STYLE)));
@@ -173,6 +184,9 @@ void PaletteWindow::ReloadSettings(Map* map) {
 	}
 	if (raw_palette) {
 		raw_palette->SetListType(wxstr(g_settings.getString(Config::PALETTE_RAW_STYLE)));
+	}
+	if (camera_path_palette) {
+		camera_path_palette->SetMap(map);
 	}
 	InvalidateContents();
 }
@@ -383,6 +397,10 @@ void PaletteWindow::OnUpdate(Map* map) {
 	if (waypoint_palette) {
 		waypoint_palette->SetMap(map);
 		waypoint_palette->OnUpdate();
+	}
+	if (camera_path_palette) {
+		camera_path_palette->SetMap(map);
+		camera_path_palette->OnUpdate();
 	}
 }
 
