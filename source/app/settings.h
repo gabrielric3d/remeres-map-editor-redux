@@ -212,6 +212,7 @@ namespace Config {
 
 		SHOW_CAMERA_PATHS,
 		SELECTION_LASSO,
+		SHOW_CREATURE_NAMES,
 
 		LAST,
 	};

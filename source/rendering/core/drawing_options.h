@@ -32,6 +32,7 @@ struct DrawingOptions {
 	int show_grid;
 	bool show_all_floors;
 	bool show_creatures;
+	bool show_creature_names;
 	bool show_spawns;
 	bool show_houses;
 	bool show_shade;

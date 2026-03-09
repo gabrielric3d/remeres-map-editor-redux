@@ -356,7 +356,7 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 			// monster/npc on tile
 			if (tile->creature && options.show_creatures) {
 				creature_drawer->BlitCreature(sprite_batch, sprite_drawer, draw_x, draw_y, tile->creature.get(), CreatureDrawOptions { .map_pos = position, .transient_selection_bounds = options.transient_selection_bounds });
-				if (creature_name_drawer) {
+				if (creature_name_drawer && options.show_creature_names) {
 					creature_name_drawer->addLabel(position, tile->creature->getName(), tile->creature.get());
 				}
 			}

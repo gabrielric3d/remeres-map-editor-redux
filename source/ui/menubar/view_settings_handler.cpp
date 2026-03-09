@@ -58,6 +58,7 @@ void ViewSettingsHandler::LoadValues() {
 	menuBar->CheckItem(HIGHLIGHT_ITEMS, g_settings.getBoolean(Config::HIGHLIGHT_ITEMS));
 	menuBar->CheckItem(HIGHLIGHT_LOCKED_DOORS, g_settings.getBoolean(Config::HIGHLIGHT_LOCKED_DOORS));
 	menuBar->CheckItem(SHOW_CREATURES, g_settings.getBoolean(Config::SHOW_CREATURES));
+	menuBar->CheckItem(SHOW_CREATURE_NAMES, g_settings.getBoolean(Config::SHOW_CREATURE_NAMES));
 	menuBar->CheckItem(SHOW_SPAWNS, g_settings.getBoolean(Config::SHOW_SPAWNS));
 	menuBar->CheckItem(SHOW_SPECIAL, g_settings.getBoolean(Config::SHOW_SPECIAL_TILES));
 	menuBar->CheckItem(SHOW_AS_MINIMAP, g_settings.getBoolean(Config::SHOW_AS_MINIMAP));
@@ -108,6 +109,7 @@ void ViewSettingsHandler::OnChangeViewSettings(wxCommandEvent& event) {
 	g_settings.setInteger(Config::SHOW_ONLY_TILEFLAGS, menuBar->IsItemChecked(SHOW_ONLY_COLORS));
 	g_settings.setInteger(Config::SHOW_ONLY_MODIFIED_TILES, menuBar->IsItemChecked(SHOW_ONLY_MODIFIED));
 	g_settings.setInteger(Config::SHOW_CREATURES, menuBar->IsItemChecked(SHOW_CREATURES));
+	g_settings.setInteger(Config::SHOW_CREATURE_NAMES, menuBar->IsItemChecked(SHOW_CREATURE_NAMES));
 	g_settings.setInteger(Config::SHOW_SPAWNS, menuBar->IsItemChecked(SHOW_SPAWNS));
 	g_settings.setInteger(Config::SHOW_HOUSES, menuBar->IsItemChecked(SHOW_HOUSES));
 	g_settings.setInteger(Config::HIGHLIGHT_ITEMS, menuBar->IsItemChecked(HIGHLIGHT_ITEMS));

@@ -264,6 +264,7 @@ void Settings::IO(IOMode mode) {
 	Bool(DRAW_LOCKED_DOOR, false);
 	Bool(SHOW_AS_MINIMAP, false);
 	Bool(SHOW_CAMERA_PATHS, true);
+	Bool(SHOW_CREATURE_NAMES, true);
 
 	section("General");
 	Bool(GOTO_WEBSITE_ON_BOOT, false);

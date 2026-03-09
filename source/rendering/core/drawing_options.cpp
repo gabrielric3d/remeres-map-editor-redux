@@ -23,6 +23,7 @@ void DrawingOptions::SetDefault() {
 	show_grid = 0;
 	show_all_floors = true;
 	show_creatures = true;
+	show_creature_names = true;
 	show_spawns = true;
 	show_houses = true;
 	show_shade = true;
@@ -65,6 +66,7 @@ void DrawingOptions::SetIngame() {
 	show_grid = 0;
 	show_all_floors = true;
 	show_creatures = true;
+	show_creature_names = true;
 	show_spawns = false;
 	show_houses = false;
 	show_shade = false;
@@ -99,6 +101,7 @@ void DrawingOptions::Update() {
 	ingame = !g_settings.getBoolean(Config::SHOW_EXTRA);
 	show_all_floors = g_settings.getBoolean(Config::SHOW_ALL_FLOORS);
 	show_creatures = g_settings.getBoolean(Config::SHOW_CREATURES);
+	show_creature_names = g_settings.getBoolean(Config::SHOW_CREATURE_NAMES);
 	show_spawns = g_settings.getBoolean(Config::SHOW_SPAWNS);
 	show_houses = g_settings.getBoolean(Config::SHOW_HOUSES);
 	show_shade = g_settings.getBoolean(Config::SHOW_SHADE);

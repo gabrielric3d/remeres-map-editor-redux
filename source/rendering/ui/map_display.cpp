@@ -218,7 +218,7 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 	glClear(GL_STENCIL_BUFFER_BIT);
 	TextRenderer::BeginFrame(vg, GetSize().x, GetSize().y, GetContentScaleFactor());
 
-	if (options.show_creatures) {
+	if (options.show_creatures && options.show_creature_names) {
 		drawer->DrawCreatureNames(vg);
 	}
 	if (options.show_tooltips) {
@@ -447,6 +447,13 @@ void MapCanvas::OnMouseActionClick(wxMouseEvent& event) {
 	int mouse_map_x, mouse_map_y;
 	ScreenToMap(event.GetX(), event.GetY(), &mouse_map_x, &mouse_map_y);
 
+	// Rectangle pick mode for area decoration dialog
+	if (g_gui.IsRectanglePicking()) {
+		g_gui.OnRectanglePickClick(Position(mouse_map_x, mouse_map_y, floor));
+		g_gui.RefreshView();
+		return;
+	}
+
 	if (event.ControlDown() && event.AltDown()) {
 		Tile* tile = editor.map.getTile(mouse_map_x, mouse_map_y, floor);
 		BrushSelector::SelectSmartBrush(editor, tile);
@@ -640,4 +647,29 @@ void MapCanvas::Reset() {
 
 	editor.selection.clear();
 	editor.actionQueue->clear();
+}
+
+void MapCanvas::ToggleCameraPathPlayback() {
+	if (camera_path_playing) {
+		camera_path_playing = false;
+		camera_path_timer.Stop();
+	} else {
+		camera_path_playing = true;
+		camera_path_time = 0.0;
+		camera_path_last_tick = std::chrono::steady_clock::now();
+		camera_path_timer.Start(16); // ~60fps
+	}
+}
+
+void MapCanvas::OnCameraPathTimer(wxTimerEvent& WXUNUSED(event)) {
+	if (!camera_path_playing) {
+		return;
+	}
+
+	auto now = std::chrono::steady_clock::now();
+	double dt = std::chrono::duration<double>(now - camera_path_last_tick).count();
+	camera_path_last_tick = now;
+	camera_path_time += dt;
+
+	Refresh();
 }
