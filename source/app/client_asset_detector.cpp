@@ -1,0 +1,394 @@
+#include "app/client_asset_detector.h"
+
+#include <algorithm>
+#include <array>
+#include <optional>
+#include <span>
+#include <string_view>
+#include <vector>
+
+#include <spdlog/spdlog.h>
+
+#include "app/definitions.h"
+#include "io/filehandle.h"
+#include "item_definitions/core/item_definition_fragments.h"
+#include "item_definitions/formats/dat/dat_item_parser.h"
+
+namespace {
+	struct ResolvedClientFile {
+		wxFileName path;
+		std::string filename;
+		bool exists = false;
+	};
+
+	struct DatProbeCandidate {
+		DatFormat format = DAT_FORMAT_UNKNOWN;
+		bool extended = false;
+		bool frame_durations = false;
+		bool frame_groups = false;
+		size_t warning_count = 0;
+	};
+
+	struct SpriteProbeCandidate {
+		bool extended = false;
+		uint32_t sprite_count = 0;
+		int opaque_matches = 0;
+		int alpha_matches = 0;
+	};
+
+	ResolvedClientFile resolveClientFile(const wxFileName& client_path, const std::string& configured_name, const std::string& fallback_name) {
+		ResolvedClientFile resolved;
+		resolved.filename = configured_name;
+		resolved.path = wxFileName(client_path.GetFullPath(), wxString::FromUTF8(configured_name));
+		if (resolved.path.FileExists()) {
+			resolved.exists = true;
+			return resolved;
+		}
+
+		resolved.filename = fallback_name;
+		resolved.path = wxFileName(client_path.GetFullPath(), wxString::FromUTF8(fallback_name));
+		resolved.exists = resolved.path.FileExists();
+		return resolved;
+	}
+
+	std::optional<uint32_t> readSignature(const wxFileName& path, std::string_view label, std::vector<std::string>& warnings) {
+		FileReadHandle file(path.GetFullPath().ToStdString());
+		if (!file.isOk()) {
+			const auto message = std::string { label } + " signature detection failed: could not open " + path.GetFullPath().ToStdString();
+			spdlog::warn(message);
+			warnings.push_back(message);
+			return std::nullopt;
+		}
+
+		uint32_t signature = 0;
+		if (!file.getU32(signature)) {
+			const auto message = std::string { label } + " signature detection failed: could not read header from " + path.GetFullPath().ToStdString();
+			spdlog::warn(message);
+			warnings.push_back(message);
+			return std::nullopt;
+		}
+
+		return signature;
+	}
+
+	std::vector<DatProbeCandidate> probeDatCandidates(const wxFileName& dat_path, uint32_t dat_signature) {
+		static constexpr std::array formats = {
+			DAT_FORMAT_74,
+			DAT_FORMAT_755,
+			DAT_FORMAT_78,
+			DAT_FORMAT_86,
+			DAT_FORMAT_96,
+			DAT_FORMAT_1010,
+			DAT_FORMAT_1050,
+			DAT_FORMAT_1057,
+		};
+
+		const DatItemParser parser;
+		std::vector<DatProbeCandidate> successes;
+
+		for (const auto format : formats) {
+			for (const bool extended : { false, true }) {
+				const std::vector<bool> frame_duration_options = (format >= DAT_FORMAT_1050) ? std::vector<bool> { false, true } : std::vector<bool> { false };
+				const std::vector<bool> frame_group_options = (format >= DAT_FORMAT_1057) ? std::vector<bool> { false, true } : std::vector<bool> { false };
+
+				for (const bool frame_durations : frame_duration_options) {
+					for (const bool frame_groups : frame_group_options) {
+						if (frame_groups && !frame_durations) {
+							continue;
+						}
+
+						OtbVersion otb {};
+						ClientVersion probe_client(otb, "detector-probe", "");
+						probe_client.setExtended(extended);
+						probe_client.setFrameDurations(frame_durations);
+						probe_client.setFrameGroups(frame_groups);
+						probe_client.setClientData(dat_signature, 0, format);
+
+						ItemDefinitionLoadInput input;
+						input.dat_path = dat_path;
+						input.client_version = &probe_client;
+
+						DatCatalog catalog;
+						wxString error;
+						std::vector<std::string> warnings;
+						if (!parser.parseCatalog(input, catalog, error, warnings)) {
+							continue;
+						}
+
+						successes.push_back(DatProbeCandidate {
+							.format = format,
+							.extended = extended,
+							.frame_durations = frame_durations,
+							.frame_groups = frame_groups,
+							.warning_count = warnings.size(),
+						});
+					}
+				}
+			}
+		}
+
+		if (successes.empty()) {
+			return successes;
+		}
+
+		const auto min_warning_count = std::ranges::min(successes, {}, &DatProbeCandidate::warning_count).warning_count;
+		std::erase_if(successes, [min_warning_count](const DatProbeCandidate& candidate) {
+			return candidate.warning_count != min_warning_count;
+		});
+		return successes;
+	}
+
+	bool readSpriteCount(FileReadHandle& file, bool extended, uint32_t& sprite_count) {
+		if (extended) {
+			return file.getU32(sprite_count);
+		}
+
+		uint16_t compact_count = 0;
+		if (!file.getU16(compact_count)) {
+			return false;
+		}
+		sprite_count = compact_count;
+		return true;
+	}
+
+	bool validateSpriteRunEncoding(std::span<const uint8_t> blob, uint8_t colored_bpp) {
+		size_t read = 0;
+		size_t written_pixels = 0;
+		constexpr size_t kSpritePixels = SPRITE_PIXELS * SPRITE_PIXELS;
+
+		while (read + 4 <= blob.size() && written_pixels < kSpritePixels) {
+			const uint16_t transparent = static_cast<uint16_t>(blob[read] | (blob[read + 1] << 8));
+			read += 2;
+			const uint16_t colored = static_cast<uint16_t>(blob[read] | (blob[read + 1] << 8));
+			read += 2;
+
+			if (written_pixels + transparent + colored > kSpritePixels) {
+				return false;
+			}
+			const size_t colored_bytes = static_cast<size_t>(colored) * colored_bpp;
+			if (read + colored_bytes > blob.size()) {
+				return false;
+			}
+
+			read += colored_bytes;
+			written_pixels += transparent + colored;
+		}
+
+		return written_pixels == kSpritePixels && read == blob.size();
+	}
+
+	std::optional<std::vector<uint32_t>> collectSpriteSamples(FileReadHandle& file, bool extended, uint32_t& sprite_count) {
+		if (!readSpriteCount(file, extended, sprite_count)) {
+			return std::nullopt;
+		}
+		if (sprite_count == 0 || sprite_count > MAX_SPRITES) {
+			return std::nullopt;
+		}
+
+		const size_t header_size = 4 + (extended ? sizeof(uint32_t) : sizeof(uint16_t)) + static_cast<size_t>(sprite_count) * sizeof(uint32_t);
+		if (header_size > file.size()) {
+			return std::nullopt;
+		}
+
+		std::vector<uint32_t> sample_offsets;
+		sample_offsets.reserve(24);
+
+		uint32_t previous_non_zero_offset = 0;
+		for (uint32_t sprite_id = 1; sprite_id <= sprite_count; ++sprite_id) {
+			uint32_t offset = 0;
+			if (!file.getU32(offset)) {
+				return std::nullopt;
+			}
+			if (offset == 0) {
+				continue;
+			}
+			if (offset < header_size || offset >= file.size()) {
+				return std::nullopt;
+			}
+			if (previous_non_zero_offset != 0 && offset < previous_non_zero_offset) {
+				return std::nullopt;
+			}
+			previous_non_zero_offset = offset;
+			if (sample_offsets.size() < 24) {
+				sample_offsets.push_back(offset);
+			}
+		}
+
+		return sample_offsets;
+	}
+
+	std::optional<SpriteProbeCandidate> probeSpriteCandidate(const wxFileName& spr_path, bool extended) {
+		FileReadHandle file(spr_path.GetFullPath().ToStdString());
+		if (!file.isOk()) {
+			return std::nullopt;
+		}
+
+		uint32_t signature = 0;
+		if (!file.getU32(signature)) {
+			return std::nullopt;
+		}
+
+		uint32_t sprite_count = 0;
+		auto sample_offsets = collectSpriteSamples(file, extended, sprite_count);
+		if (!sample_offsets.has_value()) {
+			return std::nullopt;
+		}
+
+		SpriteProbeCandidate candidate;
+		candidate.extended = extended;
+		candidate.sprite_count = sprite_count;
+
+		for (const uint32_t offset : *sample_offsets) {
+			if (!file.seek(offset + 3)) {
+				return std::nullopt;
+			}
+
+			uint16_t compressed_size = 0;
+			if (!file.getU16(compressed_size)) {
+				return std::nullopt;
+			}
+			if (file.tell() + compressed_size > file.size()) {
+				return std::nullopt;
+			}
+
+			std::vector<uint8_t> blob(compressed_size);
+			if (!file.getRAW(blob.data(), compressed_size)) {
+				return std::nullopt;
+			}
+
+			if (validateSpriteRunEncoding(blob, 3)) {
+				candidate.opaque_matches += 1;
+			}
+			if (validateSpriteRunEncoding(blob, 4)) {
+				candidate.alpha_matches += 1;
+			}
+		}
+
+		return candidate;
+	}
+
+	void assignConsensus(const std::vector<DatProbeCandidate>& candidates, ClientAssetDetectionResult& result) {
+		if (candidates.empty()) {
+			return;
+		}
+
+		const auto same_extended = std::ranges::all_of(candidates, [&](const DatProbeCandidate& candidate) {
+			return candidate.extended == candidates.front().extended;
+		});
+		if (same_extended) {
+			result.extended = candidates.front().extended;
+		}
+
+		const auto same_frame_durations = std::ranges::all_of(candidates, [&](const DatProbeCandidate& candidate) {
+			return candidate.frame_durations == candidates.front().frame_durations;
+		});
+		if (same_frame_durations) {
+			result.frame_durations = candidates.front().frame_durations;
+		}
+
+		const auto same_frame_groups = std::ranges::all_of(candidates, [&](const DatProbeCandidate& candidate) {
+			return candidate.frame_groups == candidates.front().frame_groups;
+		});
+		if (same_frame_groups) {
+			result.frame_groups = candidates.front().frame_groups;
+		}
+
+		const auto same_format = std::ranges::all_of(candidates, [&](const DatProbeCandidate& candidate) {
+			return candidate.format == candidates.front().format;
+		});
+		if (same_format) {
+			result.dat_format = candidates.front().format;
+		}
+	}
+}
+
+ClientAssetDetectionResult ClientAssetDetector::detect(const ClientVersion& client) {
+	ClientAssetDetectionResult result;
+
+	const auto client_path = client.getClientPath();
+	if (!client_path.DirExists()) {
+		const auto message = "Client asset detection skipped: selected client path does not exist.";
+		spdlog::warn(message);
+		result.warnings.emplace_back(message);
+		return result;
+	}
+
+	const auto dat_file = resolveClientFile(client_path, client.getMetadataFile(), std::string { ASSETS_NAME } + ".dat");
+	const auto spr_file = resolveClientFile(client_path, client.getSpritesFile(), std::string { ASSETS_NAME } + ".spr");
+
+	if (!dat_file.exists) {
+		const auto message = "Client asset detection failed: DAT file was not found in the selected client path.";
+		spdlog::warn(message);
+		result.warnings.emplace_back(message);
+	} else {
+		result.metadata_file_name = dat_file.filename;
+		result.dat_signature = readSignature(dat_file.path, "DAT", result.warnings);
+	}
+
+	if (!spr_file.exists) {
+		const auto message = "Client asset detection failed: SPR file was not found in the selected client path.";
+		spdlog::warn(message);
+		result.warnings.emplace_back(message);
+	} else {
+		result.sprites_file_name = spr_file.filename;
+		result.spr_signature = readSignature(spr_file.path, "SPR", result.warnings);
+	}
+
+	if (result.dat_signature.has_value()) {
+		const auto dat_candidates = probeDatCandidates(dat_file.path, *result.dat_signature);
+		if (dat_candidates.empty()) {
+			const auto message = "Client asset detection could not derive DAT feature flags from the DAT binary.";
+			spdlog::warn("{} DAT={:X}", message, *result.dat_signature);
+			result.warnings.emplace_back(message);
+		} else {
+			assignConsensus(dat_candidates, result);
+			spdlog::info("Client asset detection found {} structurally valid DAT candidate(s) for DAT={:X}.", dat_candidates.size(), *result.dat_signature);
+		}
+	}
+
+	if (spr_file.exists) {
+		std::vector<SpriteProbeCandidate> sprite_candidates;
+		for (const bool extended : { false, true }) {
+			if (auto candidate = probeSpriteCandidate(spr_file.path, extended)) {
+				sprite_candidates.push_back(*candidate);
+			}
+		}
+
+		if (sprite_candidates.empty()) {
+			const auto message = "Client asset detection could not derive SPR structure from the SPR binary.";
+			spdlog::warn("{}", message);
+			result.warnings.emplace_back(message);
+		} else {
+			if (sprite_candidates.size() == 1) {
+				if (!result.extended.has_value()) {
+					result.extended = sprite_candidates.front().extended;
+				} else if (result.extended != sprite_candidates.front().extended) {
+					const auto message = "DAT and SPR probing disagree on the extended flag.";
+					spdlog::warn("{}", message);
+					result.warnings.emplace_back(message);
+					result.extended.reset();
+				}
+			}
+
+			int total_opaque_matches = 0;
+			int total_alpha_matches = 0;
+			for (const auto& candidate : sprite_candidates) {
+				total_opaque_matches += candidate.opaque_matches;
+				total_alpha_matches += candidate.alpha_matches;
+			}
+			if (total_alpha_matches > 0 || total_opaque_matches > 0) {
+				if (total_alpha_matches > total_opaque_matches) {
+					result.transparency = true;
+				} else if (total_opaque_matches > total_alpha_matches) {
+					result.transparency = false;
+				}
+			}
+		}
+	}
+
+	if (result.frame_groups.has_value()) {
+		result.frame_durations = result.frame_groups.value() ? std::optional<bool>(true) : result.frame_durations;
+	}
+
+	return result;
+}

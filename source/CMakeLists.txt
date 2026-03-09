@@ -1,5 +1,6 @@
 set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/app/application.h
+    ${CMAKE_CURRENT_LIST_DIR}/app/client_asset_detector.h
     ${CMAKE_CURRENT_LIST_DIR}/app/client_version.h
     ${CMAKE_CURRENT_LIST_DIR}/app/definitions.h
     ${CMAKE_CURRENT_LIST_DIR}/app/extension.h
@@ -362,6 +363,7 @@ set(rme_H
 
 set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/app/application.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/app/client_asset_detector.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/client_version.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/extension.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences.cpp

@@ -344,6 +344,9 @@ public:
 	std::vector<MapVersionID>& getMapVersionsSupported() {
 		return map_versions_supported;
 	}
+	const std::vector<MapVersionID>& getMapVersionsSupported() const {
+		return map_versions_supported;
+	}
 	void setMapVersionsSupported(const std::vector<MapVersionID>& v) {
 		map_versions_supported = v;
 	}
@@ -358,6 +361,16 @@ public:
 	uint32_t getDatSignature() const {
 		return data_versions.empty() ? 0 : data_versions[0].datSignature;
 	}
+	DatFormat getDatFormat() const {
+		return data_versions.empty() ? DAT_FORMAT_UNKNOWN : data_versions[0].datFormat;
+	}
+	void setDatFormat(DatFormat format) {
+		if (data_versions.empty()) {
+			data_versions.push_back(ClientData { .datFormat = format, .datSignature = 0, .sprSignature = 0 });
+			return;
+		}
+		data_versions[0].datFormat = format;
+	}
 	void setDatSignature(uint32_t v) {
 		if (!data_versions.empty()) {
 			data_versions[0].datSignature = v;
@@ -371,6 +384,21 @@ public:
 		if (!data_versions.empty()) {
 			data_versions[0].sprSignature = v;
 		}
+	}
+	void setClientData(uint32_t dat_signature, uint32_t spr_signature, DatFormat format) {
+		if (data_versions.empty()) {
+			data_versions.push_back(ClientData {
+				.datFormat = format,
+				.datSignature = dat_signature,
+				.sprSignature = spr_signature,
+			});
+			return;
+		}
+		data_versions[0] = ClientData {
+			.datFormat = format,
+			.datSignature = dat_signature,
+			.sprSignature = spr_signature,
+		};
 	}
 
 	std::string getDescription() const {

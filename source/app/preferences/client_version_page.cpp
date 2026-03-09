@@ -1,9 +1,12 @@
 #include "app/preferences/client_version_page.h"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <charconv>
+#include <cmath>
 #include <map>
+#include <ranges>
 
 #include <wx/menu.h>
 #include <wx/tokenzr.h>
@@ -15,6 +18,31 @@
 
 namespace {
 constexpr char kDefaultDataDirectory[] = "1287";
+constexpr std::array<std::string_view, 8> kAutoDetectedProperties = {
+	"metadataFile",
+	"spritesFile",
+	"datSignature",
+	"sprSignature",
+	"transparency",
+	"extended",
+	"frameDurations",
+	"frameGroups",
+};
+
+bool IsAutoDetectedProperty(std::string_view property_name) {
+	return std::ranges::find(kAutoDetectedProperties, property_name) != kAutoDetectedProperties.end();
+}
+
+unsigned char BlendChannel(unsigned char background, unsigned char overlay, double ratio) {
+	return static_cast<unsigned char>(std::lround((static_cast<double>(background) * (1.0 - ratio)) + (static_cast<double>(overlay) * ratio)));
+}
+
+wxColour BlendColour(const wxColour& background, const wxColour& overlay, double ratio) {
+	return wxColour(
+		BlendChannel(background.Red(), overlay.Red(), ratio),
+		BlendChannel(background.Green(), overlay.Green(), ratio),
+		BlendChannel(background.Blue(), overlay.Blue(), ratio));
+}
 
 std::string ConfigTypeFromSelection(long selection) {
 	switch (selection) {
@@ -64,6 +92,16 @@ bool MatchesClientFilter(const ClientVersion& version, const std::string& filter
 	haystack += " ";
 	haystack += std::to_string(version.getOtbId());
 	return haystack.find(filter) != std::string::npos;
+}
+
+template <typename T>
+void UpdateGridProperty(wxPropertyGrid* grid, const wxString& property_name, const T& value) {
+	if (!grid) {
+		return;
+	}
+	if (auto* property = grid->GetPropertyByName(property_name)) {
+		property->SetValue(value);
+	}
 }
 }
 
@@ -483,6 +521,7 @@ bool ClientVersionPage::ResolvePendingChanges(ClientVersion* client) {
 	if (result == wxNO) {
 		client->restore();
 		client->clearDirty();
+		ClearPropertyStates(client);
 		return true;
 	}
 	return false;
@@ -490,6 +529,165 @@ bool ClientVersionPage::ResolvePendingChanges(ClientVersion* client) {
 
 bool ClientVersionPage::IsPendingDeletion(const ClientVersion& version) const {
 	return pending_deleted_client_ids.contains(version.getName());
+}
+
+void ClientVersionPage::SetPropertyState(ClientVersion* client, std::string_view property_name, PropertyVisualState state) {
+	if (!client || property_name.empty()) {
+		return;
+	}
+
+	auto& states = property_states_[client];
+	states[std::string { property_name }] = state;
+}
+
+ClientVersionPage::PropertyVisualState ClientVersionPage::GetPropertyState(const ClientVersion* client, std::string_view property_name) const {
+	if (!client || property_name.empty()) {
+		return PropertyVisualState::Default;
+	}
+
+	const auto client_it = property_states_.find(client);
+	if (client_it == property_states_.end()) {
+		return PropertyVisualState::Default;
+	}
+
+	const auto property_it = client_it->second.find(std::string { property_name });
+	if (property_it == client_it->second.end()) {
+		return PropertyVisualState::Default;
+	}
+
+	return property_it->second;
+}
+
+void ClientVersionPage::ClearPropertyStates(ClientVersion* client) {
+	if (!client) {
+		return;
+	}
+
+	property_states_.erase(client);
+}
+
+void ClientVersionPage::MarkSavedProperties() {
+	for (auto& [client, states] : property_states_) {
+		(void)client;
+		for (auto& [property_name, state] : states) {
+			(void)property_name;
+			if (state == PropertyVisualState::Pending) {
+				state = PropertyVisualState::Saved;
+			}
+		}
+	}
+}
+
+void ClientVersionPage::ApplyDetectionResult(ClientVersion& client, const ClientAssetDetectionResult& result) {
+	const auto applyPendingState = [&](std::string_view property_name) {
+		SetPropertyState(&client, property_name, PropertyVisualState::Pending);
+	};
+	const auto applyUndetectedState = [&](std::string_view property_name) {
+		SetPropertyState(&client, property_name, PropertyVisualState::Undetected);
+	};
+
+	if (result.metadata_file_name.has_value()) {
+		client.setMetadataFile(*result.metadata_file_name);
+		applyPendingState("metadataFile");
+	} else {
+		applyUndetectedState("metadataFile");
+	}
+
+	if (result.sprites_file_name.has_value()) {
+		client.setSpritesFile(*result.sprites_file_name);
+		applyPendingState("spritesFile");
+	} else {
+		applyUndetectedState("spritesFile");
+	}
+
+	if (result.dat_signature.has_value()) {
+		client.setDatSignature(*result.dat_signature);
+		applyPendingState("datSignature");
+	} else {
+		applyUndetectedState("datSignature");
+	}
+
+	if (result.spr_signature.has_value()) {
+		client.setSprSignature(*result.spr_signature);
+		applyPendingState("sprSignature");
+	} else {
+		applyUndetectedState("sprSignature");
+	}
+
+	if (result.dat_format.has_value() && result.dat_signature.has_value() && result.spr_signature.has_value()) {
+		client.setClientData(*result.dat_signature, *result.spr_signature, *result.dat_format);
+	}
+
+	if (result.transparency.has_value()) {
+		client.setTransparent(*result.transparency);
+		applyPendingState("transparency");
+	} else {
+		applyUndetectedState("transparency");
+	}
+
+	if (result.extended.has_value()) {
+		client.setExtended(*result.extended);
+		applyPendingState("extended");
+	} else {
+		applyUndetectedState("extended");
+	}
+
+	if (result.frame_durations.has_value()) {
+		client.setFrameDurations(*result.frame_durations);
+		applyPendingState("frameDurations");
+	} else {
+		applyUndetectedState("frameDurations");
+	}
+
+	if (result.frame_groups.has_value()) {
+		client.setFrameGroups(*result.frame_groups);
+		applyPendingState("frameGroups");
+	} else {
+		applyUndetectedState("frameGroups");
+	}
+
+	for (const auto& warning : result.warnings) {
+		wxLogWarning("%s", wxString::FromUTF8(warning));
+	}
+}
+
+void ClientVersionPage::SyncClientPropertiesToGrid(const ClientVersion& client) {
+	if (!client_prop_grid) {
+		return;
+	}
+
+	suppress_property_events = true;
+	UpdateGridProperty(client_prop_grid, "Version", static_cast<long>(client.getVersion()));
+	UpdateGridProperty(client_prop_grid, "Name", wxstr(client.getName()));
+	UpdateGridProperty(client_prop_grid, "description", wxstr(client.getDescription()));
+	UpdateGridProperty(client_prop_grid, "configType", SelectionFromConfigType(client.getConfigType()));
+	UpdateGridProperty(client_prop_grid, "clientPath", client.getClientPath().GetFullPath());
+	UpdateGridProperty(client_prop_grid, "dataDirectory", wxstr(client.getDataDirectory()));
+	UpdateGridProperty(client_prop_grid, "metadataFile", wxstr(client.getMetadataFile()));
+	UpdateGridProperty(client_prop_grid, "spritesFile", wxstr(client.getSpritesFile()));
+	UpdateGridProperty(client_prop_grid, "otbId", static_cast<long>(client.getOtbId()));
+	UpdateGridProperty(client_prop_grid, "otbMajor", static_cast<long>(client.getOtbMajor()));
+
+	wxString otbm_versions_text;
+	for (const auto version_id : client.getMapVersionsSupported()) {
+		if (!otbm_versions_text.IsEmpty()) {
+			otbm_versions_text += ", ";
+		}
+		otbm_versions_text += wxString::Format("%d", static_cast<int>(version_id) + 1);
+	}
+	UpdateGridProperty(client_prop_grid, "otbmVersions", otbm_versions_text);
+	UpdateGridProperty(client_prop_grid, "datSignature", wxString::Format("%X", client.getDatSignature()));
+	UpdateGridProperty(client_prop_grid, "sprSignature", wxString::Format("%X", client.getSprSignature()));
+	UpdateGridProperty(client_prop_grid, "transparency", client.isTransparent());
+	UpdateGridProperty(client_prop_grid, "extended", client.isExtended());
+	UpdateGridProperty(client_prop_grid, "frameDurations", client.hasFrameDurations());
+	UpdateGridProperty(client_prop_grid, "frameGroups", client.hasFrameGroups());
+	suppress_property_events = false;
+
+	for (wxPropertyGridIterator iterator = client_prop_grid->GetIterator(); !iterator.AtEnd(); ++iterator) {
+		UpdatePropertyValidation(*iterator);
+	}
+	client_prop_grid->Refresh();
 }
 
 void ClientVersionPage::UpdatePropertyValidation(wxPGProperty* prop) {
@@ -511,7 +709,27 @@ void ClientVersionPage::UpdatePropertyValidation(wxPGProperty* prop) {
 		}
 	}
 
-	prop->SetBackgroundColour(invalid ? wxColour(255, 210, 210) : Theme::Get(Theme::Role::Background));
+	const wxColour background = Theme::Get(Theme::Role::Background);
+	if (invalid) {
+		prop->SetBackgroundColour(BlendColour(background, Theme::Get(Theme::Role::Error), 0.28));
+		return;
+	}
+
+	switch (GetPropertyState(active_client, nstr(prop->GetName()))) {
+		case PropertyVisualState::Pending:
+			prop->SetBackgroundColour(BlendColour(background, Theme::Get(Theme::Role::Warning), 0.30));
+			break;
+		case PropertyVisualState::Undetected:
+			prop->SetBackgroundColour(BlendColour(background, Theme::Get(Theme::Role::Error), 0.30));
+			break;
+		case PropertyVisualState::Saved:
+			prop->SetBackgroundColour(BlendColour(background, Theme::Get(Theme::Role::Success), 0.30));
+			break;
+		case PropertyVisualState::Default:
+		default:
+			prop->SetBackgroundColour(background);
+			break;
+	}
 }
 
 void ClientVersionPage::OnClientSelected(wxTreeEvent& WXUNUSED(event)) {
@@ -630,6 +848,10 @@ void ClientVersionPage::OnDuplicateClient(wxCommandEvent& WXUNUSED(event)) {
 }
 
 void ClientVersionPage::OnPropertyChanged(wxPropertyGridEvent& event) {
+	if (suppress_property_events) {
+		return;
+	}
+
 	ClientVersion* client = active_client;
 	if (!client) {
 		return;
@@ -649,6 +871,9 @@ void ClientVersionPage::OnPropertyChanged(wxPropertyGridEvent& event) {
 		client->setConfigType(ConfigTypeFromSelection(prop->GetValue().GetLong()));
 	} else if (prop_name == "clientPath") {
 		client->setClientPath(FileName(value.As<wxString>()));
+		const auto detection = ClientAssetDetector::detect(*client);
+		ApplyDetectionResult(*client, detection);
+		SyncClientPropertiesToGrid(*client);
 	} else if (prop_name == "dataDirectory") {
 		client->setDataDirectory(nstr(value.As<wxString>()));
 	} else if (prop_name == "metadataFile") {
@@ -698,13 +923,19 @@ void ClientVersionPage::OnPropertyChanged(wxPropertyGridEvent& event) {
 		client->setFrameGroups(value.As<bool>());
 	}
 
+	if (IsAutoDetectedProperty(nstr(prop_name))) {
+		SetPropertyState(client, nstr(prop_name), PropertyVisualState::Pending);
+	}
+
 	client->markDirty();
-	UpdatePropertyValidation(prop);
 	PopulateDefaultVersionChoice();
 	if (prop_name == "Name" || prop_name == "Version") {
 		PopulateClientTree();
 		SelectClient(client);
 	}
+
+	UpdatePropertyValidation(prop);
+	client_prop_grid->Refresh();
 	RefreshSummary();
 }
 
@@ -747,6 +978,7 @@ void ClientVersionPage::OnDeleteClient(wxCommandEvent& WXUNUSED(event)) {
 	}
 
 	pending_deleted_client_ids.insert(client->getName());
+	ClearPropertyStates(client);
 
 	PopulateDefaultVersionChoice();
 	active_client = nullptr;
@@ -829,6 +1061,7 @@ void ClientVersionPage::Apply() {
 			client->clearDirty();
 			client->backup();
 		}
+		MarkSavedProperties();
 		pending_deleted_client_ids.clear();
 		PopulateDefaultVersionChoice();
 		PopulateClientTree();
@@ -861,6 +1094,7 @@ void ClientVersionPage::DiscardPendingChanges() {
 		}
 	}
 
+	property_states_.clear();
 	pending_deleted_client_ids.clear();
 	client_filter.clear();
 	last_search_text.clear();

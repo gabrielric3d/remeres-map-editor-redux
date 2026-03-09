@@ -1,6 +1,9 @@
 #ifndef RME_PREFERENCES_CLIENT_VERSION_PAGE_H
 #define RME_PREFERENCES_CLIENT_VERSION_PAGE_H
 
+#include <string>
+#include <string_view>
+#include <unordered_map>
 #include <unordered_set>
 
 #include <wx/button.h>
@@ -12,6 +15,7 @@
 #include <wx/splitter.h>
 #include <wx/treectrl.h>
 
+#include "app/client_asset_detector.h"
 #include "app/client_version.h"
 #include "app/preferences/preferences_layout.h"
 #include "preferences_page.h"
@@ -29,6 +33,13 @@ private:
 		ClientVersion* cv;
 	};
 
+	enum class PropertyVisualState {
+		Default,
+		Pending,
+		Undetected,
+		Saved,
+	};
+
 	void PopulateDefaultVersionChoice();
 	void PopulateClientTree();
 	void SelectClient(ClientVersion* version);
@@ -40,6 +51,12 @@ private:
 	bool MatchesFilter(const ClientVersion& version) const;
 	int GetMajorGroup(const ClientVersion& version) const;
 	void UpdatePropertyValidation(wxPGProperty* prop);
+	void ApplyDetectionResult(ClientVersion& client, const ClientAssetDetectionResult& result);
+	void SyncClientPropertiesToGrid(const ClientVersion& client);
+	void SetPropertyState(ClientVersion* client, std::string_view property_name, PropertyVisualState state);
+	void MarkSavedProperties();
+	void ClearPropertyStates(ClientVersion* client);
+	[[nodiscard]] PropertyVisualState GetPropertyState(const ClientVersion* client, std::string_view property_name) const;
 
 	void OnClientSelected(wxTreeEvent& event);
 	void OnSearchChanged(wxCommandEvent& event);
@@ -65,9 +82,11 @@ private:
 	wxStaticText* summary_dirty_label = nullptr;
 	ClientVersion* active_client = nullptr;
 	bool ignore_tree_selection = false;
+	bool suppress_property_events = false;
 	wxString last_search_text;
 	std::string client_filter;
 	std::unordered_set<std::string> pending_deleted_client_ids;
+	std::unordered_map<const ClientVersion*, std::unordered_map<std::string, PropertyVisualState>> property_states_;
 };
 
 #endif
