@@ -25,7 +25,7 @@ void CameraPathDrawer::draw(PrimitiveRenderer& renderer, const RenderView& view,
 
 	const CameraPath* active_path = cam_paths.getActivePath();
 	int active_keyframe = cam_paths.getActiveKeyframe();
-	const int half_tile = TileSize / 2;
+	constexpr int half_tile = TILE_SIZE / 2;
 
 	for (const auto& path : paths) {
 		bool is_active = (active_path && path.name == active_path->name);

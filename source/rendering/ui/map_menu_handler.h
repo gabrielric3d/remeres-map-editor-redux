@@ -48,6 +48,7 @@ public:
 
 	void OnProperties(wxCommandEvent& event);
 	void OnAdvancedReplace(wxCommandEvent& event);
+	void OnAddAreaDecorationRule(wxCommandEvent& event);
 
 private:
 	MapCanvas* canvas;

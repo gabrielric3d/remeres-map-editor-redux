@@ -46,6 +46,10 @@ public:
 
 	void SetDisplayMode(DisplayMode mode);
 
+	// Filter support
+	void SetFilter(const std::string& filter);
+	void ClearFilter();
+
 protected:
 	/**
 	 * @brief Performs NanoVG rendering of the brush grid.
@@ -75,6 +79,14 @@ protected:
 	int columns;
 	int item_size;
 	int padding;
+
+	// Filter support
+	size_t GetEffectiveBrushCount() const;
+	Brush* GetEffectiveBrush(size_t index) const;
+	std::string current_filter;
+	std::vector<size_t> filtered_indices;
+	bool filter_active = false;
+	void RebuildFilteredList();
 
 	// Optimization: UTF8 name cache
 	mutable std::unordered_map<const Brush*, std::string> m_utf8NameCache;

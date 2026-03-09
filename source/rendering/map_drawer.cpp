@@ -70,6 +70,8 @@
 #include "rendering/core/gl_resources.h"
 #include "rendering/core/shader_program.h"
 #include "rendering/postprocess/post_process_manager.h"
+#include "rendering/drawers/overlays/hook_indicator_drawer.h"
+#include "rendering/drawers/overlays/door_indicator_drawer.h"
 
 // Shader Sources
 const char* screen_vert = R"(
@@ -112,6 +114,9 @@ MapDrawer::MapDrawer(MapCanvas* canvas) :
 	preview_drawer = std::make_unique<PreviewDrawer>();
 
 	shade_drawer = std::make_unique<ShadeDrawer>();
+
+	hook_indicator_drawer = std::make_unique<HookIndicatorDrawer>();
+	door_indicator_drawer = std::make_unique<DoorIndicatorDrawer>();
 
 	sprite_batch = std::make_unique<SpriteBatch>();
 	primitive_renderer = std::make_unique<PrimitiveRenderer>();
@@ -342,7 +347,7 @@ void MapDrawer::Draw() {
 	sprite_batch->begin(view.projectionMatrix, *atlas);
 
 	if (drag_shadow_drawer) {
-		drag_shadow_drawer->draw(*sprite_batch, *primitive_renderer, this, item_drawer.get(), sprite_drawer.get(), creature_drawer.get(), view, options);
+		drag_shadow_drawer->draw(*sprite_batch, this, item_drawer.get(), sprite_drawer.get(), creature_drawer.get(), view, options);
 	}
 
 	live_cursor_drawer->draw(*sprite_batch, view, editor, options);
@@ -398,7 +403,7 @@ void MapDrawer::DrawMap() {
 			DrawMapLayer(map_z, live_client);
 		}
 
-		preview_drawer->draw(*sprite_batch, *primitive_renderer, canvas, view, map_z, options, editor, item_drawer.get(), sprite_drawer.get(), creature_drawer.get(), options.current_house_id);
+		preview_drawer->draw(*sprite_batch, canvas, view, map_z, options, editor, item_drawer.get(), sprite_drawer.get(), creature_drawer.get(), options.current_house_id);
 
 		--view.start_x;
 		--view.start_y;
@@ -424,7 +429,7 @@ void MapDrawer::DrawCreatureNames(NVGcontext* vg) {
 }
 
 void MapDrawer::DrawMapLayer(int map_z, bool live_client) {
-	map_layer_drawer->Draw(*sprite_batch, *primitive_renderer, map_z, live_client, view, options, light_buffer);
+	map_layer_drawer->Draw(*sprite_batch, map_z, live_client, view, options, light_buffer);
 }
 
 void MapDrawer::DrawLight() {
@@ -435,6 +440,14 @@ void MapDrawer::TakeScreenshot(uint8_t* screenshot_buffer) {
 	ScreenCapture::Capture(view.screensize_x, view.screensize_y, screenshot_buffer);
 }
 
-void MapDrawer::ClearTooltips() {
+void MapDrawer::DrawHookIndicators(NVGcontext* vg) {
+	hook_indicator_drawer->draw(vg, view);
+}
+
+void MapDrawer::DrawDoorIndicators(NVGcontext* vg) {
+	door_indicator_drawer->draw(vg, view);
+}
+
+void MapDrawer::ClearFrameOverlays() {
 	tooltip_drawer->clear();
 }

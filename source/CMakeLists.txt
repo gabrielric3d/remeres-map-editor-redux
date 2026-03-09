@@ -92,6 +92,10 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_canvas.h
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_manager.h
+    ${CMAKE_CURRENT_LIST_DIR}/editor/area_decoration.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_rule_from_selection_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/cluster_preview_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/outfit_chooser_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/outfit_preview_panel.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/outfit_selection_grid.h
@@ -130,10 +134,10 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/map/position.h
     ${CMAKE_CURRENT_LIST_DIR}/map/spatial_hash_grid.h
     ${CMAKE_CURRENT_LIST_DIR}/map/tile.h
+    ${CMAKE_CURRENT_LIST_DIR}/map/tile_operations.h
     ${CMAKE_CURRENT_LIST_DIR}/map/tileset.h
     ${CMAKE_CURRENT_LIST_DIR}/net/net_connection.h
     ${CMAKE_CURRENT_LIST_DIR}/net/process_com.h
-    ${CMAKE_CURRENT_LIST_DIR}/net/rme_net.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_brushlist.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_common.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_creature.h
@@ -142,7 +146,6 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/house_palette.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/edit_house_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_window.h
-    ${CMAKE_CURRENT_LIST_DIR}/palette/controls/brush_button.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/controls/virtual_brush_grid.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/panels/brush_palette_panel.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/panels/brush_panel.h
@@ -168,6 +171,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/render_view.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/ring_buffer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/shader_program.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/shared_geometry.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/sprite_batch.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/sprite_instance.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/sprite_light.h
@@ -192,6 +196,8 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/marker_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/preview_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/selection_drawer.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/door_indicator_drawer.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/hook_indicator_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/floor_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/shade_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/tile_color_calculator.h
@@ -219,13 +225,13 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/utilities/frame_pacer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/utilities/light_calculator.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/utilities/light_drawer.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/utilities/icon_renderer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/utilities/sprite_icon_generator.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/utilities/tile_describer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/postprocess/post_process_manager.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/about_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/add_item_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/add_tileset_window.h
-    ${CMAKE_CURRENT_LIST_DIR}/ui/artprovider.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/browse_tile_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/controls/item_buttons.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/controls/outfit_color_palette.h
@@ -311,10 +317,19 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/toolbar/toolbar_factory.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/toolbar/toolbar_layout.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/old_properties_window.h
-    ${CMAKE_CURRENT_LIST_DIR}/ui/pngfiles.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/positionctrl.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/properties_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/replace_items_window.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/replace_tool_window.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/replacement_engine.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/rule_manager.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/rule_builder_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/rule_list_control.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/library_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/card_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/item_grid_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/rule_card_renderer.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/visual_similarity_service.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/result_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/tileset_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/welcome_dialog.h
@@ -324,7 +339,6 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/tool_options_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/tool_options_surface.h
     ${CMAKE_CURRENT_LIST_DIR}/util/common.h
-    ${CMAKE_CURRENT_LIST_DIR}/util/con_vector.h
     ${CMAKE_CURRENT_LIST_DIR}/util/json.h
     ${CMAKE_CURRENT_LIST_DIR}/util/nanovg_canvas.h
     ${CMAKE_CURRENT_LIST_DIR}/util/nanovg_listbox.h
@@ -425,6 +439,10 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_canvas.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_manager.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/editor/area_decoration.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_rule_from_selection_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/cluster_preview_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/outfit_chooser_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/outfit_preview_panel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/outfit_selection_grid.cpp
@@ -458,11 +476,11 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/map/map_spawn_manager.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/map/tile.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/map/tile_operations.cpp
     ${CMAKE_CURRENT_LIST_DIR}/map/tileset.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mkpch.cpp
     ${CMAKE_CURRENT_LIST_DIR}/net/net_connection.cpp
     ${CMAKE_CURRENT_LIST_DIR}/net/process_com.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/net/rme_net.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_brushlist.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_common.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_creature.cpp
@@ -471,7 +489,6 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/house_palette.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/edit_house_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_window.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/palette/controls/brush_button.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/controls/virtual_brush_grid.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/panels/brush_palette_panel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/panels/brush_panel.cpp
@@ -496,6 +513,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/render_view.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/ring_buffer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/shader_program.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/shared_geometry.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/sprite_batch.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/text_renderer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/texture_array.cpp
@@ -517,6 +535,8 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/marker_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/preview_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/selection_drawer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/door_indicator_drawer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/hook_indicator_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/floor_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/shade_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/tile_color_calculator.cpp
@@ -544,6 +564,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/utilities/frame_pacer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/utilities/light_calculator.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/utilities/light_drawer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/utilities/icon_renderer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/utilities/sprite_icon_generator.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/utilities/tile_describer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/postprocess/post_process_manager.cpp
@@ -553,7 +574,6 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/about_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/add_item_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/add_tileset_window.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/ui/artprovider.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/browse_tile_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/controls/outfit_color_palette.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/controls/sortable_list_box.cpp
@@ -636,10 +656,19 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/toolbar/toolbar_factory.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/toolbar/toolbar_layout.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/old_properties_window.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/ui/pngfiles.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/positionctrl.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/properties_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/replace_items_window.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/replace_tool_window.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/replacement_engine.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/rule_manager.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/rule_builder_panel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/rule_list_control.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/library_panel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/card_panel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/item_grid_panel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/rule_card_renderer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/visual_similarity_service.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/result_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/tileset_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/theme.cpp

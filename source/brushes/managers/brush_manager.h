@@ -8,6 +8,14 @@
 #include "app/main.h"
 #include "brushes/brush_enums.h"
 
+#include <string>
+#include <vector>
+
+struct SpawnCreatureEntry {
+	std::string name;
+	int count;
+};
+
 class Brush;
 class HouseBrush;
 class HouseExitBrush;
@@ -95,6 +103,17 @@ public:
 		return use_custom_thickness;
 	}
 
+	// Spawn creature group
+	[[nodiscard]] const std::vector<SpawnCreatureEntry>& GetSpawnCreatureGroup() const {
+		return spawn_creature_group;
+	}
+	void SetSpawnCreatureGroup(const std::vector<SpawnCreatureEntry>& group) {
+		spawn_creature_group = group;
+	}
+	void ClearSpawnCreatureGroup() {
+		spawn_creature_group.clear();
+	}
+
 public:
 	// Brush references
 	HouseBrush* house_brush;
@@ -132,6 +151,8 @@ private:
 	float custom_thickness_mod;
 	float light_intensity;
 	float ambient_light_level;
+
+	std::vector<SpawnCreatureEntry> spawn_creature_group;
 };
 
 extern BrushManager g_brush_manager;

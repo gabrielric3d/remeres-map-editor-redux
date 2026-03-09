@@ -66,7 +66,6 @@ PaletteWindow::PaletteWindow(wxWindow* parent, const TilesetContainer& tilesets)
 	Bind(wxEVT_CHOICEBOOK_PAGE_CHANGED, &PaletteWindow::OnPageChanged, this, PALETTE_CHOICEBOOK);
 	Bind(wxEVT_CLOSE_WINDOW, &PaletteWindow::OnClose, this);
 	Bind(wxEVT_KEY_DOWN, &PaletteWindow::OnKey, this);
-
 	terrain_palette = static_cast<BrushPalettePanel*>(CreateTerrainPalette(choicebook, tilesets));
 	choicebook->AddPage(terrain_palette, terrain_palette->GetName(), false, 0);
 
@@ -388,6 +387,13 @@ void PaletteWindow::OnUpdate(Map* map) {
 }
 
 void PaletteWindow::OnKey(wxKeyEvent& event) {
+	// Don't forward key events to the map canvas if the focus is on a text control
+	wxWindow* focused = FindFocus();
+	if (focused && dynamic_cast<wxTextCtrl*>(focused)) {
+		event.Skip();
+		return;
+	}
+
 	if (g_gui.GetCurrentTab() != nullptr) {
 		g_gui.GetCurrentMapTab()->GetEventHandler()->AddPendingEvent(event);
 	}

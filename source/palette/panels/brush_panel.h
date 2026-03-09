@@ -58,6 +58,10 @@ public:
 	// Select the brush in the parameter, this only changes the look of the panel
 	bool SelectBrush(const Brush* whatbrush);
 
+	// Filter the displayed brushes by name
+	void SetFilter(const std::string& filter);
+	void ClearFilter();
+
 	// Called when the window is about to be displayed
 	void OnSwitchIn();
 	// Called when this page is hidden

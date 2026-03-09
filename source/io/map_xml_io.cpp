@@ -102,8 +102,8 @@ bool MapXMLIO::loadSpawns(Map& map, pugi::xml_document& doc) {
 				spawntime = g_settings.getInteger(Config::DEFAULT_SPAWNTIME);
 			}
 
-			Direction direction = NORTH;
-			int dir = creatureNode.attribute("direction").as_int(static_cast<int>(NORTH));
+			Direction direction = SOUTH;
+			int dir = creatureNode.attribute("direction").as_int(static_cast<int>(SOUTH));
 			if (dir >= DIRECTION_FIRST && dir <= DIRECTION_LAST) {
 				direction = static_cast<Direction>(dir);
 			}
@@ -219,7 +219,7 @@ bool MapXMLIO::saveSpawns(const Map& map, pugi::xml_document& doc) {
 					creatureNode.append_attribute("y") = y;
 					creatureNode.append_attribute("spawntime") = creature->getSpawnTime();
 
-					if (creature->getDirection() != NORTH) {
+					if (creature->getDirection() != SOUTH) {
 						creatureNode.append_attribute("direction") = static_cast<int>(creature->getDirection());
 					}
 

@@ -72,6 +72,7 @@ void MapPopupMenu::Update() {
 
 	if (anything_selected) {
 		Append(MAP_POPUP_MENU_ADVANCED_REPLACE, "Replace tiles...", "Open Advanced Replace Tool for selected items")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_WAND_MAGIC, wxSize(16, 16)));
+		Append(MAP_POPUP_MENU_ADD_AREA_DECORATION_RULE, "Add Area Decoration Rule...", "Generate an area decoration rule from selection");
 	}
 
 	if (anything_selected) {

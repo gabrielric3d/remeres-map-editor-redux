@@ -49,6 +49,7 @@
 #include "app/application.h"
 #include "ui/welcome_dialog.h"
 #include "ui/tool_options_window.h"
+#include "ui/dialogs/area_decoration_dialog.h"
 
 #include "live/live_client.h"
 #include "live/live_tab.h"
@@ -78,6 +79,8 @@ GUI::GUI() :
 GUI::~GUI() {
 	spdlog::info("GUI destructor started");
 	spdlog::default_logger()->flush();
+
+	DestroyAreaDecorationDialog();
 
 	// aui_manager and tabbook are owned by MainFrame, we don't delete them here.
 	spdlog::info("GUI destructor finished");
@@ -488,6 +491,75 @@ void GUI::DestroyPalettes() {
 }
 PaletteWindow* GUI::CreatePalette() {
 	return g_palettes.CreatePalette();
+}
+
+//=============================================================================
+// Area Decoration Dialog management
+
+void GUI::ShowAreaDecorationDialog() {
+	if (!IsEditorOpen()) {
+		return;
+	}
+
+	if (area_decoration_dialog) {
+		area_decoration_dialog->UpdateEngine();
+		area_decoration_dialog->Show();
+		area_decoration_dialog->Raise();
+	} else {
+		area_decoration_dialog = newd AreaDecorationDialog(root);
+		area_decoration_dialog->Show();
+	}
+}
+
+void GUI::DestroyAreaDecorationDialog() {
+	if (area_decoration_dialog) {
+		area_decoration_dialog->Destroy();
+		area_decoration_dialog = nullptr;
+	}
+}
+
+void GUI::BeginRectanglePick(RectanglePickComplete onComplete,
+                             RectanglePickCancel onCancel,
+                             RectanglePickFirstClick onFirstClick) {
+	rectangle_picking = true;
+	rectangle_pick_has_first = false;
+	rectangle_pick_on_complete = std::move(onComplete);
+	rectangle_pick_on_cancel = std::move(onCancel);
+	rectangle_pick_on_first_click = std::move(onFirstClick);
+}
+
+void GUI::CancelRectanglePick() {
+	if (rectangle_picking) {
+		rectangle_picking = false;
+		rectangle_pick_has_first = false;
+		if (rectangle_pick_on_cancel) {
+			rectangle_pick_on_cancel();
+		}
+		rectangle_pick_on_complete = nullptr;
+		rectangle_pick_on_cancel = nullptr;
+		rectangle_pick_on_first_click = nullptr;
+	}
+}
+
+void GUI::OnRectanglePickClick(const Position& pos) {
+	if (!rectangle_picking) return;
+
+	if (!rectangle_pick_has_first) {
+		rectangle_pick_first = pos;
+		rectangle_pick_has_first = true;
+		if (rectangle_pick_on_first_click) {
+			rectangle_pick_on_first_click(pos);
+		}
+	} else {
+		rectangle_picking = false;
+		rectangle_pick_has_first = false;
+		if (rectangle_pick_on_complete) {
+			rectangle_pick_on_complete(rectangle_pick_first, pos);
+		}
+		rectangle_pick_on_complete = nullptr;
+		rectangle_pick_on_cancel = nullptr;
+		rectangle_pick_on_first_click = nullptr;
+	}
 }
 
 void SetWindowToolTip(wxWindow* a, const wxString& tip) {

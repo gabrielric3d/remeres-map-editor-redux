@@ -80,6 +80,8 @@ public:
 		name = newName;
 	}
 
+	const DoodadBrushItems& getItems() const { return items; }
+
 protected:
 	std::string name;
 	DoodadBrushSettings settings;

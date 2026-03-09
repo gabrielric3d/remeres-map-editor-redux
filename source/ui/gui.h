@@ -56,6 +56,7 @@ class LiveSocket;
 class SidebarWindow;
 class ToolOptionsWindow;
 class TilePropertiesPanel;
+class AreaDecorationDialog;
 
 wxDECLARE_EVENT(EVT_UPDATE_MENUS, wxCommandEvent);
 
@@ -67,6 +68,7 @@ wxDECLARE_EVENT(EVT_UPDATE_MENUS, wxCommandEvent);
 	),
 
 #include <mutex>
+#include <functional>
 #include "brushes/managers/brush_manager.h"
 #include "palette/managers/palette_manager.h"
 #include "editor/managers/editor_manager.h"
@@ -346,6 +348,32 @@ public:
 
 	ToolOptionsWindow* tool_options;
 	TilePropertiesPanel* tile_properties_panel;
+	AreaDecorationDialog* area_decoration_dialog = nullptr;
+
+	void ShowAreaDecorationDialog();
+	void DestroyAreaDecorationDialog();
+
+	// Rectangle pick mode for area decoration dialog
+	using RectanglePickComplete = std::function<void(const Position&, const Position&)>;
+	using RectanglePickCancel = std::function<void()>;
+	using RectanglePickFirstClick = std::function<void(const Position&)>;
+
+	void BeginRectanglePick(RectanglePickComplete onComplete,
+	                        RectanglePickCancel onCancel = nullptr,
+	                        RectanglePickFirstClick onFirstClick = nullptr);
+	void CancelRectanglePick();
+	bool IsRectanglePicking() const { return rectangle_picking; }
+	void OnRectanglePickClick(const Position& pos);
+
+private:
+	bool rectangle_picking = false;
+	bool rectangle_pick_has_first = false;
+	Position rectangle_pick_first;
+	RectanglePickComplete rectangle_pick_on_complete;
+	RectanglePickCancel rectangle_pick_on_cancel;
+	RectanglePickFirstClick rectangle_pick_on_first_click;
+
+public:
 
 	bool pasting;
 

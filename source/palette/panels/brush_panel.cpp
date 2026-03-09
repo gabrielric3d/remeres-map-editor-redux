@@ -129,6 +129,24 @@ bool BrushPanel::SelectBrush(const Brush* whatbrush) {
 	return false;
 }
 
+void BrushPanel::SetFilter(const std::string& filter) {
+	if (!loaded || !brushbox) {
+		return;
+	}
+	auto* vbg = dynamic_cast<VirtualBrushGrid*>(brushbox);
+	if (vbg) {
+		if (filter.empty()) {
+			vbg->ClearFilter();
+		} else {
+			vbg->SetFilter(filter);
+		}
+	}
+}
+
+void BrushPanel::ClearFilter() {
+	SetFilter("");
+}
+
 void BrushPanel::OnSwitchIn() {
 	spdlog::info("BrushPanel::OnSwitchIn");
 	LoadContents();

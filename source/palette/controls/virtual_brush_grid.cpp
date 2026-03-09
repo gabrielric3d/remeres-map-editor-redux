@@ -12,6 +12,7 @@
 #include "ui/theme.h"
 
 #include <spdlog/spdlog.h>
+#include <algorithm>
 
 namespace {
 	static constexpr float GROW_FACTOR = 2.0f;
@@ -59,20 +60,92 @@ void VirtualBrushGrid::SetDisplayMode(DisplayMode mode) {
 	}
 }
 
+// ============================================================================
+// Filter support
+
+size_t VirtualBrushGrid::GetEffectiveBrushCount() const {
+	if (filter_active) {
+		return filtered_indices.size();
+	}
+	return tileset->size();
+}
+
+Brush* VirtualBrushGrid::GetEffectiveBrush(size_t index) const {
+	if (filter_active) {
+		if (index < filtered_indices.size()) {
+			return tileset->brushlist[filtered_indices[index]];
+		}
+		return nullptr;
+	}
+	if (index < tileset->size()) {
+		return tileset->brushlist[index];
+	}
+	return nullptr;
+}
+
+void VirtualBrushGrid::SetFilter(const std::string& filter) {
+	current_filter = as_lower_str(filter);
+	RebuildFilteredList();
+	selected_index = -1;
+	hover_index = -1;
+	if (GetEffectiveBrushCount() > 0) {
+		selected_index = 0;
+	}
+	UpdateLayout();
+	SetScrollPosition(0);
+	Refresh();
+}
+
+void VirtualBrushGrid::ClearFilter() {
+	if (!filter_active && current_filter.empty()) {
+		return;
+	}
+	current_filter.clear();
+	filtered_indices.clear();
+	filter_active = false;
+	selected_index = -1;
+	hover_index = -1;
+	if (GetEffectiveBrushCount() > 0) {
+		selected_index = 0;
+	}
+	UpdateLayout();
+	SetScrollPosition(0);
+	Refresh();
+}
+
+void VirtualBrushGrid::RebuildFilteredList() {
+	filtered_indices.clear();
+	if (current_filter.empty()) {
+		filter_active = false;
+		return;
+	}
+
+	filter_active = true;
+	for (size_t i = 0; i < tileset->size(); ++i) {
+		Brush* brush = tileset->brushlist[i];
+		if (brush && as_lower_str(brush->getName()).find(current_filter) != std::string::npos) {
+			filtered_indices.push_back(i);
+		}
+	}
+}
+
+// ============================================================================
+
 void VirtualBrushGrid::UpdateLayout() {
 	int width = GetClientSize().x;
 	if (width <= 0) {
 		width = 200; // Default
 	}
 
+	int count = static_cast<int>(GetEffectiveBrushCount());
+
 	if (display_mode == DisplayMode::List) {
 		columns = 1;
-		int rows = static_cast<int>(tileset->size());
-		int contentHeight = rows * LIST_ROW_HEIGHT + padding;
+		int contentHeight = count * LIST_ROW_HEIGHT + padding;
 		UpdateScrollbar(contentHeight);
 	} else {
 		columns = std::max(1, (width - padding) / (item_size + padding));
-		int rows = (static_cast<int>(tileset->size()) + columns - 1) / columns;
+		int rows = (count + columns - 1) / columns;
 		int contentHeight = rows * (item_size + padding) + padding;
 		UpdateScrollbar(contentHeight);
 	}
@@ -90,7 +163,7 @@ void VirtualBrushGrid::OnNanoVGPaint(NVGcontext* vg, int width, int height) {
 	int endRow = (scrollPos + height + rowHeight - 1) / rowHeight + 1;
 
 	int startIdx = startRow * columns;
-	int endIdx = std::min(static_cast<int>(tileset->size()), endRow * columns);
+	int endIdx = std::min(static_cast<int>(GetEffectiveBrushCount()), endRow * columns);
 
 	// Draw visible items
 	for (int i = startIdx; i < endIdx; ++i) {
@@ -162,7 +235,7 @@ void VirtualBrushGrid::DrawBrushItem(NVGcontext* vg, int i, const wxRect& rect) 
 	}
 
 	// Draw brush sprite
-	Brush* brush = (i < static_cast<int>(tileset->size())) ? tileset->brushlist[i] : nullptr;
+	Brush* brush = GetEffectiveBrush(static_cast<size_t>(i));
 	if (brush) {
 		Sprite* spr = brush->getSprite();
 		if (!spr) {
@@ -225,16 +298,16 @@ int VirtualBrushGrid::HitTest(int x, int y) const {
 	int realY = y + scrollPos;
 	int realX = x;
 
+	int count = static_cast<int>(GetEffectiveBrushCount());
+
 	if (display_mode == DisplayMode::List) {
 		int row = (realY - padding) / LIST_ROW_HEIGHT;
 
-		if (row < 0 || row >= static_cast<int>(tileset->size())) {
+		if (row < 0 || row >= count) {
 			return -1;
 		}
 
 		int index = row;
-		// Check horizontal bounds properly
-		int width = GetClientSize().x - 2 * padding;
 		if (realX >= padding && realX <= GetClientSize().x - padding) {
 			return index;
 		}
@@ -248,7 +321,7 @@ int VirtualBrushGrid::HitTest(int x, int y) const {
 		}
 
 		int index = row * columns + col;
-		if (index >= 0 && index < static_cast<int>(tileset->size())) {
+		if (index >= 0 && index < count) {
 			wxRect rect = GetItemRect(index);
 			// Adjust rect to scroll position for contains check
 			rect.y -= scrollPos;
@@ -276,7 +349,10 @@ void VirtualBrushGrid::OnMouseDown(wxMouseEvent& event) {
 			w = w->GetParent();
 		}
 
-		g_gui.SelectBrush(tileset->brushlist[selected_index], tileset->getType());
+		Brush* brush = GetEffectiveBrush(static_cast<size_t>(selected_index));
+		if (brush) {
+			g_gui.SelectBrush(brush, tileset->getType());
+		}
 		Refresh();
 	}
 }
@@ -299,7 +375,7 @@ void VirtualBrushGrid::OnMotion(wxMouseEvent& event) {
 
 	// Tooltip
 	if (index != -1) {
-		Brush* brush = tileset->brushlist[index];
+		Brush* brush = GetEffectiveBrush(static_cast<size_t>(index));
 		if (brush) {
 			wxString tip = wxstr(brush->getName());
 			if (GetToolTipText() != tip) {
@@ -333,22 +409,23 @@ void VirtualBrushGrid::OnSize(wxSizeEvent& event) {
 }
 
 void VirtualBrushGrid::SelectFirstBrush() {
-	if (tileset->size() > 0) {
+	if (GetEffectiveBrushCount() > 0) {
 		selected_index = 0;
 		Refresh();
 	}
 }
 
 Brush* VirtualBrushGrid::GetSelectedBrush() const {
-	if (selected_index >= 0 && selected_index < static_cast<int>(tileset->size())) {
-		return tileset->brushlist[selected_index];
+	if (selected_index >= 0 && selected_index < static_cast<int>(GetEffectiveBrushCount())) {
+		return GetEffectiveBrush(static_cast<size_t>(selected_index));
 	}
 	return nullptr;
 }
 
 bool VirtualBrushGrid::SelectBrush(const Brush* brush) {
-	for (size_t i = 0; i < tileset->size(); ++i) {
-		if (tileset->brushlist[i] == brush) {
+	size_t count = GetEffectiveBrushCount();
+	for (size_t i = 0; i < count; ++i) {
+		if (GetEffectiveBrush(i) == brush) {
 			selected_index = static_cast<int>(i);
 
 			// Ensure visible

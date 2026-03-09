@@ -14,6 +14,7 @@
 #include "editor/action_queue.h"
 #include "ui/dialog_util.h"
 #include "ui/welcome_dialog.h"
+#include "ui/dialogs/area_decoration_dialog.h"
 #include "app/application.h"
 #include "app/managers/version_manager.h"
 #include "ui/managers/status_manager.h"
@@ -59,6 +60,9 @@ void EditorManager::CloseCurrentEditor() {
 	g_palettes.RefreshPalettes();
 	g_gui.tabbook->DeleteTab(g_gui.tabbook->GetSelection());
 	g_gui.root->UpdateMenubar();
+	if (!g_gui.IsEditorOpen() && g_gui.area_decoration_dialog) {
+		g_gui.area_decoration_dialog->Hide();
+	}
 	spdlog::info("EditorManager::CloseCurrentEditor - Closed current tab");
 }
 
@@ -125,6 +129,9 @@ bool EditorManager::CloseAllEditors() {
 	}
 	if (g_gui.root) {
 		g_gui.root->UpdateMenubar();
+	}
+	if (g_gui.area_decoration_dialog) {
+		g_gui.area_decoration_dialog->Hide();
 	}
 	spdlog::info("EditorManager::CloseAllEditors - All tabs closed");
 	return true;
