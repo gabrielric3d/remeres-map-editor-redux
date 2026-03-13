@@ -2447,7 +2447,7 @@ void StructureManagerDialog::UpdateTutorialStep() {
 }
 
 void StructureManagerDialog::RenderTutorialOverlay() {
-	if (!m_tutorialActive) return;
+	if (!m_tutorialActive || !IsShown()) return;
 
 	wxClientDC dc(this);
 	wxDCOverlay overlaydc(m_tutorialOverlay, &dc);
@@ -2494,6 +2494,7 @@ void StructureManagerDialog::RenderTutorialOverlay() {
 }
 
 void StructureManagerDialog::ClearTutorialOverlay() {
+	if (!IsShown()) return;
 	wxClientDC dc(this);
 	wxDCOverlay overlaydc(m_tutorialOverlay, &dc);
 	overlaydc.Clear();
