@@ -24,7 +24,7 @@
 #include "editor/selection.h"
 #include "ui/find_item_window.h"
 #include "rendering/core/graphics.h"
-#include "game/items.h"
+#include "item_definitions/core/item_definition_store.h"
 #include "brushes/brush.h"
 #include "ui/theme.h"
 #include "brushes/doodad/doodad_brush.h"
@@ -127,10 +127,10 @@ wxBitmap CreatePreviewBitmap(uint16_t itemId, int size) {
 	dc.SetBackground(wxBrush(wxColour(0x0C, 0x14, 0x2A)));
 	dc.Clear();
 
-	const ItemType& itemType = g_items.getItemType(itemId);
+	const auto itemDef = g_item_definitions.get(itemId);
 	Sprite* spr = nullptr;
-	if (itemType.id != 0) {
-		spr = g_gui.gfx.getSprite(itemType.clientID);
+	if (itemDef) {
+		spr = g_gui.gfx.getSprite(itemDef.clientId());
 	}
 
 	if (spr) {
@@ -811,9 +811,9 @@ void FloorRuleEditDialog::UpdateItemsList() {
 			}
 		} else {
 			itemIdText = wxString::Format("%d", item.itemId);
-			const ItemType& iType = g_items.getItemType(item.itemId);
-			if (iType.id != 0) {
-				itemName = wxstr(iType.name);
+			const auto itemDef = g_item_definitions.get(item.itemId);
+			if (itemDef) {
+				itemName = wxstr(itemDef.name());
 				if (itemName.IsEmpty()) {
 					itemName = wxString::Format("Item #%d", item.itemId);
 				}
@@ -846,11 +846,11 @@ wxBitmap FloorRuleEditDialog::GetItemBitmap(uint16_t itemId, int size) {
 	dc.SetBackground(wxBrush(wxColour(0x0C, 0x14, 0x2A)));
 	dc.Clear();
 
-	// Get the ItemType to find the client sprite ID
-	const ItemType& itemType = g_items.getItemType(itemId);
+	// Get the item definition to find the client sprite ID
+	const auto itemDef = g_item_definitions.get(itemId);
 	Sprite* spr = nullptr;
-	if (itemType.id != 0) {
-		spr = g_gui.gfx.getSprite(itemType.clientID);
+	if (itemDef) {
+		spr = g_gui.gfx.getSprite(itemDef.clientId());
 	}
 
 	if (spr) {
@@ -919,10 +919,10 @@ void FloorRuleEditDialog::OnPaintFloorPreview(wxPaintEvent& event) {
 	}
 
 	if (floorId > 0) {
-		const ItemType& itemType = g_items.getItemType(floorId);
+		const auto itemDef = g_item_definitions.get(floorId);
 		Sprite* spr = nullptr;
-		if (itemType.id != 0) {
-			spr = g_gui.gfx.getSprite(itemType.clientID);
+		if (itemDef) {
+			spr = g_gui.gfx.getSprite(itemDef.clientId());
 		}
 		if (spr) {
 			int drawSize = std::min(size.GetWidth(), size.GetHeight()) - 4;
@@ -959,10 +959,10 @@ void FloorRuleEditDialog::OnPaintFriendPreview(wxPaintEvent& event) {
 	}
 
 	if (floorId > 0) {
-		const ItemType& itemType = g_items.getItemType(floorId);
+		const auto itemDef = g_item_definitions.get(floorId);
 		Sprite* spr = nullptr;
-		if (itemType.id != 0) {
-			spr = g_gui.gfx.getSprite(itemType.clientID);
+		if (itemDef) {
+			spr = g_gui.gfx.getSprite(itemDef.clientId());
 		}
 		if (spr) {
 			int drawSize = std::min(size.GetWidth(), size.GetHeight()) - 4;
@@ -990,11 +990,11 @@ void FloorRuleEditDialog::OnPaintBorderPreview(wxPaintEvent& event) {
 	uint16_t borderItemId = static_cast<uint16_t>(m_borderItemSpin->GetValue());
 
 	if (borderItemId > 0) {
-		// Get the ItemType to find the client sprite ID
-		const ItemType& itemType = g_items.getItemType(borderItemId);
+		// Get the item definition to find the client sprite ID
+		const auto itemDef = g_item_definitions.get(borderItemId);
 		Sprite* spr = nullptr;
-		if (itemType.id != 0) {
-			spr = g_gui.gfx.getSprite(itemType.clientID);
+		if (itemDef) {
+			spr = g_gui.gfx.getSprite(itemDef.clientId());
 		}
 		if (spr) {
 			// Draw centered

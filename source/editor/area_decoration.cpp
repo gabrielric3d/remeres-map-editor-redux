@@ -21,7 +21,7 @@
 #include "map/map.h"
 #include "map/tile.h"
 #include "game/item.h"
-#include "game/items.h"
+#include "item_definitions/core/item_definition_store.h"
 #include "editor/action.h"
 #include "editor/action_queue.h"
 #include "editor/selection.h"

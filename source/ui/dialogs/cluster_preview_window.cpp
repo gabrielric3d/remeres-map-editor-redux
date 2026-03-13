@@ -19,7 +19,7 @@
 #include "ui/dialogs/cluster_preview_window.h"
 #include "ui/gui.h"
 #include "rendering/core/graphics.h"
-#include "game/items.h"
+#include "item_definitions/core/item_definition_store.h"
 #include <wx/dcbuffer.h>
 #include <algorithm>
 
@@ -163,11 +163,11 @@ wxBitmap ClusterPreviewWindow::GetItemBitmap(uint16_t itemId, int size) {
 	dc.SetBackground(wxBrush(wxColour(0x0C, 0x14, 0x2A)));
 	dc.Clear();
 
-	// Get the ItemType to find the client sprite ID
-	const ItemType& itemType = g_items.getItemType(itemId);
+	// Get the item definition to find the client sprite ID
+	const auto itemDef = g_item_definitions.get(itemId);
 	Sprite* spr = nullptr;
-	if (itemType.id != 0) {
-		spr = g_gui.gfx.getSprite(itemType.clientID);
+	if (itemDef) {
+		spr = g_gui.gfx.getSprite(itemDef.clientId());
 	}
 
 	if (spr) {
@@ -274,10 +274,10 @@ void ClusterPreviewWindow::DrawCellSprites(wxDC& dc, int cellX, int cellY,
 		uint16_t itemId = tile.itemIds[i];
 		if (itemId == 0) continue;
 
-		const ItemType& itemType = g_items.getItemType(itemId);
+		const auto itemDef = g_item_definitions.get(itemId);
 		Sprite* spr = nullptr;
-		if (itemType.id != 0) {
-			spr = g_gui.gfx.getSprite(itemType.clientID);
+		if (itemDef) {
+			spr = g_gui.gfx.getSprite(itemDef.clientId());
 		}
 
 		if (spr) {
