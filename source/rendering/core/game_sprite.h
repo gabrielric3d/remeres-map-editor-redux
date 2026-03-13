@@ -179,9 +179,7 @@ public:
 	bool is_resident = false; // Tracks if this GameSprite is in resident_game_sprites
 
 	friend class GraphicManager;
-	friend class GameSpriteLoader;
-	friend class DatLoader;
-	friend class SprLoader;
+	friend class GraphicsAssembler;
 	friend class SpriteIconGenerator;
 	friend class TextureGarbageCollector;
 	friend class TooltipDrawer;

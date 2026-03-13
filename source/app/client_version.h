@@ -26,6 +26,7 @@
 
 #include "app/main.h"
 #include "app/settings.h"
+#include "item_definitions/core/item_definition_types.h"
 
 using ClientVersionID = std::string;
 using OtbVersionID = int;
@@ -228,12 +229,15 @@ public:
 
 	static ClientVersion* get(const ClientVersionID& id);
 	static ClientVersion* getBestMatch(OtbVersionID id);
+	static ClientVersion* getByItemsVersion(uint32_t major, uint32_t minor);
 	static ClientVersionList getVisible(std::string from, std::string to);
 	static ClientVersionList getAll();
 	static ClientVersionList getAllVisible();
+	static ClientVersionList getConfiguredVisible();
 	static ClientVersionList getAllForOTBMVersion(MapVersionID map_version);
 	static ClientVersionList getAllVersionsSupportedForClientVersion(ClientVersion* v);
 	static ClientVersion* getLatestVersion();
+	static void setLatestVersion(ClientVersion* version);
 
 	std::unique_ptr<ClientVersion> clone() const;
 	bool isValid() const;
@@ -246,6 +250,7 @@ public:
 	bool loadValidPaths();
 	bool isDefaultPath() const;
 	void setClientPath(const FileName& dir);
+	bool hasConfiguredClientPath() const;
 
 	bool isVisible() const;
 	std::string getName() const;
@@ -339,6 +344,9 @@ public:
 	std::vector<MapVersionID>& getMapVersionsSupported() {
 		return map_versions_supported;
 	}
+	const std::vector<MapVersionID>& getMapVersionsSupported() const {
+		return map_versions_supported;
+	}
 	void setMapVersionsSupported(const std::vector<MapVersionID>& v) {
 		map_versions_supported = v;
 	}
@@ -353,19 +361,56 @@ public:
 	uint32_t getDatSignature() const {
 		return data_versions.empty() ? 0 : data_versions[0].datSignature;
 	}
-	void setDatSignature(uint32_t v) {
-		if (!data_versions.empty()) {
-			data_versions[0].datSignature = v;
+	DatFormat getDatFormat() const {
+		return data_versions.empty() ? DAT_FORMAT_UNKNOWN : data_versions[0].datFormat;
+	}
+	void setDatFormat(DatFormat format) {
+		if (data_versions.empty()) {
+			data_versions.push_back(ClientData { .datFormat = format, .datSignature = 0, .sprSignature = 0 });
+			return;
 		}
+		data_versions[0].datFormat = format;
+	}
+	void setDatSignature(uint32_t v) {
+		if (data_versions.empty()) {
+			data_versions.push_back(ClientData {
+				.datFormat = DAT_FORMAT_UNKNOWN,
+				.datSignature = v,
+				.sprSignature = 0,
+			});
+			return;
+		}
+		data_versions[0].datSignature = v;
 	}
 
 	uint32_t getSprSignature() const {
 		return data_versions.empty() ? 0 : data_versions[0].sprSignature;
 	}
 	void setSprSignature(uint32_t v) {
-		if (!data_versions.empty()) {
-			data_versions[0].sprSignature = v;
+		if (data_versions.empty()) {
+			data_versions.push_back(ClientData {
+				.datFormat = DAT_FORMAT_UNKNOWN,
+				.datSignature = 0,
+				.sprSignature = v,
+			});
+			return;
 		}
+		data_versions[0].sprSignature = v;
+	}
+	void setClientData(uint32_t dat_signature, uint32_t spr_signature, DatFormat format) {
+		if (data_versions.empty()) {
+			data_versions.push_back(ClientData {
+				.datFormat = format,
+				.datSignature = dat_signature,
+				.sprSignature = spr_signature,
+			});
+			return;
+		}
+		data_versions[0] = ClientData {
+			.datFormat = format,
+			.datSignature = dat_signature,
+			.sprSignature = spr_signature,
+		};
 	}
 
 	std::string getDescription() const {
@@ -376,10 +421,13 @@ public:
 	}
 
 	std::string getConfigType() const {
-		return config_type;
+		return toString(item_definition_mode);
 	}
 	void setConfigType(const std::string& v) {
-		config_type = v;
+		item_definition_mode = parseItemDefinitionMode(v).value_or(ItemDefinitionMode::DatOtb);
+	}
+	ItemDefinitionMode getItemDefinitionMode() const {
+		return item_definition_mode;
 	}
 
 	FileName getDataPath() const;
@@ -401,7 +449,7 @@ private:
 		uint32_t version;
 		std::string name;
 		std::string description;
-		std::string config_type;
+		ItemDefinitionMode item_definition_mode;
 		std::string metadata_file;
 		std::string sprites_file;
 		bool is_transparent;
@@ -440,7 +488,7 @@ private:
 	wxFileName metadata_path;
 	wxFileName sprites_path;
 	std::string description;
-	std::string config_type;
+	ItemDefinitionMode item_definition_mode = ItemDefinitionMode::DatOtb;
 
 private:
 	static void loadVersionsFromTOML(const std::string& configPath);

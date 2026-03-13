@@ -6,12 +6,16 @@
 #define RME_RENDERING_CORE_SPRITE_PRELOADER_H_
 
 #include "rendering/core/game_sprite.h"
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <thread>
 #include <condition_variable>
+#include <cstdint>
 #include <queue>
 #include <unordered_set>
+
+class SpriteArchive;
 
 class SpritePreloader {
 public:
@@ -39,19 +43,48 @@ private:
 	SpritePreloader();
 	~SpritePreloader();
 
+	struct ArchiveSpriteKey {
+		const SpriteArchive* archive = nullptr;
+		uint32_t id = 0;
+
+		bool operator==(const ArchiveSpriteKey& other) const = default;
+	};
+
+	struct ArchiveSpriteKeyHash {
+		size_t operator()(const ArchiveSpriteKey& key) const noexcept {
+			size_t seed = std::hash<const SpriteArchive*> {}(key.archive);
+			seed ^= std::hash<uint32_t> {}(key.id) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			return seed;
+		}
+	};
+
+	struct PendingSpriteKey {
+		ArchiveSpriteKey key;
+		uint32_t generation_id = 0;
+		uint64_t epoch = 0;
+
+		bool operator==(const PendingSpriteKey& other) const = default;
+	};
+
+	struct PendingSpriteKeyHash {
+		size_t operator()(const PendingSpriteKey& key) const noexcept {
+			size_t seed = ArchiveSpriteKeyHash {}(key.key);
+			seed ^= std::hash<uint32_t> {}(key.generation_id) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			seed ^= std::hash<uint64_t> {}(key.epoch) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			return seed;
+		}
+	};
+
 	struct Task {
-		uint32_t id;
-		uint32_t generation_id;
-		std::string spritefile;
-		bool is_extended;
+		PendingSpriteKey pending;
+		std::shared_ptr<SpriteArchive> archive;
 		bool has_transparency;
 	};
 
 	struct Result {
-		uint32_t id;
-		uint32_t generation_id;
+		PendingSpriteKey pending;
 		std::unique_ptr<uint8_t[]> data;
-		std::string spritefile;
+		std::shared_ptr<SpriteArchive> archive;
 	};
 
 	void workerLoop(std::stop_token stop_token);
@@ -68,8 +101,8 @@ private:
 
 	std::queue<Task> task_queue;
 	std::queue<Result> result_queue;
-	std::unordered_set<uint32_t> pending_ids; // To avoid duplicate tasks
-	std::unordered_set<uint32_t> cancelled_ids; // IDs that were cleared and should be ignored
+	std::unordered_set<PendingSpriteKey, PendingSpriteKeyHash> pending_ids; // To avoid duplicate tasks for the same archive/id/generation/epoch
+	uint64_t active_epoch = 0;
 };
 
 namespace rme {

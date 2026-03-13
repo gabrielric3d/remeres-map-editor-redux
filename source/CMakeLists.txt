@@ -1,11 +1,13 @@
 set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/app/application.h
+    ${CMAKE_CURRENT_LIST_DIR}/app/client_asset_detector.h
     ${CMAKE_CURRENT_LIST_DIR}/app/client_version.h
     ${CMAKE_CURRENT_LIST_DIR}/app/definitions.h
     ${CMAKE_CURRENT_LIST_DIR}/app/extension.h
     ${CMAKE_CURRENT_LIST_DIR}/app/main.h
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences.h
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences/preferences_page.h
+    ${CMAKE_CURRENT_LIST_DIR}/app/preferences/preferences_layout.h
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences/general_page.h
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences/editor_page.h
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences/graphics_page.h
@@ -62,6 +64,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/editor/operations/selection_operations.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/operations/map_version_changer.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/persistence/editor_persistence.h
+    ${CMAKE_CURRENT_LIST_DIR}/editor/persistence/map_load_options.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/persistence/tileset_exporter.h
 
     ${CMAKE_CURRENT_LIST_DIR}/editor/editor_tabs.h
@@ -76,8 +79,6 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/game/house.h
     ${CMAKE_CURRENT_LIST_DIR}/game/item.h
     ${CMAKE_CURRENT_LIST_DIR}/game/item_attributes.h
-    ${CMAKE_CURRENT_LIST_DIR}/game/item_loaders.h
-    ${CMAKE_CURRENT_LIST_DIR}/game/items.h
     ${CMAKE_CURRENT_LIST_DIR}/game/materials.h
     ${CMAKE_CURRENT_LIST_DIR}/game/outfit.h
     ${CMAKE_CURRENT_LIST_DIR}/game/spawn.h
@@ -86,6 +87,21 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/game/preview_preferences.h
     ${CMAKE_CURRENT_LIST_DIR}/game/waypoints.h
     ${CMAKE_CURRENT_LIST_DIR}/game/camera_paths.h
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_types.h
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_fragments.h
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_recipe.h
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_parser.h
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_store.h
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/asset_bundle.h
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/asset_bundle_loader.h
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_resolver.h
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_store_builder.h
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definitions_loader.h
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/formats/dat/dat_catalog.h
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/formats/dat/dat_item_parser.h
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/formats/otb/otb_item_format.h
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/formats/otb/otb_item_parser.h
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/formats/xml/xml_item_parser.h
 
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/floor_visibility_calculator.h
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_renderer.h
@@ -101,9 +117,6 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/outfit_selection_grid.h
 
     ${CMAKE_CURRENT_LIST_DIR}/io/filehandle.h
-    ${CMAKE_CURRENT_LIST_DIR}/io/loaders/dat_loader.h
-
-    ${CMAKE_CURRENT_LIST_DIR}/io/loaders/spr_loader.h
     ${CMAKE_CURRENT_LIST_DIR}/io/iomap.h
     ${CMAKE_CURRENT_LIST_DIR}/io/iomap_otbm.h
     ${CMAKE_CURRENT_LIST_DIR}/io/map_xml_io.h
@@ -156,8 +169,10 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/editor_sprite.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/game_sprite.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/graphics.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/graphics_assembler.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/image.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/normal_image.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/sprite_archive.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/template_image.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/sprite_preloader.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/light_buffer.h
@@ -203,7 +218,6 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/tile_color_calculator.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/tile_renderer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/io/editor_sprite_loader.h
-    ${CMAKE_CURRENT_LIST_DIR}/rendering/io/game_sprite_loader.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/io/screen_capture.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/io/screenshot_saver.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/map_drawer.h
@@ -333,6 +347,12 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/result_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/tileset_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/welcome_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_button.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_card.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_formatters.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_info_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_list_box.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_types.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/map_statistics_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/live_dialogs.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/menubar_loader.h
@@ -352,9 +372,11 @@ set(rme_H
 
 set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/app/application.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/app/client_asset_detector.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/client_version.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/extension.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/app/preferences/preferences_layout.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences/general_page.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences/editor_page.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences/graphics_page.cpp
@@ -425,14 +447,21 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/game/house.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/item.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/item_attributes.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/game/item_loaders.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/game/items.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/materials.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/spawn.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/town.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/preview_preferences.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/waypoints.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/camera_paths.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/asset_bundle_loader.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_recipe.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_store.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_resolver.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_store_builder.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definitions_loader.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/formats/dat/dat_item_parser.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/formats/otb/otb_item_parser.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/item_definitions/formats/xml/xml_item_parser.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/floor_visibility_calculator.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_renderer.cpp
@@ -448,9 +477,6 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/outfit_selection_grid.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/io/filehandle.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/io/loaders/dat_loader.cpp
-
-    ${CMAKE_CURRENT_LIST_DIR}/io/loaders/spr_loader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/io/iomap.cpp
     ${CMAKE_CURRENT_LIST_DIR}/io/iomap_otbm.cpp
     ${CMAKE_CURRENT_LIST_DIR}/io/map_xml_io.cpp
@@ -499,8 +525,10 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/editor_sprite.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/game_sprite.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/graphics.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/graphics_assembler.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/image.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/normal_image.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/sprite_archive.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/template_image.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/sprite_preloader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/light_buffer.cpp
@@ -542,7 +570,6 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/tile_color_calculator.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/tile_renderer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/io/editor_sprite_loader.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/rendering/io/game_sprite_loader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/io/screen_capture.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/io/screenshot_saver.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/map_drawer.cpp
@@ -673,6 +700,11 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/tileset_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/theme.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/welcome_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_button.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_card.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_formatters.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_info_panel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_list_box.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/map_statistics_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/live_dialogs.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/menubar_loader.cpp
@@ -689,3 +721,4 @@ set(rme_SRC
 if(WIN32)
 	set(rme_SRC ${rme_SRC} ${CMAKE_CURRENT_LIST_DIR}/Editor.rc)
 endif()
+

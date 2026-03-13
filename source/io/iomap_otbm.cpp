@@ -42,6 +42,7 @@
 #include "game/complexitem.h"
 #include "game/town.h"
 #include "brushes/wall/wall_brush.h"
+#include "item_definitions/core/item_definition_store.h"
 
 #include "io/iomap_otbm.h"
 #include "io/map_xml_io.h"
@@ -138,6 +139,31 @@ bool IOMapOTBM::getVersionInfo(const FileName& filename, MapVersion& out_ver) {
 
 bool IOMapOTBM::getVersionInfo(NodeFileReadHandle* f, MapVersion& out_ver) {
 	return HeaderSerializationOTBM::getVersionInfo(*f, out_ver);
+}
+
+bool IOMapOTBM::peekStartupInfo(const FileName& identifier, OTBMStartupPeekResult& out_info) {
+	out_info = {};
+	out_info.map_name = identifier.GetName();
+
+	wxDateTime modified_time;
+	if (identifier.GetTimes(nullptr, &modified_time, nullptr)) {
+		out_info.modified_time = modified_time;
+	}
+
+	DiskNodeFileReadHandle handle(nstr(identifier.GetFullPath()), StringVector(1, "OTBM"));
+	if (!handle.isOk()) {
+		out_info.has_error = true;
+		out_info.error_message = wxstr(handle.getErrorMessage());
+		return false;
+	}
+
+	if (!HeaderSerializationOTBM::peekStartupInfo(handle, out_info)) {
+		out_info.has_error = true;
+		out_info.error_message = "Could not read the OTBM header.";
+		return false;
+	}
+
+	return true;
 }
 
 bool IOMapOTBM::loadMapFromDisk(Map& map, const FileName& filename) {
@@ -443,8 +469,8 @@ bool IOMapOTBM::saveMap(Map& map, NodeFileWriteHandle& f) {
 		f.addU32(mapVersion.otbm);
 		f.addU16(map.width);
 		f.addU16(map.height);
-		f.addU32(g_items.MajorVersion);
-		f.addU32(g_items.MinorVersion);
+		f.addU32(g_item_definitions.MajorVersion);
+		f.addU32(g_item_definitions.MinorVersion);
 
 		f.addNode(OTBM_MAP_DATA);
 		{

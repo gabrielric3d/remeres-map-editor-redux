@@ -16,6 +16,8 @@
 #include "brushes/managers/brush_manager.h"
 #include "ui/managers/loading_manager.h"
 #include "ui/tool_options_window.h"
+#include "item_definitions/core/asset_bundle_loader.h"
+#include "item_definitions/core/item_definition_store.h"
 
 VersionManager g_version;
 
@@ -84,7 +86,6 @@ const ClientVersion& VersionManager::GetCurrentVersion() const {
 
 bool VersionManager::LoadDataFiles(wxString& error, std::vector<std::string>& warnings) {
 	FileName data_path = getLoadedVersion()->getDataPath();
-	FileName client_path = getLoadedVersion()->getClientPath();
 	FileName extension_path = FileSystem::GetExtensionsDirectory();
 
 	g_gui.gfx.client_version = getLoadedVersion();
@@ -92,41 +93,38 @@ bool VersionManager::LoadDataFiles(wxString& error, std::vector<std::string>& wa
 	// OTFI loading removed. Metadata and sprite files are configured via clients.toml or defaults in ClientVersion.
 
 	g_loading.CreateLoadBar("Loading asset files");
-	g_loading.SetLoadDone(0, "Loading metadata file...");
+	g_loading.SetLoadDone(0, "Loading canonical asset bundle...");
 
 	wxFileName metadata_path = getLoadedVersion()->getMetadataPath();
-	if (!g_gui.gfx.loadSpriteMetadata(metadata_path, error, warnings)) {
-		error = "Couldn't load metadata: " + error;
-		g_loading.DestroyLoadBar();
-		UnloadVersion();
-		return false;
-	}
-
-	g_loading.SetLoadDone(10, "Loading sprites file...");
-
 	wxFileName sprites_path = getLoadedVersion()->getSpritesPath();
-	if (!g_gui.gfx.loadSpriteData(sprites_path, error, warnings)) {
-		error = "Couldn't load sprites: " + error;
-		g_loading.DestroyLoadBar();
-		UnloadVersion();
-		return false;
-	}
-
-	g_loading.SetLoadDone(20, "Loading items.otb file...");
 	wxString base_data_path = data_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
-	if (!g_items.loadFromOtb(base_data_path + "items.otb", error, warnings)) {
-		error = "Couldn't load items.otb: " + error;
+
+	AssetLoadRequest asset_request;
+	asset_request.mode = getLoadedVersion()->getItemDefinitionMode();
+	asset_request.client_version = getLoadedVersion();
+	asset_request.dat_path = metadata_path;
+	asset_request.spr_path = sprites_path;
+	asset_request.otb_path = wxFileName(base_data_path + "items.otb");
+	asset_request.xml_path = wxFileName(base_data_path + "items.xml");
+
+	AssetBundle bundle;
+	AssetBundleLoader bundle_loader;
+	if (!bundle_loader.load(asset_request, bundle, error, warnings)) {
+		error = "Couldn't load canonical asset bundle: " + error;
 		g_loading.DestroyLoadBar();
 		UnloadVersion();
 		return false;
 	}
 
-	g_loading.SetLoadDone(30, "Loading items.xml ...");
-	if (!g_items.loadFromGameXml(base_data_path + "items.xml", error, warnings)) {
-		warnings.push_back(std::format("Couldn't load items.xml: {}", error.ToStdString()));
+	g_loading.SetLoadDone(20, "Installing graphics...");
+	if (!bundle_loader.install(bundle, g_gui.gfx, g_item_definitions, error, warnings)) {
+		error = "Couldn't install canonical asset bundle: " + error;
+		g_loading.DestroyLoadBar();
+		UnloadVersion();
+		return false;
 	}
 
-	g_loading.SetLoadDone(45, "Loading creatures.xml ...");
+	g_loading.SetLoadDone(35, "Loading creatures.xml ...");
 	if (!g_creatures.loadFromXML(base_data_path + "creatures.xml", true, error, warnings)) {
 		warnings.push_back(std::format("Couldn't load creatures.xml: {}", error.ToStdString()));
 	}
@@ -178,7 +176,7 @@ void VersionManager::UnloadVersion() {
 	if (!loaded_version.empty()) {
 		g_materials.clear();
 		g_brushes.clear();
-		g_items.clear();
+		g_item_definitions.clear();
 		g_gui.gfx.clear();
 
 		// FileName cdb = getLoadedVersion()->getLocalDataPath();
