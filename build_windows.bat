@@ -371,7 +371,7 @@ echo [1/3] Configuring CMake with !VS_GENERATOR!... >> "%LOG_FILE%"
 
 if not exist "!BUILD_DIR!" mkdir "!BUILD_DIR!"
 
-cmake -S "!PROJECT_ROOT!" -B "!BUILD_DIR!" -G "!VS_GENERATOR!" -A x64 "-DCMAKE_TOOLCHAIN_FILE=!VCPKG_DIR!\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=x64-windows" >> "%LOG_FILE%" 2>&1
+cmake -S "!PROJECT_ROOT!" -B "!BUILD_DIR!" -G "!VS_GENERATOR!" -A x64 "-DCMAKE_TOOLCHAIN_FILE=!VCPKG_DIR!\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=x64-windows" 2>&1 | powershell -Command "$input | Tee-Object -Append -FilePath '!LOG_FILE!'"
 
 if !ERRORLEVEL! neq 0 (
     echo.
@@ -397,7 +397,7 @@ REM ==========================================================
 echo %BOLD%[Build 2/3]%RESET% Building Release...
 echo [2/3] Building Release... >> "%LOG_FILE%"
 
-cmake --build "!BUILD_DIR!" --config Release --target rme --parallel >> "%LOG_FILE%" 2>&1
+cmake --build "!BUILD_DIR!" --config Release --target rme --parallel 14 2>&1 | powershell -Command "$input | Tee-Object -Append -FilePath '!LOG_FILE!'"
 
 if !ERRORLEVEL! neq 0 (
     echo.
