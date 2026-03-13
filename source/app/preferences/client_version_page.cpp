@@ -315,6 +315,7 @@ int ClientVersionPage::GetMajorGroup(const ClientVersion& version) const {
 
 void ClientVersionPage::PopulateClientTree() {
 	ClientVersion* preferred_selection = active_client;
+	client_tree_ctrl->Freeze();
 	client_tree_ctrl->DeleteAllItems();
 	auto root = client_tree_ctrl->AddRoot("Clients");
 
@@ -374,6 +375,7 @@ void ClientVersionPage::PopulateClientTree() {
 		client_tree_ctrl->UnselectAll();
 	}
 	ignore_tree_selection = false;
+	client_tree_ctrl->Thaw();
 }
 
 void ClientVersionPage::SelectClient(ClientVersion* version) {
@@ -469,6 +471,12 @@ void ClientVersionPage::RefreshClientEditor() {
 	metadata_property->SetHelpString("File name of the DAT metadata file inside the client path.");
 	auto* sprites_property = client_prop_grid->Append(new wxStringProperty("Sprites File (.spr)", "spritesFile", wxstr(active_client->getSpritesFile())));
 	sprites_property->SetHelpString("File name of the SPR sprite archive inside the client path.");
+	auto* otb_property = client_prop_grid->Append(new wxFileProperty("Items File (.otb)", "otbFile", wxstr(active_client->getOtbFile())));
+	otb_property->SetAttribute(wxPG_FILE_WILDCARD, "OTB Files (*.otb)|*.otb|All Files (*.*)|*.*");
+	otb_property->SetAttribute(wxPG_DIALOG_TITLE, "Select items.otb");
+	otb_property->SetAttribute(wxPG_FILE_SHOW_FULL_PATH, true);
+	otb_property->SetAttribute(wxPG_FILE_INITIAL_PATH, active_client->getDataPath().GetFullPath());
+	otb_property->SetHelpString("Path to the OTB item definitions file.");
 
 	client_prop_grid->Append(new wxPropertyCategory("Compatibility"));
 	auto* otb_id_property = client_prop_grid->Append(new wxIntProperty("OTB ID", "otbId", active_client->getOtbId()));
@@ -712,6 +720,7 @@ void ClientVersionPage::SyncClientPropertiesToGrid(const ClientVersion& client) 
 	UpdateGridProperty(client_prop_grid, "dataDirectory", wxstr(client.getDataDirectory()));
 	UpdateGridProperty(client_prop_grid, "metadataFile", wxstr(client.getMetadataFile()));
 	UpdateGridProperty(client_prop_grid, "spritesFile", wxstr(client.getSpritesFile()));
+	UpdateGridProperty(client_prop_grid, "otbFile", wxstr(client.getOtbFile()));
 	UpdateGridProperty(client_prop_grid, "otbId", static_cast<long>(client.getOtbId()));
 	UpdateGridProperty(client_prop_grid, "otbMajor", static_cast<long>(client.getOtbMajor()));
 
@@ -925,6 +934,8 @@ void ClientVersionPage::OnPropertyChanged(wxPropertyGridEvent& event) {
 		client->setMetadataFile(nstr(value.As<wxString>()));
 	} else if (prop_name == "spritesFile") {
 		client->setSpritesFile(nstr(value.As<wxString>()));
+	} else if (prop_name == "otbFile") {
+		client->setOtbFile(nstr(value.As<wxString>()));
 	} else if (prop_name == "otbId") {
 		client->setOtbId(value.As<int>());
 	} else if (prop_name == "otbMajor") {

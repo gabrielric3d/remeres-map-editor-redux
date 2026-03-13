@@ -104,7 +104,16 @@ bool VersionManager::LoadDataFiles(wxString& error, std::vector<std::string>& wa
 	asset_request.client_version = getLoadedVersion();
 	asset_request.dat_path = metadata_path;
 	asset_request.spr_path = sprites_path;
-	asset_request.otb_path = wxFileName(base_data_path + "items.otb");
+	std::string otb_file = getLoadedVersion()->getOtbFile();
+	if (otb_file.empty()) {
+		otb_file = "items.otb";
+	}
+	wxFileName otb_path(otb_file);
+	if (otb_path.IsAbsolute()) {
+		asset_request.otb_path = otb_path;
+	} else {
+		asset_request.otb_path = wxFileName(base_data_path + wxString(otb_file));
+	}
 	asset_request.xml_path = wxFileName(base_data_path + "items.xml");
 
 	AssetBundle bundle;

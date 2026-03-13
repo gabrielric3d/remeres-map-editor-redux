@@ -318,6 +318,13 @@ public:
 		sprites_file = v;
 	}
 
+	std::string getOtbFile() const {
+		return otb_file;
+	}
+	void setOtbFile(const std::string& v) {
+		otb_file = v;
+	}
+
 	uint32_t getVersion() const {
 		return version;
 	}
@@ -452,6 +459,7 @@ private:
 		ItemDefinitionMode item_definition_mode;
 		std::string metadata_file;
 		std::string sprites_file;
+		std::string otb_file;
 		bool is_transparent;
 		bool is_extended;
 		bool has_frame_durations;
@@ -477,6 +485,7 @@ private:
 
 	std::string metadata_file;
 	std::string sprites_file;
+	std::string otb_file;
 
 	std::vector<MapVersionID> map_versions_supported;
 	MapVersionID preferred_map_version;

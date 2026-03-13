@@ -197,6 +197,7 @@ void ClientVersion::loadVersionsFromTOML(const std::string& configName) {
 
 			cv_ptr->metadata_file = client["metadataFile"].value_or("Tibia.dat");
 			cv_ptr->sprites_file = client["spritesFile"].value_or("Tibia.spr");
+			cv_ptr->otb_file = client["otbFile"].value_or("items.otb");
 
 			cv_ptr->is_transparent = client["transparency"].value_or(version >= 1010);
 			cv_ptr->is_extended = client["extended"].value_or(version >= 860);
@@ -286,6 +287,7 @@ bool ClientVersion::saveVersions() {
 		db_obj.insert_or_assign("configType", toString(version->item_definition_mode));
 		db_obj.insert_or_assign("metadataFile", version->metadata_file);
 		db_obj.insert_or_assign("spritesFile", version->sprites_file);
+		db_obj.insert_or_assign("otbFile", version->otb_file);
 		db_obj.insert_or_assign("transparency", version->is_transparent);
 		db_obj.insert_or_assign("extended", version->is_extended);
 		db_obj.insert_or_assign("frameDurations", version->has_frame_durations);
@@ -628,6 +630,7 @@ void ClientVersion::backup() {
 	backup_data.item_definition_mode = item_definition_mode;
 	backup_data.metadata_file = metadata_file;
 	backup_data.sprites_file = sprites_file;
+	backup_data.otb_file = otb_file;
 	backup_data.is_transparent = is_transparent;
 	backup_data.is_extended = is_extended;
 	backup_data.has_frame_durations = has_frame_durations;
@@ -648,6 +651,7 @@ void ClientVersion::restore() {
 	item_definition_mode = backup_data.item_definition_mode;
 	metadata_file = backup_data.metadata_file;
 	sprites_file = backup_data.sprites_file;
+	otb_file = backup_data.otb_file;
 	is_transparent = backup_data.is_transparent;
 	is_extended = backup_data.is_extended;
 	has_frame_durations = backup_data.has_frame_durations;
@@ -671,6 +675,7 @@ std::unique_ptr<ClientVersion> ClientVersion::clone() const {
 	new_cv->has_frame_groups = has_frame_groups;
 	new_cv->metadata_file = metadata_file;
 	new_cv->sprites_file = sprites_file;
+	new_cv->otb_file = otb_file;
 	new_cv->map_versions_supported = map_versions_supported;
 	new_cv->preferred_map_version = preferred_map_version;
 	new_cv->data_versions = data_versions;
