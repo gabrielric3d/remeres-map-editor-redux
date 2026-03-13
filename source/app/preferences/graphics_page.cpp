@@ -76,6 +76,12 @@ GraphicsPage::GraphicsPage(wxWindow* parent) : ScrollablePreferencesPage(parent)
 		"Cursor",
 		"Customize the map cursor colors used for drawing, houses, flags, and similar overlays."
 	);
+	cursor_highlight_chkbox = PreferencesLayout::AddCheckBoxRow(
+		cursor_section,
+		"Show hovered tile highlight",
+		"Draws a white square on the map tile currently under the mouse cursor.",
+		g_settings.getBoolean(Config::SHOW_CURSOR_HIGHLIGHT)
+	);
 	cursor_color_pick = new wxColourPickerCtrl(
 		cursor_section,
 		wxID_ANY,
@@ -220,6 +226,8 @@ void GraphicsPage::Apply() {
 	} else if (new_format == "BMP") {
 		g_settings.setString(Config::SCREENSHOT_FORMAT, "bmp");
 	}
+
+	g_settings.setInteger(Config::SHOW_CURSOR_HIGHLIGHT, cursor_highlight_chkbox->GetValue());
 
 	auto cursor_color = cursor_color_pick->GetColour();
 	g_settings.setInteger(Config::CURSOR_RED, cursor_color.Red());

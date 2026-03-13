@@ -21,6 +21,7 @@ void DrawingOptions::SetDefault() {
 	lasso_selection = false;
 
 	show_grid = 0;
+	show_cursor_highlight = true;
 	show_all_floors = true;
 	show_creatures = true;
 	show_creature_names = true;
@@ -64,6 +65,7 @@ void DrawingOptions::SetIngame() {
 	lasso_selection = false;
 
 	show_grid = 0;
+	show_cursor_highlight = false;
 	show_all_floors = true;
 	show_creatures = true;
 	show_creature_names = true;
@@ -98,6 +100,7 @@ void DrawingOptions::Update() {
 	show_tech_items = g_settings.getBoolean(Config::SHOW_TECHNICAL_ITEMS);
 	show_waypoints = g_settings.getBoolean(Config::SHOW_WAYPOINTS);
 	show_grid = g_settings.getInteger(Config::SHOW_GRID);
+	show_cursor_highlight = g_settings.getBoolean(Config::SHOW_CURSOR_HIGHLIGHT);
 	ingame = !g_settings.getBoolean(Config::SHOW_EXTRA);
 	show_all_floors = g_settings.getBoolean(Config::SHOW_ALL_FLOORS);
 	show_creatures = g_settings.getBoolean(Config::SHOW_CREATURES);

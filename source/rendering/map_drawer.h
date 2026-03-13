@@ -126,6 +126,7 @@ public:
 	void DrawIngameBox(const ViewBounds& bounds);
 
 	void DrawGrid(const ViewBounds& bounds);
+	void DrawCursorTile();
 	void DrawTooltips(NVGcontext* vg);
 	void DrawHookIndicators(NVGcontext* vg);
 	void DrawDoorIndicators(NVGcontext* vg);

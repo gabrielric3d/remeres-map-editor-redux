@@ -365,6 +365,8 @@ void MapDrawer::Draw() {
 		DrawIngameBox(original_bounds);
 	}
 
+	DrawCursorTile();
+
 	// Draw selection overlay (bounding box or lasso)
 	if (options.boundbox_selection && !options.ingame) {
 		if (options.lasso_selection) {
@@ -418,6 +420,10 @@ void MapDrawer::DrawIngameBox(const ViewBounds& bounds) {
 
 void MapDrawer::DrawGrid(const ViewBounds& bounds) {
 	grid_drawer->DrawGrid(*sprite_batch, view, options, bounds);
+}
+
+void MapDrawer::DrawCursorTile() {
+	grid_drawer->DrawCursorTile(*sprite_batch, view, options, view.mouse_map_x, view.mouse_map_y, canvas->floor);
 }
 
 void MapDrawer::DrawTooltips(NVGcontext* vg) {

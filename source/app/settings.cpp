@@ -242,6 +242,7 @@ void Settings::IO(IOMode mode) {
 	Bool(SHOW_TECHNICAL_ITEMS, true);
 	Bool(SHOW_WAYPOINTS, true);
 	Bool(SHOW_GRID, false);
+	Bool(SHOW_CURSOR_HIGHLIGHT, true);
 	Bool(SHOW_EXTRA, true);
 	Bool(SHOW_SHADE, true);
 	Bool(SHOW_SPECIAL_TILES, true);

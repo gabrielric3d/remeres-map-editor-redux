@@ -30,6 +30,7 @@ struct DrawingOptions {
 	std::optional<MapBounds> transient_selection_bounds;
 
 	int show_grid;
+	bool show_cursor_highlight;
 	bool show_all_floors;
 	bool show_creatures;
 	bool show_creature_names;

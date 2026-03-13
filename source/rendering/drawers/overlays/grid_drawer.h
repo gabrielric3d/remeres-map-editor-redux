@@ -12,6 +12,7 @@ class GridDrawer {
 public:
 	void DrawGrid(SpriteBatch& sprite_batch, const RenderView& view, const DrawingOptions& options, const ViewBounds& bounds);
 	void DrawIngameBox(SpriteBatch& sprite_batch, const RenderView& view, const DrawingOptions& options, const ViewBounds& bounds);
+	void DrawCursorTile(SpriteBatch& sprite_batch, const RenderView& view, const DrawingOptions& options, int mouse_map_x, int mouse_map_y, int floor);
 	void DrawNodeLoadingPlaceholder(SpriteBatch& sprite_batch, int nd_map_x, int nd_map_y, const RenderView& view);
 
 private:

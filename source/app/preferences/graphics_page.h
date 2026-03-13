@@ -24,6 +24,7 @@ private:
 	wxChoice* icon_background_choice = nullptr;
 	wxChoice* screenshot_format_choice = nullptr;
 
+	wxCheckBox* cursor_highlight_chkbox = nullptr;
 	wxColourPickerCtrl* cursor_color_pick = nullptr;
 	wxColourPickerCtrl* cursor_alt_color_pick = nullptr;
 

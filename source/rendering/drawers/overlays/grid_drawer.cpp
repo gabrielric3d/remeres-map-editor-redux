@@ -13,7 +13,7 @@ void GridDrawer::DrawGrid(SpriteBatch& sprite_batch, const RenderView& view, con
 		return;
 	}
 
-	glm::vec4 color(0.0f, 0.0f, 0.0f, 0.50f); // Subtle dark overlay
+	glm::vec4 color(1.0f, 1.0f, 1.0f, 0.50f); // White semi-transparent overlay
 
 	// Use zoom as line thickness so lines are always ~1 screen pixel
 	const float line_thickness = view.zoom;
@@ -104,6 +104,21 @@ void GridDrawer::DrawIngameBox(SpriteBatch& sprite_batch, const RenderView& view
 	box_end_x = box_start_x + TILE_SIZE;
 	box_end_y = box_start_y + TILE_SIZE;
 	drawRect(sprite_batch, box_start_x, box_start_y, box_end_x - box_start_x, box_end_y - box_start_y, *wxGREEN);
+}
+
+void GridDrawer::DrawCursorTile(SpriteBatch& sprite_batch, const RenderView& view, const DrawingOptions& options, int mouse_map_x, int mouse_map_y, int floor) {
+	if (!options.show_cursor_highlight) {
+		return;
+	}
+
+	if (mouse_map_x < 0 || mouse_map_y < 0) {
+		return;
+	}
+
+	int x = mouse_map_x * TILE_SIZE - view.view_scroll_x - view.getFloorAdjustment();
+	int y = mouse_map_y * TILE_SIZE - view.view_scroll_y - view.getFloorAdjustment();
+
+	drawRect(sprite_batch, x, y, TILE_SIZE, TILE_SIZE, *wxWHITE);
 }
 
 void GridDrawer::DrawNodeLoadingPlaceholder(SpriteBatch& sprite_batch, int nd_map_x, int nd_map_y, const RenderView& view) {
