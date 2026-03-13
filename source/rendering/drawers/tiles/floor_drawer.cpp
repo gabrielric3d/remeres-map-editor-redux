@@ -58,6 +58,8 @@ void FloorDrawer::draw(SpriteBatch& sprite_batch, ItemDrawer* item_drawer, Sprit
 					}
 					if (view.zoom <= 10.0 || !options.hide_items_when_zoomed) {
 						for (const auto& item : tile->items) {
+							if (options.show_only_grounds && !item->isBorder() && !item->isOptionalBorder())
+								continue;
 							BlitItemParams params(tile, item.get(), options);
 							params.alpha = 96;
 							item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, params);

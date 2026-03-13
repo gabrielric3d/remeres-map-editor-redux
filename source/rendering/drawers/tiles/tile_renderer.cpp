@@ -293,6 +293,10 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 
 			// items on tile
 			for (const auto& item : tile->items) {
+				// Skip non-ground items when show_only_grounds is enabled
+				if (options.show_only_grounds && !item->isBorder() && !item->isOptionalBorder())
+					continue;
+
 				if (light_buffer && item->hasLight()) {
 					light_buffer->AddLight(position.x, position.y, position.z, item->getLight());
 				}

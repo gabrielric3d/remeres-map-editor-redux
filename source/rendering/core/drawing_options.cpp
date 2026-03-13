@@ -38,6 +38,7 @@ void DrawingOptions::SetDefault() {
 	show_as_minimap = false;
 	show_only_colors = false;
 	show_only_modified = false;
+	show_only_grounds = false;
 	show_preview = false;
 	show_hooks = false;
 	show_camera_paths = true;
@@ -82,6 +83,7 @@ void DrawingOptions::SetIngame() {
 	show_as_minimap = false;
 	show_only_colors = false;
 	show_only_modified = false;
+	show_only_grounds = false;
 	show_preview = false;
 	show_hooks = false;
 	show_camera_paths = false;
@@ -117,6 +119,7 @@ void DrawingOptions::Update() {
 	show_as_minimap = g_settings.getBoolean(Config::SHOW_AS_MINIMAP);
 	show_only_colors = g_settings.getBoolean(Config::SHOW_ONLY_TILEFLAGS);
 	show_only_modified = g_settings.getBoolean(Config::SHOW_ONLY_MODIFIED_TILES);
+	show_only_grounds = g_settings.getBoolean(Config::SHOW_ONLY_GROUNDS);
 	show_preview = g_settings.getBoolean(Config::SHOW_PREVIEW);
 	show_hooks = g_settings.getBoolean(Config::SHOW_WALL_HOOKS);
 	hide_items_when_zoomed = g_settings.getBoolean(Config::HIDE_ITEMS_WHEN_ZOOMED);

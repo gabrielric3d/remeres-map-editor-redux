@@ -32,6 +32,7 @@
 #include "brushes/table/table_brush.h"
 #include "game/town.h"
 #include "map/map.h"
+#include "app/settings.h"
 
 #include <ranges>
 #include <algorithm>
@@ -194,8 +195,20 @@ int Tile::getIndexOf(Item* item) const {
 }
 
 Item* Tile::getTopItem() const {
-	if (!items.empty() && !items.back()->isMetaItem()) {
-		return items.back().get();
+	bool only_grounds = g_settings.getBoolean(Config::SHOW_ONLY_GROUNDS);
+
+	if (!items.empty()) {
+		// Iterate from top to bottom to find the topmost visible item
+		for (auto it = items.rbegin(); it != items.rend(); ++it) {
+			Item* item = it->get();
+			if (item->isMetaItem()) {
+				continue;
+			}
+			if (only_grounds && !item->isBorder() && !item->isOptionalBorder()) {
+				continue;
+			}
+			return item;
+		}
 	}
 	if (ground && !ground->isMetaItem()) {
 		return ground.get();

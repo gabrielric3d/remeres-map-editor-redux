@@ -256,6 +256,7 @@ void Settings::IO(IOMode mode) {
 	Bool(SHOW_TOOLTIPS, true);
 	Bool(SHOW_ONLY_TILEFLAGS, false);
 	Bool(SHOW_ONLY_MODIFIED_TILES, false);
+	Bool(SHOW_ONLY_GROUNDS, false);
 	Bool(SHOW_PREVIEW, true);
 	Bool(SHOW_AUTOBORDER_PREVIEW, true);
 	Bool(SHOW_WALL_HOOKS, false);

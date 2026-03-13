@@ -13,6 +13,7 @@
 #include "game/creature.h"
 #include "brushes/ground/ground_brush.h"
 #include "brushes/wall/wall_brush.h"
+#include "app/settings.h"
 #include "brushes/table/table_brush.h"
 #include "brushes/carpet/carpet_brush.h"
 #include "item_definitions/core/item_definition_store.h"
@@ -230,14 +231,22 @@ namespace TileOperations {
 		if (tile->ground) {
 			tile->ground->select();
 		}
-		if (tile->spawn) {
-			tile->spawn->select();
-		}
-		if (tile->creature) {
-			tile->creature->select();
+
+		bool only_grounds = g_settings.getBoolean(Config::SHOW_ONLY_GROUNDS);
+
+		if (!only_grounds) {
+			if (tile->spawn) {
+				tile->spawn->select();
+			}
+			if (tile->creature) {
+				tile->creature->select();
+			}
 		}
 
-		std::ranges::for_each(tile->items, [](const auto& i) {
+		std::ranges::for_each(tile->items, [only_grounds](const auto& i) {
+			if (only_grounds && !i->isBorder() && !i->isOptionalBorder()) {
+				return;
+			}
 			i->select();
 		});
 

@@ -48,6 +48,7 @@ struct DrawingOptions {
 	bool show_as_minimap;
 	bool show_only_colors;
 	bool show_only_modified;
+	bool show_only_grounds;
 	bool show_preview;
 	bool show_hooks;
 	bool hide_items_when_zoomed;
