@@ -222,6 +222,34 @@ Brush* Brushes::getBrush(std::string_view name) const {
 	return nullptr;
 }
 
+const AutoBorder* Brushes::findAutoBorderByBorderItem(uint16_t itemId, BorderType alignmentHint) const {
+	if (itemId == 0) {
+		return nullptr;
+	}
+
+	const int hint = static_cast<int>(alignmentHint);
+	if (hint >= 1 && hint <= 12) {
+		for (const auto& [id, border] : borders) {
+			if (border && border->tiles[hint] == itemId) {
+				return border.get();
+			}
+		}
+	}
+
+	for (const auto& [id, border] : borders) {
+		if (!border) {
+			continue;
+		}
+		for (int i = 1; i <= 12; ++i) {
+			if (border->tiles[i] == itemId) {
+				return border.get();
+			}
+		}
+	}
+
+	return nullptr;
+}
+
 // Brush
 uint32_t Brush::id_counter = 0;
 Brush::Brush() :

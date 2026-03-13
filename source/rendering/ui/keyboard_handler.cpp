@@ -25,8 +25,14 @@
 #include "editor/hotkey_manager.h"
 #include "editor/editor.h"
 #include "brushes/brush.h"
+#include "ui/dialogs/structure_manager_window.h"
 
 void KeyboardHandler::OnKeyDown(MapCanvas* canvas, wxKeyEvent& event) {
+	// Structure Manager global hotkeys take priority (Z for rotate, Ctrl+Shift+S for save, etc.)
+	if (StructureManagerDialog::HandleGlobalHotkey(event)) {
+		return;
+	}
+
 	switch (event.GetKeyCode()) {
 		case WXK_NUMPAD_ADD:
 		case WXK_PAGEUP:

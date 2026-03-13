@@ -15,46 +15,24 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#ifndef RME_COPYBUFFER_H_
-#define RME_COPYBUFFER_H_
+#ifndef RME_HOTKEY_UTILS_H_
+#define RME_HOTKEY_UTILS_H_
 
-#include <wx/dataobj.h>
-#include <memory>
+#include <string>
+#include <wx/event.h>
 
-#include "map/position.h"
-#include "map/basemap.h"
-
-class Editor;
-
-class CopyBuffer {
-public:
-	CopyBuffer();
-	virtual ~CopyBuffer();
-
-	// In-editor implantation
-	void copy(Editor& editor, int floor);
-	void cut(Editor& editor, int floor);
-	void paste(Editor& editor, const Position& toPosition);
-	bool canPaste() const;
-	// Returns the upper-left corner of the copybuffer
-	Position getPosition() const;
-
-	// Rotate the copybuffer (clockwise), expressed in 90-degree steps.
-	// quarterTurns: 1 = 90 CW, 2 = 180, 3 = 90 CCW (-1), etc.
-	void rotate(int quarterTurns);
-
-	// Clears the copybuffer (eg. resets it)
-	void clear();
-
-	size_t GetTileCount();
-
-	BaseMap& getBufferMap();
-
-private:
-	Position copyPos;
-	std::unique_ptr<BaseMap> tiles;
-
-	friend class CopyOperations;
+struct HotkeyData {
+	int flags = 0;   // wxACCEL_CTRL, wxACCEL_SHIFT, wxACCEL_ALT, wxACCEL_CMD
+	int keycode = 0; // WXK_* constants or character codes
 };
+
+// Parse a hotkey string like "Ctrl+Shift+A" into HotkeyData.
+bool ParseHotkeyText(const std::string& text, HotkeyData& out);
+
+// Convert HotkeyData back to a display string like "Ctrl+Shift+A".
+std::string HotkeyToText(const HotkeyData& hotkey);
+
+// Extract HotkeyData from a wxKeyEvent. Returns false for modifier-only keys.
+bool EventToHotkey(const wxKeyEvent& event, HotkeyData& out);
 
 #endif

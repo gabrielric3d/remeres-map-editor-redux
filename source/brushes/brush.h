@@ -89,6 +89,8 @@ public:
 		return brushes;
 	}
 
+	const AutoBorder* findAutoBorderByBorderItem(uint16_t itemId, BorderType alignmentHint = BORDER_NONE) const;
+
 protected:
 	using BorderMap = std::unordered_map<uint32_t, std::unique_ptr<AutoBorder>>;
 	BrushMap brushes;

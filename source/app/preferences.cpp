@@ -39,6 +39,7 @@ PreferencesWindow::PreferencesWindow(wxWindow* parent, bool clientVersionSelecte
 	image_list->Add(IMAGE_MANAGER.GetBitmap(ICON_PEN_TO_SQUARE, wxSize(18, 18)));
 	image_list->Add(IMAGE_MANAGER.GetBitmap(ICON_IMAGE, wxSize(18, 18)));
 	image_list->Add(IMAGE_MANAGER.GetBitmap(ICON_WINDOW_MAXIMIZE, wxSize(18, 18)));
+	image_list->Add(IMAGE_MANAGER.GetBitmap(ICON_KEYBOARD, wxSize(18, 18)));
 	image_list->Add(IMAGE_MANAGER.GetBitmap(ICON_GAMEPAD, wxSize(18, 18)));
 	book->AssignImageList(image_list);
 
@@ -46,14 +47,16 @@ PreferencesWindow::PreferencesWindow(wxWindow* parent, bool clientVersionSelecte
 	editor_page = new EditorPage(book);
 	graphics_page = new GraphicsPage(book);
 	interface_page = new InterfacePage(book);
+	hotkeys_page = new HotkeysPage(book);
 	client_version_page = new ClientVersionPage(book);
 
 	book->AddPage(general_page, "General", false, 0);
 	book->AddPage(editor_page, "Editor", false, 1);
 	book->AddPage(graphics_page, "Graphics", false, 2);
 	book->AddPage(interface_page, "Interface", false, 3);
-	book->AddPage(client_version_page, "Client Version", false, 4);
-	book->SetSelection(clientVersionSelected ? 4 : 0);
+	book->AddPage(hotkeys_page, "Hotkeys", false, 4);
+	book->AddPage(client_version_page, "Client Version", false, 5);
+	book->SetSelection(clientVersionSelected ? 5 : 0);
 
 	if (auto* list_view = book->GetListView()) {
 		list_view->SetMinSize(wxSize(FromDIP(170), -1));
@@ -133,6 +136,7 @@ void PreferencesWindow::Apply() {
 	editor_page->Apply();
 	graphics_page->Apply();
 	interface_page->Apply();
+	hotkeys_page->Apply();
 	client_version_page->Apply();
 
 	g_settings.save();

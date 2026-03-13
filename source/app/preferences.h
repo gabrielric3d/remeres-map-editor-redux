@@ -28,6 +28,7 @@
 #include "app/preferences/general_page.h"
 #include "app/preferences/graphics_page.h"
 #include "app/preferences/interface_page.h"
+#include "app/preferences/hotkeys_page.h"
 
 class PreferencesWindow : public wxDialog {
 public:
@@ -48,6 +49,7 @@ protected:
 	EditorPage* editor_page = nullptr;
 	GraphicsPage* graphics_page = nullptr;
 	InterfacePage* interface_page = nullptr;
+	HotkeysPage* hotkeys_page = nullptr;
 	ClientVersionPage* client_version_page = nullptr;
 };
 

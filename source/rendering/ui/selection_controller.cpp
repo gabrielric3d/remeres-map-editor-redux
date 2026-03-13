@@ -19,6 +19,7 @@
 #include "brushes/creature/creature_brush.h"
 #include "brushes/raw/raw_brush.h"
 #include "ui/dialog_helper.h"
+#include "ui/dialogs/structure_manager_window.h"
 
 namespace {
 	bool IsPointInPolygon(const std::vector<wxPoint>& polygon, double x, double y) {
@@ -116,9 +117,14 @@ void SelectionController::HandleClick(const Position& mouse_map_pos, bool shift_
 			// Paste to the map
 			editor.copybuffer.paste(editor, mouse_map_pos);
 
-			// Start dragging
-			dragging = true;
-			drag_start_pos = mouse_map_pos;
+			if (StructureManagerDialog::IsKeepPasteActive()) {
+				// Re-enter pasting mode immediately
+				g_gui.PreparePaste();
+			} else {
+				// Start dragging
+				dragging = true;
+				drag_start_pos = mouse_map_pos;
+			}
 		} else {
 			boundbox_selection = false;
 			if (shift_down) {

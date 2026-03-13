@@ -51,8 +51,11 @@
 #include "ui/menubar/menubar_action_manager.h"
 #include "ingame_preview/ingame_preview_manager.h"
 #include "ui/dialogs/area_decoration_dialog.h"
+#include "editor/hotkey_utils.h"
+#include "app/settings.h"
 
 #include <wx/chartype.h>
+#include <sstream>
 
 #include "editor/editor.h"
 #include "game/materials.h"
@@ -75,6 +78,13 @@ MainMenuBar::MainMenuBar(MainFrame* frame) :
 	paletteMenuHandler = new PaletteMenuHandler(frame, this);
 
 	MenuBarActionManager::RegisterActions(this, actions);
+
+	// Build reverse lookup by ID
+	for (const auto& [name, action] : actions) {
+		actions_by_id[MenuBar::ActionID(action->id)] = action.get();
+	}
+
+	LoadHotkeyOverrides();
 
 	// Don't use a custom deleter that deletes us back!
 	// MainFrame owns MainMenuBar via std::unique_ptr.
@@ -173,6 +183,82 @@ void MainMenuBar::UpdateFloorMenu() {
 
 bool MainMenuBar::Load(const FileName& path, std::vector<std::string>& warnings, wxString& error) {
 	if (MenuBarLoader::Load(path, menubar, items, actions, recentFilesManager, warnings, error)) {
+		// Build hotkey entries from loaded menu items
+		menu_hotkeys.clear();
+		base_menu_labels.clear();
+
+		for (const auto& [id, menuItemList] : items) {
+			if (menuItemList.empty()) {
+				continue;
+			}
+
+			// Find the action for this ID
+			auto actionIt = actions_by_id.find(id);
+			if (actionIt == actions_by_id.end() || !actionIt->second) {
+				continue;
+			}
+			const MenuBar::Action* act = actionIt->second;
+
+			// Get the first menu item to extract info
+			wxMenuItem* firstItem = menuItemList.front();
+			wxString label = firstItem->GetItemLabel();
+			std::string labelStr = nstr(label);
+
+			// Split label into base name and hotkey (separated by \t)
+			std::string baseName = labelStr;
+			std::string defaultHotkey;
+			size_t tabPos = labelStr.find('\t');
+			if (tabPos != std::string::npos) {
+				baseName = labelStr.substr(0, tabPos);
+				defaultHotkey = labelStr.substr(tabPos + 1);
+			}
+
+			// Store base labels for all items with this ID
+			for (wxMenuItem* item : menuItemList) {
+				std::string itemLabel = nstr(item->GetItemLabel());
+				size_t itemTab = itemLabel.find('\t');
+				if (itemTab != std::string::npos) {
+					base_menu_labels[item] = itemLabel.substr(0, itemTab);
+				} else {
+					base_menu_labels[item] = itemLabel;
+				}
+			}
+
+			// Find menu name by walking up the parent menu
+			std::string menuName;
+			wxMenu* parentMenu = firstItem->GetMenu();
+			if (parentMenu) {
+				// Try to find the top-level menu name
+				for (size_t i = 0; i < menubar->GetMenuCount(); ++i) {
+					if (menubar->GetMenu(i) == parentMenu) {
+						menuName = nstr(menubar->GetMenuLabel(i));
+						break;
+					}
+					// Check submenus
+					for (size_t j = 0; j < menubar->GetMenu(i)->GetMenuItemCount(); ++j) {
+						wxMenuItem* sub = menubar->GetMenu(i)->FindItemByPosition(j);
+						if (sub && sub->GetSubMenu() == parentMenu) {
+							menuName = nstr(menubar->GetMenuLabel(i));
+							break;
+						}
+					}
+					if (!menuName.empty()) break;
+				}
+			}
+
+			MenuHotkeyEntry entry;
+			entry.id = id;
+			entry.menu = menuName;
+			entry.action = act->name;
+			entry.defaultHotkey = defaultHotkey;
+			entry.currentHotkey = ResolveHotkeyValue(id, defaultHotkey);
+			menu_hotkeys[id] = entry;
+		}
+
+		// Apply resolved hotkeys to menu labels and build accelerator table
+		UpdateAllMenuLabels();
+		RefreshAcceleratorTable();
+
 		Update();
 		LoadValues();
 		return true;
@@ -592,4 +678,192 @@ void MainMenuBar::OnCloseLive(wxCommandEvent& event) {
 
 void MainMenuBar::OnAreaDecoration(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.ShowAreaDecorationDialog();
+}
+
+void MainMenuBar::OnStructureManager(wxCommandEvent& WXUNUSED(event)) {
+	g_gui.ShowStructureManagerDialog();
+}
+
+//=============================================================================
+// Hotkey configuration
+
+namespace {
+
+std::string TrimHotkeyString(const std::string& s) {
+	size_t start = 0;
+	while (start < s.size() && std::isspace(static_cast<unsigned char>(s[start]))) ++start;
+	size_t end = s.size();
+	while (end > start && std::isspace(static_cast<unsigned char>(s[end - 1]))) --end;
+	return s.substr(start, end - start);
+}
+
+std::string BuildMenuLabel(const std::string& base, const std::string& hotkey) {
+	if (hotkey.empty()) {
+		return base;
+	}
+	return base + '\t' + hotkey;
+}
+
+} // anonymous namespace
+
+void MainMenuBar::LoadHotkeyOverrides() {
+	const std::string serialized = g_settings.getString(Config::MENU_ACTION_HOTKEYS);
+	std::istringstream stream(serialized);
+	std::string line;
+	while (std::getline(stream, line)) {
+		line = TrimHotkeyString(line);
+		if (line.empty()) {
+			continue;
+		}
+		size_t delimiter = line.find('=');
+		if (delimiter == std::string::npos) {
+			continue;
+		}
+
+		std::string actionName = TrimHotkeyString(line.substr(0, delimiter));
+		std::string hotkey = line.substr(delimiter + 1);
+
+		auto it = actions.find(actionName);
+		if (it == actions.end()) {
+			continue;
+		}
+
+		stored_hotkey_overrides[MenuBar::ActionID(it->second->id)] = hotkey;
+	}
+}
+
+std::string MainMenuBar::ResolveHotkeyValue(MenuBar::ActionID id, const std::string& defaultHotkey) const {
+	auto it = stored_hotkey_overrides.find(id);
+	if (it != stored_hotkey_overrides.end()) {
+		return it->second;
+	}
+	return defaultHotkey;
+}
+
+void MainMenuBar::UpdateMenuItemHotkey(MenuBar::ActionID id) {
+	auto entryIt = menu_hotkeys.find(id);
+	if (entryIt == menu_hotkeys.end()) {
+		return;
+	}
+
+	auto menuItems = items.find(id);
+	if (menuItems == items.end()) {
+		return;
+	}
+
+	const std::string& hotkey = entryIt->second.currentHotkey;
+
+	for (wxMenuItem* item : menuItems->second) {
+		std::string base;
+		auto baseIt = base_menu_labels.find(item);
+		if (baseIt != base_menu_labels.end()) {
+			base = baseIt->second;
+		} else {
+			base = nstr(item->GetItemLabel());
+		}
+		item->SetItemLabel(wxstr(BuildMenuLabel(base, hotkey)));
+	}
+}
+
+void MainMenuBar::UpdateAllMenuLabels() {
+	for (const auto& [id, entry] : menu_hotkeys) {
+		UpdateMenuItemHotkey(id);
+	}
+}
+
+void MainMenuBar::RefreshAcceleratorTable() {
+	std::vector<wxAcceleratorEntry> entries;
+	for (const auto& [id, entry] : menu_hotkeys) {
+		if (entry.currentHotkey.empty()) {
+			continue;
+		}
+
+		HotkeyData parsed;
+		if (!ParseHotkeyText(entry.currentHotkey, parsed)) {
+			continue;
+		}
+
+		entries.emplace_back(parsed.flags, parsed.keycode, MAIN_FRAME_MENU + static_cast<int>(id));
+	}
+
+	if (entries.empty()) {
+		frame->SetAcceleratorTable(wxAcceleratorTable());
+	} else {
+		frame->SetAcceleratorTable(wxAcceleratorTable(static_cast<int>(entries.size()), entries.data()));
+	}
+}
+
+void MainMenuBar::PersistHotkeyOverrides() const {
+	std::ostringstream output;
+	for (const auto& [id, entry] : menu_hotkeys) {
+		if (entry.action.empty()) {
+			continue;
+		}
+		// Only persist non-default values
+		if (entry.currentHotkey == entry.defaultHotkey) {
+			continue;
+		}
+
+		auto actionIt = actions_by_id.find(id);
+		if (actionIt == actions_by_id.end() || !actionIt->second) {
+			continue;
+		}
+
+		output << actionIt->second->name << '=' << entry.currentHotkey << '\n';
+	}
+
+	g_settings.setString(Config::MENU_ACTION_HOTKEYS, output.str());
+}
+
+std::vector<MenuHotkeyEntry> MainMenuBar::GetMenuHotkeys() const {
+	std::vector<MenuHotkeyEntry> entries;
+	entries.reserve(menu_hotkeys.size());
+	for (const auto& [id, entry] : menu_hotkeys) {
+		if (entry.action.empty()) {
+			continue;
+		}
+		entries.push_back(entry);
+	}
+
+	std::sort(entries.begin(), entries.end(), [](const MenuHotkeyEntry& a, const MenuHotkeyEntry& b) {
+		if (a.menu == b.menu) {
+			return a.action < b.action;
+		}
+		return a.menu < b.menu;
+	});
+
+	return entries;
+}
+
+void MainMenuBar::ApplyMenuHotkeys(const std::vector<MenuHotkeyEntry>& entries) {
+	for (const auto& entry : entries) {
+		auto it = menu_hotkeys.find(entry.id);
+		if (it == menu_hotkeys.end()) {
+			continue;
+		}
+		it->second.currentHotkey = entry.currentHotkey;
+	}
+
+	PersistHotkeyOverrides();
+	UpdateAllMenuLabels();
+	RefreshAcceleratorTable();
+}
+
+bool MainMenuBar::MatchesActionHotkey(MenuBar::ActionID id, const wxKeyEvent& event) const {
+	auto it = menu_hotkeys.find(id);
+	if (it == menu_hotkeys.end() || it->second.currentHotkey.empty()) {
+		return false;
+	}
+
+	HotkeyData configured;
+	if (!ParseHotkeyText(it->second.currentHotkey, configured)) {
+		return false;
+	}
+
+	HotkeyData pressed;
+	if (!EventToHotkey(event, pressed)) {
+		return false;
+	}
+
+	return pressed.flags == configured.flags && pressed.keycode == configured.keycode;
 }

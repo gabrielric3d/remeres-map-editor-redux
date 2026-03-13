@@ -58,6 +58,7 @@ class SidebarWindow;
 class ToolOptionsWindow;
 class TilePropertiesPanel;
 class AreaDecorationDialog;
+class StructureManagerDialog;
 
 wxDECLARE_EVENT(EVT_UPDATE_MENUS, wxCommandEvent);
 
@@ -350,9 +351,12 @@ public:
 	ToolOptionsWindow* tool_options;
 	TilePropertiesPanel* tile_properties_panel;
 	AreaDecorationDialog* area_decoration_dialog = nullptr;
+	StructureManagerDialog* structure_manager_dialog = nullptr;
 
 	void ShowAreaDecorationDialog();
 	void DestroyAreaDecorationDialog();
+	void ShowStructureManagerDialog();
+	void DestroyStructureManagerDialog();
 
 	// Rectangle pick mode for area decoration dialog
 	using RectanglePickComplete = std::function<void(const Position&, const Position&)>;

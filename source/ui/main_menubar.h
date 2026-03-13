@@ -170,8 +170,19 @@ namespace MenuBar {
 		EXPERIMENTAL_FOG,
 		AREA_DECORATION,
 		DEPLOY_MAP,
+		STRUCTURE_MANAGER,
 	};
 }
+
+struct HotkeyData;
+
+struct MenuHotkeyEntry {
+	MenuBar::ActionID id;
+	std::string menu;
+	std::string action;
+	std::string defaultHotkey;
+	std::string currentHotkey;
+};
 
 class MainFrame;
 class SearchHandler;
@@ -199,6 +210,11 @@ public:
 	void EnableItem(MenuBar::ActionID id, bool enable);
 	void CheckItem(MenuBar::ActionID id, bool check);
 	bool IsItemChecked(MenuBar::ActionID id) const;
+
+	// Hotkey configuration
+	std::vector<MenuHotkeyEntry> GetMenuHotkeys() const;
+	void ApplyMenuHotkeys(const std::vector<MenuHotkeyEntry>& entries);
+	bool MatchesActionHotkey(MenuBar::ActionID id, const wxKeyEvent& event) const;
 
 	// Handlers
 	void OnNew(wxCommandEvent& event);
@@ -310,6 +326,7 @@ public:
 
 	void OnDebugViewDat(wxCommandEvent& event);
 	void OnAreaDecoration(wxCommandEvent& event);
+	void OnStructureManager(wxCommandEvent& event);
 	void OnDeployMap(wxCommandEvent& event);
 
 	void OnOpenRecent(wxCommandEvent& event);
@@ -326,6 +343,19 @@ protected:
 	std::unordered_map<MenuBar::ActionID, std::list<wxMenuItem*>> items;
 
 	std::unordered_map<std::string, std::unique_ptr<MenuBar::Action>> actions;
+	std::unordered_map<MenuBar::ActionID, MenuBar::Action*> actions_by_id;
+
+	// Hotkey configuration
+	std::unordered_map<MenuBar::ActionID, MenuHotkeyEntry> menu_hotkeys;
+	std::unordered_map<MenuBar::ActionID, std::string> stored_hotkey_overrides;
+	std::unordered_map<wxMenuItem*, std::string> base_menu_labels;
+
+	void LoadHotkeyOverrides();
+	std::string ResolveHotkeyValue(MenuBar::ActionID id, const std::string& defaultHotkey) const;
+	void UpdateMenuItemHotkey(MenuBar::ActionID id);
+	void UpdateAllMenuLabels();
+	void RefreshAcceleratorTable();
+	void PersistHotkeyOverrides() const;
 
 	SearchHandler* searchHandler;
 	ViewSettingsHandler* viewSettingsHandler;

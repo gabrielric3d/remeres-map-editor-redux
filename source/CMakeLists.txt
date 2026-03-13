@@ -12,6 +12,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences/editor_page.h
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences/graphics_page.h
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences/interface_page.h
+    ${CMAKE_CURRENT_LIST_DIR}/app/preferences/hotkeys_page.h
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences/client_version_page.h
     ${CMAKE_CURRENT_LIST_DIR}/app/rme_forward_declarations.h
     ${CMAKE_CURRENT_LIST_DIR}/app/settings.h
@@ -57,6 +58,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/editor/copybuffer.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/dirty_list.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/hotkey_manager.h
+    ${CMAKE_CURRENT_LIST_DIR}/editor/hotkey_utils.h
     ${CMAKE_CURRENT_LIST_DIR}/util/file_system.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/editor_factory.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/operations/copy_operations.h
@@ -110,6 +112,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_manager.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/area_decoration.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/structure_manager_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_rule_from_selection_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/cluster_preview_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/outfit_chooser_dialog.h
@@ -381,12 +384,14 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences/editor_page.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences/graphics_page.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences/interface_page.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/app/preferences/hotkeys_page.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/preferences/client_version_page.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/settings.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/updater.cpp
     ${CMAKE_CURRENT_LIST_DIR}/app/managers/version_manager.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/editor/hotkey_manager.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/editor/hotkey_utils.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/brush.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/brush_utility.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/door/door_brush.cpp
@@ -470,6 +475,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_manager.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/area_decoration.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/structure_manager_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_rule_from_selection_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/cluster_preview_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/outfit_chooser_dialog.cpp

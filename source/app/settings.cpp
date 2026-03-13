@@ -395,6 +395,7 @@ void Settings::IO(IOMode mode) {
 	Int(THEME, 0);
 
 	section("Hotkeys");
+	String(MENU_ACTION_HOTKEYS, "");
 	String(NUMERICAL_HOTKEYS, "");
 	String(HOTKEY_0, "");
 	String(HOTKEY_1, "");

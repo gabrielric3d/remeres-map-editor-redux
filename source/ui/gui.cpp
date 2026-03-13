@@ -50,6 +50,7 @@
 #include "ui/welcome_dialog.h"
 #include "ui/tool_options_window.h"
 #include "ui/dialogs/area_decoration_dialog.h"
+#include "ui/dialogs/structure_manager_window.h"
 
 #include "live/live_client.h"
 #include "live/live_tab.h"
@@ -515,6 +516,26 @@ void GUI::DestroyAreaDecorationDialog() {
 	if (area_decoration_dialog) {
 		area_decoration_dialog->Destroy();
 		area_decoration_dialog = nullptr;
+	}
+}
+
+//=============================================================================
+// Structure Manager Dialog management
+
+void GUI::ShowStructureManagerDialog() {
+	if (structure_manager_dialog) {
+		structure_manager_dialog->Show();
+		structure_manager_dialog->Raise();
+	} else {
+		structure_manager_dialog = newd StructureManagerDialog(root);
+		structure_manager_dialog->Show();
+	}
+}
+
+void GUI::DestroyStructureManagerDialog() {
+	if (structure_manager_dialog) {
+		structure_manager_dialog->Destroy();
+		structure_manager_dialog = nullptr;
 	}
 }
 
