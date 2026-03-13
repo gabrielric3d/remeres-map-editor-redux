@@ -17,6 +17,8 @@
 
 #include "app/main.h"
 
+#include <cmath>
+
 #include "ui/map_window.h"
 #include "ui/gui.h"
 #include "game/sprites.h"
@@ -192,6 +194,33 @@ void MapWindow::SetScreenCenterPosition(const Position& position) {
 
 	Scroll(x, y, true);
 	canvas->ChangeFloor(position.z);
+}
+
+void MapWindow::SetScreenCenterPosition(double x, double y, int z) {
+	if (z < 0 || z > MAP_MAX_LAYER) {
+		return;
+	}
+
+	const int pixel_x = static_cast<int>(std::round(x * TILE_SIZE));
+	const int pixel_y = static_cast<int>(std::round(y * TILE_SIZE));
+	int scroll_x = pixel_x;
+	int scroll_y = pixel_y;
+
+	if (z <= GROUND_LAYER) {
+		const int offset = (GROUND_LAYER - z) * TILE_SIZE;
+		scroll_x -= offset;
+		scroll_y -= offset;
+	}
+
+	const Position& center = GetScreenCenterPosition();
+	if (previous_position != center) {
+		previous_position.x = center.x;
+		previous_position.y = center.y;
+		previous_position.z = center.z;
+	}
+
+	Scroll(scroll_x, scroll_y, true);
+	canvas->ChangeFloor(z);
 }
 
 void MapWindow::GoToPreviousCenterPosition() {

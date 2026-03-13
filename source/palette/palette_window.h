@@ -45,6 +45,8 @@ public:
 	int GetSelectedBrushSize() const;
 	// The currently selected page (terrain, doodad...)
 	PaletteType GetSelectedPage() const;
+	// Access the camera path palette panel
+	CameraPathPalettePanel* GetCameraPathPalette() const { return camera_path_palette; }
 
 	// Custom Event handlers (something has changed?)
 	// Finds the brush pointed to by whatbrush and selects it as the current brush (also changes page)

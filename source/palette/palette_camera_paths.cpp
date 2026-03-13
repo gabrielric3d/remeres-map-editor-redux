@@ -88,6 +88,10 @@ CameraPathPalettePanel::CameraPathPalettePanel(wxWindow* parent, wxWindowID id) 
 	keyButtons->Add(keyframe_down_button, 1, wxEXPAND | wxLEFT, 4);
 	keySizer->Add(keyButtons, 0, wxEXPAND | wxBOTTOM, 4);
 
+	wxStaticText* shortcut_label = newd wxStaticText(this, wxID_ANY, "Alt + Left Click on map to add keyframe");
+	shortcut_label->SetForegroundColour(wxColour(255, 160, 50));
+	keySizer->Add(shortcut_label, 0, wxBOTTOM, 4);
+
 	wxStaticBoxSizer* propsSizer = newd wxStaticBoxSizer(wxVERTICAL, this, "Keyframe Properties");
 	pos_label = newd wxStaticText(this, wxID_ANY, "Pos: - , -");
 	propsSizer->Add(pos_label, 0, wxBOTTOM, 4);

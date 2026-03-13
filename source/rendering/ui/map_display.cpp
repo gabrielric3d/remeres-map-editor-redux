@@ -76,6 +76,9 @@
 #include "brushes/raw/raw_brush.h"
 #include "brushes/carpet/carpet_brush.h"
 #include "brushes/table/table_brush.h"
+#include "brushes/camera/camera_path_brush.h"
+#include "game/camera_paths.h"
+#include "palette/palette_camera_paths.h"
 
 bool MapCanvas::processed[] = { 0 };
 
@@ -148,9 +151,14 @@ MapCanvas::MapCanvas(MapWindow* parent, Editor& editor, int* attriblist) :
 
 	Bind(wxEVT_PAINT, &MapCanvas::OnPaint, this);
 	Bind(wxEVT_ERASE_BACKGROUND, &MapCanvas::OnEraseBackground, this);
+
+	camera_path_timer.SetOwner(this);
+	Bind(wxEVT_TIMER, &MapCanvas::OnCameraPathTimer, this, camera_path_timer.GetId());
 }
 
 MapCanvas::~MapCanvas() {
+	camera_path_timer.Stop();
+
 	bool context_ok = false;
 	if (m_glContext) {
 		context_ok = g_gl_context.EnsureContextCurrent(*m_glContext, this);
@@ -454,7 +462,39 @@ void MapCanvas::OnMouseActionClick(wxMouseEvent& event) {
 		return;
 	}
 
-	if (event.ControlDown() && event.AltDown()) {
+	// Alt+Click: add camera path keyframe at click position (when camera path palette is active)
+	if (event.AltDown() && !event.ControlDown()) {
+		PaletteWindow* palette = g_gui.GetPalette();
+		CameraPathPalettePanel* camPalette = palette ? palette->GetCameraPathPalette() : nullptr;
+		if (camPalette && g_gui.GetCurrentBrush() && g_gui.GetCurrentBrush()->is<CameraPathBrush>()) {
+			Position clickPos(mouse_map_x, mouse_map_y, floor);
+			CameraPaths temp = editor.map.camera_paths;
+			CameraPath* path = temp.getActivePath();
+			if (!path) {
+				path = temp.addPath("Path");
+			}
+
+			CameraKeyframe key;
+			key.pos = clickPos;
+			key.duration = camPalette->GetKeyframeDuration();
+			key.speed = camPalette->GetKeyframeSpeed();
+			key.zoom = camPalette->GetKeyframeZoom();
+			key.easing = static_cast<CameraEasing>(camPalette->GetKeyframeEasing());
+
+			int insertIndex = static_cast<int>(path->keyframes.size());
+			int activeIndex = temp.getActiveKeyframe();
+			if (activeIndex >= 0 && activeIndex < static_cast<int>(path->keyframes.size())) {
+				insertIndex = activeIndex + 1;
+			}
+			path->keyframes.insert(path->keyframes.begin() + insertIndex, key);
+			temp.setActiveKeyframe(insertIndex);
+
+			Editor* ed = g_gui.GetCurrentEditor();
+			if (ed) {
+				ed->ApplyCameraPathsSnapshot(temp.snapshot(), ACTION_DRAW);
+			}
+		}
+	} else if (event.ControlDown() && event.AltDown()) {
 		Tile* tile = editor.map.getTile(mouse_map_x, mouse_map_y, floor);
 		BrushSelector::SelectSmartBrush(editor, tile);
 	} else if (g_gui.IsSelectionMode()) {
@@ -625,6 +665,13 @@ void MapCanvas::EndPasting() {
 }
 
 void MapCanvas::Reset() {
+	if (camera_path_playing) {
+		camera_path_timer.Stop();
+		camera_path_playing = false;
+		camera_path_time = 0.0;
+		camera_path_name.clear();
+	}
+
 	cursor_x = 0;
 	cursor_y = 0;
 
@@ -651,14 +698,27 @@ void MapCanvas::Reset() {
 
 void MapCanvas::ToggleCameraPathPlayback() {
 	if (camera_path_playing) {
-		camera_path_playing = false;
 		camera_path_timer.Stop();
-	} else {
-		camera_path_playing = true;
+		camera_path_playing = false;
 		camera_path_time = 0.0;
-		camera_path_last_tick = std::chrono::steady_clock::now();
-		camera_path_timer.Start(16); // ~60fps
+		camera_path_name.clear();
+		g_gui.SetStatusText("Camera path playback stopped.");
+		return;
 	}
+
+	CameraPaths& cameraPaths = editor.map.camera_paths;
+	CameraPath* path = cameraPaths.getActivePath();
+	if (!path || path->keyframes.size() < 2) {
+		g_gui.SetStatusText("No camera path with at least 2 keyframes selected.");
+		return;
+	}
+
+	camera_path_name = path->name;
+	camera_path_time = 0.0;
+	camera_path_last_tick = std::chrono::steady_clock::now();
+	camera_path_playing = true;
+	camera_path_timer.Start(16); // ~60fps
+	g_gui.SetStatusText("Camera path playback started.");
 }
 
 void MapCanvas::OnCameraPathTimer(wxTimerEvent& WXUNUSED(event)) {
@@ -666,10 +726,30 @@ void MapCanvas::OnCameraPathTimer(wxTimerEvent& WXUNUSED(event)) {
 		return;
 	}
 
-	auto now = std::chrono::steady_clock::now();
-	double dt = std::chrono::duration<double>(now - camera_path_last_tick).count();
-	camera_path_last_tick = now;
-	camera_path_time += dt;
+	CameraPaths& cameraPaths = editor.map.camera_paths;
+	CameraPath* path = cameraPaths.getPath(camera_path_name);
+	if (!path || path->keyframes.size() < 2) {
+		ToggleCameraPathPlayback();
+		return;
+	}
 
+	auto now = std::chrono::steady_clock::now();
+	std::chrono::duration<double> delta = now - camera_path_last_tick;
+	camera_path_last_tick = now;
+	camera_path_time += delta.count();
+
+	bool finished = false;
+	CameraPathSample sample = SampleCameraPathByTime(*path, camera_path_time, path->loop, &finished);
+
+	const int sample_z = static_cast<int>(std::round(sample.z));
+	MapWindow* window = GetMapWindow();
+	if (window) {
+		SetZoom(sample.zoom);
+		window->SetScreenCenterPosition(sample.x, sample.y, sample_z);
+	}
 	Refresh();
+
+	if (finished && !path->loop) {
+		ToggleCameraPathPlayback();
+	}
 }

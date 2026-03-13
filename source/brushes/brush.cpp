@@ -95,6 +95,7 @@ void Brushes::init() {
 	addManagedBrush(g_brush_manager.house_brush);
 	addManagedBrush(g_brush_manager.house_exit_brush);
 	addManagedBrush(g_brush_manager.waypoint_brush);
+	addManagedBrush(g_brush_manager.camera_path_brush);
 
 	addManagedBrush(g_brush_manager.pz_brush, TILESTATE_PROTECTIONZONE);
 	addManagedBrush(g_brush_manager.rook_brush, TILESTATE_NOPVP);
