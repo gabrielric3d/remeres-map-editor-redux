@@ -18,6 +18,7 @@
 #include "app/main.h"
 
 #include "ui/main_menubar.h"
+#include "ui/toolbar/standard_toolbar.h"
 #include "ui/dialog_util.h"
 #include "ui/gui.h"
 #include "ui/tool_options_window.h"
@@ -210,6 +211,10 @@ void MainMenuBar::OnSave(wxCommandEvent& event) {
 
 void MainMenuBar::OnSaveAs(wxCommandEvent& event) {
 	fileMenuHandler->OnSaveAs(event);
+}
+
+void MainMenuBar::OnDeployMap(wxCommandEvent& WXUNUSED(event)) {
+	StandardToolBar::DeployMap();
 }
 
 void MainMenuBar::OnPreferences(wxCommandEvent& event) {

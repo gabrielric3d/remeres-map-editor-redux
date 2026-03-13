@@ -19,11 +19,15 @@ public:
 	void Update();
 
 	void OnButtonClick(wxCommandEvent& event);
+	void OnDeployButtonClick(wxCommandEvent& event);
+
+	static void DeployMap();
 
 	static const wxString PANE_NAME;
 
 private:
 	wxAuiToolBar* toolbar;
+	wxButton* deploy_button;
 };
 
 #endif // RME_UI_TOOLBAR_STANDARD_TOOLBAR_H_

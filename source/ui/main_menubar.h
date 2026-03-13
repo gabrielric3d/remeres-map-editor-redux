@@ -169,6 +169,7 @@ namespace MenuBar {
 		SHOW_CREATURE_NAMES,
 		EXPERIMENTAL_FOG,
 		AREA_DECORATION,
+		DEPLOY_MAP,
 	};
 }
 
@@ -309,6 +310,7 @@ public:
 
 	void OnDebugViewDat(wxCommandEvent& event);
 	void OnAreaDecoration(wxCommandEvent& event);
+	void OnDeployMap(wxCommandEvent& event);
 
 	void OnOpenRecent(wxCommandEvent& event);
 

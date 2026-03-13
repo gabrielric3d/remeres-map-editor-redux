@@ -22,6 +22,7 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(OPEN, wxITEM_NORMAL, OnOpen);
 	MAKE_ACTION(SAVE, wxITEM_NORMAL, OnSave);
 	MAKE_ACTION(SAVE_AS, wxITEM_NORMAL, OnSaveAs);
+	MAKE_ACTION(DEPLOY_MAP, wxITEM_NORMAL, OnDeployMap);
 	MAKE_ACTION(GENERATE_MAP, wxITEM_NORMAL, OnGenerateMap);
 	MAKE_ACTION(CLOSE, wxITEM_NORMAL, OnClose);
 
@@ -212,6 +213,7 @@ void MenuBarActionManager::UpdateState(MainMenuBar* mb) {
 	mb->EnableItem(CLOSE, is_local);
 	mb->EnableItem(SAVE, is_host);
 	mb->EnableItem(SAVE_AS, is_host);
+	mb->EnableItem(DEPLOY_MAP, has_map && is_host && editor->map.hasFile());
 	mb->EnableItem(GENERATE_MAP, false);
 
 	mb->EnableItem(IMPORT_MAP, is_local);
