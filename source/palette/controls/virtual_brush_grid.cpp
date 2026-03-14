@@ -17,6 +17,11 @@
 #include <spdlog/spdlog.h>
 #include <algorithm>
 #include <wx/clipbrd.h>
+#include <wx/dnd.h>
+#include <wx/dataobj.h>
+#include <format>
+#include "ui/map_tab.h"
+#include "ui/map_window.h"
 
 namespace {
 	static constexpr float GROW_FACTOR = 2.0f;
@@ -53,6 +58,8 @@ VirtualBrushGrid::VirtualBrushGrid(wxWindow* parent, const TilesetCategory* _til
 	Bind(wxEVT_TIMER, &VirtualBrushGrid::OnTimer, this);
 	Bind(wxEVT_MENU, &VirtualBrushGrid::OnCopyServerID, this, PALETTE_POPUP_MENU_COPY_SERVER_ID);
 	Bind(wxEVT_MENU, &VirtualBrushGrid::OnCopyClientID, this, PALETTE_POPUP_MENU_COPY_CLIENT_ID);
+	Bind(wxEVT_MENU, &VirtualBrushGrid::OnApplyReplaceOriginal, this, PALETTE_POPUP_MENU_APPLY_REPLACE_ORIGINAL);
+	Bind(wxEVT_MENU, &VirtualBrushGrid::OnApplyReplaceReplacement, this, PALETTE_POPUP_MENU_APPLY_REPLACE_REPLACEMENT);
 
 	UpdateLayout();
 }
@@ -342,25 +349,31 @@ int VirtualBrushGrid::HitTest(int x, int y) const {
 
 void VirtualBrushGrid::OnMouseDown(wxMouseEvent& event) {
 	int index = HitTest(event.GetX(), event.GetY());
-	if (index != -1 && index != selected_index) {
-		selected_index = index;
+	if (index != -1) {
+		// Store drag start position
+		m_dragStartPos = event.GetPosition();
+		m_isDragging = false;
 
-		// Notify GUI - find PaletteWindow parent
-		wxWindow* w = GetParent();
-		while (w) {
-			PaletteWindow* pw = dynamic_cast<PaletteWindow*>(w);
-			if (pw) {
-				g_gui.ActivatePalette(pw);
-				break;
+		if (index != selected_index) {
+			selected_index = index;
+
+			// Notify GUI - find PaletteWindow parent
+			wxWindow* w = GetParent();
+			while (w) {
+				PaletteWindow* pw = dynamic_cast<PaletteWindow*>(w);
+				if (pw) {
+					g_gui.ActivatePalette(pw);
+					break;
+				}
+				w = w->GetParent();
 			}
-			w = w->GetParent();
-		}
 
-		Brush* brush = GetEffectiveBrush(static_cast<size_t>(selected_index));
-		if (brush) {
-			g_gui.SelectBrush(brush, tileset->getType());
+			Brush* brush = GetEffectiveBrush(static_cast<size_t>(selected_index));
+			if (brush) {
+				g_gui.SelectBrush(brush, tileset->getType());
+			}
+			Refresh();
 		}
-		Refresh();
 	}
 }
 
@@ -384,29 +397,30 @@ void VirtualBrushGrid::OnRightClick(wxMouseEvent& event) {
 
 	wxMenu menu;
 
+	// Get the item server ID for this brush
+	uint16_t serverId = 0;
 	if (brush->is<RAWBrush>()) {
 		RAWBrush* raw = brush->as<RAWBrush>();
 		if (raw) {
-			uint16_t serverId = raw->getItemID();
-			auto def = g_item_definitions.get(serverId);
-			int clientId = def ? def.clientId() : 0;
-
-			menu.Append(PALETTE_POPUP_MENU_COPY_SERVER_ID, wxString::Format("Copy Server ID (%d)", serverId));
-			menu.Append(PALETTE_POPUP_MENU_COPY_CLIENT_ID, wxString::Format("Copy Client ID (%d)", clientId));
-			PopupMenu(&menu, event.GetPosition());
+			serverId = raw->getItemID();
 		}
 	} else {
-		// For non-RAW brushes, show server/client ID if available via getLookID
 		int lookId = brush->getLookID();
 		if (lookId > 0) {
-			auto def = g_item_definitions.get(static_cast<uint16_t>(lookId));
-			if (def) {
-				int clientId = def.clientId();
-				menu.Append(PALETTE_POPUP_MENU_COPY_SERVER_ID, wxString::Format("Copy Server ID (%d)", lookId));
-				menu.Append(PALETTE_POPUP_MENU_COPY_CLIENT_ID, wxString::Format("Copy Client ID (%d)", clientId));
-				PopupMenu(&menu, event.GetPosition());
-			}
+			serverId = static_cast<uint16_t>(lookId);
 		}
+	}
+
+	if (serverId > 0) {
+		auto def = g_item_definitions.get(serverId);
+		int clientId = def ? def.clientId() : 0;
+
+		menu.Append(PALETTE_POPUP_MENU_COPY_SERVER_ID, wxString::Format("Copy Server ID (%d)", serverId));
+		menu.Append(PALETTE_POPUP_MENU_COPY_CLIENT_ID, wxString::Format("Copy Client ID (%d)", clientId));
+		menu.AppendSeparator();
+		menu.Append(PALETTE_POPUP_MENU_APPLY_REPLACE_ORIGINAL, "Apply to Replace Box 1 (Original)");
+		menu.Append(PALETTE_POPUP_MENU_APPLY_REPLACE_REPLACEMENT, "Apply to Replace Box 2 (Replacement)");
+		PopupMenu(&menu, event.GetPosition());
 	}
 }
 
@@ -451,7 +465,81 @@ void VirtualBrushGrid::OnCopyClientID(wxCommandEvent& WXUNUSED(event)) {
 	}
 }
 
+void VirtualBrushGrid::OnApplyReplaceOriginal(wxCommandEvent& WXUNUSED(event)) {
+	Brush* brush = GetSelectedBrush();
+	if (!brush) {
+		return;
+	}
+
+	uint16_t serverId = 0;
+	if (brush->is<RAWBrush>()) {
+		serverId = brush->as<RAWBrush>()->getItemID();
+	} else {
+		serverId = static_cast<uint16_t>(brush->getLookID());
+	}
+
+	if (serverId > 0) {
+		MapTab* tab = g_gui.GetCurrentMapTab();
+		if (tab) {
+			tab->ApplyItemToReplaceOriginal(serverId);
+		}
+	}
+}
+
+void VirtualBrushGrid::OnApplyReplaceReplacement(wxCommandEvent& WXUNUSED(event)) {
+	Brush* brush = GetSelectedBrush();
+	if (!brush) {
+		return;
+	}
+
+	uint16_t serverId = 0;
+	if (brush->is<RAWBrush>()) {
+		serverId = brush->as<RAWBrush>()->getItemID();
+	} else {
+		serverId = static_cast<uint16_t>(brush->getLookID());
+	}
+
+	if (serverId > 0) {
+		MapTab* tab = g_gui.GetCurrentMapTab();
+		if (tab) {
+			tab->ApplyItemToReplaceReplacement(serverId);
+		}
+	}
+}
+
 void VirtualBrushGrid::OnMotion(wxMouseEvent& event) {
+	// Drag & Drop initiation
+	if (event.Dragging() && event.LeftIsDown() && selected_index >= 0) {
+		if (!m_isDragging) {
+			wxPoint diff = event.GetPosition() - m_dragStartPos;
+			if (std::abs(diff.x) > 3 || std::abs(diff.y) > 3) {
+				m_isDragging = true;
+
+				Brush* brush = GetEffectiveBrush(static_cast<size_t>(selected_index));
+				if (brush) {
+					uint16_t serverId = 0;
+					if (brush->is<RAWBrush>()) {
+						serverId = brush->as<RAWBrush>()->getItemID();
+					} else {
+						int lookId = brush->getLookID();
+						if (lookId > 0) {
+							serverId = static_cast<uint16_t>(lookId);
+						}
+					}
+
+					if (serverId > 0) {
+						wxTextDataObject data(wxString::Format("RME_ITEM:%u", serverId));
+						wxDropSource dragSource(this);
+						dragSource.SetData(data);
+						dragSource.DoDragDrop(wxDrag_AllowMove);
+					}
+				}
+			}
+		}
+		return;
+	}
+
+	m_isDragging = false;
 	int index = HitTest(event.GetX(), event.GetY());
 
 	if (index != hover_index) {

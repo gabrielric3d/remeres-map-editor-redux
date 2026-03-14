@@ -109,6 +109,24 @@ void MapWindow::ShowAdvancedReplaceForSelection(const std::vector<uint16_t>& ids
 	replaceItemsDialog->Show();
 }
 
+void MapWindow::ApplyItemToReplaceOriginal(uint16_t itemId) {
+	if (!replaceItemsDialog) {
+		replaceItemsDialog.reset(new ReplaceToolWindow(this, &editor));
+		replaceItemsDialog->Bind(wxEVT_CLOSE_WINDOW, &MapWindow::OnReplaceItemsDialogClose, this);
+		replaceItemsDialog->Show();
+	}
+	replaceItemsDialog->ApplyItemToOriginal(itemId);
+}
+
+void MapWindow::ApplyItemToReplaceReplacement(uint16_t itemId) {
+	if (!replaceItemsDialog) {
+		replaceItemsDialog.reset(new ReplaceToolWindow(this, &editor));
+		replaceItemsDialog->Bind(wxEVT_CLOSE_WINDOW, &MapWindow::OnReplaceItemsDialogClose, this);
+		replaceItemsDialog->Show();
+	}
+	replaceItemsDialog->ApplyItemToReplacement(itemId);
+}
+
 void MapWindow::CloseReplaceItemsDialog() {
 	if (replaceItemsDialog) {
 		replaceItemsDialog->Close();

@@ -66,6 +66,8 @@ protected:
 	void OnRightClick(wxMouseEvent& event);
 	void OnCopyServerID(wxCommandEvent& event);
 	void OnCopyClientID(wxCommandEvent& event);
+	void OnApplyReplaceOriginal(wxCommandEvent& event);
+	void OnApplyReplaceReplacement(wxCommandEvent& event);
 	void OnMotion(wxMouseEvent& event);
 	void OnSize(wxSizeEvent& event);
 
@@ -98,6 +100,10 @@ protected:
 	wxTimer m_animTimer;
 	float hover_anim = 0.0f;
 	void OnTimer(wxTimerEvent& event);
+
+	// Drag state
+	wxPoint m_dragStartPos;
+	bool m_isDragging = false;
 };
 
 #endif

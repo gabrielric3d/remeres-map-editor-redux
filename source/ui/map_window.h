@@ -86,6 +86,13 @@ public:
 	void CloseReplaceItemsDialog();
 	void OnReplaceItemsDialogClose(wxCloseEvent& event);
 
+	// Returns the active replace tool dialog (or nullptr)
+	ReplaceToolWindow* GetReplaceToolWindow() const { return replaceItemsDialog.get(); }
+
+	// Apply item to replace tool slots (opens dialog if not already open)
+	void ApplyItemToReplaceOriginal(uint16_t itemId);
+	void ApplyItemToReplaceReplacement(uint16_t itemId);
+
 protected:
 	// For internal use, call to resize the scrollbars with
 	// the newd dimensions of *this* window
