@@ -1,7 +1,10 @@
 #include "app/main.h"
 #include "palette/controls/virtual_brush_grid.h"
 #include "ui/gui.h"
+#include "ui/gui_ids.h"
 #include "rendering/core/graphics.h"
+#include "brushes/raw/raw_brush.h"
+#include "item_definitions/core/item_definition_store.h"
 
 #include <glad/glad.h>
 
@@ -13,6 +16,7 @@
 
 #include <spdlog/spdlog.h>
 #include <algorithm>
+#include <wx/clipbrd.h>
 
 namespace {
 	static constexpr float GROW_FACTOR = 2.0f;
@@ -43,9 +47,12 @@ VirtualBrushGrid::VirtualBrushGrid(wxWindow* parent, const TilesetCategory* _til
 	}
 
 	Bind(wxEVT_LEFT_DOWN, &VirtualBrushGrid::OnMouseDown, this);
+	Bind(wxEVT_RIGHT_DOWN, &VirtualBrushGrid::OnRightClick, this);
 	Bind(wxEVT_MOTION, &VirtualBrushGrid::OnMotion, this);
 	Bind(wxEVT_SIZE, &VirtualBrushGrid::OnSize, this);
 	Bind(wxEVT_TIMER, &VirtualBrushGrid::OnTimer, this);
+	Bind(wxEVT_MENU, &VirtualBrushGrid::OnCopyServerID, this, PALETTE_POPUP_MENU_COPY_SERVER_ID);
+	Bind(wxEVT_MENU, &VirtualBrushGrid::OnCopyClientID, this, PALETTE_POPUP_MENU_COPY_CLIENT_ID);
 
 	UpdateLayout();
 }
@@ -354,6 +361,93 @@ void VirtualBrushGrid::OnMouseDown(wxMouseEvent& event) {
 			g_gui.SelectBrush(brush, tileset->getType());
 		}
 		Refresh();
+	}
+}
+
+void VirtualBrushGrid::OnRightClick(wxMouseEvent& event) {
+	int index = HitTest(event.GetX(), event.GetY());
+	if (index == -1) {
+		return;
+	}
+
+	Brush* brush = GetEffectiveBrush(static_cast<size_t>(index));
+	if (!brush) {
+		return;
+	}
+
+	// Select the item under right-click
+	if (index != selected_index) {
+		selected_index = index;
+		g_gui.SelectBrush(brush, tileset->getType());
+		Refresh();
+	}
+
+	wxMenu menu;
+
+	if (brush->is<RAWBrush>()) {
+		RAWBrush* raw = brush->as<RAWBrush>();
+		if (raw) {
+			uint16_t serverId = raw->getItemID();
+			auto def = g_item_definitions.get(serverId);
+			int clientId = def ? def.clientId() : 0;
+
+			menu.Append(PALETTE_POPUP_MENU_COPY_SERVER_ID, wxString::Format("Copy Server ID (%d)", serverId));
+			menu.Append(PALETTE_POPUP_MENU_COPY_CLIENT_ID, wxString::Format("Copy Client ID (%d)", clientId));
+			PopupMenu(&menu, event.GetPosition());
+		}
+	} else {
+		// For non-RAW brushes, show server/client ID if available via getLookID
+		int lookId = brush->getLookID();
+		if (lookId > 0) {
+			auto def = g_item_definitions.get(static_cast<uint16_t>(lookId));
+			if (def) {
+				int clientId = def.clientId();
+				menu.Append(PALETTE_POPUP_MENU_COPY_SERVER_ID, wxString::Format("Copy Server ID (%d)", lookId));
+				menu.Append(PALETTE_POPUP_MENU_COPY_CLIENT_ID, wxString::Format("Copy Client ID (%d)", clientId));
+				PopupMenu(&menu, event.GetPosition());
+			}
+		}
+	}
+}
+
+void VirtualBrushGrid::OnCopyServerID(wxCommandEvent& WXUNUSED(event)) {
+	Brush* brush = GetSelectedBrush();
+	if (!brush) {
+		return;
+	}
+
+	int serverId = 0;
+	if (brush->is<RAWBrush>()) {
+		serverId = brush->as<RAWBrush>()->getItemID();
+	} else {
+		serverId = brush->getLookID();
+	}
+
+	if (serverId > 0 && wxTheClipboard->Open()) {
+		wxTheClipboard->SetData(new wxTextDataObject(std::to_string(serverId)));
+		wxTheClipboard->Close();
+	}
+}
+
+void VirtualBrushGrid::OnCopyClientID(wxCommandEvent& WXUNUSED(event)) {
+	Brush* brush = GetSelectedBrush();
+	if (!brush) {
+		return;
+	}
+
+	uint16_t serverId = 0;
+	if (brush->is<RAWBrush>()) {
+		serverId = brush->as<RAWBrush>()->getItemID();
+	} else {
+		serverId = static_cast<uint16_t>(brush->getLookID());
+	}
+
+	if (serverId > 0) {
+		auto def = g_item_definitions.get(serverId);
+		if (def && wxTheClipboard->Open()) {
+			wxTheClipboard->SetData(new wxTextDataObject(std::to_string(def.clientId())));
+			wxTheClipboard->Close();
+		}
 	}
 }
 

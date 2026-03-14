@@ -63,6 +63,9 @@ protected:
 
 	// Event Handlers
 	void OnMouseDown(wxMouseEvent& event);
+	void OnRightClick(wxMouseEvent& event);
+	void OnCopyServerID(wxCommandEvent& event);
+	void OnCopyClientID(wxCommandEvent& event);
 	void OnMotion(wxMouseEvent& event);
 	void OnSize(wxSizeEvent& event);
 
