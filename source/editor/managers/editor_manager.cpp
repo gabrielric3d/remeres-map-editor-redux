@@ -23,6 +23,8 @@
 #include "live/live_tab.h"
 #include "live/live_client.h"
 #include "io/iomap_otbm.h"
+#include "ui/dialogs/open_map_dialog.h"
+#include "ui/main_frame.h"
 
 #include <set>
 #include <sstream>
@@ -239,11 +241,14 @@ bool EditorManager::NewMap() {
 }
 
 void EditorManager::OpenMap() {
-	wxString wildcard = MAP_LOAD_FILE_WILDCARD;
-	wxFileDialog dialog(g_gui.root, "Open map file", wxEmptyString, wxEmptyString, wildcard, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	std::vector<wxString> recentFiles = g_gui.root->GetRecentFiles();
+	OpenMapDialog dialog(g_gui.root, recentFiles);
 
 	if (dialog.ShowModal() == wxID_OK) {
-		LoadMap(dialog.GetPath());
+		wxString path = dialog.GetSelectedPath();
+		if (!path.empty()) {
+			LoadMap(path);
+		}
 	}
 }
 
@@ -310,6 +315,12 @@ bool EditorManager::LoadMap(const FileName& fileName, const MapLoadOptions& load
 			if (!target) {
 				throw std::runtime_error(std::format("Unsupported client version (OtbId: {})", static_cast<int>(ver.client)));
 			}
+
+			// Prefer the default client version (from preferences) if it's compatible and has valid paths
+			ClientVersion* latest = ClientVersion::getLatestVersion();
+			if (latest && latest != target && latest->getOtbId() == target->getOtbId() && latest->hasValidPaths()) {
+				target = latest;
+			}
 		}
 
 		ClientVersion* current = g_version.getLoadedVersion();
@@ -337,17 +348,26 @@ bool EditorManager::LoadMap(const FileName& fileName, const MapLoadOptions& load
 		return false;
 	}
 
+	spdlog::info("EditorManager::LoadMap - Creating MapTab...");
 	auto* mapTab = newd MapTab(g_gui.tabbook, editor.release());
+	spdlog::info("EditorManager::LoadMap - Switching to SELECTION_MODE...");
 	mapTab->OnSwitchEditorMode(SELECTION_MODE);
 
+	spdlog::info("EditorManager::LoadMap - Adding recent file...");
 	g_gui.root->AddRecentFile(fileName);
 
+	spdlog::info("EditorManager::LoadMap - FitToMap...");
 	mapTab->GetView()->FitToMap();
+	spdlog::info("EditorManager::LoadMap - UpdateTitle...");
 	g_status.UpdateTitle();
+	spdlog::info("EditorManager::LoadMap - Showing warnings...");
 	DialogUtil::ListDialog("Map loader errors", mapTab->GetMap()->getWarnings());
+	spdlog::info("EditorManager::LoadMap - DoQueryImportCreatures...");
 	g_gui.root->DoQueryImportCreatures();
 
+	spdlog::info("EditorManager::LoadMap - FitViewToMap...");
 	g_gui.FitViewToMap(mapTab);
+	spdlog::info("EditorManager::LoadMap - UpdateMenubar...");
 	g_gui.root->UpdateMenubar();
 
 	std::string path = g_settings.getString(Config::RECENT_EDITED_MAP_PATH);
@@ -357,10 +377,12 @@ bool EditorManager::LoadMap(const FileName& fileName, const MapLoadOptions& load
 			std::istringstream stream(g_settings.getString(Config::RECENT_EDITED_MAP_POSITION));
 			Position position;
 			stream >> position;
+			spdlog::info("EditorManager::LoadMap - Restoring position...");
 			mapTab->SetScreenCenterPosition(position);
 		}
 	}
 
+	spdlog::info("EditorManager::LoadMap - DONE.");
 	g_status.SetStatusText("Map loaded successfully.");
 	return true;
 }
