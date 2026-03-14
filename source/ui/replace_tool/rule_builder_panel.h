@@ -60,6 +60,10 @@ public:
 	void SetRules(const std::vector<ReplacementRule>& rules);
 	std::vector<ReplacementRule> GetRules() const;
 
+	// External item application
+	void ApplyItemAsSource(uint16_t itemId);
+	void ApplyItemAsTarget(uint16_t itemId);
+
 	// Visual Layout
 	int GetRuleHeight(int index, int width) const;
 	int GetRuleY(int index, int width) const;

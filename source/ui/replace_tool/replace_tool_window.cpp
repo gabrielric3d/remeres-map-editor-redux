@@ -19,6 +19,7 @@
 #include <wx/msgdlg.h>
 #include <wx/textdlg.h>
 #include <wx/artprov.h>
+#include <wx/checkbox.h>
 
 // Brush includes
 #include "brushes/brush.h"
@@ -215,6 +216,13 @@ void ReplaceToolWindow::InitLayout() {
 
 	actionsSizer->Add(scopeSizer, wxSizerFlags(0).Expand().Border(wxLEFT | wxRIGHT | wxBOTTOM, padding));
 
+	// Auto-add checkbox
+	m_autoAddCheck = new wxCheckBox(actionsCard, wxID_ANY, "Auto-add rule when complete");
+	m_autoAddCheck->SetForegroundColour(wxColour(180, 180, 180));
+	m_autoAddCheck->SetFont(Theme::GetFont(9));
+	m_autoAddCheck->SetToolTip("Automatically starts a new rule when both Original and Replacement are set");
+	actionsSizer->Add(m_autoAddCheck, wxSizerFlags(0).Expand().Border(wxLEFT | wxRIGHT | wxBOTTOM, padding));
+
 	actionsSizer->AddStretchSpacer(1);
 
 	// Execute Button
@@ -293,6 +301,23 @@ void ReplaceToolWindow::InitLayout() {
 	Layout();
 }
 
+void ReplaceToolWindow::ApplyItemToOriginal(uint16_t itemId) {
+	if (itemId == 0) {
+		return;
+	}
+	ruleBuilder->ApplyItemAsSource(itemId);
+	similarItemsGrid->SetItems(VisualSimilarityService::Get().FindSimilar(itemId));
+	Raise();
+}
+
+void ReplaceToolWindow::ApplyItemToReplacement(uint16_t itemId) {
+	if (itemId == 0) {
+		return;
+	}
+	ruleBuilder->ApplyItemAsTarget(itemId);
+	Raise();
+}
+
 void ReplaceToolWindow::OnLibraryItemSelected(uint16_t itemId) {
 	if (itemId == 0) {
 		return;
@@ -345,6 +370,22 @@ void ReplaceToolWindow::OnRuleChanged() {
 		rs.name = m_activeRuleSetName;
 		rs.rules = ruleBuilder->GetRules();
 		RuleManager::Get().SaveRuleSet(rs);
+	}
+
+	// Auto-add: if enabled, check if the last rule is complete and start a new one
+	if (m_autoAddCheck && m_autoAddCheck->IsChecked()) {
+		auto rules = ruleBuilder->GetRules();
+		if (!rules.empty()) {
+			const auto& lastRule = rules.back();
+			bool hasSource = lastRule.fromId != 0;
+			bool hasTarget = !lastRule.targets.empty() && lastRule.targets[0].id != 0;
+			if (hasSource && hasTarget) {
+				// Add a new empty rule so the user can keep going
+				ReplacementRule newRule;
+				rules.push_back(newRule);
+				ruleBuilder->SetRules(rules);
+			}
+		}
 	}
 }
 

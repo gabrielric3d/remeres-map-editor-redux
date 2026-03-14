@@ -22,6 +22,10 @@ public:
 
 	void InitializeWithIDs(const std::vector<uint16_t>& ids);
 
+	// External item application (from palette context menu / drag)
+	void ApplyItemToOriginal(uint16_t itemId);
+	void ApplyItemToReplacement(uint16_t itemId);
+
 	// LibraryPanel::Listener
 	void OnLibraryItemSelected(uint16_t itemId) override;
 
@@ -61,6 +65,7 @@ private:
 	wxButton* m_deleteRuleBtn;
 	wxButton* m_addVisibleBtn;
 	wxChoice* m_scopeChoice;
+	wxCheckBox* m_autoAddCheck;
 
 	ReplacementEngine engine;
 

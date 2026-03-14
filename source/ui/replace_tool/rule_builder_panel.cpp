@@ -150,6 +150,48 @@ std::vector<ReplacementRule> RuleBuilderPanel::GetRules() const {
 	return m_rules;
 }
 
+void RuleBuilderPanel::ApplyItemAsSource(uint16_t itemId) {
+	// If the last rule has no targets and no source, reuse it; otherwise create a new rule
+	if (!m_rules.empty() && m_rules.back().fromId == 0) {
+		m_rules.back().fromId = itemId;
+	} else {
+		ReplacementRule newRule;
+		newRule.fromId = itemId;
+		m_rules.push_back(newRule);
+	}
+	if (m_listener) {
+		m_listener->OnRuleChanged();
+	}
+	LayoutRules();
+	Refresh();
+}
+
+void RuleBuilderPanel::ApplyItemAsTarget(uint16_t itemId) {
+	if (m_rules.empty()) {
+		// Create a new rule with empty source
+		ReplacementRule newRule;
+		newRule.targets.push_back({ itemId, 100 });
+		m_rules.push_back(newRule);
+	} else {
+		// Add to the last rule
+		auto& rule = m_rules.back();
+		// Don't add if it already has a trash target
+		bool hasTrash = std::ranges::any_of(rule.targets, [](const auto& t) {
+			return t.id == TRASH_ITEM_ID;
+		});
+		if (hasTrash) {
+			return;
+		}
+		rule.targets.push_back({ itemId, 0 });
+		DistributeProbabilities(static_cast<int>(m_rules.size()) - 1);
+	}
+	if (m_listener) {
+		m_listener->OnRuleChanged();
+	}
+	LayoutRules();
+	Refresh();
+}
+
 // ----------------------------------------------------------------------------
 // Layout logic using cache
 // ----------------------------------------------------------------------------
