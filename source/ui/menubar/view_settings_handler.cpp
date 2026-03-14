@@ -2,6 +2,7 @@
 #include "ui/main_menubar.h"
 #include "ui/gui.h"
 #include "app/preferences.h"
+#include "rendering/ui/toast_renderer.h"
 #include <format>
 
 ViewSettingsHandler::ViewSettingsHandler(MainMenuBar* menuBar) :
@@ -172,8 +173,10 @@ void ViewSettingsHandler::OnToggleAutomagic(wxCommandEvent& WXUNUSED(event)) {
 	g_settings.setInteger(Config::BORDER_IS_GROUND, menuBar->IsItemChecked(AUTOMAGIC));
 	if (g_settings.getInteger(Config::USE_AUTOMAGIC)) {
 		g_gui.SetStatusText("Automagic enabled.");
+		g_toast.Show("Automagic Enabled");
 	} else {
 		g_gui.SetStatusText("Automagic disabled.");
+		g_toast.Show("Automagic Disabled");
 	}
 }
 
@@ -197,7 +200,9 @@ void ViewSettingsHandler::OnSelectionLassoToggle(wxCommandEvent& WXUNUSED(event)
 
 	if (enabled) {
 		g_gui.SetStatusText("Lasso selection enabled.");
+		g_toast.Show("Lasso Tool Enabled");
 	} else {
 		g_gui.SetStatusText("Lasso selection disabled.");
+		g_toast.Show("Lasso Tool Disabled");
 	}
 }

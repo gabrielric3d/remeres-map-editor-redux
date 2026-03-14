@@ -61,6 +61,7 @@ private:
 	void DrawSegment(NVGcontext* vg, int index, bool hovered) const;
 	void DrawCenterCircle(NVGcontext* vg) const;
 	void DrawLabel(NVGcontext* vg) const;
+	void DrawIcon(NVGcontext* vg, float cx, float cy, float size, int index, bool hovered) const;
 
 	float GetSegmentAngleStart(int index) const;
 	float GetSegmentAngleEnd(int index) const;

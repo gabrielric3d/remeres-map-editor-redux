@@ -52,6 +52,7 @@
 #include "ui/dialogs/area_decoration_dialog.h"
 #include "ui/dialogs/structure_manager_window.h"
 
+#include "rendering/ui/toast_renderer.h"
 #include "live/live_client.h"
 #include "live/live_tab.h"
 #include "live/live_server.h"
@@ -142,6 +143,7 @@ void GUI::SetSelectionMode() {
 	}
 
 	mapTab->OnSwitchEditorMode(SELECTION_MODE);
+	g_toast.Show("Selection Mode");
 }
 
 void GUI::SetDrawingMode() {
@@ -151,6 +153,7 @@ void GUI::SetDrawingMode() {
 	}
 
 	mapTab->OnSwitchEditorMode(DRAWING_MODE);
+	g_toast.Show("Drawing Mode");
 
 	if (GetCurrentBrush() && GetCurrentBrush()->is<DoodadBrush>()) {
 		if (mapTab) {

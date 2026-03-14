@@ -350,6 +350,8 @@ void Settings::IO(IOMode mode) {
 	Bool(SELECTION_LASSO, false);
 	String(CREATURE_FAVORITES, "");
 	String(CREATURES_JSON_PATH, "");
+	String(FAVORITE_FILES, "");
+	Bool(SHOW_TOAST_NOTIFICATIONS, true);
 
 	Int(CURSOR_RED, 0);
 	Int(CURSOR_GREEN, 166);

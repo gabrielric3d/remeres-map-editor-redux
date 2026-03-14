@@ -75,12 +75,12 @@ void RadialWheel::SetupDefaultEntries() {
 		FireMenuEvent(MenuBar::JUMP_TO_BRUSH);
 	}});
 
-	m_entries.push_back({"Undo", "U", []() {
-		FireMenuEvent(MenuBar::UNDO);
+	m_entries.push_back({"Lasso Tool", "L", []() {
+		FireMenuEvent(MenuBar::SELECT_MODE_LASSO);
 	}});
 
-	m_entries.push_back({"Redo", "Y", []() {
-		FireMenuEvent(MenuBar::REDO);
+	m_entries.push_back({"Borderize", "B", []() {
+		FireMenuEvent(MenuBar::BORDERIZE_SELECTION);
 	}});
 }
 
@@ -201,22 +201,26 @@ void RadialWheel::Draw(NVGcontext* vg, int canvas_width, int canvas_height) {
 	// Draw center circle
 	DrawCenterCircle(vg);
 
-	// Draw labels inside each segment
+	// Draw icons and labels inside each segment
 	for (int i = 0; i < count; i++) {
 		float mid_angle = (GetSegmentAngleStart(i) + GetSegmentAngleEnd(i)) / 2.0f;
 		float lx = cx + std::cos(mid_angle) * LABEL_RADIUS;
 		float ly = cy + std::sin(mid_angle) * LABEL_RADIUS;
 
 		bool hovered = (i == m_hovered_index);
+		float icon_size = hovered ? 16.0f : 13.0f;
 
-		// Draw the label text
-		nvgFontSize(vg, hovered ? 18.0f : 15.0f);
+		// Draw icon above text
+		DrawIcon(vg, lx, ly - 12.0f, icon_size, i, hovered);
+
+		// Draw the label text below icon
+		nvgFontSize(vg, hovered ? 15.0f : 12.0f);
 		nvgFontFace(vg, "sans");
 		nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
 
 		// Text shadow
 		nvgFillColor(vg, nvgRGBA(0, 0, 0, 200));
-		nvgText(vg, lx + 1.0f, ly + 1.0f, m_entries[i].label.c_str(), nullptr);
+		nvgText(vg, lx + 1.0f, ly + 10.0f + 1.0f, m_entries[i].label.c_str(), nullptr);
 
 		// Text
 		if (hovered) {
@@ -224,7 +228,7 @@ void RadialWheel::Draw(NVGcontext* vg, int canvas_width, int canvas_height) {
 		} else {
 			nvgFillColor(vg, nvgRGBA(200, 200, 205, 220));
 		}
-		nvgText(vg, lx, ly, m_entries[i].label.c_str(), nullptr);
+		nvgText(vg, lx, ly + 10.0f, m_entries[i].label.c_str(), nullptr);
 	}
 
 	// Draw hovered label tooltip at center
@@ -289,6 +293,172 @@ void RadialWheel::DrawCenterCircle(NVGcontext* vg) const {
 	nvgCircle(vg, cx, cy, 4.0f);
 	nvgFillColor(vg, nvgRGBA(180, 180, 190, 200));
 	nvgFill(vg);
+}
+
+void RadialWheel::DrawIcon(NVGcontext* vg, float cx, float cy, float size, int index, bool hovered) const {
+	float half = size / 2.0f;
+	NVGcolor color = hovered ? nvgRGBA(255, 255, 255, 255) : nvgRGBA(180, 180, 190, 220);
+	NVGcolor shadow = nvgRGBA(0, 0, 0, 150);
+	float stroke_w = hovered ? 2.0f : 1.5f;
+
+	// Draw shadow offset
+	auto drawShape = [&](float ox, float oy, NVGcolor col) {
+		nvgStrokeColor(vg, col);
+		nvgFillColor(vg, col);
+		nvgStrokeWidth(vg, stroke_w);
+		float x = cx + ox;
+		float y = cy + oy;
+
+		switch (index) {
+			case 0: {
+				// Selection Mode - cursor/pointer arrow
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, x - half * 0.4f, y - half);
+				nvgLineTo(vg, x - half * 0.4f, y + half * 0.6f);
+				nvgLineTo(vg, x, y + half * 0.2f);
+				nvgLineTo(vg, x + half * 0.4f, y + half);
+				nvgLineTo(vg, x + half * 0.6f, y + half * 0.6f);
+				nvgLineTo(vg, x + half * 0.15f, y);
+				nvgLineTo(vg, x + half * 0.7f, y - half * 0.3f);
+				nvgClosePath(vg);
+				nvgFill(vg);
+				break;
+			}
+			case 1: {
+				// Drawing Mode - pencil
+				nvgBeginPath(vg);
+				// Pencil body (diagonal)
+				nvgMoveTo(vg, x + half * 0.7f, y - half * 0.9f);
+				nvgLineTo(vg, x + half * 0.9f, y - half * 0.7f);
+				nvgLineTo(vg, x - half * 0.5f, y + half * 0.7f);
+				nvgLineTo(vg, x - half * 0.9f, y + half * 0.9f);
+				nvgLineTo(vg, x - half * 0.7f, y + half * 0.5f);
+				nvgClosePath(vg);
+				nvgFill(vg);
+				break;
+			}
+			case 2: {
+				// Find Item - magnifying glass
+				float r = half * 0.5f;
+				nvgBeginPath(vg);
+				nvgCircle(vg, x - half * 0.15f, y - half * 0.15f, r);
+				nvgStroke(vg);
+				// Handle
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, x + half * 0.2f, y + half * 0.2f);
+				nvgLineTo(vg, x + half * 0.8f, y + half * 0.8f);
+				nvgStrokeWidth(vg, stroke_w + 1.0f);
+				nvgStroke(vg);
+				nvgStrokeWidth(vg, stroke_w);
+				break;
+			}
+			case 3: {
+				// Replace Items - two arrows cycling
+				float r = half * 0.6f;
+				// Top arc
+				nvgBeginPath(vg);
+				nvgArc(vg, x, y, r, -(float)M_PI * 0.8f, -(float)M_PI * 0.1f, NVG_CW);
+				nvgStroke(vg);
+				// Top arrowhead
+				float ax = x + std::cos(-(float)M_PI * 0.1f) * r;
+				float ay = y + std::sin(-(float)M_PI * 0.1f) * r;
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, ax, ay);
+				nvgLineTo(vg, ax - half * 0.3f, ay - half * 0.2f);
+				nvgLineTo(vg, ax + half * 0.1f, ay - half * 0.3f);
+				nvgClosePath(vg);
+				nvgFill(vg);
+				// Bottom arc
+				nvgBeginPath(vg);
+				nvgArc(vg, x, y, r, (float)M_PI * 0.2f, (float)M_PI * 0.9f, NVG_CW);
+				nvgStroke(vg);
+				// Bottom arrowhead
+				float bx = x + std::cos((float)M_PI * 0.9f) * r;
+				float by = y + std::sin((float)M_PI * 0.9f) * r;
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, bx, by);
+				nvgLineTo(vg, bx + half * 0.3f, by + half * 0.2f);
+				nvgLineTo(vg, bx - half * 0.1f, by + half * 0.3f);
+				nvgClosePath(vg);
+				nvgFill(vg);
+				break;
+			}
+			case 4: {
+				// Go to Position - crosshair
+				nvgBeginPath(vg);
+				nvgCircle(vg, x, y, half * 0.6f);
+				nvgStroke(vg);
+				// Cross lines
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, x, y - half);
+				nvgLineTo(vg, x, y + half);
+				nvgStroke(vg);
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, x - half, y);
+				nvgLineTo(vg, x + half, y);
+				nvgStroke(vg);
+				break;
+			}
+			case 5: {
+				// Jump to Brush - paintbrush
+				nvgBeginPath(vg);
+				// Brush head
+				nvgRoundedRect(vg, x - half * 0.4f, y - half * 0.9f, half * 0.8f, half * 0.7f, half * 0.15f);
+				nvgFill(vg);
+				// Handle
+				nvgBeginPath(vg);
+				nvgRect(vg, x - half * 0.2f, y - half * 0.2f, half * 0.4f, half * 1.1f);
+				nvgFill(vg);
+				break;
+			}
+			case 6: {
+				// Lasso Tool - lasso/loop shape
+				nvgBeginPath(vg);
+				nvgEllipse(vg, x, y - half * 0.15f, half * 0.65f, half * 0.5f);
+				nvgStroke(vg);
+				// Rope tail hanging down
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, x + half * 0.6f, y + half * 0.1f);
+				nvgBezierTo(vg, x + half * 0.8f, y + half * 0.6f, x + half * 0.2f, y + half * 0.7f, x + half * 0.1f, y + half * 0.9f);
+				nvgStroke(vg);
+				break;
+			}
+			case 7: {
+				// Borderize - grid/border pattern
+				float s = half * 0.7f;
+				// Outer square
+				nvgBeginPath(vg);
+				nvgRect(vg, x - s, y - s, s * 2.0f, s * 2.0f);
+				nvgStroke(vg);
+				// Inner dashed cross pattern (border lines)
+				float q = s * 0.5f;
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, x - s, y - q);
+				nvgLineTo(vg, x + s, y - q);
+				nvgStroke(vg);
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, x - s, y + q);
+				nvgLineTo(vg, x + s, y + q);
+				nvgStroke(vg);
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, x - q, y - s);
+				nvgLineTo(vg, x - q, y + s);
+				nvgStroke(vg);
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, x + q, y - s);
+				nvgLineTo(vg, x + q, y + s);
+				nvgStroke(vg);
+				break;
+			}
+			default:
+				break;
+		}
+	};
+
+	// Shadow pass
+	drawShape(1.0f, 1.0f, shadow);
+	// Main pass
+	drawShape(0.0f, 0.0f, color);
 }
 
 void RadialWheel::DrawLabel(NVGcontext* vg) const {

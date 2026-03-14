@@ -65,6 +65,7 @@
 #include "rendering/ui/drawing_controller.h"
 #include "rendering/ui/map_menu_handler.h"
 #include "rendering/ui/radial_wheel.h"
+#include "rendering/ui/toast_renderer.h"
 
 #include "brushes/doodad/doodad_brush.h"
 #include "brushes/house/house_exit_brush.h"
@@ -242,6 +243,15 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 	}
 	if (options.show_spawns) {
 		drawer->DrawSpawnOverlays(vg);
+	}
+
+	// Draw toast notifications
+	if (g_toast.HasActiveToasts()) {
+		g_toast.Draw(vg, GetSize().x, GetSize().y);
+		// Keep refreshing while toasts are animating
+		if (g_toast.HasActiveToasts()) {
+			Refresh();
+		}
 	}
 
 	// Draw radial wheel overlay (always on top)

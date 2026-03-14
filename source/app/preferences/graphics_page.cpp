@@ -181,6 +181,12 @@ GraphicsPage::GraphicsPage(wxWindow* parent) : ScrollablePreferencesPage(parent)
 		"Display the current frame rate in the editor status area while you work.",
 		g_settings.getBoolean(Config::SHOW_FPS_COUNTER)
 	);
+	show_toast_chkbox = PreferencesLayout::AddCheckBoxRow(
+		performance_section,
+		"Show toast notifications",
+		"Display temporary banner notifications when toggling tools (Lasso, Automagic, etc).",
+		g_settings.getBoolean(Config::SHOW_TOAST_NOTIFICATIONS)
+	);
 	page_sizer->Add(performance_section, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
 
 	FinishLayout();
@@ -244,6 +250,7 @@ void GraphicsPage::Apply() {
 	g_settings.setInteger(Config::HIDE_ITEMS_WHEN_ZOOMED, hide_items_when_zoomed_chkbox->GetValue());
 	g_settings.setInteger(Config::FRAME_RATE_LIMIT, fps_limit_spin->GetValue());
 	g_settings.setInteger(Config::SHOW_FPS_COUNTER, show_fps_chkbox->GetValue());
+	g_settings.setInteger(Config::SHOW_TOAST_NOTIFICATIONS, show_toast_chkbox->GetValue());
 
 	if (must_restart) {
 		wxMessageBox("Some changes require a restart of the application to take effect.", "Restart Required", wxOK | wxICON_INFORMATION);

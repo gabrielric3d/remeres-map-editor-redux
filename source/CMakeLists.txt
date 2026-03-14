@@ -115,6 +115,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/structure_manager_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_rule_from_selection_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/cluster_preview_window.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/open_map_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/outfit_chooser_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/outfit_preview_panel.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/outfit_selection_grid.h
@@ -237,6 +238,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/popup_action_handler.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/screenshot_controller.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/selection_controller.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/toast_renderer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/tooltip_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/zoom_controller.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/utilities/fps_counter.h
@@ -479,6 +481,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/structure_manager_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_rule_from_selection_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/cluster_preview_window.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/open_map_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/outfit_chooser_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/outfit_preview_panel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/outfit_selection_grid.cpp
@@ -594,6 +597,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/radial_wheel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/screenshot_controller.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/selection_controller.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/toast_renderer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/tooltip_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/zoom_controller.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/utilities/fps_counter.cpp

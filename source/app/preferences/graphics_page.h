@@ -32,6 +32,7 @@ private:
 
 	wxSpinCtrl* fps_limit_spin = nullptr;
 	wxCheckBox* show_fps_chkbox = nullptr;
+	wxCheckBox* show_toast_chkbox = nullptr;
 };
 
 #endif
