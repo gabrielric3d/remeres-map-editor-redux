@@ -1,5 +1,6 @@
 #include "item_definitions/core/item_definition_resolver.h"
 
+#include <algorithm>
 #include <format>
 #include <unordered_map>
 
@@ -73,6 +74,11 @@ bool ItemDefinitionResolver::resolveDatOtb(const ItemDefinitionFragments& fragme
 		error = "No item definitions were resolved from DAT/OTB/XML.";
 		return false;
 	}
+
+	std::sort(rows.begin(), rows.end(), [](const ResolvedItemDefinitionRow& a, const ResolvedItemDefinitionRow& b) {
+		return a.server_id < b.server_id;
+	});
+
 	return true;
 }
 
