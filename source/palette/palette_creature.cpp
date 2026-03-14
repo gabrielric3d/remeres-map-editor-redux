@@ -46,8 +46,9 @@ CreaturePalettePanel::CreaturePalettePanel(wxWindow* parent, wxWindowID id) :
 	creature_filter_text->SetHint("Search...");
 	topsizer->Add(creature_filter_text, 0, wxEXPAND | wxALL, 4);
 
-	// Preview toggle
-	creature_preview_checkbox = newd wxCheckBox(this, PALETTE_CREATURE_PREVIEW_TOGGLE, "Preview 32x32");
+	// List view toggle
+	creature_preview_checkbox = newd wxCheckBox(this, PALETTE_CREATURE_PREVIEW_TOGGLE, "List View");
+	creature_preview_checkbox->SetValue(g_settings.getInteger(Config::PALETTE_CREATURE_STYLE) == BRUSHLIST_LISTBOX);
 	topsizer->Add(creature_preview_checkbox, 0, wxLEFT | wxRIGHT | wxBOTTOM, 4);
 
 	choicebook = newd wxChoicebook(this, wxID_ANY);
@@ -381,8 +382,9 @@ void CreaturePalettePanel::OnFilterCharHook(wxKeyEvent& event) {
 }
 
 void CreaturePalettePanel::OnTogglePreview(wxCommandEvent& WXUNUSED(event)) {
-	bool checked = creature_preview_checkbox->GetValue();
-	BrushListType ltype = checked ? BRUSHLIST_LARGE_ICONS : BRUSHLIST_LISTBOX;
+	bool list_view = creature_preview_checkbox->GetValue();
+	BrushListType ltype = list_view ? BRUSHLIST_LISTBOX : BRUSHLIST_LARGE_ICONS;
+	g_settings.setInteger(Config::PALETTE_CREATURE_STYLE, static_cast<int>(ltype));
 	for (size_t i = 0; i < choicebook->GetPageCount(); ++i) {
 		BrushPanel* bp = reinterpret_cast<BrushPanel*>(choicebook->GetPage(i));
 		bp->SetListType(ltype);
@@ -470,27 +472,33 @@ void CreaturePalettePanel::OnClickFavoriteRemove(wxCommandEvent& WXUNUSED(event)
 
 void CreaturePalettePanel::LoadFavoriteCreaturesFromSettings() {
 	favorite_creatures.clear();
-	std::stringstream stream(g_settings.getString(Config::CREATURE_FAVORITES));
-	std::string entry;
-	while (std::getline(stream, entry)) {
-		// Trim whitespace
-		entry.erase(0, entry.find_first_not_of(" \t\r\n"));
-		auto pos = entry.find_last_not_of(" \t\r\n");
-		if (pos != std::string::npos) {
-			entry.erase(pos + 1);
-		} else {
-			entry.clear();
-		}
-		if (entry.empty()) {
-			continue;
-		}
+	std::string raw = g_settings.getString(Config::CREATURE_FAVORITES);
 
-		const std::string normalized = as_lower_str(entry);
-		auto it = std::find_if(favorite_creatures.begin(), favorite_creatures.end(), [&](const std::string& existing) {
-			return as_lower_str(existing) == normalized;
-		});
-		if (it == favorite_creatures.end()) {
-			favorite_creatures.push_back(entry);
+	// Support both ';' (new format) and '\n' (legacy format) as separators
+	std::string entry;
+	for (size_t i = 0; i <= raw.size(); ++i) {
+		char ch = (i < raw.size()) ? raw[i] : ';';
+		if (ch == ';' || ch == '\n') {
+			// Trim whitespace
+			entry.erase(0, entry.find_first_not_of(" \t\r\n"));
+			auto pos = entry.find_last_not_of(" \t\r\n");
+			if (pos != std::string::npos) {
+				entry.erase(pos + 1);
+			} else {
+				entry.clear();
+			}
+			if (!entry.empty()) {
+				const std::string normalized = as_lower_str(entry);
+				auto it = std::find_if(favorite_creatures.begin(), favorite_creatures.end(), [&](const std::string& existing) {
+					return as_lower_str(existing) == normalized;
+				});
+				if (it == favorite_creatures.end()) {
+					favorite_creatures.push_back(entry);
+				}
+			}
+			entry.clear();
+		} else {
+			entry += ch;
 		}
 	}
 
@@ -503,7 +511,7 @@ void CreaturePalettePanel::SaveFavoriteCreaturesToSettings() const {
 	std::ostringstream stream;
 	for (size_t i = 0; i < favorite_creatures.size(); ++i) {
 		if (i != 0) {
-			stream << '\n';
+			stream << ';';
 		}
 		stream << favorite_creatures[i];
 	}

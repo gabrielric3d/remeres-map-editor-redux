@@ -146,15 +146,6 @@ bool VersionManager::LoadDataFiles(wxString& error, std::vector<std::string>& wa
 		}
 	}
 
-	// Load creatures from custom JSON path if configured
-	std::string custom_json_path = g_settings.getString(Config::CREATURES_JSON_PATH);
-	if (!custom_json_path.empty() && wxFileName::FileExists(custom_json_path)) {
-		g_loading.SetLoadDone(48, "Loading custom creatures.json ...");
-		if (!g_creatures.loadFromJSON(FileName(custom_json_path), false, error, warnings)) {
-			warnings.push_back(std::format("Couldn't load custom creatures.json '{}': {}", custom_json_path, error.ToStdString()));
-		}
-	}
-
 	g_loading.SetLoadDone(50, "Loading materials.xml ...");
 	if (!g_materials.loadMaterials(base_data_path + "materials.xml", error, warnings)) {
 		warnings.push_back("Couldn't load materials.xml: " + std::string(error.mb_str()));
@@ -169,6 +160,20 @@ bool VersionManager::LoadDataFiles(wxString& error, std::vector<std::string>& wa
 	g_loading.SetLoadDone(70, "Finishing...");
 	g_brushes.init();
 	g_materials.createOtherTileset();
+
+	// Load creatures from custom JSON path AFTER tilesets are created
+	std::string custom_json_path = g_settings.getString(Config::CREATURES_JSON_PATH);
+	if (!custom_json_path.empty()) {
+		if (wxFileName::FileExists(custom_json_path)) {
+			spdlog::info("Loading custom creatures from: {}", custom_json_path);
+			if (!g_creatures.loadFromJSON(FileName(custom_json_path), false, error, warnings)) {
+				spdlog::warn("Failed to load custom creatures.json: {}", error.ToStdString());
+				warnings.push_back(std::format("Couldn't load custom creatures.json '{}': {}", custom_json_path, error.ToStdString()));
+			}
+		} else {
+			spdlog::warn("Custom creatures.json path does not exist: {}", custom_json_path);
+		}
+	}
 
 	g_loading.DestroyLoadBar();
 	return true;
@@ -188,9 +193,6 @@ void VersionManager::UnloadVersion() {
 		g_item_definitions.clear();
 		g_gui.gfx.clear();
 
-		// FileName cdb = getLoadedVersion()->getLocalDataPath();
-		// cdb.SetFullName("creatures.xml");
-		// g_creatures.saveToXML(cdb); // Disabled to prevent dual source of truth
 		g_creatures.clear();
 
 		loaded_version = CLIENT_VERSION_NONE;

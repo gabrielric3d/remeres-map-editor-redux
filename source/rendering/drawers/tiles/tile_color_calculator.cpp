@@ -25,14 +25,6 @@ void TileColorCalculator::Calculate(const Tile* tile, const DrawingOptions& opti
 		r = (r * factor[idx]) >> 8;
 	}
 
-	if (options.show_spawns && spawn_count > 0) {
-		// Precomputed 0.7^n * 256 for n=1..9
-		static constexpr std::array<int, 9> spawn_factor = { 179, 125, 88, 61, 43, 30, 21, 15, 10 };
-		int f = spawn_factor[std::clamp(spawn_count, 1, 9) - 1];
-		g = (g * f) >> 8;
-		b = (b * f) >> 8;
-	}
-
 	if (options.show_houses && tile->isHouseTile()) {
 		uint32_t house_id = tile->getHouseID();
 

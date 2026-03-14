@@ -61,6 +61,7 @@
 #include "rendering/drawers/entities/creature_drawer.h"
 #include "rendering/drawers/overlays/marker_drawer.h"
 #include "rendering/drawers/overlays/camera_path_drawer.h"
+#include "rendering/drawers/overlays/spawn_overlay_drawer.h"
 #include "rendering/drawers/overlays/preview_drawer.h"
 #include "rendering/drawers/tiles/shade_drawer.h"
 #include "rendering/drawers/tiles/tile_color_calculator.h"
@@ -99,6 +100,7 @@ MapDrawer::MapDrawer(MapCanvas* canvas) :
 	item_drawer = std::make_unique<ItemDrawer>();
 	marker_drawer = std::make_unique<MarkerDrawer>();
 	camera_path_drawer = std::make_unique<CameraPathDrawer>();
+	spawn_overlay_drawer = std::make_unique<SpawnOverlayDrawer>();
 
 	creature_name_drawer = std::make_unique<CreatureNameDrawer>();
 
@@ -358,6 +360,11 @@ void MapDrawer::Draw() {
 		camera_path_drawer->draw(*primitive_renderer, view, options, editor);
 	}
 
+	if (options.show_spawns) {
+		spawn_overlay_drawer->collect(editor, view, options);
+		spawn_overlay_drawer->draw(*primitive_renderer, view, options);
+	}
+
 	if (options.show_grid) {
 		DrawGrid(original_bounds);
 	}
@@ -432,6 +439,10 @@ void MapDrawer::DrawTooltips(NVGcontext* vg) {
 
 void MapDrawer::DrawCreatureNames(NVGcontext* vg) {
 	creature_name_drawer->draw(vg, view);
+}
+
+void MapDrawer::DrawSpawnOverlays(NVGcontext* vg) {
+	spawn_overlay_drawer->drawLabels(vg, view);
 }
 
 void MapDrawer::DrawMapLayer(int map_z, bool live_client) {

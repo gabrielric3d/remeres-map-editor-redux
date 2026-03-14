@@ -84,6 +84,7 @@ private:
 	ClientVersion* active_client = nullptr;
 	bool ignore_tree_selection = false;
 	bool suppress_property_events = false;
+	bool populating_tree = false;
 	wxString last_search_text;
 	std::string client_filter;
 	std::unordered_set<std::string> pending_deleted_client_ids;

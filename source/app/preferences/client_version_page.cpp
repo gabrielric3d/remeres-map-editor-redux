@@ -314,6 +314,11 @@ int ClientVersionPage::GetMajorGroup(const ClientVersion& version) const {
 }
 
 void ClientVersionPage::PopulateClientTree() {
+	if (populating_tree) {
+		return;
+	}
+	populating_tree = true;
+
 	ClientVersion* preferred_selection = active_client;
 	client_tree_ctrl->Freeze();
 	client_tree_ctrl->DeleteAllItems();
@@ -376,6 +381,7 @@ void ClientVersionPage::PopulateClientTree() {
 	}
 	ignore_tree_selection = false;
 	client_tree_ctrl->Thaw();
+	populating_tree = false;
 }
 
 void ClientVersionPage::SelectClient(ClientVersion* version) {
@@ -888,18 +894,24 @@ void ClientVersionPage::OnDuplicateClient(wxCommandEvent& WXUNUSED(event)) {
 		return;
 	}
 
+	if (!ResolvePendingChanges(active_client)) {
+		return;
+	}
+
 	auto duplicate = current->clone();
 	duplicate->setName(current->getName() + " (Copy)");
 	duplicate->markDirty();
 
 	ClientVersion* duplicate_ptr = duplicate.get();
 	ClientVersion::addVersion(std::move(duplicate));
-	PopulateDefaultVersionChoice();
-	PopulateClientTree();
 	active_client = duplicate_ptr;
 	active_client->backup();
 	active_client->markDirty();
+	PopulateDefaultVersionChoice();
+	PopulateClientTree();
+	ignore_tree_selection = true;
 	SelectClient(active_client);
+	ignore_tree_selection = false;
 	RefreshClientEditor();
 }
 
@@ -987,7 +999,9 @@ void ClientVersionPage::OnPropertyChanged(wxPropertyGridEvent& event) {
 	PopulateDefaultVersionChoice();
 	if (prop_name == "Name" || prop_name == "Version") {
 		PopulateClientTree();
+		ignore_tree_selection = true;
 		SelectClient(client);
+		ignore_tree_selection = false;
 	}
 
 	UpdatePropertyValidation(prop);
@@ -1012,14 +1026,20 @@ void ClientVersionPage::OnAddClient(wxCommandEvent& WXUNUSED(event)) {
 	client->setSpritesFile("Tibia.spr");
 	client->markDirty();
 
+	if (!ResolvePendingChanges(active_client)) {
+		return;
+	}
+
 	ClientVersion* client_ptr = client.get();
 	ClientVersion::addVersion(std::move(client));
-	PopulateDefaultVersionChoice();
-	PopulateClientTree();
 	active_client = client_ptr;
 	active_client->backup();
 	active_client->markDirty();
+	PopulateDefaultVersionChoice();
+	PopulateClientTree();
+	ignore_tree_selection = true;
 	SelectClient(active_client);
+	ignore_tree_selection = false;
 	RefreshClientEditor();
 }
 

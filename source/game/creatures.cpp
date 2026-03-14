@@ -507,3 +507,39 @@ bool CreatureDatabase::loadFromJSON(const FileName& filename, bool standard, wxS
 	}
 	return true;
 }
+
+bool CreatureDatabase::saveToJSON(const FileName& filename) {
+	nlohmann::json root = nlohmann::json::object();
+
+	for (const auto& [key, creatureType] : creature_map) {
+		if (!creatureType || creatureType->standard) {
+			continue;
+		}
+
+		nlohmann::json outfit_json;
+		const Outfit& outfit = creatureType->outfit;
+		outfit_json["lookType"] = outfit.lookType;
+		outfit_json["lookItem"] = outfit.lookItem;
+		outfit_json["lookMount"] = outfit.lookMount;
+		outfit_json["lookAddon"] = outfit.lookAddon;
+		outfit_json["lookHead"] = outfit.lookHead;
+		outfit_json["lookBody"] = outfit.lookBody;
+		outfit_json["lookLegs"] = outfit.lookLegs;
+		outfit_json["lookFeet"] = outfit.lookFeet;
+		outfit_json["lookMountHead"] = outfit.lookMountHead;
+		outfit_json["lookMountBody"] = outfit.lookMountBody;
+		outfit_json["lookMountLegs"] = outfit.lookMountLegs;
+		outfit_json["lookMountFeet"] = outfit.lookMountFeet;
+
+		nlohmann::json creature_json;
+		creature_json["outfit"] = outfit_json;
+		root[creatureType->name] = creature_json;
+	}
+
+	std::ofstream file(filename.GetFullPath().ToStdString());
+	if (!file.is_open()) {
+		return false;
+	}
+	file << root.dump(2);
+	return file.good();
+}

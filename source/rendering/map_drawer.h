@@ -54,6 +54,7 @@ class MapLayerDrawer;
 class CreatureDrawer;
 class MarkerDrawer;
 class CameraPathDrawer;
+class SpawnOverlayDrawer;
 class PreviewDrawer;
 class ShadeDrawer;
 class TileRenderer;
@@ -82,6 +83,7 @@ class MapDrawer {
 	std::unique_ptr<ItemDrawer> item_drawer;
 	std::unique_ptr<MarkerDrawer> marker_drawer;
 	std::unique_ptr<CameraPathDrawer> camera_path_drawer;
+	std::unique_ptr<SpawnOverlayDrawer> spawn_overlay_drawer;
 	std::unique_ptr<PreviewDrawer> preview_drawer;
 	std::unique_ptr<ShadeDrawer> shade_drawer;
 	std::unique_ptr<TileRenderer> tile_renderer;
@@ -132,6 +134,7 @@ public:
 	void DrawDoorIndicators(NVGcontext* vg);
 	void ClearFrameOverlays();
 	void DrawCreatureNames(NVGcontext* vg);
+	void DrawSpawnOverlays(NVGcontext* vg);
 
 	void DrawLight();
 

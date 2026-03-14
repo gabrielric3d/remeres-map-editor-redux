@@ -59,6 +59,7 @@ public:
 	bool saveToXML(const FileName& filename);
 
 	bool loadFromJSON(const FileName& filename, bool standard, wxString& error, std::vector<std::string>& warnings);
+	bool saveToJSON(const FileName& filename);
 };
 
 class CreatureType {
