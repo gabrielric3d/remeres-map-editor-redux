@@ -8,8 +8,8 @@ borderize_drag_threshold = 6000
 borderize_paste = true
 borderize_paste_threshold = 10000
 compensated_select = true
-copy_position_format = 0
-current_spawn_radius = 4
+copy_position_format = 4
+current_spawn_radius = 5
 default_client_version = 57
 default_spawntime = 60
 doodad_brush_erase_like = false
@@ -25,9 +25,16 @@ merge_move = false
 merge_paste = false
 only_one_instance = true
 raw_like_simone = true
-recent_edited_map_path = 'B:\Github\blacktalon-hell-expansion\mapa\hospital.otbm'
-recent_edited_map_position = '1134:1067:7'
-recent_files = [ 'B:\Github\blacktalon-hell-expansion\mapa\hospital.otbm' ]
+recent_edited_map_path = ''
+recent_edited_map_position = ''
+recent_files = [
+    'B:\Github\blacktalon-workspace\server\data\world\map.otbm',
+    'B:\Github\blacktalon-workspace\server\data\scripts\maps\eternal_depths\eternaldepths_allmaps.otbm',
+    'C:\Users\karol\Documents\GitHub\ItemEditor\otclientv8-offline-map-explorer\data\things\800\RME SAMPLE\1098\rme1098test.otbm',
+    'C:\Users\karol\Documents\GitHub\ItemEditor\otclientv8-offline-map-explorer\data\things\800\RME SAMPLE\1098\rme1098.otbm',
+    'C:\Users\karol\Documents\GitHub\ItemEditor\otclientv8-offline-map-explorer\data\things\800\RME SAMPLE\76 brazol\world.otbm',
+    'C:\Users\karol\Documents\GitHub\ItemEditor\otclientv8-offline-map-explorer\data\things\800\RME SAMPLE\74 brazol\world.otbm'
+]
 replace_size = 500
 save_with_otb_magic_number = false
 scroll_speed = 3.5
@@ -52,10 +59,6 @@ use_updater = true
 
 [graphics]
 anti_aliasing = 0
-creature_favorites = '''Blue Djinn
-Boar
-Breathless Fear'''
-creatures_json_path = 'B:\Github\blacktalon-workspace\server\data\scripts\creatures_table.json'
 cursor_alpha = 128
 cursor_alt_alpha = 128
 cursor_alt_blue = 0
@@ -71,11 +74,10 @@ icon_background = 0
 minimap_export_dir = ''
 minimap_update_delay = 333
 minimap_view_box = true
-screen_shader = 'None'
-screenshot_directory = 'C:\Users\biel0\OneDrive\Pictures\RME\'
+screen_shader = '4xBRZ'
+screenshot_directory = 'C:\Users\karol\Pictures\RME\'
 screenshot_format = 'png'
-selection_lasso = false
-show_fps_counter = false
+show_fps_counter = true
 software_clean_size = 500
 software_clean_threshold = 1800
 texture_clean_pulse = 15
@@ -96,18 +98,17 @@ hotkey_6 = 'NONE'
 hotkey_7 = 'NONE'
 hotkey_8 = 'NONE'
 hotkey_9 = 'NONE'
-menu_action_hotkeys = ''
 numerical_hotkeys = ''
 
 [toolbars]
-show_toolbar_brushes = false
-show_toolbar_position = false
-show_toolbar_sizes = false
+show_toolbar_brushes = true
+show_toolbar_position = true
+show_toolbar_sizes = true
 show_toolbar_standard = true
-toolbar_brushes_layout = ''
-toolbar_position_layout = ''
-toolbar_sizes_layout = ''
-toolbar_standard_layout = 'name=standard_toolbar;caption=;state=2106044;dir=1;layer=10;row=1;pos=1;prop=100000;bestw=464;besth=28;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
+toolbar_brushes_layout = 'name=brush_toolbar;caption=;state=2106044;dir=1;layer=10;row=1;pos=285;prop=100000;bestw=378;besth=26;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
+toolbar_position_layout = 'name=position_toolbar;caption=;state=2106044;dir=1;layer=10;row=1;pos=907;prop=100000;bestw=200;besth=24;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
+toolbar_sizes_layout = 'name=sizes_toolbar;caption=;state=2106044;dir=1;layer=10;row=1;pos=665;prop=100000;bestw=240;besth=26;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
+toolbar_standard_layout = 'name=standard_toolbar;caption=;state=2106044;dir=1;layer=10;row=1;pos=1;prop=100000;bestw=282;besth=26;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
 
 [ui]
 palette_col_count = 8
@@ -137,54 +138,50 @@ use_custom_data_directory = 0
 version_id = 40102000
 
 [view]
-always_show_zones = true
+always_show_zones = false
 draw_locked_door = false
-ext_house_shader = true
+ext_house_shader = false
 highlight_items = false
-highlight_locked_doors = true
+highlight_locked_doors = false
 show_all_floors = true
 show_as_minimap = false
 show_autoborder_preview = true
 show_blocking = false
-show_camera_paths = false
-show_creature_names = true
-show_creatures = true
-show_cursor_highlight = true
+show_creatures = false
 show_extra = true
 show_grid = false
-show_houses = true
+show_houses = false
 show_ingame_box = false
 show_items = true
-show_light_str = true
+show_light_str = false
 show_lights = false
-show_only_grounds = false
 show_only_modified_tiles = false
 show_only_tileflags = false
-show_preview = true
+show_preview = false
 show_shade = false
-show_spawns = true
-show_special_tiles = true
-show_technical_items = true
-show_tooltips = true
+show_spawns = false
+show_special_tiles = false
+show_technical_items = false
+show_tooltips = false
 show_towns = false
 show_wall_hooks = false
-show_waypoints = true
+show_waypoints = false
 transparent_floors = false
 transparent_items = false
 
 [window]
-house_palette_layout = 'name=HousePalette;caption=Houses;state=6293500;dir=2;layer=0;row=0;pos=1;prop=100000;bestw=230;besth=400;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
-ingame_preview_layout = ''
+house_palette_layout = 'name=HousePalette;caption=Houses;state=6293502;dir=2;layer=0;row=0;pos=0;prop=100000;bestw=230;besth=400;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
+ingame_preview_layout = 'name=IngamePreview;caption=In-game Preview;state=2099198;dir=2;layer=0;row=0;pos=0;prop=100000;bestw=404;besth=150;minw=200;minh=150;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=400;floath=300;floatw_cli=-1;floath_cli=-1'
 ingame_preview_visible = false
-minimap_layout = ''
+minimap_layout = 'name=98f8fd00699b5b360003c4940000000c;caption=Minimap;state=2099199;dir=4;layer=0;row=0;pos=1;prop=100000;bestw=205;besth=130;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=481;floaty=391;floatw=-1;floath=-1;floatw_cli=957;floath_cli=727'
 minimap_visible = false
-palette_layout = 'name=Palette_1;caption=Palette;state=2099196;dir=4;layer=0;row=0;pos=0;prop=100000;bestw=225;besth=300;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1|'
-preferences_window_height = 640
+palette_layout = ''
+preferences_window_height = 690
 preferences_window_width = 1200
 replace_tool_window_height = 850
 replace_tool_window_width = 1400
-theme = 0
-tool_options_layout = 'name=ToolOptions;caption=Tool Options;state=6293500;dir=2;layer=0;row=0;pos=0;prop=100000;bestw=230;besth=300;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=2315;floaty=86;floatw=-1;floath=-1;floatw_cli=230;floath_cli=300'
+theme = 2
+tool_options_layout = 'name=ToolOptions;caption=Tool Options;state=6293502;dir=4;layer=0;row=0;pos=0;prop=100000;bestw=230;besth=300;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=79;floaty=1259;floatw=-1;floath=-1;floatw_cli=230;floath_cli=300'
 welcome_dialog = true
 window_height = 1408
 window_maximized = true
@@ -192,7 +189,7 @@ window_width = 2576
 
 [[clients]]
 clientPath = ''
-default = false
+default = true
 name = '7.4'
 
 [[clients]]
@@ -456,7 +453,7 @@ default = false
 name = '10.77'
 
 [[clients]]
-clientPath = ''
+clientPath = 'B:\Github\remeres-map-editor-redux-GLASCZ\data\1098'
 default = false
 name = '10.98'
 
@@ -516,21 +513,6 @@ default = false
 name = '12.86-assets'
 
 [[clients]]
-clientPath = 'B:\Github\blacktalon-workspace\client\data\things\1098'
+clientPath = ''
 default = false
 name = '7.7-srv'
-
-[[clients]]
-clientPath = ''
-default = false
-name = '10.98dat'
-
-[[clients]]
-clientPath = ''
-default = false
-name = '1098-BlackTek'
-
-[[clients]]
-clientPath = 'B:\Github\blacktalon-workspace\client\data\things\1098'
-default = true
-name = '10.98 (Copy)'
