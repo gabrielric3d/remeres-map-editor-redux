@@ -25,20 +25,26 @@
 #include <spdlog/spdlog.h>
 
 void EditorPersistence::loadMap(Editor& editor, const FileName& fn, const MapLoadOptions& load_options) {
+	spdlog::info("EditorPersistence::loadMap - START: {}", nstr(fn.GetFullPath()));
 	MapVersion ver;
 	if (!IOMapOTBM::getVersionInfo(fn, ver)) {
 		throw std::runtime_error("Could not open file \"" + nstr(fn.GetFullPath()) + "\".\nThis is not a valid OTBM file or it does not exist.");
 	}
+	spdlog::info("EditorPersistence::loadMap - Version info OK (client={})", ver.client);
 
 	if (g_version.GetCurrentVersion().getProtocolID() != ver.client && !load_options.force_client_mismatch) {
 		throw std::runtime_error(std::format("Client version mismatch. Expected protocol {} but got protocol {}", ver.client, g_version.GetCurrentVersion().getProtocolID()));
 	}
 
+	spdlog::info("EditorPersistence::loadMap - Opening map file...");
 	ScopedLoadingBar loadingBar("Loading OTBM map...");
 	editor.map.open(nstr(fn.GetFullPath()));
+	spdlog::info("EditorPersistence::loadMap - Map opened OK");
 
 	// Load camera paths from sidecar file
+	spdlog::info("EditorPersistence::loadMap - Loading camera paths...");
 	editor.map.camera_paths.loadFromFile(fn);
+	spdlog::info("EditorPersistence::loadMap - DONE");
 }
 
 void EditorPersistence::saveMap(Editor& editor, FileName filename, bool showdialog) {

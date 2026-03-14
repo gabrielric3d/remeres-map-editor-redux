@@ -48,6 +48,8 @@
 #include <wx/snglinst.h>
 #include <wx/stdpaths.h>
 #include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <thread>
 #include <chrono>
 
@@ -90,10 +92,16 @@ bool Application::OnInit() {
 	// 	freopen_s(&fp, "CONOUT$", "w", stderr);
 	// #endif
 
-	// Configure spdlog for info output
-	spdlog::set_level(spdlog::level::info);
-	spdlog::flush_on(spdlog::level::info);
-	spdlog::info("RME starting up - logging enabled");
+	// Configure spdlog with console + file output
+	{
+		auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+		auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("rme_debug.log", true);
+		auto logger = std::make_shared<spdlog::logger>("rme", spdlog::sinks_init_list{ console_sink, file_sink });
+		logger->set_level(spdlog::level::info);
+		logger->flush_on(spdlog::level::info);
+		spdlog::set_default_logger(logger);
+	}
+	spdlog::info("RME starting up - logging enabled (file: rme_debug.log)");
 
 	spdlog::info("This is free software: you are free to change and redistribute it.");
 	spdlog::info("There is NO WARRANTY, to the extent permitted by law.");
