@@ -1,6 +1,7 @@
 #ifndef RME_PREFERENCES_HOTKEYS_PAGE_H
 #define RME_PREFERENCES_HOTKEYS_PAGE_H
 
+#include <wx/choice.h>
 #include <wx/listctrl.h>
 #include <wx/textctrl.h>
 #include <wx/button.h>
@@ -39,6 +40,8 @@ private:
 	std::vector<MenuHotkeyEntry> m_entries;
 	bool m_capturing = false;
 	std::string m_capturedHotkey;
+
+	wxChoice* m_groundReplaceModifier = nullptr;
 };
 
 #endif

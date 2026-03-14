@@ -17,6 +17,7 @@
 
 #include "app/main.h"
 #include "app/preferences/hotkeys_page.h"
+#include "app/settings.h"
 #include "editor/hotkey_utils.h"
 #include "ui/gui.h"
 #include "ui/main_frame.h"
@@ -84,6 +85,28 @@ HotkeysPage::HotkeysPage(wxWindow* parent) :
 	m_statusText->SetForegroundColour(Theme::Get(Theme::Role::TextSubtle));
 	sizer->Add(m_statusText, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(8));
 
+	// Drawing Modifiers section
+	auto* modifierBox = new wxStaticBoxSizer(wxHORIZONTAL, this, "Drawing Modifiers");
+	modifierBox->Add(new wxStaticText(modifierBox->GetStaticBox(), wxID_ANY, "Ground Replace Modifier:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+
+	wxArrayString modChoices;
+	modChoices.Add("Alt");
+	modChoices.Add("Ctrl");
+	modChoices.Add("Shift");
+	m_groundReplaceModifier = new wxChoice(modifierBox->GetStaticBox(), wxID_ANY, wxDefaultPosition, wxDefaultSize, modChoices);
+
+	std::string currentMod = g_settings.getString(Config::GROUND_REPLACE_MODIFIER);
+	if (currentMod == "Ctrl") {
+		m_groundReplaceModifier->SetSelection(1);
+	} else if (currentMod == "Shift") {
+		m_groundReplaceModifier->SetSelection(2);
+	} else {
+		m_groundReplaceModifier->SetSelection(0);
+	}
+	modifierBox->Add(m_groundReplaceModifier, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+	modifierBox->Add(new wxStaticText(modifierBox->GetStaticBox(), wxID_ANY, "(Hold + Left Click to replace specific ground)"), 0, wxALIGN_CENTER_VERTICAL);
+	sizer->Add(modifierBox, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(8));
+
 	SetSizer(sizer);
 
 	// Load entries from main menu bar
@@ -111,6 +134,17 @@ void HotkeysPage::Apply() {
 		return;
 	}
 	mb->ApplyMenuHotkeys(m_entries);
+
+	if (m_groundReplaceModifier) {
+		int sel = m_groundReplaceModifier->GetSelection();
+		if (sel == 1) {
+			g_settings.setString(Config::GROUND_REPLACE_MODIFIER, "Ctrl");
+		} else if (sel == 2) {
+			g_settings.setString(Config::GROUND_REPLACE_MODIFIER, "Shift");
+		} else {
+			g_settings.setString(Config::GROUND_REPLACE_MODIFIER, "Alt");
+		}
+	}
 }
 
 void HotkeysPage::PopulateList() {

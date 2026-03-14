@@ -41,6 +41,16 @@ DrawingController::DrawingController(MapCanvas* canvas, Editor& editor) :
 DrawingController::~DrawingController() {
 }
 
+bool DrawingController::IsGroundReplaceModifier(bool shift_down, bool ctrl_down, bool alt_down) const {
+	std::string mod = g_settings.getString(Config::GROUND_REPLACE_MODIFIER);
+	if (mod == "Shift") {
+		return shift_down;
+	} else if (mod == "Ctrl") {
+		return ctrl_down;
+	}
+	return alt_down; // Default: Alt
+}
+
 void DrawingController::HandleClick(const Position& mouse_map_pos, bool shift_down, bool ctrl_down, bool alt_down) {
 	Brush* brush = g_gui.GetCurrentBrush();
 	if (brush) {
@@ -133,7 +143,8 @@ void DrawingController::HandleClick(const Position& mouse_map_pos, bool shift_do
 					}
 				}
 			} else {
-				if (brush->is<GroundBrush>() && alt_down) {
+				bool ground_replace = brush->is<GroundBrush>() && IsGroundReplaceModifier(shift_down, ctrl_down, alt_down);
+				if (ground_replace) {
 					replace_dragging = true;
 					Tile* draw_tile = editor.map.getTile(mouse_map_pos);
 					if (draw_tile) {
@@ -152,9 +163,9 @@ void DrawingController::HandleClick(const Position& mouse_map_pos, bool shift_do
 					BrushUtility::GetTilesToDraw(mouse_map_pos.x, mouse_map_pos.y, mouse_map_pos.z, &tilestodraw, &tilestoborder, fill);
 
 					if (!fill && ctrl_down) {
-						editor.undraw(tilestodraw, tilestoborder, alt_down);
+						editor.undraw(tilestodraw, tilestoborder, ground_replace);
 					} else {
-						editor.draw(tilestodraw, tilestoborder, alt_down);
+						editor.draw(tilestodraw, tilestoborder, ground_replace);
 					}
 				} else if (brush->oneSizeFitsAll()) {
 					if (brush->is<HouseExitBrush>() || brush->is<WaypointBrush>()) {
@@ -227,10 +238,11 @@ void DrawingController::HandleDrag(const Position& mouse_map_pos, bool shift_dow
 
 			BrushUtility::GetTilesToDraw(mouse_map_pos.x, mouse_map_pos.y, mouse_map_pos.z, &tilestodraw, &tilestoborder);
 
+			bool ground_replace_drag = brush->is<GroundBrush>() && IsGroundReplaceModifier(shift_down, ctrl_down, alt_down);
 			if (ctrl_down) {
-				editor.undraw(tilestodraw, tilestoborder, alt_down);
+				editor.undraw(tilestodraw, tilestoborder, ground_replace_drag);
 			} else {
-				editor.draw(tilestodraw, tilestoborder, alt_down);
+				editor.draw(tilestodraw, tilestoborder, ground_replace_drag);
 			}
 		} else if (brush->oneSizeFitsAll()) {
 			drawing = true;
@@ -383,10 +395,11 @@ void DrawingController::HandleRelease(const Position& mouse_map_pos, bool shift_
 						}
 					}
 				}
+				bool ground_replace_release = brush->is<GroundBrush>() && IsGroundReplaceModifier(shift_down, ctrl_down, alt_down);
 				if (ctrl_down) {
-					editor.undraw(tilestodraw, tilestoborder, alt_down);
+					editor.undraw(tilestodraw, tilestoborder, ground_replace_release);
 				} else {
-					editor.draw(tilestodraw, tilestoborder, alt_down);
+					editor.draw(tilestodraw, tilestoborder, ground_replace_release);
 				}
 			}
 		}

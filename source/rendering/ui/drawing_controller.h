@@ -38,6 +38,8 @@ public:
 	}
 
 private:
+	bool IsGroundReplaceModifier(bool shift_down, bool ctrl_down, bool alt_down) const;
+
 	MapCanvas* canvas;
 	Editor& editor;
 

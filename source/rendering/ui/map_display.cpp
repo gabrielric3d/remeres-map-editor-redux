@@ -466,10 +466,10 @@ void MapCanvas::OnMouseActionClick(wxMouseEvent& event) {
 	}
 
 	// Alt+Click: add camera path keyframe at click position (when camera path palette is active)
-	if (event.AltDown() && !event.ControlDown()) {
+	if (event.AltDown() && !event.ControlDown() && g_gui.GetCurrentBrush() && g_gui.GetCurrentBrush()->is<CameraPathBrush>()) {
 		PaletteWindow* palette = g_gui.GetPalette();
 		CameraPathPalettePanel* camPalette = palette ? palette->GetCameraPathPalette() : nullptr;
-		if (camPalette && g_gui.GetCurrentBrush() && g_gui.GetCurrentBrush()->is<CameraPathBrush>()) {
+		if (camPalette) {
 			Position clickPos(mouse_map_x, mouse_map_y, floor);
 			CameraPaths temp = editor.map.camera_paths;
 			CameraPath* path = temp.getActivePath();
