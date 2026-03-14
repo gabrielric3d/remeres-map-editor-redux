@@ -346,32 +346,13 @@ StandardToolBar::StandardToolBar(wxWindow* parent) {
 	toolbar->AddSeparator();
 	toolbar->AddTool(MAIN_FRAME_MENU + MenuBar::JUMP_TO_BRUSH, wxEmptyString, find_bitmap, wxNullBitmap, wxITEM_NORMAL, "Jump to Brush (J)", "Find brush or item", nullptr);
 
-	toolbar->AddStretchSpacer(1);
-	const wxSize deploy_size = FROM_DIP(parent, wxSize(180, 24));
-	deploy_button = newd wxButton(toolbar, TOOLBAR_DEPLOY_MAP, "DEPLOY", wxDefaultPosition, deploy_size);
-	wxFont deploy_font = deploy_button->GetFont().Bold();
-	deploy_button->SetFont(deploy_font);
-	deploy_button->SetBackgroundColour(wxColour(44, 170, 78));
-	deploy_button->SetForegroundColour(*wxWHITE);
-	deploy_button->SetToolTip("Deploy map to git (commit + push)");
-	deploy_button->Enable(false);
-	deploy_button->SetMinSize(deploy_size);
-	deploy_button->SetMaxSize(deploy_size);
-	wxAuiToolBarItem* deploy_item = toolbar->AddControl(deploy_button);
-	if (deploy_item) {
-		deploy_item->SetMinSize(deploy_size);
-		deploy_item->SetProportion(0);
-	}
-
 	toolbar->Realize();
 
 	toolbar->Bind(wxEVT_COMMAND_MENU_SELECTED, &StandardToolBar::OnButtonClick, this);
-	deploy_button->Bind(wxEVT_BUTTON, &StandardToolBar::OnDeployButtonClick, this);
 }
 
 StandardToolBar::~StandardToolBar() {
 	toolbar->Unbind(wxEVT_COMMAND_MENU_SELECTED, &StandardToolBar::OnButtonClick, this);
-	deploy_button->Unbind(wxEVT_BUTTON, &StandardToolBar::OnDeployButtonClick, this);
 }
 
 void StandardToolBar::Update() {
@@ -412,11 +393,6 @@ void StandardToolBar::Update() {
 	toolbar->EnableTool(wxID_COPY, has_map);
 	toolbar->SetToolShortHelp(wxID_COPY, has_map ? "Copy (Ctrl+C)" : "Copy (Ctrl+C) - No map open");
 
-	if (deploy_button) {
-		const bool has_deploy_target = has_map && is_host && editor->map.hasFile();
-		deploy_button->Enable(has_deploy_target);
-	}
-
 	toolbar->Refresh();
 }
 
@@ -453,10 +429,6 @@ void StandardToolBar::OnButtonClick(wxCommandEvent& event) {
 			event.Skip();
 			break;
 	}
-}
-
-void StandardToolBar::OnDeployButtonClick(wxCommandEvent& WXUNUSED(event)) {
-	DeployMap();
 }
 
 void StandardToolBar::DeployMap() {

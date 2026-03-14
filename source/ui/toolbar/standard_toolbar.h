@@ -19,7 +19,6 @@ public:
 	void Update();
 
 	void OnButtonClick(wxCommandEvent& event);
-	void OnDeployButtonClick(wxCommandEvent& event);
 
 	static void DeployMap();
 
@@ -27,7 +26,6 @@ public:
 
 private:
 	wxAuiToolBar* toolbar;
-	wxButton* deploy_button;
 };
 
 #endif // RME_UI_TOOLBAR_STANDARD_TOOLBAR_H_
