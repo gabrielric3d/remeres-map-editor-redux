@@ -341,6 +341,10 @@ void MainMenuBar::OnReloadDataFiles(wxCommandEvent& event) {
 	fileMenuHandler->OnReloadDataFiles(event);
 }
 
+void MainMenuBar::OnReloadBrushes(wxCommandEvent& event) {
+	fileMenuHandler->OnReloadBrushes(event);
+}
+
 void MainMenuBar::OnListExtensions(wxCommandEvent& event) {
 	fileMenuHandler->OnListExtensions(event);
 }

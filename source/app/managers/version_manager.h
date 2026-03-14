@@ -15,6 +15,7 @@ public:
 
 	void UnloadVersion();
 	bool LoadVersion(ClientVersionID ver, wxString& error, std::vector<std::string>& warnings, bool force = false);
+	bool ReloadBrushes(wxString& error, std::vector<std::string>& warnings);
 
 	// The current version loaded (returns CLIENT_VERSION_NONE if no version is loaded)
 	const ClientVersion& GetCurrentVersion() const;

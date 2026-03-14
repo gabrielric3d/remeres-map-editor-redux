@@ -99,6 +99,33 @@ void ItemDefinitionStore::clear() {
 	BuildNumber = 0;
 }
 
+void ItemDefinitionStore::resetBrushData() {
+	const size_t count = identity_.server_ids.size();
+	for (size_t i = 0; i < count; ++i) {
+		// Reset editor brush pointers
+		editor_.data[i] = ItemEditorData {};
+
+		// Reset brush-related flags
+		flags_.masks[i] &= ~(
+			flagMask(ItemFlag::IsBorder) |
+			flagMask(ItemFlag::IsOptionalBorder) |
+			flagMask(ItemFlag::IsWall) |
+			flagMask(ItemFlag::IsBrushDoor) |
+			flagMask(ItemFlag::IsTable) |
+			flagMask(ItemFlag::IsCarpet) |
+			flagMask(ItemFlag::HasEquivalent) |
+			flagMask(ItemFlag::WallHateMe) |
+			flagMask(ItemFlag::HasRaw) |
+			flagMask(ItemFlag::InOtherTileset)
+		);
+
+		// Reset brush-related attributes
+		attributes_.ground_equivalents[i] = 0;
+		attributes_.border_groups[i] = 0;
+		attributes_.border_alignments[i] = BORDER_NONE;
+	}
+}
+
 void ItemDefinitionStore::reserve(size_t count) {
 	identity_.server_ids.reserve(count);
 	identity_.groups.reserve(count);

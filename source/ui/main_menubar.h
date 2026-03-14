@@ -41,6 +41,7 @@ namespace MenuBar {
 
 		EXPORT_TILESETS,
 		RELOAD_DATA,
+		RELOAD_BRUSHES,
 		RECENT_FILES,
 		PREFERENCES,
 		EXIT,
@@ -233,6 +234,7 @@ public:
 
 	void OnExportTilesets(wxCommandEvent& event);
 	void OnReloadDataFiles(wxCommandEvent& event); // RELOAD_DATA
+	void OnReloadBrushes(wxCommandEvent& event); // RELOAD_BRUSHES
 	void OnPreferences(wxCommandEvent& event);
 	void OnListExtensions(wxCommandEvent& event);
 	void OnGotoWebsite(wxCommandEvent& event);

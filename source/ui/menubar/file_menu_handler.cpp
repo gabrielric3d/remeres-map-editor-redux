@@ -115,6 +115,17 @@ void FileMenuHandler::OnReloadDataFiles(wxCommandEvent& WXUNUSED(event)) {
 	DialogUtil::ListDialog("Warnings", warnings);
 }
 
+void FileMenuHandler::OnReloadBrushes(wxCommandEvent& WXUNUSED(event)) {
+	wxString error;
+	std::vector<std::string> warnings;
+	if (!g_version.ReloadBrushes(error, warnings)) {
+		DialogUtil::PopupDialog("Error", error, wxOK);
+	}
+	if (!warnings.empty()) {
+		DialogUtil::ListDialog("Warnings", warnings);
+	}
+}
+
 void FileMenuHandler::OnPreferences(wxCommandEvent& WXUNUSED(event)) {
 	PreferencesWindow dialog(frame);
 	dialog.ShowModal();

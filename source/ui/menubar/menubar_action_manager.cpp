@@ -34,6 +34,7 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(EXPORT_TILESETS, wxITEM_NORMAL, OnExportTilesets);
 
 	MAKE_ACTION(RELOAD_DATA, wxITEM_NORMAL, OnReloadDataFiles);
+	MAKE_ACTION(RELOAD_BRUSHES, wxITEM_NORMAL, OnReloadBrushes);
 	// MAKE_ACTION(RECENT_FILES, wxITEM_NORMAL, OnRecent);
 	MAKE_ACTION(PREFERENCES, wxITEM_NORMAL, OnPreferences);
 	MAKE_ACTION(EXIT, wxITEM_NORMAL, OnQuit);
@@ -224,6 +225,7 @@ void MenuBarActionManager::UpdateState(MainMenuBar* mb) {
 	mb->EnableItem(IMPORT_MINIMAP, false);
 
 	mb->EnableItem(EXPORT_TILESETS, loaded);
+	mb->EnableItem(RELOAD_BRUSHES, loaded);
 
 	mb->EnableItem(FIND_ITEM, is_host);
 	mb->EnableItem(REPLACE_ITEMS, is_local);

@@ -102,6 +102,7 @@ private:
 class ItemDefinitionStore {
 public:
 	void clear();
+	void resetBrushData();
 	void reserve(size_t count);
 	void append(ResolvedItemDefinitionRow row);
 

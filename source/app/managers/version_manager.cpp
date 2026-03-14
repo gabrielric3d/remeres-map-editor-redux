@@ -11,6 +11,7 @@
 #include "ui/gui.h"
 #include "util/file_system.h"
 #include "game/sprites.h"
+#include "game/creatures.h"
 #include "game/materials.h"
 #include "brushes/brush.h"
 #include "brushes/managers/brush_manager.h"
@@ -176,6 +177,67 @@ bool VersionManager::LoadDataFiles(wxString& error, std::vector<std::string>& wa
 	}
 
 	g_loading.DestroyLoadBar();
+	return true;
+}
+
+bool VersionManager::ReloadBrushes(wxString& error, std::vector<std::string>& warnings) {
+	if (loaded_version.empty()) {
+		error = "No version loaded";
+		return false;
+	}
+
+	// Disable rendering while reloading
+	UnnamedRenderingLock();
+
+	// Save and destroy palettes
+	g_gui.SavePerspective();
+	g_gui.DestroyPalettes();
+
+	// Clear brush manager (current_brush, previous_brush, all special brushes)
+	g_brush_manager.Clear();
+
+	if (g_gui.tool_options) {
+		g_gui.tool_options->Clear();
+	}
+
+	// Clear materials and brushes (but NOT items, sprites, or creatures)
+	g_materials.clear();
+	g_brushes.clear();
+
+	// Reset item brush references (keep items loaded)
+	g_item_definitions.resetBrushData();
+
+	// Reset creature brush references (keep creatures loaded)
+	for (auto iter = g_creatures.begin(); iter != g_creatures.end(); ++iter) {
+		CreatureType* type = iter->second;
+		type->brush = nullptr;
+		type->in_other_tileset = false;
+	}
+
+	// Reload materials.xml and all included files
+	FileName data_path = getLoadedVersion()->getDataPath();
+	wxString base_data_path = data_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
+
+	if (!g_materials.loadMaterials(base_data_path + "materials.xml", error, warnings)) {
+		warnings.push_back("Couldn't reload materials.xml: " + std::string(error.mb_str()));
+	}
+
+	// Reload extensions
+	FileName extension_path = FileSystem::GetExtensionsDirectory();
+	if (!g_materials.loadExtensions(extension_path, error, warnings)) {
+		// Extensions are optional
+	}
+
+	// Reinitialize brushes and create Other tileset
+	g_brushes.init();
+	g_materials.createOtherTileset();
+
+	// Restore palettes
+	g_gui.LoadPerspective();
+
+	// Refresh view
+	g_gui.RefreshView();
+
 	return true;
 }
 

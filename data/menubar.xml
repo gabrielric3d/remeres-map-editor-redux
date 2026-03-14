@@ -51,7 +51,8 @@
 			<item name="Export Tilesets..." action="EXPORT_TILESETS" help="Export tilesets to an xml file."/>
 		</menu>
 		<menu name="Reload">
-			<item name="Reload" hotkey="F5" action="RELOAD_DATA" help="Reloads all data files."/>
+			<item name="Reload All" hotkey="F5" action="RELOAD_DATA" help="Reloads all data files (sprites, items, brushes)."/>
+			<item name="Reload Brushes" hotkey="F6" action="RELOAD_BRUSHES" help="Reloads only brush files (grounds, doodads, walls, etc). Faster and safer."/>
 		</menu>
 		<separator/>
 		<menu name="Recent Files" special="RECENT_FILES"/>
