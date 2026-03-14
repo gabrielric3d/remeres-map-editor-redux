@@ -244,6 +244,8 @@
 	<menu name="Tools">
 		<item name="Area Decoration" action="AREA_DECORATION" help="Opens the area decoration tool for placing decorative items in regions."/>
 		<item name="Structure Manager" action="STRUCTURE_MANAGER" help="Manage and paste reusable map structures."/>
+		<separator/>
+		<item name="Radial Wheel" hotkey="Shift+Q" action="RADIAL_WHEEL" help="Opens the radial quick-access wheel for common actions."/>
 	</menu>
 	<menu name="Experimental">
 		<item name="Fog in light view" hotkey="" action="EXPERIMENTAL_FOG" help="Apply fog filter to light effect."/>

@@ -173,6 +173,7 @@ namespace MenuBar {
 		AREA_DECORATION,
 		DEPLOY_MAP,
 		STRUCTURE_MANAGER,
+		RADIAL_WHEEL,
 	};
 }
 
@@ -331,6 +332,7 @@ public:
 	void OnAreaDecoration(wxCommandEvent& event);
 	void OnStructureManager(wxCommandEvent& event);
 	void OnDeployMap(wxCommandEvent& event);
+	void OnRadialWheel(wxCommandEvent& event);
 
 	void OnOpenRecent(wxCommandEvent& event);
 

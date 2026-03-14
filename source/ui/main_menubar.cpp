@@ -51,6 +51,9 @@
 #include "ui/menubar/menubar_action_manager.h"
 #include "ingame_preview/ingame_preview_manager.h"
 #include "ui/dialogs/area_decoration_dialog.h"
+#include "ui/map_window.h"
+#include "rendering/ui/map_display.h"
+#include "rendering/ui/radial_wheel.h"
 #include "editor/hotkey_utils.h"
 #include "app/settings.h"
 
@@ -686,6 +689,19 @@ void MainMenuBar::OnAreaDecoration(wxCommandEvent& WXUNUSED(event)) {
 
 void MainMenuBar::OnStructureManager(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.ShowStructureManagerDialog();
+}
+
+void MainMenuBar::OnRadialWheel(wxCommandEvent& WXUNUSED(event)) {
+	if (MapTab* tab = g_gui.GetCurrentMapTab()) {
+		if (MapWindow* window = tab->GetView()) {
+			MapCanvas* canvas = window->GetCanvas();
+			if (canvas && canvas->radial_wheel && !canvas->radial_wheel->IsOpen()) {
+				wxSize sz = canvas->GetSize();
+				canvas->radial_wheel->Open(sz.x, sz.y);
+				canvas->Refresh();
+			}
+		}
+	}
 }
 
 //=============================================================================

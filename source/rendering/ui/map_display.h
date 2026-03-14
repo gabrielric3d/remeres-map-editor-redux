@@ -44,6 +44,7 @@ class SelectionController;
 class DrawingController;
 class ScreenshotController;
 class MapMenuHandler;
+class RadialWheel;
 
 class MapCanvas : public wxGLCanvas {
 	std::unique_ptr<wxGLContext> m_glContext;
@@ -184,6 +185,7 @@ public:
 	std::unique_ptr<SelectionController> selection_controller;
 	std::unique_ptr<DrawingController> drawing_controller;
 	std::unique_ptr<MapMenuHandler> menu_handler;
+	std::unique_ptr<RadialWheel> radial_wheel;
 
 private:
 	void EnsureNanoVG();

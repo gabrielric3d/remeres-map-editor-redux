@@ -20,6 +20,7 @@
 #include "rendering/ui/zoom_controller.h"
 #include "rendering/ui/navigation_controller.h"
 #include "rendering/ui/map_display.h"
+#include "rendering/ui/radial_wheel.h"
 #include "ui/map_window.h"
 #include "ui/gui.h"
 #include "editor/hotkey_manager.h"
@@ -28,6 +29,15 @@
 #include "ui/dialogs/structure_manager_window.h"
 
 void KeyboardHandler::OnKeyDown(MapCanvas* canvas, wxKeyEvent& event) {
+	// If radial wheel is open, only handle ESC (to close) - block other keys
+	if (canvas->radial_wheel && canvas->radial_wheel->IsOpen()) {
+		if (event.GetKeyCode() == WXK_ESCAPE) {
+			canvas->radial_wheel->Close();
+			canvas->Refresh();
+		}
+		return;
+	}
+
 	// Structure Manager global hotkeys take priority (Z for rotate, Ctrl+Shift+S for save, etc.)
 	if (StructureManagerDialog::HandleGlobalHotkey(event)) {
 		return;

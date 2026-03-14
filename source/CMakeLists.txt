@@ -591,6 +591,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/minimap_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/navigation_controller.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/popup_action_handler.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/radial_wheel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/screenshot_controller.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/selection_controller.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/tooltip_drawer.cpp

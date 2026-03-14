@@ -64,6 +64,7 @@
 #include "rendering/ui/selection_controller.h"
 #include "rendering/ui/drawing_controller.h"
 #include "rendering/ui/map_menu_handler.h"
+#include "rendering/ui/radial_wheel.h"
 
 #include "brushes/doodad/doodad_brush.h"
 #include "brushes/house/house_exit_brush.h"
@@ -130,6 +131,7 @@ MapCanvas::MapCanvas(MapWindow* parent, Editor& editor, int* attriblist) :
 	selection_controller = std::make_unique<SelectionController>(this, editor);
 	drawing_controller = std::make_unique<DrawingController>(this, editor);
 	screenshot_controller = std::make_unique<ScreenshotController>(this);
+	radial_wheel = std::make_unique<RadialWheel>();
 	menu_handler = std::make_unique<MapMenuHandler>(this, editor);
 	menu_handler->BindEvents();
 	keyCode = WXK_NONE;
@@ -240,6 +242,11 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 	}
 	if (options.show_spawns) {
 		drawer->DrawSpawnOverlays(vg);
+	}
+
+	// Draw radial wheel overlay (always on top)
+	if (radial_wheel && radial_wheel->IsOpen()) {
+		radial_wheel->Draw(vg, GetSize().x, GetSize().y);
 	}
 
 	TextRenderer::EndFrame(vg);
@@ -376,6 +383,13 @@ void MapCanvas::UpdateZoomStatus() {
 }
 
 void MapCanvas::OnMouseMove(wxMouseEvent& event) {
+	// Update radial wheel hover
+	if (radial_wheel && radial_wheel->IsOpen()) {
+		radial_wheel->UpdateMouse(event.GetX(), event.GetY());
+		Refresh();
+		return;
+	}
+
 	NavigationController::HandleMouseDrag(this, event);
 
 	cursor_x = event.GetX();
@@ -454,6 +468,13 @@ void MapCanvas::OnMouseRightRelease(wxMouseEvent& event) {
 
 void MapCanvas::OnMouseActionClick(wxMouseEvent& event) {
 	SetFocus();
+
+	// If radial wheel is open, confirm selection on click
+	if (radial_wheel && radial_wheel->IsOpen()) {
+		radial_wheel->Confirm();
+		Refresh();
+		return;
+	}
 
 	int mouse_map_x, mouse_map_y;
 	ScreenToMap(event.GetX(), event.GetY(), &mouse_map_x, &mouse_map_y);
