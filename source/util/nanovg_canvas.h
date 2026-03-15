@@ -192,10 +192,15 @@ private:
 	std::unique_ptr<NVGcontext, NVGDeleter> m_nvg;
 	bool m_glInitialized = false;
 
-	// Texture cache: ID -> NanoVG image handle
-	std::unordered_map<uint64_t, int> m_imageCache;
-	mutable std::list<uint64_t> m_lruList;
-	size_t m_maxCacheSize = 1024; // Default limit
+	// Texture cache: ID -> {NanoVG image handle, LRU iterator} for O(1) lookup and eviction
+	using LruList = std::list<uint64_t>;
+	struct CacheEntry {
+		int imageHandle;
+		LruList::iterator lruIt;
+	};
+	std::unordered_map<uint64_t, CacheEntry> m_imageCache;
+	mutable LruList m_lruList;
+	size_t m_maxCacheSize = 2048; // Default limit
 
 	// Scroll state
 	int m_scrollPos = 0;

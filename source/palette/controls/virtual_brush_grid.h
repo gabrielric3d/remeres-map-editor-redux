@@ -43,6 +43,8 @@ public:
 	static constexpr int GRID_PADDING = 4;
 	static constexpr int GRID_ITEM_SIZE_BASE = 32;
 	static constexpr int ICON_OFFSET = 2;
+	static constexpr int PRELOAD_BATCH_SIZE = 16; // Textures to preload per timer tick
+	static constexpr int PRELOAD_TIMER_INTERVAL = 8; // ms between preload batches
 
 	void SetDisplayMode(DisplayMode mode);
 
@@ -100,6 +102,13 @@ protected:
 	wxTimer m_animTimer;
 	float hover_anim = 0.0f;
 	void OnTimer(wxTimerEvent& event);
+
+	// Progressive texture preloading
+	wxTimer m_preloadTimer;
+	size_t m_preloadIndex = 0; // Next brush index to preload
+	bool m_preloadComplete = false;
+	void OnPreloadTimer(wxTimerEvent& event);
+	void StartPreloading();
 
 	// Drag state
 	wxPoint m_dragStartPos;

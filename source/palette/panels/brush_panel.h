@@ -50,6 +50,8 @@ public:
 	void SetListType(wxString ltype);
 	// Assigns a tileset to this list
 	void AssignTileset(const TilesetCategory* tileset);
+	// Returns the assigned tileset
+	const TilesetCategory* GetTileset() const { return tileset; }
 
 	// Select the first brush
 	void SelectFirstBrush();
@@ -68,10 +70,13 @@ public:
 	void OnSwitchOut();
 
 protected:
+	void DestroyBrushbox();
+
 	const TilesetCategory* tileset;
 	wxSizer* sizer;
 	BrushBoxInterface* brushbox;
 	bool loaded;
+	bool needs_rebuild; // True when tileset/list_type changed and grid must be recreated
 	BrushListType list_type;
 };
 

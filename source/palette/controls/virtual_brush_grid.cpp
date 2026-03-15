@@ -32,6 +32,9 @@ namespace {
 	static constexpr int TIMER_INTERVAL = 16;
 	static constexpr float INTER_THRESHOLD = 0.01f;
 	static constexpr float INTER_FACTOR = 0.2f;
+
+	static constexpr int ANIM_TIMER_ID = 9900;
+	static constexpr int PRELOAD_TIMER_ID = 9901;
 }
 
 VirtualBrushGrid::VirtualBrushGrid(wxWindow* parent, const TilesetCategory* _tileset, RenderSize rsz) :
@@ -43,7 +46,8 @@ VirtualBrushGrid::VirtualBrushGrid(wxWindow* parent, const TilesetCategory* _til
 	columns(1),
 	item_size(0),
 	padding(4),
-	m_animTimer(this) {
+	m_animTimer(this, ANIM_TIMER_ID),
+	m_preloadTimer(this, PRELOAD_TIMER_ID) {
 
 	if (icon_size == RENDER_SIZE_16x16) {
 		item_size = 18;
@@ -55,16 +59,20 @@ VirtualBrushGrid::VirtualBrushGrid(wxWindow* parent, const TilesetCategory* _til
 	Bind(wxEVT_RIGHT_DOWN, &VirtualBrushGrid::OnRightClick, this);
 	Bind(wxEVT_MOTION, &VirtualBrushGrid::OnMotion, this);
 	Bind(wxEVT_SIZE, &VirtualBrushGrid::OnSize, this);
-	Bind(wxEVT_TIMER, &VirtualBrushGrid::OnTimer, this);
+	Bind(wxEVT_TIMER, &VirtualBrushGrid::OnTimer, this, ANIM_TIMER_ID);
+	Bind(wxEVT_TIMER, &VirtualBrushGrid::OnPreloadTimer, this, PRELOAD_TIMER_ID);
 	Bind(wxEVT_MENU, &VirtualBrushGrid::OnCopyServerID, this, PALETTE_POPUP_MENU_COPY_SERVER_ID);
 	Bind(wxEVT_MENU, &VirtualBrushGrid::OnCopyClientID, this, PALETTE_POPUP_MENU_COPY_CLIENT_ID);
 	Bind(wxEVT_MENU, &VirtualBrushGrid::OnApplyReplaceOriginal, this, PALETTE_POPUP_MENU_APPLY_REPLACE_ORIGINAL);
 	Bind(wxEVT_MENU, &VirtualBrushGrid::OnApplyReplaceReplacement, this, PALETTE_POPUP_MENU_APPLY_REPLACE_REPLACEMENT);
 
 	UpdateLayout();
+	StartPreloading();
 }
 
-VirtualBrushGrid::~VirtualBrushGrid() = default;
+VirtualBrushGrid::~VirtualBrushGrid() {
+	m_preloadTimer.Stop();
+}
 
 void VirtualBrushGrid::SetDisplayMode(DisplayMode mode) {
 	if (display_mode != mode) {
@@ -628,4 +636,60 @@ bool VirtualBrushGrid::SelectBrush(const Brush* brush) {
 	selected_index = -1;
 	Refresh();
 	return false;
+}
+
+// ============================================================================
+// Progressive texture preloading
+
+void VirtualBrushGrid::StartPreloading() {
+	m_preloadIndex = 0;
+	m_preloadComplete = false;
+	m_preloadTimer.Start(PRELOAD_TIMER_INTERVAL);
+}
+
+void VirtualBrushGrid::OnPreloadTimer(wxTimerEvent&) {
+	if (m_preloadComplete) {
+		m_preloadTimer.Stop();
+		return;
+	}
+
+	NVGcontext* vg = GetNVGContext();
+	if (!vg) {
+		// GL not initialized yet, try again next tick
+		return;
+	}
+
+	// Ensure GL context is current for texture creation
+	if (!MakeContextCurrent()) {
+		return;
+	}
+
+	size_t count = GetEffectiveBrushCount();
+	size_t loaded = 0;
+
+	while (m_preloadIndex < count && loaded < PRELOAD_BATCH_SIZE) {
+		Brush* brush = GetEffectiveBrush(m_preloadIndex);
+		if (brush) {
+			Sprite* spr = brush->getSprite();
+			if (!spr) {
+				spr = g_gui.gfx.getSprite(brush->getLookID());
+			}
+			if (spr) {
+				// This will create and cache the texture if not already cached
+				GetOrCreateSpriteTexture(vg, spr);
+				++loaded;
+			}
+		}
+		++m_preloadIndex;
+	}
+
+	if (m_preloadIndex >= count) {
+		m_preloadComplete = true;
+		m_preloadTimer.Stop();
+	}
+
+	// Refresh to show newly loaded textures
+	if (loaded > 0) {
+		Refresh();
+	}
 }

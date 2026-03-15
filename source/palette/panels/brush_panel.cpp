@@ -18,6 +18,7 @@ BrushPanel::BrushPanel(wxWindow* parent) :
 	tileset(nullptr),
 	brushbox(nullptr),
 	loaded(false),
+	needs_rebuild(false),
 	list_type(BRUSHLIST_LISTBOX) {
 	sizer = newd wxBoxSizer(wxVERTICAL);
 	SetSizerAndFit(sizer);
@@ -29,15 +30,21 @@ BrushPanel::~BrushPanel() {
 
 void BrushPanel::AssignTileset(const TilesetCategory* _tileset) {
 	if (_tileset != tileset) {
-		InvalidateContents();
 		tileset = _tileset;
+		needs_rebuild = true;
+		if (loaded) {
+			DestroyBrushbox();
+		}
 	}
 }
 
 void BrushPanel::SetListType(BrushListType ltype) {
 	if (list_type != ltype) {
-		InvalidateContents();
 		list_type = ltype;
+		needs_rebuild = true;
+		if (loaded) {
+			DestroyBrushbox();
+		}
 	}
 }
 
@@ -53,16 +60,28 @@ void BrushPanel::SetListType(wxString ltype) {
 	}
 }
 
-void BrushPanel::InvalidateContents() {
+void BrushPanel::DestroyBrushbox() {
 	sizer->Clear(true);
 	loaded = false;
 	brushbox = nullptr;
 }
 
+void BrushPanel::InvalidateContents() {
+	// Mark for rebuild on next LoadContents - the grid will be recreated
+	needs_rebuild = true;
+	DestroyBrushbox();
+}
+
 void BrushPanel::LoadContents() {
-	if (loaded) {
+	if (loaded && !needs_rebuild) {
 		return;
 	}
+
+	// Destroy existing grid if we need to rebuild
+	if (needs_rebuild && brushbox) {
+		DestroyBrushbox();
+	}
+	needs_rebuild = false;
 
 	ASSERT(tileset != nullptr);
 
