@@ -61,6 +61,9 @@ class TileRenderer;
 class CreatureNameDrawer;
 class HookIndicatorDrawer;
 class DoorIndicatorDrawer;
+class WallBorderDrawer;
+class MountainOverlayDrawer;
+class StairDirectionDrawer;
 
 class MapDrawer {
 	MapCanvas* canvas;
@@ -90,6 +93,9 @@ class MapDrawer {
 	std::unique_ptr<CreatureNameDrawer> creature_name_drawer;
 	std::unique_ptr<HookIndicatorDrawer> hook_indicator_drawer;
 	std::unique_ptr<DoorIndicatorDrawer> door_indicator_drawer;
+	std::unique_ptr<WallBorderDrawer> wall_border_drawer;
+	std::unique_ptr<MountainOverlayDrawer> mountain_overlay_drawer;
+	std::unique_ptr<StairDirectionDrawer> stair_direction_drawer;
 	std::unique_ptr<SpriteBatch> sprite_batch;
 	std::unique_ptr<PrimitiveRenderer> primitive_renderer;
 
@@ -132,6 +138,9 @@ public:
 	void DrawTooltips(NVGcontext* vg);
 	void DrawHookIndicators(NVGcontext* vg);
 	void DrawDoorIndicators(NVGcontext* vg);
+	void DrawWallBorders(NVGcontext* vg);
+	void DrawMountainOverlay(NVGcontext* vg);
+	void DrawStairDirections(NVGcontext* vg);
 	void ClearFrameOverlays();
 	void DrawCreatureNames(NVGcontext* vg);
 	void DrawSpawnOverlays(NVGcontext* vg);

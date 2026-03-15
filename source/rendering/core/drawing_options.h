@@ -58,6 +58,10 @@ struct DrawingOptions {
 
 	bool show_camera_paths;
 
+	bool show_wall_borders;
+	bool show_mountain_overlay;
+	bool show_stair_direction;
+
 	bool experimental_fog;
 
 	uint32_t current_house_id;

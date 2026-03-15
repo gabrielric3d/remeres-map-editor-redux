@@ -352,6 +352,9 @@ void Settings::IO(IOMode mode) {
 	String(CREATURES_JSON_PATH, "");
 	String(FAVORITE_FILES, "");
 	Bool(SHOW_TOAST_NOTIFICATIONS, true);
+	Bool(SHOW_WALL_BORDERS, false);
+	Bool(SHOW_MOUNTAIN_OVERLAY, false);
+	Bool(SHOW_STAIR_DIRECTION, false);
 
 	Int(CURSOR_RED, 0);
 	Int(CURSOR_GREEN, 166);

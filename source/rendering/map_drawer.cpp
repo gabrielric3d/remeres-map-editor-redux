@@ -73,6 +73,9 @@
 #include "rendering/postprocess/post_process_manager.h"
 #include "rendering/drawers/overlays/hook_indicator_drawer.h"
 #include "rendering/drawers/overlays/door_indicator_drawer.h"
+#include "rendering/drawers/overlays/wall_border_drawer.h"
+#include "rendering/drawers/overlays/mountain_overlay_drawer.h"
+#include "rendering/drawers/overlays/stair_direction_drawer.h"
 
 // Shader Sources
 const char* screen_vert = R"(
@@ -119,6 +122,9 @@ MapDrawer::MapDrawer(MapCanvas* canvas) :
 
 	hook_indicator_drawer = std::make_unique<HookIndicatorDrawer>();
 	door_indicator_drawer = std::make_unique<DoorIndicatorDrawer>();
+	wall_border_drawer = std::make_unique<WallBorderDrawer>();
+	mountain_overlay_drawer = std::make_unique<MountainOverlayDrawer>();
+	stair_direction_drawer = std::make_unique<StairDirectionDrawer>();
 
 	sprite_batch = std::make_unique<SpriteBatch>();
 	primitive_renderer = std::make_unique<PrimitiveRenderer>();
@@ -463,6 +469,18 @@ void MapDrawer::DrawHookIndicators(NVGcontext* vg) {
 
 void MapDrawer::DrawDoorIndicators(NVGcontext* vg) {
 	door_indicator_drawer->draw(vg, view);
+}
+
+void MapDrawer::DrawWallBorders(NVGcontext* vg) {
+	wall_border_drawer->draw(vg, view, editor);
+}
+
+void MapDrawer::DrawMountainOverlay(NVGcontext* vg) {
+	mountain_overlay_drawer->draw(vg, view, editor);
+}
+
+void MapDrawer::DrawStairDirections(NVGcontext* vg) {
+	stair_direction_drawer->draw(vg, view, editor);
 }
 
 void MapDrawer::ClearFrameOverlays() {

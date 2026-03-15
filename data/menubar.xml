@@ -180,6 +180,10 @@
 		<item name="Highlight Items" hotkey="V" action="HIGHLIGHT_ITEMS" help="Highlight tiles with items on them."/>
 		<item name="Highlight Locked Doors" hotkey="U" action="HIGHLIGHT_LOCKED_DOORS" help="Highlight doors that require key to open."/>
 		<item name="Show Wall Hooks" hotkey="K" action="SHOW_WALL_HOOKS" help="Show indicators for wall hooks."/>
+		<separator/>
+		<item name="Show Wall Borders" hotkey="" action="SHOW_WALL_BORDERS" help="Show dashed border lines around walls and mountains."/>
+		<item name="Show Mountain Overlay" hotkey="" action="SHOW_MOUNTAIN_OVERLAY" help="Show semi-transparent overlay on mountain tiles."/>
+		<item name="Show Stair Direction" hotkey="" action="SHOW_STAIR_DIRECTION" help="Show directional arrows on floor-change tiles."/>
 	</menu>
 	<menu name="Navigate">
 		<item name="Go to Previous Position" hotkey="P" action="GOTO_PREVIOUS_POSITION" help="Go to the previous screen center position."/>

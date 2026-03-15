@@ -128,6 +128,9 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(SHOW_TOOLTIPS, wxITEM_CHECK, OnChangeViewSettings);
 	MAKE_ACTION(SHOW_PREVIEW, wxITEM_CHECK, OnChangeViewSettings);
 	MAKE_ACTION(SHOW_WALL_HOOKS, wxITEM_CHECK, OnChangeViewSettings);
+	MAKE_ACTION(SHOW_WALL_BORDERS, wxITEM_CHECK, OnChangeViewSettings);
+	MAKE_ACTION(SHOW_MOUNTAIN_OVERLAY, wxITEM_CHECK, OnChangeViewSettings);
+	MAKE_ACTION(SHOW_STAIR_DIRECTION, wxITEM_CHECK, OnChangeViewSettings);
 	MAKE_ACTION(SHOW_CAMERA_PATHS, wxITEM_CHECK, OnChangeViewSettings);
 	MAKE_ACTION(SHOW_TOWNS, wxITEM_CHECK, OnChangeViewSettings);
 	MAKE_ACTION(ALWAYS_SHOW_ZONES, wxITEM_CHECK, OnChangeViewSettings);

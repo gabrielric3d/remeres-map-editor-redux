@@ -241,6 +241,15 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 	if (options.highlight_locked_doors) {
 		drawer->DrawDoorIndicators(vg);
 	}
+	if (options.show_mountain_overlay) {
+		drawer->DrawMountainOverlay(vg);
+	}
+	if (options.show_wall_borders) {
+		drawer->DrawWallBorders(vg);
+	}
+	if (options.show_stair_direction) {
+		drawer->DrawStairDirections(vg);
+	}
 	if (options.show_spawns) {
 		drawer->DrawSpawnOverlays(vg);
 	}
