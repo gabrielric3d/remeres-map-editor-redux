@@ -1,4 +1,5 @@
 #include "app/main.h"
+#include "app/settings.h"
 #include "util/nanovg_canvas.h"
 #include "util/image_manager.h"
 #include "rendering/core/text_renderer.h"
@@ -232,9 +233,21 @@ int NanoVGCanvas::CreateGameSpriteTexture(NVGcontext* vg, GameSprite* gs, uint64
 		return 0;
 	}
 
-	// Create composite RGBA buffer
+	// Create composite RGBA buffer with icon background color
 	size_t bufferSize = static_cast<size_t>(w) * h * 4;
-	std::vector<uint8_t> composite(bufferSize, 0);
+	std::vector<uint8_t> composite(bufferSize);
+
+	// Value is a grayscale shade 0-255
+	const uint8_t bgShade = static_cast<uint8_t>(g_settings.getInteger(Config::ICON_BACKGROUND));
+	uint8_t bgR = bgShade;
+	uint8_t bgG = bgShade;
+	uint8_t bgB = bgShade;
+	for (size_t i = 0; i < static_cast<size_t>(w) * h; ++i) {
+		composite[i * 4 + 0] = bgR;
+		composite[i * 4 + 1] = bgG;
+		composite[i * 4 + 2] = bgB;
+		composite[i * 4 + 3] = 255;
+	}
 
 	// Composite all layers
 	int px = (gs->pattern_x >= 3) ? 2 : 0;
@@ -365,10 +378,9 @@ int NanoVGCanvas::GetOrCreateImage(uint64_t id, const uint8_t* data, int width, 
 
 	auto it = m_imageCache.find(id);
 	if (it != m_imageCache.end()) {
-		// Update LRU
-		m_lruList.remove(id);
-		m_lruList.push_front(id);
-		return it->second;
+		// Move to front of LRU - O(1) via stored iterator
+		m_lruList.splice(m_lruList.begin(), m_lruList, it->second.lruIt);
+		return it->second.imageHandle;
 	}
 
 	int tex = nvgCreateImageRGBA(m_nvg.get(), width, height, 0, data);
@@ -386,9 +398,9 @@ void NanoVGCanvas::DeleteCachedImage(uint64_t id) {
 
 	auto it = m_imageCache.find(id);
 	if (it != m_imageCache.end()) {
-		nvgDeleteImage(m_nvg.get(), it->second);
+		nvgDeleteImage(m_nvg.get(), it->second.imageHandle);
+		m_lruList.erase(it->second.lruIt);
 		m_imageCache.erase(it);
-		m_lruList.remove(id);
 	}
 }
 
@@ -398,9 +410,10 @@ void NanoVGCanvas::AddCachedImage(uint64_t id, int imageHandle) {
 		auto it = m_imageCache.find(id);
 		if (it != m_imageCache.end()) {
 			if (m_nvg) {
-				nvgDeleteImage(m_nvg.get(), it->second);
+				nvgDeleteImage(m_nvg.get(), it->second.imageHandle);
 			}
-			m_lruList.remove(id);
+			m_lruList.erase(it->second.lruIt);
+			m_imageCache.erase(it);
 		}
 
 		// Evict if over limit
@@ -409,15 +422,15 @@ void NanoVGCanvas::AddCachedImage(uint64_t id, int imageHandle) {
 			auto lastIt = m_imageCache.find(last);
 			if (lastIt != m_imageCache.end()) {
 				if (m_nvg) {
-					nvgDeleteImage(m_nvg.get(), lastIt->second);
+					nvgDeleteImage(m_nvg.get(), lastIt->second.imageHandle);
 				}
 				m_imageCache.erase(lastIt);
 			}
 			m_lruList.pop_back();
 		}
 
-		m_imageCache[id] = imageHandle;
 		m_lruList.push_front(id);
+		m_imageCache[id] = { imageHandle, m_lruList.begin() };
 	}
 }
 
@@ -427,23 +440,19 @@ void NanoVGCanvas::ClearImageCache() {
 		return;
 	}
 
-	for (const auto& [id, tex] : m_imageCache) {
-		nvgDeleteImage(m_nvg.get(), tex);
+	for (const auto& [id, entry] : m_imageCache) {
+		nvgDeleteImage(m_nvg.get(), entry.imageHandle);
 	}
 	m_imageCache.clear();
 	m_lruList.clear();
 }
 
 int NanoVGCanvas::GetCachedImage(uint64_t id) const {
-	// Const-cast to call MakeContextCurrent if needed, or just assume it's for lookup
-	// Actually GetCachedImage doesn't call GL, it just looks in the map.
-	// So it's fine.
 	auto it = m_imageCache.find(id);
 	if (it != m_imageCache.end()) {
-		// Update LRU
-		m_lruList.remove(id);
-		m_lruList.push_front(id);
-		return it->second;
+		// Move to front of LRU - O(1) via stored iterator
+		m_lruList.splice(m_lruList.begin(), m_lruList, it->second.lruIt);
+		return it->second.imageHandle;
 	}
 	return 0;
 }

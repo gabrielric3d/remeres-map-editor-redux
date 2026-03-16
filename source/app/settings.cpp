@@ -355,6 +355,7 @@ void Settings::IO(IOMode mode) {
 	Bool(SHOW_WALL_BORDERS, false);
 	Bool(SHOW_MOUNTAIN_OVERLAY, false);
 	Bool(SHOW_STAIR_DIRECTION, false);
+	Int(PALETTE_GRID_ICON_SIZE, 36);
 
 	Int(CURSOR_RED, 0);
 	Int(CURSOR_GREEN, 166);

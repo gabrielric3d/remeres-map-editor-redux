@@ -197,7 +197,7 @@ void PaletteWindow::LoadCurrentContents() {
 	}
 	PalettePanel* panel = dynamic_cast<PalettePanel*>(choicebook->GetCurrentPage());
 	panel->LoadCurrentContents();
-	Fit();
+	Layout();
 	Refresh();
 	Update();
 }

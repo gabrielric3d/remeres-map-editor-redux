@@ -2,6 +2,7 @@
 #define RME_UTIL_NVG_UTILS_H_
 
 #include "item_definitions/core/item_definition_store.h"
+#include "app/settings.h"
 #include "ui/gui.h"
 #include <nanovg.h>
 #include <vector>
@@ -29,7 +30,18 @@ namespace NvgUtils {
 
 		size_t bufferSize = static_cast<size_t>(outW) * outH * 4;
 		auto composite = std::make_unique<uint8_t[]>(bufferSize);
-		std::fill(composite.get(), composite.get() + bufferSize, 0);
+
+		// Fill with icon background color from settings (value is a grayscale shade 0-255)
+		const uint8_t bgShade = static_cast<uint8_t>(g_settings.getInteger(Config::ICON_BACKGROUND));
+		uint8_t bgR = bgShade;
+		uint8_t bgG = bgShade;
+		uint8_t bgB = bgShade;
+		for (size_t i = 0; i < static_cast<size_t>(outW) * outH; ++i) {
+			composite[i * 4 + 0] = bgR;
+			composite[i * 4 + 1] = bgG;
+			composite[i * 4 + 2] = bgB;
+			composite[i * 4 + 3] = 255;
+		}
 
 		int pattern_x = (gs.pattern_x >= 3) ? 2 : 0;
 		int pattern_y = 0;

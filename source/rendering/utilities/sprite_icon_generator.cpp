@@ -13,16 +13,14 @@
 wxBitmap SpriteIconGenerator::Generate(GameSprite* sprite, SpriteSize size, bool rescale) {
 	ASSERT(sprite->width >= 1 && sprite->height >= 1);
 
-	const int bgshade = g_settings.getInteger(Config::ICON_BACKGROUND);
+	// Value is a grayscale shade 0-255
+	const unsigned char bgshade = static_cast<unsigned char>(g_settings.getInteger(Config::ICON_BACKGROUND));
 
 	int image_size = std::max<uint8_t>(sprite->width, sprite->height) * SPRITE_PIXELS;
 	wxImage image(image_size, image_size);
 	image.Create(image_size, image_size);
 	image.InitAlpha();
 
-	unsigned char r = (bgshade >> 16) & 0xFF;
-	unsigned char g = (bgshade >> 8) & 0xFF;
-	unsigned char b = bgshade & 0xFF;
 	unsigned char* rawData = image.GetData();
 	unsigned char* rawAlpha = image.GetAlpha();
 	int count = image_size * image_size;
@@ -31,9 +29,9 @@ wxBitmap SpriteIconGenerator::Generate(GameSprite* sprite, SpriteSize size, bool
 	std::span<unsigned char> alphaData(rawAlpha, count);
 
 	for (int i : std::views::iota(0, count)) {
-		bgData[i * 3 + 0] = r;
-		bgData[i * 3 + 1] = g;
-		bgData[i * 3 + 2] = b;
+		bgData[i * 3 + 0] = bgshade;
+		bgData[i * 3 + 1] = bgshade;
+		bgData[i * 3 + 2] = bgshade;
 	}
 	std::ranges::fill(alphaData, 255);
 
@@ -68,16 +66,14 @@ wxBitmap SpriteIconGenerator::Generate(GameSprite* sprite, SpriteSize size, bool
 wxBitmap SpriteIconGenerator::Generate(GameSprite* sprite, SpriteSize size, const Outfit& outfit, bool rescale, Direction direction) {
 	ASSERT(sprite->width >= 1 && sprite->height >= 1);
 
-	const int bgshade = g_settings.getInteger(Config::ICON_BACKGROUND);
+	// Value is a grayscale shade 0-255
+	const unsigned char bgshade = static_cast<unsigned char>(g_settings.getInteger(Config::ICON_BACKGROUND));
 
 	int image_size = std::max<uint8_t>(sprite->width, sprite->height) * SPRITE_PIXELS;
 	wxImage image(image_size, image_size);
 	image.Create(image_size, image_size);
 	image.InitAlpha();
 
-	unsigned char r = (bgshade >> 16) & 0xFF;
-	unsigned char g = (bgshade >> 8) & 0xFF;
-	unsigned char b = bgshade & 0xFF;
 	unsigned char* rawData = image.GetData();
 	unsigned char* rawAlpha = image.GetAlpha();
 	int count = image_size * image_size;
@@ -86,9 +82,9 @@ wxBitmap SpriteIconGenerator::Generate(GameSprite* sprite, SpriteSize size, cons
 	std::span<unsigned char> alphaData(rawAlpha, count);
 
 	for (int i : std::views::iota(0, count)) {
-		bgData[i * 3 + 0] = r;
-		bgData[i * 3 + 1] = g;
-		bgData[i * 3 + 2] = b;
+		bgData[i * 3 + 0] = bgshade;
+		bgData[i * 3 + 1] = bgshade;
+		bgData[i * 3 + 2] = bgshade;
 	}
 	std::ranges::fill(alphaData, 255);
 

@@ -41,6 +41,8 @@ public:
 	void OnPageChanged(wxChoicebookEvent& event);
 	void OnClickAddTileset(wxCommandEvent& WXUNUSED(event));
 	void OnClickAddItemToTileset(wxCommandEvent& WXUNUSED(event));
+	void OnIconBackgroundChanged(wxCommandEvent& event);
+	void OnSlotSizeChanged(wxCommandEvent& event);
 
 protected:
 	PaletteType palette_type;
@@ -48,7 +50,15 @@ protected:
 
 	// No size_panel, it was unused
 
+	wxChoice* icon_bg_choice = nullptr;
+	wxChoice* slot_size_choice = nullptr;
+
 	std::unordered_map<wxWindow*, Brush*> remembered_brushes;
+
+	// Index: Brush* -> choicebook page index for O(1) lookup in SelectBrush
+	std::unordered_map<const Brush*, size_t> brush_page_index;
+	bool brush_index_built = false;
+	void EnsureBrushIndex();
 };
 
 #endif

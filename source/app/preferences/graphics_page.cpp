@@ -3,6 +3,8 @@
 #include "app/main.h"
 #include "app/preferences/preferences_layout.h"
 #include "app/settings.h"
+#include "palette/managers/palette_manager.h"
+#include "palette/palette_window.h"
 #include "rendering/postprocess/post_process_manager.h"
 #include "ui/gui.h"
 
@@ -203,21 +205,23 @@ void GraphicsPage::Apply() {
 	g_settings.setInteger(Config::ANTI_ALIASING, anti_aliasing_chkbox->GetValue());
 	g_settings.setString(Config::SCREEN_SHADER, nstr(screen_shader_choice->GetStringSelection()));
 
-	if (icon_background_choice->GetSelection() == 0) {
-		if (g_settings.getInteger(Config::ICON_BACKGROUND) != 0) {
-			g_gui.gfx.cleanSoftwareSprites();
+	{
+		int newBg = 0;
+		if (icon_background_choice->GetSelection() == 1) {
+			newBg = 88;
+		} else if (icon_background_choice->GetSelection() == 2) {
+			newBg = 255;
 		}
-		g_settings.setInteger(Config::ICON_BACKGROUND, 0);
-	} else if (icon_background_choice->GetSelection() == 1) {
-		if (g_settings.getInteger(Config::ICON_BACKGROUND) != 88) {
+
+		if (g_settings.getInteger(Config::ICON_BACKGROUND) != newBg) {
 			g_gui.gfx.cleanSoftwareSprites();
+			g_settings.setInteger(Config::ICON_BACKGROUND, newBg);
+
+			// Invalidate NanoVG palette caches so textures are regenerated with new background
+			for (auto* palette : g_palettes.GetPalettes()) {
+				palette->InvalidateContents();
+			}
 		}
-		g_settings.setInteger(Config::ICON_BACKGROUND, 88);
-	} else {
-		if (g_settings.getInteger(Config::ICON_BACKGROUND) != 255) {
-			g_gui.gfx.cleanSoftwareSprites();
-		}
-		g_settings.setInteger(Config::ICON_BACKGROUND, 255);
 	}
 
 	g_settings.setString(Config::SCREENSHOT_DIRECTORY, nstr(screenshot_directory_picker->GetPath()));

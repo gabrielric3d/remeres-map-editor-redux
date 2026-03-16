@@ -1,4 +1,5 @@
 #include "app/main.h"
+#include "app/settings.h"
 #include "palette/controls/virtual_brush_grid.h"
 #include "ui/gui.h"
 #include "ui/gui_ids.h"
@@ -52,7 +53,9 @@ VirtualBrushGrid::VirtualBrushGrid(wxWindow* parent, const TilesetCategory* _til
 	if (icon_size == RENDER_SIZE_16x16) {
 		item_size = 18;
 	} else {
-		item_size = GRID_ITEM_SIZE_BASE + 2; // + borders
+		item_size = g_settings.getInteger(Config::PALETTE_GRID_ICON_SIZE);
+		if (item_size < 32) item_size = 32;
+		if (item_size > 64) item_size = 64;
 	}
 
 	Bind(wxEVT_LEFT_DOWN, &VirtualBrushGrid::OnMouseDown, this);
@@ -163,7 +166,8 @@ void VirtualBrushGrid::UpdateLayout() {
 
 	if (display_mode == DisplayMode::List) {
 		columns = 1;
-		int contentHeight = count * LIST_ROW_HEIGHT + padding;
+		int rowHeight = std::max(LIST_ROW_HEIGHT, item_size + 4);
+		int contentHeight = count * rowHeight + padding;
 		UpdateScrollbar(contentHeight);
 	} else {
 		columns = std::max(1, (width - padding) / (item_size + padding));
@@ -180,7 +184,7 @@ wxSize VirtualBrushGrid::DoGetBestClientSize() const {
 void VirtualBrushGrid::OnNanoVGPaint(NVGcontext* vg, int width, int height) {
 	// Calculate visible range
 	int scrollPos = GetScrollPosition();
-	int rowHeight = (display_mode == DisplayMode::List) ? LIST_ROW_HEIGHT : (item_size + padding);
+	int rowHeight = (display_mode == DisplayMode::List) ? std::max(LIST_ROW_HEIGHT, item_size + 4) : (item_size + padding);
 	int startRow = scrollPos / rowHeight;
 	int endRow = (scrollPos + height + rowHeight - 1) / rowHeight + 1;
 
@@ -270,9 +274,9 @@ void VirtualBrushGrid::DrawBrushItem(NVGcontext* vg, int i, const wxRect& rect) 
 
 		int tex = GetOrCreateSpriteTexture(vg, spr);
 		if (tex > 0) {
-			int iconSize = (display_mode == DisplayMode::List) ? GRID_ITEM_SIZE_BASE : (item_size - 2 * ICON_OFFSET);
+			int iconSize = item_size - 2 * ICON_OFFSET;
 			int iconX = rect.x + ICON_OFFSET;
-			int iconY = rect.y + ICON_OFFSET;
+			int iconY = rect.y + (rect.height - iconSize) / 2;
 
 			NVGpaint imgPaint = nvgImagePattern(vg, static_cast<float>(iconX), static_cast<float>(iconY), static_cast<float>(iconSize), static_cast<float>(iconSize), 0.0f, tex, 1.0f);
 
@@ -293,15 +297,16 @@ void VirtualBrushGrid::DrawBrushItem(NVGcontext* vg, int i, const wxRect& rect) 
 				m_utf8NameCache[brush] = std::string(wxstr(brush->getName()).ToUTF8());
 				it = m_utf8NameCache.find(brush);
 			}
-			nvgText(vg, rect.x + 40, rect.y + rect.height / 2.0f, it->second.c_str(), nullptr);
+			nvgText(vg, rect.x + item_size + 8.0f, rect.y + rect.height / 2.0f, it->second.c_str(), nullptr);
 		}
 	}
 }
 
 wxRect VirtualBrushGrid::GetItemRect(int index) const {
 	if (display_mode == DisplayMode::List) {
+		int rowHeight = std::max(LIST_ROW_HEIGHT, item_size + 4);
 		int width = GetClientSize().x - 2 * padding;
-		return wxRect(padding, padding + index * LIST_ROW_HEIGHT, width, LIST_ROW_HEIGHT);
+		return wxRect(padding, padding + index * rowHeight, width, rowHeight);
 	} else {
 		int row = index / columns;
 		int col = index % columns;
@@ -323,7 +328,8 @@ int VirtualBrushGrid::HitTest(int x, int y) const {
 	int count = static_cast<int>(GetEffectiveBrushCount());
 
 	if (display_mode == DisplayMode::List) {
-		int row = (realY - padding) / LIST_ROW_HEIGHT;
+		int rowHeight = std::max(LIST_ROW_HEIGHT, item_size + 4);
+		int row = (realY - padding) / rowHeight;
 
 		if (row < 0 || row >= count) {
 			return -1;
