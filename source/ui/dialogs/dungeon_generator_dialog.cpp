@@ -19,6 +19,7 @@
 #include "ui/dialogs/dungeon_generator_dialog.h"
 #include "ui/dialogs/dungeon_preset_editor_dialog.h"
 #include "editor/editor.h"
+#include "editor/action_queue.h"
 #include "editor/selection.h"
 #include "ui/gui.h"
 #include "map/map.h"
@@ -26,6 +27,9 @@
 #include "rendering/core/graphics.h"
 #include "item_definitions/core/item_definition_store.h"
 #include "ui/theme.h"
+
+#include <wx/dcbuffer.h>
+#include <wx/progdlg.h>
 
 namespace {
 
@@ -35,12 +39,15 @@ enum {
 	ID_PRESET_CHOICE = wxID_HIGHEST + 3000,
 	ID_WIDTH_SPIN,
 	ID_HEIGHT_SPIN,
-	ID_PATH_WIDTH_SPIN,
+	ID_ALGORITHM_CHOICE,
 	ID_GENERATE_BTN,
 	ID_NEW_PRESET_BTN,
 	ID_EDIT_PRESET_BTN,
 	ID_DUPLICATE_PRESET_BTN,
 	ID_DELETE_PRESET_BTN,
+	ID_REROLL_BTN,
+	ID_SELECT_FROM_MAP,
+	ID_USE_SELECTION,
 };
 
 wxBitmap CreateItemBitmap(uint16_t itemId, int size) {
@@ -74,7 +81,11 @@ wxBitmap CreateItemBitmap(uint16_t itemId, int size) {
 
 wxBEGIN_EVENT_TABLE(DungeonGeneratorDialog, wxDialog)
 	EVT_CHOICE(ID_PRESET_CHOICE, DungeonGeneratorDialog::OnPresetChanged)
+	EVT_CHOICE(ID_ALGORITHM_CHOICE, DungeonGeneratorDialog::OnAlgorithmChanged)
 	EVT_BUTTON(ID_GENERATE_BTN, DungeonGeneratorDialog::OnGenerate)
+	EVT_BUTTON(ID_REROLL_BTN, DungeonGeneratorDialog::OnReroll)
+	EVT_BUTTON(ID_SELECT_FROM_MAP, DungeonGeneratorDialog::OnSelectFromMap)
+	EVT_BUTTON(ID_USE_SELECTION, DungeonGeneratorDialog::OnUseSelection)
 	EVT_BUTTON(ID_NEW_PRESET_BTN, DungeonGeneratorDialog::OnNewPreset)
 	EVT_BUTTON(ID_EDIT_PRESET_BTN, DungeonGeneratorDialog::OnEditPreset)
 	EVT_BUTTON(ID_DUPLICATE_PRESET_BTN, DungeonGeneratorDialog::OnDuplicatePreset)
@@ -83,50 +94,75 @@ wxBEGIN_EVENT_TABLE(DungeonGeneratorDialog, wxDialog)
 wxEND_EVENT_TABLE()
 
 DungeonGeneratorDialog::DungeonGeneratorDialog(wxWindow* parent)
-	: wxDialog(parent, wxID_ANY, "Dungeon Generator", wxDefaultPosition, wxSize(520, 620),
+	: wxDialog(parent, wxID_ANY, "Dungeon Generator", wxDefaultPosition, wxSize(520, 700),
 	           wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
-	, m_imageList(nullptr) {
+	, m_imageList(nullptr)
+	, m_hasSelection(false)
+	, m_pickStatusText(nullptr) {
 
-	// Load presets
 	auto& presetMgr = DungeonGen::PresetManager::getInstance();
 	if (presetMgr.getPresetNames().empty()) {
 		presetMgr.loadPresets();
 	}
 
-	// Auto-detect selection size
-	Editor* editor = g_gui.GetCurrentEditor();
-	if (editor) {
-		const Selection& sel = editor->selection;
-		const auto& tiles = sel.getTiles();
-		if (!tiles.empty()) {
-			Position minPos(99999, 99999, 7), maxPos(0, 0, 7);
-			for (Tile* t : tiles) {
-				Position p = t->getPosition();
-				minPos.x = std::min(minPos.x, p.x);
-				minPos.y = std::min(minPos.y, p.y);
-				maxPos.x = std::max(maxPos.x, p.x);
-				maxPos.y = std::max(maxPos.y, p.y);
-				minPos.z = p.z;
-			}
-			m_config.width = maxPos.x - minPos.x + 1;
-			m_config.height = maxPos.y - minPos.y + 1;
-			m_config.center.x = (minPos.x + maxPos.x) / 2;
-			m_config.center.y = (minPos.y + maxPos.y) / 2;
-			m_config.center.z = minPos.z;
-		}
-	}
-
-	if (m_config.width < 10) m_config.width = 70;
-	if (m_config.height < 10) m_config.height = 70;
-	if (m_config.center.x == 0) {
-		m_config.center = Position(100, 100, 7);
-	}
+	ReadSelectionBounds();
 
 	CreateControls();
 	PopulatePresetList();
 	UpdatePreview();
+	UpdateSelectionInfo();
 
 	Centre();
+}
+
+bool DungeonGeneratorDialog::ReadSelectionBounds() {
+	Editor* editor = g_gui.GetCurrentEditor();
+	if (!editor) {
+		m_hasSelection = false;
+		return false;
+	}
+
+	const Selection& sel = editor->selection;
+	const auto& tiles = sel.getTiles();
+	if (tiles.empty()) {
+		m_hasSelection = false;
+		return false;
+	}
+
+	Position minPos(99999, 99999, 7), maxPos(0, 0, 7);
+	for (Tile* t : tiles) {
+		Position p = t->getPosition();
+		minPos.x = std::min(minPos.x, p.x);
+		minPos.y = std::min(minPos.y, p.y);
+		maxPos.x = std::max(maxPos.x, p.x);
+		maxPos.y = std::max(maxPos.y, p.y);
+		minPos.z = p.z;
+	}
+
+	m_config.width = maxPos.x - minPos.x + 1;
+	m_config.height = maxPos.y - minPos.y + 1;
+	m_config.center.x = (minPos.x + maxPos.x) / 2;
+	m_config.center.y = (minPos.y + maxPos.y) / 2;
+	m_config.center.z = minPos.z;
+	m_hasSelection = true;
+	return true;
+}
+
+void DungeonGeneratorDialog::UpdateSelectionInfo() {
+	if (!m_selectionLabel) return;
+
+	ReadSelectionBounds();
+
+	if (m_hasSelection) {
+		m_selectionLabel->SetLabel(wxString::Format(
+			"Selection: %dx%d at (%d, %d, %d)",
+			m_config.width, m_config.height,
+			m_config.center.x, m_config.center.y, m_config.center.z));
+		m_selectionLabel->SetForegroundColour(wxColour(100, 200, 100));
+	} else {
+		m_selectionLabel->SetLabel("No selection - please select an area on the map first");
+		m_selectionLabel->SetForegroundColour(wxColour(200, 100, 100));
+	}
 }
 
 DungeonGeneratorDialog::~DungeonGeneratorDialog() {
@@ -136,47 +172,142 @@ DungeonGeneratorDialog::~DungeonGeneratorDialog() {
 void DungeonGeneratorDialog::CreateControls() {
 	wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
+	// Area selection
+	wxStaticBoxSizer* areaBox = new wxStaticBoxSizer(wxVERTICAL, this, "Generation Area");
+
+	wxBoxSizer* areaBtnRow = new wxBoxSizer(wxHORIZONTAL);
+	areaBtnRow->Add(new wxButton(this, ID_SELECT_FROM_MAP, "Select from Map..."), 0, wxRIGHT, 5);
+	areaBtnRow->Add(new wxButton(this, ID_USE_SELECTION, "Use Current Selection"), 0);
+	areaBox->Add(areaBtnRow, 0, wxALL, 5);
+
+	m_pickStatusText = new wxStaticText(this, wxID_ANY, "");
+	areaBox->Add(m_pickStatusText, 0, wxLEFT | wxRIGHT | wxBOTTOM, 5);
+
+	m_selectionLabel = new wxStaticText(this, wxID_ANY, "");
+	areaBox->Add(m_selectionLabel, 0, wxLEFT | wxRIGHT | wxBOTTOM, 5);
+
+	mainSizer->Add(areaBox, 0, wxALL | wxEXPAND, 5);
+
 	// Preset selection + management buttons
 	wxStaticBoxSizer* presetBox = new wxStaticBoxSizer(wxVERTICAL, this, "Preset");
 
-	wxBoxSizer* presetRow = new wxBoxSizer(wxHORIZONTAL);
 	m_presetChoice = new wxChoice(this, ID_PRESET_CHOICE);
-	presetRow->Add(m_presetChoice, 1, wxALL | wxEXPAND, 3);
-	presetBox->Add(presetRow, 0, wxEXPAND);
+	presetBox->Add(m_presetChoice, 0, wxALL | wxEXPAND, 3);
 
 	wxBoxSizer* presetBtnRow = new wxBoxSizer(wxHORIZONTAL);
-	presetBtnRow->Add(new wxButton(this, ID_NEW_PRESET_BTN, "New", wxDefaultPosition, wxSize(70, -1)), 0, wxRIGHT, 3);
-	presetBtnRow->Add(new wxButton(this, ID_EDIT_PRESET_BTN, "Edit", wxDefaultPosition, wxSize(70, -1)), 0, wxRIGHT, 3);
-	presetBtnRow->Add(new wxButton(this, ID_DUPLICATE_PRESET_BTN, "Duplicate", wxDefaultPosition, wxSize(70, -1)), 0, wxRIGHT, 3);
+	presetBtnRow->Add(new wxButton(this, ID_NEW_PRESET_BTN, "New", wxDefaultPosition, wxSize(55, -1)), 0, wxRIGHT, 2);
+	presetBtnRow->Add(new wxButton(this, ID_EDIT_PRESET_BTN, "Edit", wxDefaultPosition, wxSize(55, -1)), 0, wxRIGHT, 2);
+	presetBtnRow->Add(new wxButton(this, ID_DUPLICATE_PRESET_BTN, "Copy", wxDefaultPosition, wxSize(55, -1)), 0, wxRIGHT, 2);
 	presetBtnRow->AddStretchSpacer();
-	presetBtnRow->Add(new wxButton(this, ID_DELETE_PRESET_BTN, "Delete", wxDefaultPosition, wxSize(70, -1)), 0);
+	presetBtnRow->Add(new wxButton(this, ID_DELETE_PRESET_BTN, "Del", wxDefaultPosition, wxSize(45, -1)), 0);
 	presetBox->Add(presetBtnRow, 0, wxALL | wxEXPAND, 3);
 
 	mainSizer->Add(presetBox, 0, wxALL | wxEXPAND, 5);
 
-	// Parameters
-	wxStaticBoxSizer* paramBox = new wxStaticBoxSizer(wxVERTICAL, this, "Parameters");
+	// Algorithm selector + parameters + preview
+	wxStaticBoxSizer* algoBox = new wxStaticBoxSizer(wxVERTICAL, this, "Algorithm");
 
-	wxFlexGridSizer* paramGrid = new wxFlexGridSizer(2, 5, 5);
-	paramGrid->AddGrowableCol(1);
+	m_algorithmChoice = new wxChoice(this, ID_ALGORITHM_CHOICE);
+	m_algorithmChoice->Append("Room Placement");
+	m_algorithmChoice->Append("BSP");
+	m_algorithmChoice->Append("Random Walk");
+	m_algorithmChoice->SetSelection(0);
+	algoBox->Add(m_algorithmChoice, 0, wxALL | wxEXPAND, 3);
 
-	paramGrid->Add(new wxStaticText(this, wxID_ANY, "Width:"), 0, wxALIGN_CENTER_VERTICAL);
-	m_widthSpin = new wxSpinCtrl(this, ID_WIDTH_SPIN, wxEmptyString, wxDefaultPosition,
-	                              wxDefaultSize, wxSP_ARROW_KEYS, 10, 500, m_config.width);
-	paramGrid->Add(m_widthSpin, 0, wxEXPAND);
+	// Horizontal: params left, preview right
+	wxBoxSizer* algoHSizer = new wxBoxSizer(wxHORIZONTAL);
 
-	paramGrid->Add(new wxStaticText(this, wxID_ANY, "Height:"), 0, wxALIGN_CENTER_VERTICAL);
-	m_heightSpin = new wxSpinCtrl(this, ID_HEIGHT_SPIN, wxEmptyString, wxDefaultPosition,
-	                               wxDefaultSize, wxSP_ARROW_KEYS, 10, 500, m_config.height);
-	paramGrid->Add(m_heightSpin, 0, wxEXPAND);
+	// Left: algorithm-specific parameter panels
+	m_paramsSizer = new wxBoxSizer(wxVERTICAL);
 
-	paramGrid->Add(new wxStaticText(this, wxID_ANY, "Path Width:"), 0, wxALIGN_CENTER_VERTICAL);
-	m_pathWidthSpin = new wxSpinCtrl(this, ID_PATH_WIDTH_SPIN, wxEmptyString, wxDefaultPosition,
-	                                  wxDefaultSize, wxSP_ARROW_KEYS, 2, 20, m_config.pathWidth);
-	paramGrid->Add(m_pathWidthSpin, 0, wxEXPAND);
+	// --- Room Placement panel ---
+	m_roomPlacementPanel = new wxPanel(this);
+	wxFlexGridSizer* rpGrid = new wxFlexGridSizer(2, 4, 6);
+	rpGrid->Add(new wxStaticText(m_roomPlacementPanel, wxID_ANY, "Rooms:"), 0, wxALIGN_CENTER_VERTICAL);
+	m_rpNumRooms = new wxSpinCtrl(m_roomPlacementPanel, wxID_ANY, "18", wxDefaultPosition, wxSize(65,-1), wxSP_ARROW_KEYS, 1, 500, 18);
+	rpGrid->Add(m_rpNumRooms, 0);
+	rpGrid->Add(new wxStaticText(m_roomPlacementPanel, wxID_ANY, "Min Size:"), 0, wxALIGN_CENTER_VERTICAL);
+	m_rpMinRoomSize = new wxSpinCtrl(m_roomPlacementPanel, wxID_ANY, "5", wxDefaultPosition, wxSize(65,-1), wxSP_ARROW_KEYS, 3, 200, 5);
+	rpGrid->Add(m_rpMinRoomSize, 0);
+	rpGrid->Add(new wxStaticText(m_roomPlacementPanel, wxID_ANY, "Max Size:"), 0, wxALIGN_CENTER_VERTICAL);
+	m_rpMaxRoomSize = new wxSpinCtrl(m_roomPlacementPanel, wxID_ANY, "11", wxDefaultPosition, wxSize(65,-1), wxSP_ARROW_KEYS, 3, 200, 11);
+	rpGrid->Add(m_rpMaxRoomSize, 0);
+	rpGrid->Add(new wxStaticText(m_roomPlacementPanel, wxID_ANY, "Path Width:"), 0, wxALIGN_CENTER_VERTICAL);
+	m_rpPathWidth = new wxSpinCtrl(m_roomPlacementPanel, wxID_ANY, "4", wxDefaultPosition, wxSize(65,-1), wxSP_ARROW_KEYS, 1, 100, 4);
+	rpGrid->Add(m_rpPathWidth, 0);
+	rpGrid->Add(new wxStaticText(m_roomPlacementPanel, wxID_ANY, "Min Distance:"), 0, wxALIGN_CENTER_VERTICAL);
+	m_rpMinDistance = new wxSpinCtrl(m_roomPlacementPanel, wxID_ANY, "8", wxDefaultPosition, wxSize(65,-1), wxSP_ARROW_KEYS, 1, 200, 8);
+	rpGrid->Add(m_rpMinDistance, 0);
+	m_rpUseMST = new wxCheckBox(m_roomPlacementPanel, wxID_ANY, "Use MST (better connections)");
+	m_rpUseMST->SetValue(true);
+	wxBoxSizer* rpSizer = new wxBoxSizer(wxVERTICAL);
+	rpSizer->Add(rpGrid, 0, wxALL, 3);
+	rpSizer->Add(m_rpUseMST, 0, wxALL, 3);
+	m_roomPlacementPanel->SetSizer(rpSizer);
 
-	paramBox->Add(paramGrid, 0, wxALL | wxEXPAND, 5);
-	mainSizer->Add(paramBox, 0, wxALL | wxEXPAND, 5);
+	// --- BSP panel ---
+	m_bspPanel = new wxPanel(this);
+	wxFlexGridSizer* bspGrid = new wxFlexGridSizer(2, 4, 6);
+	bspGrid->Add(new wxStaticText(m_bspPanel, wxID_ANY, "Min Partition:"), 0, wxALIGN_CENTER_VERTICAL);
+	m_bspMinPartition = new wxSpinCtrl(m_bspPanel, wxID_ANY, "12", wxDefaultPosition, wxSize(65,-1), wxSP_ARROW_KEYS, 4, 200, 12);
+	bspGrid->Add(m_bspMinPartition, 0);
+	bspGrid->Add(new wxStaticText(m_bspPanel, wxID_ANY, "Min Room:"), 0, wxALIGN_CENTER_VERTICAL);
+	m_bspMinRoom = new wxSpinCtrl(m_bspPanel, wxID_ANY, "5", wxDefaultPosition, wxSize(65,-1), wxSP_ARROW_KEYS, 3, 200, 5);
+	bspGrid->Add(m_bspMinRoom, 0);
+	bspGrid->Add(new wxStaticText(m_bspPanel, wxID_ANY, "Padding:"), 0, wxALIGN_CENTER_VERTICAL);
+	m_bspPadding = new wxSpinCtrl(m_bspPanel, wxID_ANY, "2", wxDefaultPosition, wxSize(65,-1), wxSP_ARROW_KEYS, 0, 50, 2);
+	bspGrid->Add(m_bspPadding, 0);
+	bspGrid->Add(new wxStaticText(m_bspPanel, wxID_ANY, "Corridor Width:"), 0, wxALIGN_CENTER_VERTICAL);
+	m_bspCorridorWidth = new wxSpinCtrl(m_bspPanel, wxID_ANY, "3", wxDefaultPosition, wxSize(65,-1), wxSP_ARROW_KEYS, 1, 100, 3);
+	bspGrid->Add(m_bspCorridorWidth, 0);
+	bspGrid->Add(new wxStaticText(m_bspPanel, wxID_ANY, "Max Depth:"), 0, wxALIGN_CENTER_VERTICAL);
+	m_bspMaxDepth = new wxSpinCtrl(m_bspPanel, wxID_ANY, "6", wxDefaultPosition, wxSize(65,-1), wxSP_ARROW_KEYS, 1, 20, 6);
+	bspGrid->Add(m_bspMaxDepth, 0);
+	m_bspPanel->SetSizer(bspGrid);
+
+	// --- Random Walk panel ---
+	m_randomWalkPanel = new wxPanel(this);
+	wxFlexGridSizer* rwGrid = new wxFlexGridSizer(2, 4, 6);
+	rwGrid->Add(new wxStaticText(m_randomWalkPanel, wxID_ANY, "Walkers:"), 0, wxALIGN_CENTER_VERTICAL);
+	m_rwWalkerCount = new wxSpinCtrl(m_randomWalkPanel, wxID_ANY, "3", wxDefaultPosition, wxSize(65,-1), wxSP_ARROW_KEYS, 1, 50, 3);
+	rwGrid->Add(m_rwWalkerCount, 0);
+	rwGrid->Add(new wxStaticText(m_randomWalkPanel, wxID_ANY, "Coverage:"), 0, wxALIGN_CENTER_VERTICAL);
+	m_rwCoverage = new wxSpinCtrlDouble(m_randomWalkPanel, wxID_ANY, "0.40", wxDefaultPosition, wxSize(65,-1), wxSP_ARROW_KEYS, 0.1, 0.8, 0.40, 0.05);
+	m_rwCoverage->SetDigits(2);
+	rwGrid->Add(m_rwCoverage, 0);
+	rwGrid->Add(new wxStaticText(m_randomWalkPanel, wxID_ANY, "Turn Chance:"), 0, wxALIGN_CENTER_VERTICAL);
+	m_rwTurnChance = new wxSpinCtrlDouble(m_randomWalkPanel, wxID_ANY, "0.30", wxDefaultPosition, wxSize(65,-1), wxSP_ARROW_KEYS, 0.05, 0.9, 0.30, 0.05);
+	m_rwTurnChance->SetDigits(2);
+	rwGrid->Add(m_rwTurnChance, 0);
+	rwGrid->Add(new wxStaticText(m_randomWalkPanel, wxID_ANY, "Room Chance %:"), 0, wxALIGN_CENTER_VERTICAL);
+	m_rwRoomChance = new wxSpinCtrl(m_randomWalkPanel, wxID_ANY, "10", wxDefaultPosition, wxSize(65,-1), wxSP_ARROW_KEYS, 0, 100, 10);
+	rwGrid->Add(m_rwRoomChance, 0);
+	rwGrid->Add(new wxStaticText(m_randomWalkPanel, wxID_ANY, "Min Room:"), 0, wxALIGN_CENTER_VERTICAL);
+	m_rwMinRoomSize = new wxSpinCtrl(m_randomWalkPanel, wxID_ANY, "3", wxDefaultPosition, wxSize(65,-1), wxSP_ARROW_KEYS, 2, 100, 3);
+	rwGrid->Add(m_rwMinRoomSize, 0);
+	rwGrid->Add(new wxStaticText(m_randomWalkPanel, wxID_ANY, "Max Room:"), 0, wxALIGN_CENTER_VERTICAL);
+	m_rwMaxRoomSize = new wxSpinCtrl(m_randomWalkPanel, wxID_ANY, "7", wxDefaultPosition, wxSize(65,-1), wxSP_ARROW_KEYS, 3, 100, 7);
+	rwGrid->Add(m_rwMaxRoomSize, 0);
+	m_randomWalkPanel->SetSizer(rwGrid);
+
+	m_paramsSizer->Add(m_roomPlacementPanel, 0, wxEXPAND);
+	m_paramsSizer->Add(m_bspPanel, 0, wxEXPAND);
+	m_paramsSizer->Add(m_randomWalkPanel, 0, wxEXPAND);
+
+	algoHSizer->Add(m_paramsSizer, 1, wxEXPAND);
+
+	// Right: algorithm preview illustration
+	m_algoPreviewPanel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(160, 150));
+	m_algoPreviewPanel->SetMinSize(wxSize(160, 150));
+	m_algoPreviewPanel->SetBackgroundStyle(wxBG_STYLE_PAINT);
+	m_algoPreviewPanel->Bind(wxEVT_PAINT, &DungeonGeneratorDialog::OnAlgoPreviewPaint, this);
+	algoHSizer->Add(m_algoPreviewPanel, 0, wxALL, 5);
+
+	algoBox->Add(algoHSizer, 0, wxALL | wxEXPAND, 3);
+	mainSizer->Add(algoBox, 0, wxALL | wxEXPAND, 5);
+
+	// Show only the first panel initially
+	ShowAlgorithmParams();
 
 	// Preview notebook
 	wxNotebook* notebook = new wxNotebook(this, wxID_ANY);
@@ -229,10 +360,16 @@ void DungeonGeneratorDialog::CreateControls() {
 
 	mainSizer->Add(notebook, 1, wxALL | wxEXPAND, 5);
 
-	// Generate button
+	// Action buttons
+	wxBoxSizer* actionRow = new wxBoxSizer(wxHORIZONTAL);
 	wxButton* generateBtn = new wxButton(this, ID_GENERATE_BTN, "Generate Dungeon",
 	                                      wxDefaultPosition, wxSize(-1, 35));
-	mainSizer->Add(generateBtn, 0, wxALL | wxEXPAND, 5);
+	wxButton* rerollBtn = new wxButton(this, ID_REROLL_BTN, "Reroll (Undo + Regenerate)",
+	                                    wxDefaultPosition, wxSize(-1, 35));
+	rerollBtn->SetToolTip("Undo the last generation and regenerate with a new random seed");
+	actionRow->Add(generateBtn, 1, wxRIGHT, 3);
+	actionRow->Add(rerollBtn, 1);
+	mainSizer->Add(actionRow, 0, wxALL | wxEXPAND, 5);
 
 	SetSizer(mainSizer);
 }
@@ -396,6 +533,83 @@ void DungeonGeneratorDialog::OnDeletePreset(wxCommandEvent& event) {
 // Generate
 //=============================================================================
 
+void DungeonGeneratorDialog::OnSelectFromMap(wxCommandEvent& event) {
+	if (m_pickStatusText) {
+		m_pickStatusText->SetForegroundColour(wxColour(0, 100, 200));
+		m_pickStatusText->SetLabel("Waiting for first corner click...");
+	}
+
+	g_gui.BeginRectanglePick(
+		// On complete (second click)
+		[this](const Position& first, const Position& second) {
+			int minX = std::min(first.x, second.x);
+			int minY = std::min(first.y, second.y);
+			int maxX = std::max(first.x, second.x);
+			int maxY = std::max(first.y, second.y);
+
+			m_config.width = maxX - minX + 1;
+			m_config.height = maxY - minY + 1;
+			m_config.center.x = (minX + maxX) / 2;
+			m_config.center.y = (minY + maxY) / 2;
+			m_config.center.z = first.z;
+			m_hasSelection = true;
+
+			if (m_pickStatusText) {
+				m_pickStatusText->SetForegroundColour(wxColour(0, 128, 0));
+				m_pickStatusText->SetLabel(wxString::Format("Selection complete: (%d,%d,Z%d) to (%d,%d,Z%d)",
+					first.x, first.y, first.z, second.x, second.y, second.z));
+			}
+
+			UpdateSelectionInfo();
+		},
+		// On cancel
+		[this]() {
+			if (m_pickStatusText) {
+				m_pickStatusText->SetForegroundColour(wxColour(180, 0, 0));
+				m_pickStatusText->SetLabel("Selection cancelled");
+			}
+		},
+		// On first click
+		[this](const Position& first) {
+			if (m_pickStatusText) {
+				m_pickStatusText->SetForegroundColour(wxColour(200, 130, 0));
+				m_pickStatusText->SetLabel(wxString::Format("First corner: (%d, %d, Z%d) - Click second corner...",
+					first.x, first.y, first.z));
+			}
+		}
+	);
+}
+
+void DungeonGeneratorDialog::OnUseSelection(wxCommandEvent& event) {
+	if (ReadSelectionBounds()) {
+		if (m_pickStatusText) {
+			m_pickStatusText->SetForegroundColour(wxColour(0, 128, 0));
+			m_pickStatusText->SetLabel("Using current editor selection");
+		}
+		UpdateSelectionInfo();
+	} else {
+		if (m_pickStatusText) {
+			m_pickStatusText->SetForegroundColour(wxColour(180, 0, 0));
+			m_pickStatusText->SetLabel("No tiles selected in the editor");
+		}
+		UpdateSelectionInfo();
+	}
+}
+
+void DungeonGeneratorDialog::OnAlgorithmChanged(wxCommandEvent& event) {
+	ShowAlgorithmParams();
+}
+
+void DungeonGeneratorDialog::ShowAlgorithmParams() {
+	int sel = m_algorithmChoice->GetSelection();
+	m_roomPlacementPanel->Show(sel == 0);
+	m_bspPanel->Show(sel == 1);
+	m_randomWalkPanel->Show(sel == 2);
+	m_paramsSizer->Layout();
+	if (m_algoPreviewPanel) m_algoPreviewPanel->Refresh();
+	Layout();
+}
+
 void DungeonGeneratorDialog::OnGenerate(wxCommandEvent& event) {
 	Editor* editor = g_gui.GetCurrentEditor();
 	if (!editor) {
@@ -403,32 +617,44 @@ void DungeonGeneratorDialog::OnGenerate(wxCommandEvent& event) {
 		return;
 	}
 
-	m_config.width = m_widthSpin->GetValue();
-	m_config.height = m_heightSpin->GetValue();
-	m_config.pathWidth = m_pathWidthSpin->GetValue();
+	// Re-read selection bounds
+	UpdateSelectionInfo();
+	if (!m_hasSelection) {
+		wxMessageBox("Please select an area on the map first.\n\nUse the selection tool to mark where the dungeon should be generated.",
+		             "No Selection", wxICON_WARNING | wxOK, this);
+		return;
+	}
+
 	m_config.presetName = m_presetChoice->GetStringSelection().ToStdString();
 
-	// Get center from selection if available
-	const Selection& sel = editor->selection;
-	const auto& tiles = sel.getTiles();
-	if (!tiles.empty()) {
-		Position minPos(99999, 99999, 7), maxPos(0, 0, 7);
-		for (Tile* t : tiles) {
-			Position p = t->getPosition();
-			minPos.x = std::min(minPos.x, p.x);
-			minPos.y = std::min(minPos.y, p.y);
-			maxPos.x = std::max(maxPos.x, p.x);
-			maxPos.y = std::max(maxPos.y, p.y);
-			minPos.z = p.z;
-		}
-		m_config.center.x = (minPos.x + maxPos.x) / 2;
-		m_config.center.y = (minPos.y + maxPos.y) / 2;
-		m_config.center.z = minPos.z;
-	}
+	// Read algorithm selection
+	int algoSel = m_algorithmChoice->GetSelection();
+	if (algoSel == 1) m_config.algorithm = DungeonGen::Algorithm::BSP;
+	else if (algoSel == 2) m_config.algorithm = DungeonGen::Algorithm::RandomWalk;
+	else m_config.algorithm = DungeonGen::Algorithm::RoomPlacement;
 
-	if (m_config.center.x == 0 && m_config.center.y == 0) {
-		m_config.center = Position(100, 100, 7);
-	}
+	// Read algorithm-specific params
+	m_config.roomPlacement.numRooms = m_rpNumRooms->GetValue();
+	m_config.roomPlacement.minRoomSize = m_rpMinRoomSize->GetValue();
+	m_config.roomPlacement.maxRoomSize = m_rpMaxRoomSize->GetValue();
+	m_config.roomPlacement.pathWidth = m_rpPathWidth->GetValue();
+	m_config.roomPlacement.minRoomDistance = m_rpMinDistance->GetValue();
+	m_config.roomPlacement.useMST = m_rpUseMST->GetValue();
+
+	m_config.bsp.minPartitionSize = m_bspMinPartition->GetValue();
+	m_config.bsp.minRoomSize = m_bspMinRoom->GetValue();
+	m_config.bsp.roomPadding = m_bspPadding->GetValue();
+	m_config.bsp.corridorWidth = m_bspCorridorWidth->GetValue();
+	m_config.bsp.maxDepth = m_bspMaxDepth->GetValue();
+
+	m_config.randomWalk.walkerCount = m_rwWalkerCount->GetValue();
+	m_config.randomWalk.coverage = static_cast<float>(m_rwCoverage->GetValue());
+	m_config.randomWalk.turnChance = static_cast<float>(m_rwTurnChance->GetValue());
+	m_config.randomWalk.roomChance = m_rwRoomChance->GetValue();
+	m_config.randomWalk.minRoomSize = m_rwMinRoomSize->GetValue();
+	m_config.randomWalk.maxRoomSize = m_rwMaxRoomSize->GetValue();
+
+	m_config.seed = 0; // New random seed
 
 	auto& presetMgr = DungeonGen::PresetManager::getInstance();
 	const DungeonGen::DungeonPreset* preset = presetMgr.getPreset(m_config.presetName);
@@ -437,15 +663,217 @@ void DungeonGeneratorDialog::OnGenerate(wxCommandEvent& event) {
 		return;
 	}
 
+	// Show progress dialog for large areas
+	int area = m_config.width * m_config.height;
+	wxGenericProgressDialog* progressDlg = nullptr;
+
+	if (area > 5000) {
+		progressDlg = new wxGenericProgressDialog(
+			"Generating Dungeon",
+			"Preparing...",
+			100, this,
+			wxPD_APP_MODAL | wxPD_SMOOTH | wxPD_AUTO_HIDE | wxPD_CAN_ABORT);
+		progressDlg->Show();
+	}
+
 	DungeonGen::DungeonGenerator generator(editor);
-	if (generator.generate(m_config, *preset)) {
+
+	bool cancelled = false;
+	if (progressDlg) {
+		generator.setProgressCallback([&](const std::string& step, int progress) -> bool {
+			if (!progressDlg) return true;
+			bool cont = progressDlg->Update(progress, step);
+			wxYield();
+			if (!cont) {
+				cancelled = true;
+				return false;
+			}
+			return true;
+		});
+	}
+
+	bool success = generator.generate(m_config, *preset);
+
+	if (progressDlg) {
+		progressDlg->Destroy();
+	}
+
+	if (success) {
+		m_lastGenerateSuccess = true;
 		g_gui.RefreshView();
-		wxMessageBox(wxString::Format("Dungeon generated!\n%d tiles modified.",
-		             generator.getTilesGenerated()),
-		             "Success", wxICON_INFORMATION | wxOK, this);
+	} else if (cancelled) {
+		m_lastGenerateSuccess = false;
 	} else {
+		m_lastGenerateSuccess = false;
 		wxMessageBox("Generation failed: " + generator.getLastError(),
 		             "Error", wxICON_ERROR | wxOK, this);
+	}
+}
+
+void DungeonGeneratorDialog::OnReroll(wxCommandEvent& event) {
+	Editor* editor = g_gui.GetCurrentEditor();
+	if (!editor) return;
+
+	if (!m_lastGenerateSuccess) {
+		// Nothing to undo, just generate
+		OnGenerate(event);
+		return;
+	}
+
+	// Undo the last generation
+	editor->actionQueue->undo();
+	g_gui.RefreshView();
+
+	// Generate with new seed
+	OnGenerate(event);
+}
+
+void DungeonGeneratorDialog::OnAlgoPreviewPaint(wxPaintEvent& event) {
+	wxAutoBufferedPaintDC dc(m_algoPreviewPanel);
+	wxRect rect = m_algoPreviewPanel->GetClientRect();
+
+	// Background
+	dc.SetBackground(wxBrush(wxColour(20, 20, 30)));
+	dc.Clear();
+
+	int sel = m_algorithmChoice->GetSelection();
+	int w = rect.GetWidth();
+	int h = rect.GetHeight();
+	int margin = 8;
+	int iw = w - margin * 2;
+	int ih = h - margin * 2 - 16; // reserve space for label
+
+	// Label
+	dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
+	dc.SetTextForeground(wxColour(180, 180, 180));
+
+	wxString label;
+	if (sel == 0) label = "Room Placement";
+	else if (sel == 1) label = "BSP Partitioning";
+	else label = "Random Walk";
+
+	wxSize ts = dc.GetTextExtent(label);
+	dc.DrawText(label, (w - ts.GetWidth()) / 2, 3);
+
+	int ox = margin;
+	int oy = margin + 14;
+
+	// Border
+	dc.SetPen(wxPen(wxColour(60, 60, 80)));
+	dc.SetBrush(*wxTRANSPARENT_BRUSH);
+	dc.DrawRectangle(ox, oy, iw, ih);
+
+	if (sel == 0) {
+		// Room Placement: random rectangles + connecting lines
+		dc.SetBrush(wxBrush(wxColour(80, 140, 80)));
+		dc.SetPen(wxPen(wxColour(60, 110, 60)));
+
+		struct MiniRoom { int x, y, w, h; };
+		MiniRoom rooms[] = {
+			{ox + 10, oy + 8, 28, 22},
+			{ox + iw - 42, oy + 10, 32, 18},
+			{ox + 15, oy + ih - 35, 25, 25},
+			{ox + iw/2 - 12, oy + ih/2 - 10, 24, 20},
+			{ox + iw - 38, oy + ih - 30, 28, 20},
+			{ox + iw/2 + 15, oy + 12, 20, 16},
+		};
+
+		for (auto& r : rooms) {
+			dc.DrawRectangle(r.x, r.y, r.w, r.h);
+		}
+
+		// Corridors
+		dc.SetPen(wxPen(wxColour(80, 140, 80), 2));
+		for (int i = 0; i + 1 < 6; ++i) {
+			int cx1 = rooms[i].x + rooms[i].w/2;
+			int cy1 = rooms[i].y + rooms[i].h/2;
+			int cx2 = rooms[i+1].x + rooms[i+1].w/2;
+			int cy2 = rooms[i+1].y + rooms[i+1].h/2;
+			dc.DrawLine(cx1, cy1, cx2, cy1); // horizontal
+			dc.DrawLine(cx2, cy1, cx2, cy2); // vertical
+		}
+	} else if (sel == 1) {
+		// BSP: recursive subdivision lines + rooms in leaves
+		dc.SetPen(wxPen(wxColour(100, 100, 140), 1, wxPENSTYLE_DOT));
+
+		// Vertical split
+		int splitX = ox + iw * 45 / 100;
+		dc.DrawLine(splitX, oy, splitX, oy + ih);
+
+		// Left horizontal split
+		int splitY1 = oy + ih * 55 / 100;
+		dc.DrawLine(ox, splitY1, splitX, splitY1);
+
+		// Right horizontal split
+		int splitY2 = oy + ih * 40 / 100;
+		dc.DrawLine(splitX, splitY2, ox + iw, splitY2);
+
+		// Right-top vertical split
+		int splitX2 = splitX + (iw - splitX + ox) * 50 / 100;
+		dc.DrawLine(splitX2, oy, splitX2, splitY2);
+
+		// Rooms in leaves
+		dc.SetBrush(wxBrush(wxColour(70, 100, 150)));
+		dc.SetPen(wxPen(wxColour(50, 80, 130)));
+
+		int pad = 4;
+		// Top-left
+		dc.DrawRectangle(ox + pad, oy + pad, splitX - ox - pad*2, splitY1 - oy - pad*2);
+		// Bottom-left
+		dc.DrawRectangle(ox + pad, splitY1 + pad, splitX - ox - pad*2, oy + ih - splitY1 - pad*2);
+		// Top-right-left
+		dc.DrawRectangle(splitX + pad, oy + pad, splitX2 - splitX - pad*2, splitY2 - oy - pad*2);
+		// Top-right-right
+		dc.DrawRectangle(splitX2 + pad, oy + pad, ox + iw - splitX2 - pad*2, splitY2 - oy - pad*2);
+		// Bottom-right
+		dc.DrawRectangle(splitX + pad, splitY2 + pad, iw - (splitX - ox) - pad*2, oy + ih - splitY2 - pad*2);
+
+		// Corridors between rooms
+		dc.SetPen(wxPen(wxColour(70, 100, 150), 2));
+		int midY1 = (oy + splitY1) / 2;
+		int midY2 = (splitY1 + oy + ih) / 2;
+		dc.DrawLine(ox + (splitX - ox)/2, midY1, ox + (splitX - ox)/2, midY2);
+
+	} else {
+		// Random Walk: organic cave-like blobs
+		dc.SetBrush(wxBrush(wxColour(140, 100, 60)));
+		dc.SetPen(*wxTRANSPARENT_PEN);
+
+		// Draw an organic shape using small squares
+		int cs = 4; // cell size
+		int cx = iw / 2, cy = ih / 2;
+
+		// Pre-baked organic cave pattern
+		static const int pattern[][2] = {
+			{0,0},{1,0},{-1,0},{0,1},{0,-1},{2,0},{-2,0},{0,2},{0,-2},
+			{1,1},{-1,1},{1,-1},{-1,-1},{3,0},{-3,0},{0,3},{0,-3},
+			{2,1},{1,2},{-2,1},{-1,2},{2,-1},{1,-2},{-2,-1},{-1,-2},
+			{3,1},{3,-1},{-3,1},{-3,-1},{1,3},{-1,3},{1,-3},{-1,-3},
+			{4,0},{-4,0},{0,4},{0,-4},{4,1},{-4,1},{4,-1},{-4,-1},
+			{2,2},{-2,2},{2,-2},{-2,-2},{3,2},{2,3},{-3,2},{-2,3},
+			{5,0},{-5,0},{5,1},{-5,1},{0,5},{0,-5},{3,3},{-3,-3},
+			{4,2},{-4,2},{2,4},{-2,4},{5,2},{-5,2},{6,0},{-6,0},
+			{6,1},{-6,1},{4,3},{-4,3},{3,4},{-3,4},{5,3},{-5,3},
+			{7,0},{7,1},{7,-1},{-7,0},{-7,1},{6,2},{-6,2},
+			{8,0},{8,1},{-8,0},{0,6},{0,-6},{1,6},{-1,6},
+			{4,4},{-4,4},{5,4},{-5,4},{6,3},{-6,3},
+			// Branch going right
+			{9,0},{10,0},{10,1},{10,-1},{11,0},{11,1},{12,0},{12,1},
+			{13,0},{13,1},{13,2},{14,1},{14,2},{15,1},{15,2},
+			// Branch going down
+			{0,7},{0,8},{1,8},{-1,8},{0,9},{1,9},{0,10},{1,10},
+			{2,10},{0,11},{1,11},{2,11},{0,12},{1,12},
+			// Branch going left
+			{-8,1},{-9,0},{-9,1},{-10,0},{-10,1},{-10,2},{-11,1},{-11,2},
+		};
+
+		for (const auto& p : pattern) {
+			int px = ox + cx + p[0] * cs;
+			int py = oy + cy + p[1] * cs;
+			if (px >= ox && px + cs <= ox + iw && py >= oy && py + cs <= oy + ih) {
+				dc.DrawRectangle(px, py, cs, cs);
+			}
+		}
 	}
 }
 

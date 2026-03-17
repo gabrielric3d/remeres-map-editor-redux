@@ -25,6 +25,7 @@
 #include <unordered_map>
 #include <random>
 #include <memory>
+#include <functional>
 #include <cstdint>
 
 class Editor;
@@ -75,14 +76,8 @@ struct BorderConfig {
 //=============================================================================
 struct DetailGroup {
 	std::vector<uint16_t> itemIds;
-	float chance = 0.0f; // 0.0 - 1.0
-	enum Placement {
-		Anywhere,
-		NearWall,
-		NorthWall,
-		WestWall,
-		Center
-	};
+	float chance = 0.0f;
+	enum Placement { Anywhere, NearWall, NorthWall, WestWall, Center };
 	Placement placement = Anywhere;
 
 	static Placement placementFromString(const std::string& str);
@@ -107,22 +102,18 @@ struct HangableConfig {
 struct DungeonPreset {
 	std::string name;
 
-	// Terrain
 	uint16_t groundId = 0;
 	uint16_t patchId = 0;
 	uint16_t fillId = 0;
 	uint16_t brushId = 0;
 
-	// Structure
 	WallConfig walls;
 	BorderConfig borders;
 	BorderConfig brushBorders;
 
-	// Decoration
-	std::vector<DetailGroup> details; // up to 6 groups
+	std::vector<DetailGroup> details;
 	HangableConfig hangables;
 
-	// Serialization
 	bool saveToFile(const std::string& filepath) const;
 	bool loadFromFile(const std::string& filepath);
 	bool validate(std::string& errorOut) const;
@@ -154,15 +145,62 @@ private:
 };
 
 //=============================================================================
+// Algorithm types
+//=============================================================================
+enum class Algorithm {
+	RoomPlacement,  // Original: waypoints + rooms + corridors (improved with MST)
+	BSP,            // Binary Space Partitioning: recursive subdivision
+	RandomWalk      // Drunkard's Walk: organic cave generation
+};
+
+std::string algorithmToString(Algorithm algo);
+Algorithm algorithmFromString(const std::string& str);
+
+//=============================================================================
+// Per-algorithm parameters
+//=============================================================================
+struct RoomPlacementParams {
+	int numRooms = 18;         // Max rooms to place
+	int minRoomSize = 5;       // Min room width/height
+	int maxRoomSize = 11;      // Max room width/height
+	int minRoomDistance = 8;    // Min distance between room centers
+	int pathWidth = 4;         // Corridor width
+	bool useMST = true;        // Use Minimum Spanning Tree for connections (vs nearest-neighbor)
+};
+
+struct BSPParams {
+	int minPartitionSize = 12; // Min partition width/height before stopping splits
+	int minRoomSize = 5;       // Min room size within partition
+	int roomPadding = 2;       // Min padding between room edge and partition edge
+	int corridorWidth = 3;     // Corridor width
+	int maxDepth = 6;          // Max recursion depth
+};
+
+struct RandomWalkParams {
+	int walkerCount = 3;       // Number of simultaneous walkers
+	float coverage = 0.40f;    // Target floor coverage (0.0 - 1.0)
+	int maxSteps = 50000;      // Safety limit for total steps
+	bool startCenter = true;   // Start walkers from center
+	float turnChance = 0.3f;   // Chance to change direction each step
+	int roomChance = 10;       // % chance to carve a small room at walker position
+	int minRoomSize = 3;       // Min room size when carving
+	int maxRoomSize = 7;       // Max room size when carving
+};
+
+//=============================================================================
 // DungeonConfig - Runtime generation parameters
 //=============================================================================
 struct DungeonConfig {
 	int width = 70;
 	int height = 70;
-	int pathWidth = 4;
-	Position center; // center of generation area
+	Position center;
 	std::string presetName;
-	uint64_t seed = 0; // 0 = random
+	uint64_t seed = 0;
+
+	Algorithm algorithm = Algorithm::RoomPlacement;
+	RoomPlacementParams roomPlacement;
+	BSPParams bsp;
+	RandomWalkParams randomWalk;
 };
 
 //=============================================================================
@@ -183,7 +221,10 @@ public:
 	DungeonGenerator(Editor* editor);
 	~DungeonGenerator() = default;
 
-	// Generate dungeon with given config and preset
+	// Progress callback: (step_name, progress 0-100) -> return false to cancel
+	using ProgressCallback = std::function<bool(const std::string& step, int progress)>;
+	void setProgressCallback(ProgressCallback cb) { m_progressCallback = std::move(cb); }
+
 	bool generate(const DungeonConfig& config, const DungeonPreset& preset);
 
 	const std::string& getLastError() const { return m_lastError; }
@@ -194,61 +235,80 @@ private:
 	std::mt19937 m_rng;
 	std::string m_lastError;
 	int m_tilesGenerated = 0;
+	ProgressCallback m_progressCallback;
 
-	// Internal grid: position hash -> tile ID placed
+	bool reportProgress(const std::string& step, int progress) {
+		if (m_progressCallback) return m_progressCallback(step, progress);
+		return true;
+	}
+
+	// Internal grid
 	std::unordered_map<uint64_t, uint16_t> m_grid;
-
-	// Floor positions tracked during generation
 	std::vector<Position> m_floorPositions;
-
-	// Wall placements tracked for hangable decoration
 	std::vector<WallPlacement> m_wallPlacements;
 
-	// Position hash helper
+	// Position hash helpers
 	static uint64_t posHash(int x, int y);
 	uint16_t getGridTile(int x, int y) const;
 	void setGridTile(int x, int y, uint16_t id);
 	bool isFloorTile(int x, int y, uint16_t floorId) const;
 
-	// Generation steps (match Lua pipeline)
+	// Common helpers
+	void paintFloor(int x, int y, int z, uint16_t floorId,
+	                std::vector<std::pair<Position, uint16_t>>& tileChanges);
 	void fillBackground(int startX, int startY, int width, int height, int z, uint16_t fillId,
 	                     std::vector<std::pair<Position, uint16_t>>& tileChanges);
 
-	struct Waypoint { int x; int y; };
-	std::vector<Waypoint> generateWaypoints(int startX, int startY, int width, int height);
-	std::vector<Waypoint> orderWaypoints(std::vector<Waypoint> waypoints);
+	// ===== Layout algorithms =====
+	// Each fills m_grid and m_floorPositions with floor tiles
 
-	void carveRooms(const std::vector<Waypoint>& waypoints, int z, uint16_t floorId,
-	                std::vector<std::pair<Position, uint16_t>>& tileChanges);
-	void carveCorridors(const std::vector<Waypoint>& waypoints, int z, uint16_t floorId,
-	                    int pathWidth, std::vector<std::pair<Position, uint16_t>>& tileChanges);
+	// Room Placement (improved with MST)
+	struct Room { int x, y, w, h; int centerX() const { return x + w/2; } int centerY() const { return y + h/2; } };
+	void generateRoomPlacement(int startX, int startY, int width, int height, int z,
+	                           uint16_t floorId, const RoomPlacementParams& params,
+	                           std::vector<std::pair<Position, uint16_t>>& tileChanges);
+	void carveRoom(const Room& room, int z, uint16_t floorId,
+	               std::vector<std::pair<Position, uint16_t>>& tileChanges);
+	void carveCorridor(int x1, int y1, int x2, int y2, int z, uint16_t floorId,
+	                   int pathWidth, std::vector<std::pair<Position, uint16_t>>& tileChanges);
+	std::vector<std::pair<int,int>> buildMST(const std::vector<Room>& rooms);
 
+	// BSP (Binary Space Partitioning)
+	struct BSPNode {
+		int x, y, w, h;
+		std::unique_ptr<BSPNode> left, right;
+		Room room; // Only leaf nodes have rooms
+		bool hasRoom = false;
+	};
+	void generateBSP(int startX, int startY, int width, int height, int z,
+	                  uint16_t floorId, const BSPParams& params,
+	                  std::vector<std::pair<Position, uint16_t>>& tileChanges);
+	void splitBSP(BSPNode* node, int depth, const BSPParams& params);
+	void createBSPRooms(BSPNode* node, int startX, int startY, int z, uint16_t floorId,
+	                    const BSPParams& params, std::vector<std::pair<Position, uint16_t>>& tileChanges);
+	void connectBSPRooms(BSPNode* node, int startX, int startY, int z, uint16_t floorId,
+	                     int corridorWidth, std::vector<std::pair<Position, uint16_t>>& tileChanges);
+	Room getBSPRoomCenter(BSPNode* node);
+
+	// Random Walk
+	void generateRandomWalk(int startX, int startY, int width, int height, int z,
+	                        uint16_t floorId, const RandomWalkParams& params,
+	                        std::vector<std::pair<Position, uint16_t>>& tileChanges);
+
+	// ===== Post-processing (shared by all algorithms) =====
 	void buildWalls(int startX, int startY, int width, int height, int z,
 	                uint16_t floorId, const WallConfig& wallConfig,
 	                std::vector<std::pair<Position, uint16_t>>& tileChanges);
-
 	void createHangableDetails(int z, const HangableConfig& hangables,
 	                           std::vector<std::pair<Position, uint16_t>>& tileChanges);
-
 	void applyPatches(int z, const DungeonPreset& preset,
 	                  std::vector<std::pair<Position, uint16_t>>& tileChanges);
-
 	void decorateFloors(int z, const DungeonPreset& preset,
 	                    std::vector<std::pair<Position, uint16_t>>& tileChanges);
-
-	// Border building helper (shared by patches and brush borders)
 	void buildBorders(const std::vector<Position>& floorPositions, int z,
 	                  const BorderConfig& borderConfig,
 	                  std::vector<std::pair<Position, uint16_t>>& tileChanges);
-
-	// Placement validation for detail groups
 	bool isPlacementValid(DetailGroup::Placement placement, int x, int y, uint16_t floorId) const;
-
-	// Paint a floor tile and track it
-	void paintFloor(int x, int y, int z, uint16_t floorId,
-	                std::vector<std::pair<Position, uint16_t>>& tileChanges);
-
-	// Apply all tile changes to map via Action system
 	bool applyChanges(const std::vector<std::pair<Position, uint16_t>>& tileChanges);
 };
 

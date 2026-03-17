@@ -29,11 +29,30 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numeric>
 #include <sstream>
 #include <wx/dir.h>
 #include <wx/filename.h>
 
 namespace DungeonGen {
+
+//=============================================================================
+// Algorithm helpers
+//=============================================================================
+
+std::string algorithmToString(Algorithm algo) {
+	switch (algo) {
+		case Algorithm::BSP: return "BSP";
+		case Algorithm::RandomWalk: return "Random Walk";
+		default: return "Room Placement";
+	}
+}
+
+Algorithm algorithmFromString(const std::string& str) {
+	if (str == "BSP") return Algorithm::BSP;
+	if (str == "Random Walk") return Algorithm::RandomWalk;
+	return Algorithm::RoomPlacement;
+}
 
 //=============================================================================
 // DetailGroup helpers
@@ -70,7 +89,7 @@ bool DungeonPreset::validate(std::string& errorOut) const {
 }
 
 //=============================================================================
-// DungeonGenerator
+// DungeonGenerator - Core
 //=============================================================================
 
 DungeonGenerator::DungeonGenerator(Editor* editor)
@@ -102,6 +121,19 @@ void DungeonGenerator::paintFloor(int x, int y, int z, uint16_t floorId,
 	tileChanges.push_back({Position(x, y, z), floorId});
 }
 
+void DungeonGenerator::fillBackground(int startX, int startY, int width, int height, int z,
+                                       uint16_t fillId,
+                                       std::vector<std::pair<Position, uint16_t>>& tileChanges) {
+	if (fillId == 0) return;
+	int halfW = width / 2;
+	int halfH = height / 2;
+	for (int y = 0; y <= height; ++y) {
+		for (int x = 0; x <= width; ++x) {
+			tileChanges.push_back({Position(startX + x - halfW, startY + y - halfH, z), fillId});
+		}
+	}
+}
+
 //=============================================================================
 // Main generate entry point
 //=============================================================================
@@ -129,9 +161,7 @@ bool DungeonGenerator::generate(const DungeonConfig& config, const DungeonPreset
 	int startX = config.center.x;
 	int startY = config.center.y;
 	int z = config.center.z;
-	int pathWidth = std::max(2, config.pathWidth);
 
-	// Seed RNG
 	if (config.seed != 0) {
 		m_rng.seed(static_cast<unsigned int>(config.seed));
 	} else {
@@ -141,50 +171,55 @@ bool DungeonGenerator::generate(const DungeonConfig& config, const DungeonPreset
 
 	uint16_t floorId = preset.groundId;
 
-	// Collect all tile changes before applying
 	std::vector<std::pair<Position, uint16_t>> tileChanges;
 	tileChanges.reserve(static_cast<size_t>(width) * height);
 
 	// Step 1: Fill background
+	if (!reportProgress("Filling background...", 5)) { m_lastError = "Cancelled"; return false; }
 	fillBackground(startX, startY, width, height, z, preset.fillId, tileChanges);
 
-	// Step 2-3: Generate and order waypoints
-	auto waypoints = generateWaypoints(startX, startY, width, height);
-	waypoints = orderWaypoints(std::move(waypoints));
+	// Step 2: Generate layout
+	if (!reportProgress("Generating layout...", 15)) { m_lastError = "Cancelled"; return false; }
+	switch (config.algorithm) {
+		case Algorithm::BSP:
+			generateBSP(startX, startY, width, height, z, floorId, config.bsp, tileChanges);
+			break;
+		case Algorithm::RandomWalk:
+			generateRandomWalk(startX, startY, width, height, z, floorId, config.randomWalk, tileChanges);
+			break;
+		case Algorithm::RoomPlacement:
+		default:
+			generateRoomPlacement(startX, startY, width, height, z, floorId, config.roomPlacement, tileChanges);
+			break;
+	}
 
-	if (waypoints.empty()) {
-		m_lastError = "Failed to generate waypoints - area may be too small";
+	if (m_floorPositions.empty()) {
+		m_lastError = "Algorithm produced no floor tiles";
 		return false;
 	}
 
-	// Step 4: Carve rooms
-	carveRooms(waypoints, z, floorId, tileChanges);
-
-	// Step 5: Carve corridors
-	carveCorridors(waypoints, z, floorId, pathWidth, tileChanges);
-
-	// Step 6: Build walls
+	// Step 3: Build walls
+	if (!reportProgress("Building walls...", 45)) { m_lastError = "Cancelled"; return false; }
 	if (preset.walls.isValid()) {
 		buildWalls(startX, startY, width, height, z, floorId, preset.walls, tileChanges);
-
-		// Step 7: Hangable details on walls
 		if (preset.hangables.isValid()) {
 			createHangableDetails(z, preset.hangables, tileChanges);
 		}
-
-		// Mark wall positions in grid so decorators avoid them
 		for (const auto& wall : m_wallPlacements) {
-			setGridTile(wall.pos.x, wall.pos.y, 0xFFFF); // sentinel: wall marker
+			setGridTile(wall.pos.x, wall.pos.y, 0xFFFF);
 		}
 	}
 
-	// Step 8: Apply patches
+	// Step 4: Patches + borders
+	if (!reportProgress("Applying patches and borders...", 60)) { m_lastError = "Cancelled"; return false; }
 	applyPatches(z, preset, tileChanges);
 
-	// Step 9: Decorate floors
+	// Step 5: Floor decoration
+	if (!reportProgress("Decorating floors...", 75)) { m_lastError = "Cancelled"; return false; }
 	decorateFloors(z, preset, tileChanges);
 
-	// Apply all changes to the map via action system
+	// Apply to map
+	if (!reportProgress("Applying to map...", 90)) { m_lastError = "Cancelled"; return false; }
 	if (!applyChanges(tileChanges)) {
 		return false;
 	}
@@ -194,180 +229,418 @@ bool DungeonGenerator::generate(const DungeonConfig& config, const DungeonPreset
 }
 
 //=============================================================================
-// Step 1: Fill background
+// Common: carve a room and a corridor
 //=============================================================================
 
-void DungeonGenerator::fillBackground(int startX, int startY, int width, int height, int z,
-                                       uint16_t fillId,
-                                       std::vector<std::pair<Position, uint16_t>>& tileChanges) {
-	if (fillId == 0) return;
-
-	int halfW = width / 2;
-	int halfH = height / 2;
-
-	for (int y = 0; y <= height; ++y) {
-		for (int x = 0; x <= width; ++x) {
-			int absX = startX + x - halfW;
-			int absY = startY + y - halfH;
-			tileChanges.push_back({Position(absX, absY, z), fillId});
+void DungeonGenerator::carveRoom(const Room& room, int z, uint16_t floorId,
+                                  std::vector<std::pair<Position, uint16_t>>& tileChanges) {
+	for (int ry = room.y; ry < room.y + room.h; ++ry) {
+		for (int rx = room.x; rx < room.x + room.w; ++rx) {
+			paintFloor(rx, ry, z, floorId, tileChanges);
 		}
 	}
 }
 
+void DungeonGenerator::carveCorridor(int x1, int y1, int x2, int y2, int z, uint16_t floorId,
+                                      int pathWidth, std::vector<std::pair<Position, uint16_t>>& tileChanges) {
+	int pw = std::max(1, pathWidth);
+	int half = pw / 2;
+
+	int cx = x1, cy = y1;
+
+	// Horizontal first
+	int stepX = (x2 > cx) ? 1 : -1;
+	while (cx != x2) {
+		for (int off = -half; off < pw - half; ++off) {
+			paintFloor(cx, cy + off, z, floorId, tileChanges);
+		}
+		cx += stepX;
+	}
+
+	// Then vertical
+	int stepY = (y2 > cy) ? 1 : -1;
+	while (cy != y2) {
+		for (int off = -half; off < pw - half; ++off) {
+			paintFloor(cx + off, cy, z, floorId, tileChanges);
+		}
+		cy += stepY;
+	}
+}
+
 //=============================================================================
-// Step 2: Generate waypoints (room centers)
+// Algorithm 1: Room Placement (improved with MST)
 //=============================================================================
 
-std::vector<DungeonGenerator::Waypoint> DungeonGenerator::generateWaypoints(
-	int startX, int startY, int width, int height) {
+std::vector<std::pair<int,int>> DungeonGenerator::buildMST(const std::vector<Room>& rooms) {
+	int n = static_cast<int>(rooms.size());
+	if (n <= 1) return {};
 
-	std::vector<Waypoint> waypoints;
-	const int numRooms = 18;
-	const int minDist = 11;
+	// Prim's algorithm
+	std::vector<bool> inMST(n, false);
+	std::vector<double> minCost(n, std::numeric_limits<double>::max());
+	std::vector<int> parent(n, -1);
+	std::vector<std::pair<int,int>> edges;
 
-	int minW = -width / 2 + 2;
-	int maxW = width / 2 - 2;
-	int minH = -height / 2 + 2;
-	int maxH = height / 2 - 2;
+	minCost[0] = 0;
 
-	if (minW >= maxW) { minW = -width / 2; maxW = width / 2; }
-	if (minH >= maxH) { minH = -height / 2; maxH = height / 2; }
+	for (int iter = 0; iter < n; ++iter) {
+		int u = -1;
+		for (int i = 0; i < n; ++i) {
+			if (!inMST[i] && (u == -1 || minCost[i] < minCost[u])) {
+				u = i;
+			}
+		}
+		inMST[u] = true;
+		if (parent[u] != -1) {
+			edges.push_back({parent[u], u});
+		}
 
-	std::uniform_int_distribution<int> distW(minW, maxW);
-	std::uniform_int_distribution<int> distH(minH, maxH);
+		for (int v = 0; v < n; ++v) {
+			if (inMST[v]) continue;
+			int dx = rooms[u].centerX() - rooms[v].centerX();
+			int dy = rooms[u].centerY() - rooms[v].centerY();
+			double dist = std::sqrt(static_cast<double>(dx * dx + dy * dy));
+			if (dist < minCost[v]) {
+				minCost[v] = dist;
+				parent[v] = u;
+			}
+		}
+	}
+
+	return edges;
+}
+
+void DungeonGenerator::generateRoomPlacement(int startX, int startY, int width, int height, int z,
+                                              uint16_t floorId, const RoomPlacementParams& params,
+                                              std::vector<std::pair<Position, uint16_t>>& tileChanges) {
+	int halfW = width / 2;
+	int halfH = height / 2;
+
+	std::vector<Room> rooms;
+	std::uniform_int_distribution<int> sizeDist(params.minRoomSize, params.maxRoomSize);
 
 	int attempts = 0;
-	while (static_cast<int>(waypoints.size()) < numRooms && attempts < 1000) {
+	while (static_cast<int>(rooms.size()) < params.numRooms && attempts < 1000) {
 		++attempts;
-		int wx = distW(m_rng);
-		int wy = distH(m_rng);
-		int px = startX + wx;
-		int py = startY + wy;
 
+		int rw = sizeDist(m_rng) | 1; // Ensure odd for symmetry
+		int rh = sizeDist(m_rng) | 1;
+
+		std::uniform_int_distribution<int> xDist(startX - halfW + 1, startX + halfW - rw - 1);
+		std::uniform_int_distribution<int> yDist(startY - halfH + 1, startY + halfH - rh - 1);
+
+		Room room = {xDist(m_rng), yDist(m_rng), rw, rh};
+
+		// Check collision with existing rooms
 		bool valid = true;
-		for (const auto& wp : waypoints) {
-			int dx = px - wp.x;
-			int dy = py - wp.y;
+		for (const auto& other : rooms) {
+			int dx = std::abs(room.centerX() - other.centerX());
+			int dy = std::abs(room.centerY() - other.centerY());
+			if (dx < (room.w + other.w) / 2 + 2 && dy < (room.h + other.h) / 2 + 2) {
+				valid = false;
+				break;
+			}
+			// Also check minimum center distance
 			double dist = std::sqrt(static_cast<double>(dx * dx + dy * dy));
-			if (dist < minDist) {
+			if (dist < params.minRoomDistance) {
 				valid = false;
 				break;
 			}
 		}
 
 		if (valid) {
-			waypoints.push_back({px, py});
+			rooms.push_back(room);
 		}
 	}
 
-	return waypoints;
-}
+	// Carve rooms
+	for (const auto& room : rooms) {
+		carveRoom(room, z, floorId, tileChanges);
+	}
 
-//=============================================================================
-// Step 3: Order waypoints by nearest-neighbor
-//=============================================================================
+	// Connect rooms
+	if (params.useMST) {
+		auto edges = buildMST(rooms);
+		for (const auto& [a, b] : edges) {
+			carveCorridor(rooms[a].centerX(), rooms[a].centerY(),
+			              rooms[b].centerX(), rooms[b].centerY(),
+			              z, floorId, params.pathWidth, tileChanges);
+		}
+		// Add a few extra random connections for loops
+		if (rooms.size() > 3) {
+			int extras = std::max(1, static_cast<int>(rooms.size()) / 5);
+			std::uniform_int_distribution<int> roomDist(0, static_cast<int>(rooms.size()) - 1);
+			for (int i = 0; i < extras; ++i) {
+				int a = roomDist(m_rng);
+				int b = roomDist(m_rng);
+				if (a != b) {
+					carveCorridor(rooms[a].centerX(), rooms[a].centerY(),
+					              rooms[b].centerX(), rooms[b].centerY(),
+					              z, floorId, params.pathWidth, tileChanges);
+				}
+			}
+		}
+	} else {
+		// Nearest-neighbor ordering (original behavior)
+		std::vector<int> order;
+		order.push_back(0);
+		std::vector<bool> visited(rooms.size(), false);
+		visited[0] = true;
 
-std::vector<DungeonGenerator::Waypoint> DungeonGenerator::orderWaypoints(
-	std::vector<Waypoint> waypoints) {
-
-	if (waypoints.empty()) return {};
-
-	std::vector<Waypoint> ordered;
-	ordered.reserve(waypoints.size());
-
-	ordered.push_back(waypoints[0]);
-	waypoints.erase(waypoints.begin());
-
-	while (!waypoints.empty()) {
-		const auto& current = ordered.back();
-		int nearestIdx = 0;
-		double minDist = std::numeric_limits<double>::max();
-
-		for (int i = 0; i < static_cast<int>(waypoints.size()); ++i) {
-			int dx = current.x - waypoints[i].x;
-			int dy = current.y - waypoints[i].y;
-			double dist = std::sqrt(static_cast<double>(dx * dx + dy * dy));
-			if (dist < minDist) {
-				minDist = dist;
-				nearestIdx = i;
+		for (size_t iter = 1; iter < rooms.size(); ++iter) {
+			int last = order.back();
+			int nearest = -1;
+			double minD = std::numeric_limits<double>::max();
+			for (int j = 0; j < static_cast<int>(rooms.size()); ++j) {
+				if (visited[j]) continue;
+				int dx = rooms[last].centerX() - rooms[j].centerX();
+				int dy = rooms[last].centerY() - rooms[j].centerY();
+				double d = std::sqrt(static_cast<double>(dx * dx + dy * dy));
+				if (d < minD) { minD = d; nearest = j; }
+			}
+			if (nearest >= 0) {
+				visited[nearest] = true;
+				order.push_back(nearest);
 			}
 		}
 
-		ordered.push_back(waypoints[nearestIdx]);
-		waypoints.erase(waypoints.begin() + nearestIdx);
-	}
-
-	return ordered;
-}
-
-//=============================================================================
-// Step 4: Carve rooms at each waypoint
-//=============================================================================
-
-static const int ROOM_SIZES[][2] = {
-	{5, 5}, {7, 7}, {5, 7}, {9, 5}, {7, 9}
-};
-static const int NUM_ROOM_SIZES = 5;
-
-void DungeonGenerator::carveRooms(const std::vector<Waypoint>& waypoints, int z,
-                                   uint16_t floorId,
-                                   std::vector<std::pair<Position, uint16_t>>& tileChanges) {
-	std::uniform_int_distribution<int> sizeDist(0, NUM_ROOM_SIZES - 1);
-
-	for (const auto& wp : waypoints) {
-		int sizeIdx = sizeDist(m_rng);
-		int rw = ROOM_SIZES[sizeIdx][0];
-		int rh = ROOM_SIZES[sizeIdx][1];
-
-		for (int i = 0; i < rw; ++i) {
-			for (int j = 0; j < rh; ++j) {
-				int fx = wp.x - rw / 2 + i;
-				int fy = wp.y - rh / 2 + j;
-				paintFloor(fx, fy, z, floorId, tileChanges);
-			}
+		for (size_t i = 0; i + 1 < order.size(); ++i) {
+			carveCorridor(rooms[order[i]].centerX(), rooms[order[i]].centerY(),
+			              rooms[order[i+1]].centerX(), rooms[order[i+1]].centerY(),
+			              z, floorId, params.pathWidth, tileChanges);
 		}
 	}
 }
 
 //=============================================================================
-// Step 5: Carve corridors between ordered waypoints
+// Algorithm 2: BSP (Binary Space Partitioning)
 //=============================================================================
 
-void DungeonGenerator::carveCorridors(const std::vector<Waypoint>& waypoints, int z,
-                                       uint16_t floorId, int pathWidth,
+void DungeonGenerator::splitBSP(BSPNode* node, int depth, const BSPParams& params) {
+	if (depth >= params.maxDepth) return;
+	if (node->w < params.minPartitionSize * 2 && node->h < params.minPartitionSize * 2) return;
+
+	// Decide split direction
+	bool splitH;
+	if (node->w < params.minPartitionSize * 2) splitH = true;
+	else if (node->h < params.minPartitionSize * 2) splitH = false;
+	else splitH = std::uniform_int_distribution<int>(0, 1)(m_rng) == 0;
+
+	if (splitH) {
+		if (node->h < params.minPartitionSize * 2) return;
+		int splitRange = node->h - params.minPartitionSize * 2;
+		int splitY = params.minPartitionSize + (splitRange > 0 ? std::uniform_int_distribution<int>(0, splitRange)(m_rng) : 0);
+
+		node->left = std::make_unique<BSPNode>();
+		node->left->x = node->x;
+		node->left->y = node->y;
+		node->left->w = node->w;
+		node->left->h = splitY;
+
+		node->right = std::make_unique<BSPNode>();
+		node->right->x = node->x;
+		node->right->y = node->y + splitY;
+		node->right->w = node->w;
+		node->right->h = node->h - splitY;
+	} else {
+		if (node->w < params.minPartitionSize * 2) return;
+		int splitRange = node->w - params.minPartitionSize * 2;
+		int splitX = params.minPartitionSize + (splitRange > 0 ? std::uniform_int_distribution<int>(0, splitRange)(m_rng) : 0);
+
+		node->left = std::make_unique<BSPNode>();
+		node->left->x = node->x;
+		node->left->y = node->y;
+		node->left->w = splitX;
+		node->left->h = node->h;
+
+		node->right = std::make_unique<BSPNode>();
+		node->right->x = node->x + splitX;
+		node->right->y = node->y;
+		node->right->w = node->w - splitX;
+		node->right->h = node->h;
+	}
+
+	splitBSP(node->left.get(), depth + 1, params);
+	splitBSP(node->right.get(), depth + 1, params);
+}
+
+void DungeonGenerator::createBSPRooms(BSPNode* node, int startX, int startY, int z, uint16_t floorId,
+                                       const BSPParams& params,
                                        std::vector<std::pair<Position, uint16_t>>& tileChanges) {
-	int pw = std::max(2, pathWidth);
-	int left = (pw - 1) / 2;
-	int right = pw - 1 - left;
+	if (!node) return;
 
-	for (size_t i = 0; i + 1 < waypoints.size(); ++i) {
-		int cx = waypoints[i].x;
-		int cy = waypoints[i].y;
-		int tx = waypoints[i + 1].x;
-		int ty = waypoints[i + 1].y;
+	if (!node->left && !node->right) {
+		// Leaf node — create a room
+		int maxW = node->w - params.roomPadding * 2;
+		int maxH = node->h - params.roomPadding * 2;
+		if (maxW < params.minRoomSize) maxW = params.minRoomSize;
+		if (maxH < params.minRoomSize) maxH = params.minRoomSize;
 
-		// Horizontal segment
-		int stepX = (tx > cx) ? 1 : -1;
-		while (cx != tx) {
-			cx += stepX;
-			for (int offset = -left; offset <= right; ++offset) {
-				paintFloor(cx, cy + offset, z, floorId, tileChanges);
+		int rw = std::uniform_int_distribution<int>(params.minRoomSize, std::min(maxW, node->w - 2))(m_rng);
+		int rh = std::uniform_int_distribution<int>(params.minRoomSize, std::min(maxH, node->h - 2))(m_rng);
+
+		int rx = node->x + std::uniform_int_distribution<int>(params.roomPadding, std::max(params.roomPadding, node->w - rw - params.roomPadding))(m_rng);
+		int ry = node->y + std::uniform_int_distribution<int>(params.roomPadding, std::max(params.roomPadding, node->h - rh - params.roomPadding))(m_rng);
+
+		node->room = {startX + rx - node->w, startY + ry - node->h, rw, rh};
+		// Offset to absolute coordinates
+		int halfW = 0; // The node coords are already relative
+		node->room = {startX - (node->w + node->x) / 2 + rx, startY - (node->h + node->y) / 2 + ry, rw, rh};
+		// Simpler: just offset from start
+		node->room = {startX + rx, startY + ry, rw, rh};
+		node->hasRoom = true;
+
+		carveRoom(node->room, z, floorId, tileChanges);
+		return;
+	}
+
+	createBSPRooms(node->left.get(), startX, startY, z, floorId, params, tileChanges);
+	createBSPRooms(node->right.get(), startX, startY, z, floorId, params, tileChanges);
+}
+
+DungeonGenerator::Room DungeonGenerator::getBSPRoomCenter(BSPNode* node) {
+	if (!node) return {0, 0, 1, 1};
+	if (node->hasRoom) return node->room;
+
+	if (node->left && node->right) {
+		// Prefer left, then right
+		Room lr = getBSPRoomCenter(node->left.get());
+		if (lr.w > 0) return lr;
+		return getBSPRoomCenter(node->right.get());
+	}
+
+	if (node->left) return getBSPRoomCenter(node->left.get());
+	if (node->right) return getBSPRoomCenter(node->right.get());
+
+	return {0, 0, 1, 1};
+}
+
+void DungeonGenerator::connectBSPRooms(BSPNode* node, int startX, int startY, int z, uint16_t floorId,
+                                        int corridorWidth, std::vector<std::pair<Position, uint16_t>>& tileChanges) {
+	if (!node || !node->left || !node->right) return;
+
+	connectBSPRooms(node->left.get(), startX, startY, z, floorId, corridorWidth, tileChanges);
+	connectBSPRooms(node->right.get(), startX, startY, z, floorId, corridorWidth, tileChanges);
+
+	Room leftRoom = getBSPRoomCenter(node->left.get());
+	Room rightRoom = getBSPRoomCenter(node->right.get());
+
+	carveCorridor(leftRoom.centerX(), leftRoom.centerY(),
+	              rightRoom.centerX(), rightRoom.centerY(),
+	              z, floorId, corridorWidth, tileChanges);
+}
+
+void DungeonGenerator::generateBSP(int startX, int startY, int width, int height, int z,
+                                    uint16_t floorId, const BSPParams& params,
+                                    std::vector<std::pair<Position, uint16_t>>& tileChanges) {
+	int halfW = width / 2;
+	int halfH = height / 2;
+	int originX = startX - halfW;
+	int originY = startY - halfH;
+
+	BSPNode root;
+	root.x = 0;
+	root.y = 0;
+	root.w = width;
+	root.h = height;
+
+	splitBSP(&root, 0, params);
+	createBSPRooms(&root, originX, originY, z, floorId, params, tileChanges);
+	connectBSPRooms(&root, originX, originY, z, floorId, params.corridorWidth, tileChanges);
+}
+
+//=============================================================================
+// Algorithm 3: Random Walk (Drunkard's Walk)
+//=============================================================================
+
+void DungeonGenerator::generateRandomWalk(int startX, int startY, int width, int height, int z,
+                                           uint16_t floorId, const RandomWalkParams& params,
+                                           std::vector<std::pair<Position, uint16_t>>& tileChanges) {
+	int halfW = width / 2;
+	int halfH = height / 2;
+	int minX = startX - halfW + 1;
+	int maxX = startX + halfW - 1;
+	int minY = startY - halfH + 1;
+	int maxY = startY + halfH - 1;
+
+	int totalArea = width * height;
+	int targetFloors = static_cast<int>(totalArea * params.coverage);
+
+	static const int DX[] = {0, 0, 1, -1};
+	static const int DY[] = {-1, 1, 0, 0};
+
+	struct Walker {
+		int x, y, dir;
+	};
+
+	std::vector<Walker> walkers;
+	for (int i = 0; i < params.walkerCount; ++i) {
+		int wx = params.startCenter ? startX : std::uniform_int_distribution<int>(minX + 5, maxX - 5)(m_rng);
+		int wy = params.startCenter ? startY : std::uniform_int_distribution<int>(minY + 5, maxY - 5)(m_rng);
+		int dir = std::uniform_int_distribution<int>(0, 3)(m_rng);
+		walkers.push_back({wx, wy, dir});
+	}
+
+	std::uniform_real_distribution<float> chanceDist(0.0f, 1.0f);
+	std::uniform_int_distribution<int> dirDist(0, 3);
+	std::uniform_int_distribution<int> roomChanceDist(0, 99);
+	int floorCount = 0;
+	int totalSteps = 0;
+
+	while (floorCount < targetFloors && totalSteps < params.maxSteps) {
+		for (auto& walker : walkers) {
+			if (floorCount >= targetFloors) break;
+
+			// Maybe change direction
+			if (chanceDist(m_rng) < params.turnChance) {
+				walker.dir = dirDist(m_rng);
 			}
-		}
 
-		// Vertical segment
-		int stepY = (ty > cy) ? 1 : -1;
-		while (cy != ty) {
-			cy += stepY;
-			for (int offset = -left; offset <= right; ++offset) {
-				paintFloor(cx + offset, cy, z, floorId, tileChanges);
+			int nx = walker.x + DX[walker.dir];
+			int ny = walker.y + DY[walker.dir];
+
+			// Bounds check
+			if (nx <= minX || nx >= maxX || ny <= minY || ny >= maxY) {
+				walker.dir = dirDist(m_rng);
+				continue;
 			}
+
+			walker.x = nx;
+			walker.y = ny;
+
+			if (getGridTile(nx, ny) != floorId) {
+				paintFloor(nx, ny, z, floorId, tileChanges);
+				++floorCount;
+			}
+
+			// Occasionally carve a small room
+			if (roomChanceDist(m_rng) < params.roomChance) {
+				int rw = std::uniform_int_distribution<int>(params.minRoomSize, params.maxRoomSize)(m_rng);
+				int rh = std::uniform_int_distribution<int>(params.minRoomSize, params.maxRoomSize)(m_rng);
+				int rx = nx - rw / 2;
+				int ry = ny - rh / 2;
+
+				for (int dy = 0; dy < rh; ++dy) {
+					for (int dx = 0; dx < rw; ++dx) {
+						int px = rx + dx;
+						int py = ry + dy;
+						if (px > minX && px < maxX && py > minY && py < maxY) {
+							if (getGridTile(px, py) != floorId) {
+								paintFloor(px, py, z, floorId, tileChanges);
+								++floorCount;
+							}
+						}
+					}
+				}
+			}
+
+			++totalSteps;
 		}
 	}
 }
 
 //=============================================================================
-// Step 6: Build walls around floor edges
+// Post-processing: Walls
 //=============================================================================
 
 void DungeonGenerator::buildWalls(int startX, int startY, int width, int height, int z,
@@ -376,7 +649,6 @@ void DungeonGenerator::buildWalls(int startX, int startY, int width, int height,
 	int halfW = width / 2;
 	int halfH = height / 2;
 
-	// Resolve wall IDs: horizontal, vertical, pillar, corner
 	uint16_t idHorz = wallConfig.north;
 	uint16_t idVert = wallConfig.west;
 	uint16_t idPillar = wallConfig.pillar;
@@ -400,7 +672,6 @@ void DungeonGenerator::buildWalls(int startX, int startY, int width, int height,
 
 			if (itemId != floorId) continue;
 
-			// South edge: floor tile with rock below
 			if (check(0, 1) == 0) {
 				if (check(1, 0) == 0) {
 					place(absX, absY, idCorner, WallPlacement::Corner);
@@ -408,7 +679,6 @@ void DungeonGenerator::buildWalls(int startX, int startY, int width, int height,
 					place(absX, absY, idHorz, WallPlacement::Horizontal);
 				}
 			} else if (check(0, 1) == floorId) {
-				// Inner corner check
 				if (check(1, 0) == floorId && check(0, -1) == floorId && check(-1, 0) == floorId) {
 					if (check(-1, 1) == 0 && check(1, -1) == 0) {
 						place(absX, absY, idCorner, WallPlacement::Corner);
@@ -416,12 +686,10 @@ void DungeonGenerator::buildWalls(int startX, int startY, int width, int height,
 				}
 			}
 
-			// East edge: floor tile with rock to the right
 			if (check(1, 0) == 0 && check(0, 1) != 0) {
 				place(absX, absY, idVert, WallPlacement::Vertical);
 			}
 
-			// North edge: floor tile with rock above
 			if (check(0, -1) == 0) {
 				if (check(1, -1) == floorId) {
 					place(absX, absY - 1, idCorner, WallPlacement::Corner);
@@ -430,12 +698,10 @@ void DungeonGenerator::buildWalls(int startX, int startY, int width, int height,
 				}
 			}
 
-			// West edge: floor tile with rock to the left
 			if (check(-1, 0) == 0 && check(-1, 1) != floorId) {
 				place(absX - 1, absY, idVert, WallPlacement::Vertical);
 			}
 
-			// Pillar: floor with diagonal rock where both adjacent sides are floor
 			if (check(1, 1) == 0 && check(1, 0) == floorId && check(0, 1) == floorId) {
 				place(absX, absY, idPillar, WallPlacement::Pillar);
 			}
@@ -448,36 +714,32 @@ void DungeonGenerator::buildWalls(int startX, int startY, int width, int height,
 }
 
 //=============================================================================
-// Step 7: Place hangable items on walls
+// Post-processing: Hangables
 //=============================================================================
 
 void DungeonGenerator::createHangableDetails(int z, const HangableConfig& hangables,
                                               std::vector<std::pair<Position, uint16_t>>& tileChanges) {
 	if (m_wallPlacements.empty()) return;
-
 	std::uniform_real_distribution<float> chanceDist(0.0f, 1.0f);
 
 	for (const auto& wall : m_wallPlacements) {
 		if (wall.type == WallPlacement::Horizontal && !hangables.horizontalIds.empty()) {
 			if (chanceDist(m_rng) < hangables.chance) {
 				std::uniform_int_distribution<int> itemDist(0, static_cast<int>(hangables.horizontalIds.size()) - 1);
-				uint16_t itemId = hangables.horizontalIds[itemDist(m_rng)];
-				tileChanges.push_back({wall.pos, itemId});
+				tileChanges.push_back({wall.pos, hangables.horizontalIds[itemDist(m_rng)]});
 			}
 		}
-
 		if (wall.type == WallPlacement::Vertical && hangables.enableVertical && !hangables.verticalIds.empty()) {
 			if (chanceDist(m_rng) < hangables.chance) {
 				std::uniform_int_distribution<int> itemDist(0, static_cast<int>(hangables.verticalIds.size()) - 1);
-				uint16_t itemId = hangables.verticalIds[itemDist(m_rng)];
-				tileChanges.push_back({wall.pos, itemId});
+				tileChanges.push_back({wall.pos, hangables.verticalIds[itemDist(m_rng)]});
 			}
 		}
 	}
 }
 
 //=============================================================================
-// Step 8: Apply terrain patches
+// Post-processing: Patches + Borders
 //=============================================================================
 
 void DungeonGenerator::applyPatches(int z, const DungeonPreset& preset,
@@ -494,23 +756,16 @@ void DungeonGenerator::applyPatches(int z, const DungeonPreset& preset,
 	std::vector<Position> patchPositions;
 	std::vector<Position> brushPositions;
 
-	// Copy floor positions since we iterate and may modify grid
 	auto floors = m_floorPositions;
-
 	for (const auto& pos : floors) {
-		if (patchChance(m_rng) >= 1) continue; // 1% chance
-
-		int cx = pos.x;
-		int cy = pos.y;
+		if (patchChance(m_rng) >= 1) continue;
+		int cx = pos.x, cy = pos.y;
 		int radius = radiusDist(m_rng);
 
 		for (int i = -radius; i <= radius; ++i) {
 			for (int j = -radius; j <= radius; ++j) {
 				if (std::abs(i) + std::abs(j) > radius) continue;
-
-				int rx = cx + i;
-				int ry = cy + j;
-
+				int rx = cx + i, ry = cy + j;
 				if (getGridTile(rx, ry) == floorId) {
 					paintFloor(rx, ry, z, patchId, tileChanges);
 					patchPositions.push_back(Position(rx, ry, z));
@@ -519,7 +774,6 @@ void DungeonGenerator::applyPatches(int z, const DungeonPreset& preset,
 		}
 	}
 
-	// Apply brush on top of patches (15% chance)
 	if (preset.brushId > 0 && !patchPositions.empty()) {
 		for (const auto& pos : patchPositions) {
 			if (brushChance(m_rng) < 0.15f) {
@@ -531,25 +785,21 @@ void DungeonGenerator::applyPatches(int z, const DungeonPreset& preset,
 		}
 	}
 
-	// Build borders around patches
 	if (preset.borders.isValid() && !patchPositions.empty()) {
 		buildBorders(patchPositions, z, preset.borders, tileChanges);
 	}
-
-	// Build borders around brush areas
 	if (preset.brushBorders.isValid() && !brushPositions.empty()) {
 		buildBorders(brushPositions, z, preset.brushBorders, tileChanges);
 	}
 }
 
 //=============================================================================
-// Border building helper
+// Post-processing: Border building
 //=============================================================================
 
 void DungeonGenerator::buildBorders(const std::vector<Position>& floorPositions, int z,
                                      const BorderConfig& borderConfig,
                                      std::vector<std::pair<Position, uint16_t>>& tileChanges) {
-	// Build a lookup of the provided floor positions
 	std::unordered_map<uint64_t, bool> floorLookup;
 	for (const auto& pos : floorPositions) {
 		floorLookup[posHash(pos.x, pos.y)] = true;
@@ -559,7 +809,6 @@ void DungeonGenerator::buildBorders(const std::vector<Position>& floorPositions,
 		return floorLookup.count(posHash(x, y)) > 0;
 	};
 
-	// Gather candidate positions (non-floor neighbors of floor tiles)
 	std::unordered_map<uint64_t, Position> candidates;
 	static const int DIR[][2] = {
 		{0,-1}, {0,1}, {1,0}, {-1,0}, {1,-1}, {-1,-1}, {1,1}, {-1,1}
@@ -567,8 +816,7 @@ void DungeonGenerator::buildBorders(const std::vector<Position>& floorPositions,
 
 	for (const auto& pos : floorPositions) {
 		for (const auto& off : DIR) {
-			int nx = pos.x + off[0];
-			int ny = pos.y + off[1];
+			int nx = pos.x + off[0], ny = pos.y + off[1];
 			uint64_t hash = posHash(nx, ny);
 			if (!isFloor(nx, ny) && candidates.find(hash) == candidates.end()) {
 				candidates[hash] = Position(nx, ny, z);
@@ -576,7 +824,6 @@ void DungeonGenerator::buildBorders(const std::vector<Position>& floorPositions,
 		}
 	}
 
-	// Pick border ID based on neighbor pattern
 	for (const auto& [hash, pos] : candidates) {
 		bool n = isFloor(pos.x, pos.y - 1);
 		bool s = isFloor(pos.x, pos.y + 1);
@@ -585,18 +832,15 @@ void DungeonGenerator::buildBorders(const std::vector<Position>& floorPositions,
 
 		uint16_t borderId = 0;
 
-		// Corners (two adjacent sides)
 		if (s && e) borderId = borderConfig.nw;
 		else if (s && w) borderId = borderConfig.ne;
 		else if (n && e) borderId = borderConfig.sw;
 		else if (n && w) borderId = borderConfig.se;
-		// Straight edges
 		else if (s && !n && !e && !w) borderId = borderConfig.north;
 		else if (n && !s && !e && !w) borderId = borderConfig.south;
 		else if (w && !n && !s && !e) borderId = borderConfig.east;
 		else if (e && !n && !s && !w) borderId = borderConfig.west;
 		else {
-			// Inner corners (diagonal only)
 			bool ne = isFloor(pos.x + 1, pos.y - 1);
 			bool nw = isFloor(pos.x - 1, pos.y - 1);
 			bool se = isFloor(pos.x + 1, pos.y + 1);
@@ -615,32 +859,24 @@ void DungeonGenerator::buildBorders(const std::vector<Position>& floorPositions,
 }
 
 //=============================================================================
-// Step 9: Decorate floor tiles
+// Post-processing: Floor decoration
 //=============================================================================
 
 bool DungeonGenerator::isPlacementValid(DetailGroup::Placement placement,
                                          int x, int y, uint16_t floorId) const {
 	switch (placement) {
 		case DetailGroup::NearWall:
-			return !(isFloorTile(x + 1, y, floorId) && isFloorTile(x - 1, y, floorId) &&
-			         isFloorTile(x, y + 1, floorId) && isFloorTile(x, y - 1, floorId));
-
+			return !(isFloorTile(x+1,y,floorId) && isFloorTile(x-1,y,floorId) &&
+			         isFloorTile(x,y+1,floorId) && isFloorTile(x,y-1,floorId));
 		case DetailGroup::NorthWall:
-			return !isFloorTile(x, y - 1, floorId);
-
+			return !isFloorTile(x, y-1, floorId);
 		case DetailGroup::WestWall:
-			return !isFloorTile(x - 1, y, floorId);
-
+			return !isFloorTile(x-1, y, floorId);
 		case DetailGroup::Center:
-			for (int dx = -1; dx <= 1; ++dx) {
-				for (int dy = -1; dy <= 1; ++dy) {
-					if (dx == 0 && dy == 0) continue;
-					if (!isFloorTile(x + dx, y + dy, floorId)) return false;
-				}
-			}
+			for (int dx = -1; dx <= 1; ++dx)
+				for (int dy = -1; dy <= 1; ++dy)
+					if (!(dx == 0 && dy == 0) && !isFloorTile(x+dx, y+dy, floorId)) return false;
 			return true;
-
-		case DetailGroup::Anywhere:
 		default:
 			return true;
 	}
@@ -649,7 +885,6 @@ bool DungeonGenerator::isPlacementValid(DetailGroup::Placement placement,
 void DungeonGenerator::decorateFloors(int z, const DungeonPreset& preset,
                                        std::vector<std::pair<Position, uint16_t>>& tileChanges) {
 	if (preset.details.empty()) return;
-
 	uint16_t floorId = preset.groundId;
 	std::uniform_real_distribution<float> chanceDist(0.0f, 1.0f);
 
@@ -659,19 +894,17 @@ void DungeonGenerator::decorateFloors(int z, const DungeonPreset& preset,
 		for (const auto& group : preset.details) {
 			if (group.itemIds.empty() || group.chance <= 0.0f) continue;
 			if (chanceDist(m_rng) >= group.chance) continue;
-
 			if (!isPlacementValid(group.placement, pos.x, pos.y, floorId)) continue;
 
 			std::uniform_int_distribution<int> itemDist(0, static_cast<int>(group.itemIds.size()) - 1);
-			uint16_t itemId = group.itemIds[itemDist(m_rng)];
-			tileChanges.push_back({Position(pos.x, pos.y, z), itemId});
-			break; // Only one detail group per tile (matches Lua behavior)
+			tileChanges.push_back({Position(pos.x, pos.y, z), group.itemIds[itemDist(m_rng)]});
+			break;
 		}
 	}
 }
 
 //=============================================================================
-// Apply all collected changes to map via Action system
+// Apply changes to map
 //=============================================================================
 
 bool DungeonGenerator::applyChanges(const std::vector<std::pair<Position, uint16_t>>& tileChanges) {
@@ -681,11 +914,9 @@ bool DungeonGenerator::applyChanges(const std::vector<std::pair<Position, uint16
 	}
 
 	Map& map = m_editor->map;
-
 	auto batch = m_editor->actionQueue->createBatch(ACTION_DRAW);
 	auto action = m_editor->actionQueue->createAction(batch.get());
 
-	// Group changes by position to minimize tile copies
 	std::unordered_map<uint64_t, std::vector<const std::pair<Position, uint16_t>*>> changesByPos;
 	for (const auto& change : tileChanges) {
 		uint64_t hash = (static_cast<uint64_t>(change.first.x & 0xFFFF) << 32) |
@@ -696,7 +927,6 @@ bool DungeonGenerator::applyChanges(const std::vector<std::pair<Position, uint16
 
 	for (const auto& [hash, changes] : changesByPos) {
 		const Position& pos = changes[0]->first;
-
 		Tile* existingTile = map.getTile(pos);
 		std::unique_ptr<Tile> newTile;
 
@@ -723,7 +953,6 @@ bool DungeonGenerator::applyChanges(const std::vector<std::pair<Position, uint16
 
 	batch->addAndCommitAction(std::move(action));
 	m_editor->addBatch(std::move(batch));
-
 	return true;
 }
 

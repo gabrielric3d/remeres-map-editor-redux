@@ -40,23 +40,64 @@ private:
 	void PopulatePresetList();
 	void UpdatePreview();
 	void RefreshPresetControls();
+	void OnAlgorithmChanged(wxCommandEvent& event);
+	void ShowAlgorithmParams();
+	void UpdateSelectionInfo();
+	bool ReadSelectionBounds();
 
 	// Event handlers
 	void OnPresetChanged(wxCommandEvent& event);
 	void OnGenerate(wxCommandEvent& event);
+	void OnReroll(wxCommandEvent& event);
+	void OnSelectFromMap(wxCommandEvent& event);
+	void OnUseSelection(wxCommandEvent& event);
 	void OnNewPreset(wxCommandEvent& event);
 	void OnEditPreset(wxCommandEvent& event);
 	void OnDuplicatePreset(wxCommandEvent& event);
 	void OnDeletePreset(wxCommandEvent& event);
 	void OnClose(wxCloseEvent& event);
+	void OnAlgoPreviewPaint(wxPaintEvent& event);
 
 	// Preset controls
 	wxChoice* m_presetChoice;
 
-	// Generation parameters
-	wxSpinCtrl* m_widthSpin;
-	wxSpinCtrl* m_heightSpin;
-	wxSpinCtrl* m_pathWidthSpin;
+	// Selection / area info
+	wxStaticText* m_selectionLabel;
+	wxStaticText* m_pickStatusText;
+	bool m_hasSelection;
+
+	// Algorithm selector
+	wxChoice* m_algorithmChoice;
+	wxPanel* m_algoPreviewPanel;
+
+	// Algorithm parameter panels
+	wxPanel* m_roomPlacementPanel;
+	wxPanel* m_bspPanel;
+	wxPanel* m_randomWalkPanel;
+	wxBoxSizer* m_paramsSizer;
+
+	// Room Placement params
+	wxSpinCtrl* m_rpNumRooms;
+	wxSpinCtrl* m_rpMinRoomSize;
+	wxSpinCtrl* m_rpMaxRoomSize;
+	wxSpinCtrl* m_rpPathWidth;
+	wxSpinCtrl* m_rpMinDistance;
+	wxCheckBox* m_rpUseMST;
+
+	// BSP params
+	wxSpinCtrl* m_bspMinPartition;
+	wxSpinCtrl* m_bspMinRoom;
+	wxSpinCtrl* m_bspPadding;
+	wxSpinCtrl* m_bspCorridorWidth;
+	wxSpinCtrl* m_bspMaxDepth;
+
+	// Random Walk params
+	wxSpinCtrl* m_rwWalkerCount;
+	wxSpinCtrlDouble* m_rwCoverage;
+	wxSpinCtrlDouble* m_rwTurnChance;
+	wxSpinCtrl* m_rwRoomChance;
+	wxSpinCtrl* m_rwMinRoomSize;
+	wxSpinCtrl* m_rwMaxRoomSize;
 
 	// Preview panels
 	wxListCtrl* m_terrainList;
@@ -64,12 +105,11 @@ private:
 	wxListCtrl* m_bordersList;
 	wxListCtrl* m_detailsList;
 	wxListCtrl* m_hangablesList;
-
-	// Image list for item sprites
 	wxImageList* m_imageList;
 
 	// Current config
 	DungeonGen::DungeonConfig m_config;
+	bool m_lastGenerateSuccess = false;
 
 	wxDECLARE_EVENT_TABLE();
 };
