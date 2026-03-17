@@ -42,7 +42,7 @@ const int PREVIEW_SIZE = 32;
 wxBitmap MakeItemBitmap(uint16_t itemId, int size) {
 	wxBitmap bmp(size, size, 32);
 	wxMemoryDC dc(bmp);
-	dc.SetBackground(wxBrush(wxColour(0x0C, 0x14, 0x2A)));
+	dc.SetBackground(wxBrush(Theme::Get(Theme::Role::Background)));
 	dc.Clear();
 
 	if (itemId > 0) {
@@ -78,6 +78,12 @@ enum {
 	ID_LOAD_GROUND_BRUSH_GENERAL,
 	ID_LOAD_WALL_BRUSH,
 	ID_LOAD_DOODAD_BRUSH,
+	ID_ROOM_FLOOR_ADD_BTN,
+	ID_ROOM_FLOOR_ADD_RANGE_BTN,
+	ID_ROOM_FLOOR_REMOVE_BTN,
+	ID_CORRIDOR_FLOOR_ADD_BTN,
+	ID_CORRIDOR_FLOOR_ADD_RANGE_BTN,
+	ID_CORRIDOR_FLOOR_REMOVE_BTN,
 };
 
 } // anonymous namespace
@@ -208,13 +214,19 @@ wxBEGIN_EVENT_TABLE(DungeonPresetEditorDialog, wxDialog)
 	EVT_BUTTON(ID_LOAD_GROUND_BRUSH_GENERAL, DungeonPresetEditorDialog::OnLoadGroundBrushGeneral)
 	EVT_BUTTON(ID_LOAD_WALL_BRUSH, DungeonPresetEditorDialog::OnLoadWallBrush)
 	EVT_BUTTON(ID_LOAD_DOODAD_BRUSH, DungeonPresetEditorDialog::OnLoadDoodadBrush)
+	EVT_BUTTON(ID_ROOM_FLOOR_ADD_BTN, DungeonPresetEditorDialog::OnAddRoomFloor)
+	EVT_BUTTON(ID_ROOM_FLOOR_ADD_RANGE_BTN, DungeonPresetEditorDialog::OnAddRoomFloorRange)
+	EVT_BUTTON(ID_ROOM_FLOOR_REMOVE_BTN, DungeonPresetEditorDialog::OnRemoveRoomFloor)
+	EVT_BUTTON(ID_CORRIDOR_FLOOR_ADD_BTN, DungeonPresetEditorDialog::OnAddCorridorFloor)
+	EVT_BUTTON(ID_CORRIDOR_FLOOR_ADD_RANGE_BTN, DungeonPresetEditorDialog::OnAddCorridorFloorRange)
+	EVT_BUTTON(ID_CORRIDOR_FLOOR_REMOVE_BTN, DungeonPresetEditorDialog::OnRemoveCorridorFloor)
 wxEND_EVENT_TABLE()
 
 DungeonPresetEditorDialog::DungeonPresetEditorDialog(wxWindow* parent, const wxString& editingPreset,
                                                      std::function<void()> onSaveCallback)
 	: wxDialog(parent, wxID_ANY,
 	           editingPreset.empty() ? wxString("New Dungeon Preset") : wxString("Edit Preset: ") + editingPreset,
-	           wxDefaultPosition, wxSize(850, 680), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
+	           wxDefaultPosition, wxSize(850, 680), wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT)
 	, m_originalName(editingPreset)
 	, m_isNewPreset(editingPreset.empty())
 	, m_onSaveCallback(std::move(onSaveCallback))
@@ -224,6 +236,10 @@ DungeonPresetEditorDialog::DungeonPresetEditorDialog(wxWindow* parent, const wxS
 	, m_hangableVImageList(nullptr)
 	, m_wallBrushImageList(nullptr)
 	, m_groundBrushImageList(nullptr)
+	, m_roomFloorList(nullptr)
+	, m_corridorFloorList(nullptr)
+	, m_roomFloorImageList(nullptr)
+	, m_corridorFloorImageList(nullptr)
 	, m_borderTarget(TARGET_PATCH_BORDER)
 	, m_borderTargetLabel(nullptr)
 	, m_generalGroundBrushList(nullptr)
@@ -248,6 +264,8 @@ DungeonPresetEditorDialog::~DungeonPresetEditorDialog() {
 	delete m_groundBrushImageList;
 	delete m_generalGroundBrushImageList;
 	delete m_doodadBrushImageList;
+	delete m_roomFloorImageList;
+	delete m_corridorFloorImageList;
 }
 
 void DungeonPresetEditorDialog::LoadPresetData() {
@@ -269,6 +287,8 @@ void DungeonPresetEditorDialog::LoadPresetData() {
 
 	m_editHorizontalIds = m_preset.hangables.horizontalIds;
 	m_editVerticalIds = m_preset.hangables.verticalIds;
+	m_editRoomFloors = m_preset.roomFloors.items;
+	m_editCorridorFloors = m_preset.corridorFloors.items;
 }
 
 void DungeonPresetEditorDialog::CreateControls() {
@@ -292,7 +312,7 @@ void DungeonPresetEditorDialog::CreateControls() {
 	// Hint text
 	wxStaticText* hint = new wxStaticText(this, wxID_ANY,
 		"Tip: Drag items from the palette directly onto any sprite slot.");
-	hint->SetForegroundColour(wxColour(140, 140, 140));
+	hint->SetForegroundColour(Theme::Get(Theme::Role::TextSubtle));
 	mainSizer->Add(hint, 0, wxLEFT | wxRIGHT, 10);
 
 	// Buttons
@@ -313,21 +333,61 @@ void DungeonPresetEditorDialog::CreateControls() {
 
 wxPanel* DungeonPresetEditorDialog::CreateGeneralTab(wxNotebook* notebook) {
 	wxPanel* panel = new wxPanel(notebook);
-	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+	wxBoxSizer* mainHSizer = new wxBoxSizer(wxHORIZONTAL);
+
+	// ===== LEFT COLUMN: terrain + floor variations =====
+	wxBoxSizer* leftSizer = new wxBoxSizer(wxVERTICAL);
 
 	// Terrain tiles
 	wxStaticBoxSizer* terrainBox = new wxStaticBoxSizer(wxVERTICAL, panel, "Terrain Tiles");
-
 	wxBoxSizer* row1 = new wxBoxSizer(wxHORIZONTAL);
 	m_groundField = new ItemFieldControl(panel, wxID_ANY, "Ground", m_preset.groundId);
 	m_fillField = new ItemFieldControl(panel, wxID_ANY, "Fill", m_preset.fillId);
 	row1->Add(m_groundField, 0, wxRIGHT, 20);
 	row1->Add(m_fillField, 0);
 	terrainBox->Add(row1, 0, wxALL, 8);
+	leftSizer->Add(terrainBox, 0, wxALL | wxEXPAND, 5);
 
-	sizer->Add(terrainBox, 0, wxALL | wxEXPAND, 8);
+	// Room Floors
+	wxStaticBoxSizer* roomFloorBox = new wxStaticBoxSizer(wxVERTICAL, panel, "Room Floor Variations");
+	m_roomFloorImageList = new wxImageList(PREVIEW_SIZE, PREVIEW_SIZE, true);
+	m_roomFloorList = new wxListCtrl(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 100),
+	                                  wxLC_REPORT | wxLC_SINGLE_SEL | wxLC_NO_HEADER);
+	m_roomFloorList->SetImageList(m_roomFloorImageList, wxIMAGE_LIST_SMALL);
+	m_roomFloorList->InsertColumn(0, "Item");
+	m_roomFloorList->InsertColumn(1, "Chance");
+	roomFloorBox->Add(m_roomFloorList, 1, wxEXPAND | wxALL, 3);
+	wxBoxSizer* roomBtnRow = new wxBoxSizer(wxHORIZONTAL);
+	roomBtnRow->Add(new wxButton(panel, ID_ROOM_FLOOR_ADD_BTN, "Add..."), 0, wxRIGHT, 5);
+	roomBtnRow->Add(new wxButton(panel, ID_ROOM_FLOOR_ADD_RANGE_BTN, "Add Range..."), 0, wxRIGHT, 5);
+	roomBtnRow->Add(new wxButton(panel, ID_ROOM_FLOOR_REMOVE_BTN, "Remove"), 0);
+	roomFloorBox->Add(roomBtnRow, 0, wxALL, 3);
+	leftSizer->Add(roomFloorBox, 1, wxALL | wxEXPAND, 5);
 
-	// Load from Ground Brush
+	// Corridor Floors
+	wxStaticBoxSizer* corridorFloorBox = new wxStaticBoxSizer(wxVERTICAL, panel, "Corridor Floor Variations");
+	m_corridorFloorImageList = new wxImageList(PREVIEW_SIZE, PREVIEW_SIZE, true);
+	m_corridorFloorList = new wxListCtrl(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 100),
+	                                      wxLC_REPORT | wxLC_SINGLE_SEL | wxLC_NO_HEADER);
+	m_corridorFloorList->SetImageList(m_corridorFloorImageList, wxIMAGE_LIST_SMALL);
+	m_corridorFloorList->InsertColumn(0, "Item");
+	m_corridorFloorList->InsertColumn(1, "Chance");
+	corridorFloorBox->Add(m_corridorFloorList, 1, wxEXPAND | wxALL, 3);
+	wxBoxSizer* corrBtnRow = new wxBoxSizer(wxHORIZONTAL);
+	corrBtnRow->Add(new wxButton(panel, ID_CORRIDOR_FLOOR_ADD_BTN, "Add..."), 0, wxRIGHT, 5);
+	corrBtnRow->Add(new wxButton(panel, ID_CORRIDOR_FLOOR_ADD_RANGE_BTN, "Add Range..."), 0, wxRIGHT, 5);
+	corrBtnRow->Add(new wxButton(panel, ID_CORRIDOR_FLOOR_REMOVE_BTN, "Remove"), 0);
+	corridorFloorBox->Add(corrBtnRow, 0, wxALL, 3);
+	leftSizer->Add(corridorFloorBox, 1, wxALL | wxEXPAND, 5);
+
+	RefreshFloorList(m_roomFloorList, m_roomFloorImageList, m_editRoomFloors);
+	RefreshFloorList(m_corridorFloorList, m_corridorFloorImageList, m_editCorridorFloors);
+
+	mainHSizer->Add(leftSizer, 3, wxEXPAND | wxALL, 2);
+
+	// ===== RIGHT COLUMN: ground brush loader =====
+	wxBoxSizer* rightSizer = new wxBoxSizer(wxVERTICAL);
+
 	wxStaticBoxSizer* loadBox = new wxStaticBoxSizer(wxVERTICAL, panel, "Load from Ground Brush");
 
 	m_generalGroundSearch = CreateSearchField(panel);
@@ -345,9 +405,10 @@ wxPanel* DungeonPresetEditorDialog::CreateGeneralTab(wxNotebook* notebook) {
 
 	RebuildGeneralGroundBrushList();
 
-	sizer->Add(loadBox, 1, wxALL | wxEXPAND, 8);
+	rightSizer->Add(loadBox, 1, wxALL | wxEXPAND, 3);
+	mainHSizer->Add(rightSizer, 2, wxEXPAND | wxALL, 2);
 
-	panel->SetSizer(sizer);
+	panel->SetSizer(mainHSizer);
 	return panel;
 }
 
@@ -357,23 +418,71 @@ wxPanel* DungeonPresetEditorDialog::CreateGeneralTab(wxNotebook* notebook) {
 
 wxPanel* DungeonPresetEditorDialog::CreateWallsTab(wxNotebook* notebook) {
 	wxPanel* panel = new wxPanel(notebook);
-	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
-	// Wall slots grid
-	m_wallsGrid = new DungeonSlotGridPanel(panel, DungeonSlotGridPanel::MODE_WALLS);
-	m_wallsGrid->SetItemId(DSLOT_N, m_preset.walls.north);
-	m_wallsGrid->SetItemId(DSLOT_S, m_preset.walls.south);
-	m_wallsGrid->SetItemId(DSLOT_E, m_preset.walls.east);
-	m_wallsGrid->SetItemId(DSLOT_W, m_preset.walls.west);
-	m_wallsGrid->SetItemId(DSLOT_NW, m_preset.walls.nw);
-	m_wallsGrid->SetItemId(DSLOT_NE, m_preset.walls.ne);
-	m_wallsGrid->SetItemId(DSLOT_SW, m_preset.walls.sw);
-	m_wallsGrid->SetItemId(DSLOT_SE, m_preset.walls.se);
-	m_wallsGrid->SetItemId(DSLOT_PILLAR, m_preset.walls.pillar);
-	sizer->Add(m_wallsGrid, 0, wxALL | wxEXPAND, 5);
+	// Helper to load wall grid from WallConfig
+	auto loadWallGrid = [](DungeonSlotGridPanel* grid, const DungeonGen::WallConfig& cfg) {
+		grid->SetItemId(DSLOT_N, cfg.primaryId(cfg.north));
+		grid->SetItemId(DSLOT_S, cfg.primaryId(cfg.south));
+		grid->SetItemId(DSLOT_E, cfg.primaryId(cfg.east));
+		grid->SetItemId(DSLOT_W, cfg.primaryId(cfg.west));
+		grid->SetItemId(DSLOT_NW, cfg.primaryId(cfg.nw));
+		grid->SetItemId(DSLOT_NE, cfg.primaryId(cfg.ne));
+		grid->SetItemId(DSLOT_SW, cfg.primaryId(cfg.sw));
+		grid->SetItemId(DSLOT_SE, cfg.primaryId(cfg.se));
+		grid->SetItemId(DSLOT_PILLAR, cfg.primaryId(cfg.pillar));
+	};
 
-	// Load from wall brush
-	wxStaticBoxSizer* loadBox = new wxStaticBoxSizer(wxVERTICAL, panel, "Load from Wall Brush");
+	// Main horizontal layout: left = wall grids, right = brush loader
+	wxBoxSizer* mainHSizer = new wxBoxSizer(wxHORIZONTAL);
+
+	// ===== LEFT COLUMN: wall grids =====
+	wxScrolledWindow* leftScroll = new wxScrolledWindow(panel, wxID_ANY);
+	leftScroll->SetScrollRate(0, 10);
+	wxBoxSizer* leftSizer = new wxBoxSizer(wxVERTICAL);
+
+	// Room Walls
+	wxStaticBoxSizer* roomBox = new wxStaticBoxSizer(wxVERTICAL, leftScroll, "Room Walls");
+	m_wallsGrid = new DungeonSlotGridPanel(leftScroll, DungeonSlotGridPanel::MODE_WALLS);
+	loadWallGrid(m_wallsGrid, m_preset.walls);
+	m_wallsGrid->SetHighlighted(true);
+	roomBox->Add(m_wallsGrid, 0, wxALL | wxEXPAND, 3);
+	leftSizer->Add(roomBox, 0, wxALL | wxEXPAND, 3);
+
+	// Corridor Walls
+	wxStaticBoxSizer* corridorBox = new wxStaticBoxSizer(wxVERTICAL, leftScroll, "Corridor Walls (optional)");
+	m_corridorWallsGrid = new DungeonSlotGridPanel(leftScroll, DungeonSlotGridPanel::MODE_WALLS);
+	loadWallGrid(m_corridorWallsGrid, m_preset.corridorWalls);
+	corridorBox->Add(m_corridorWallsGrid, 0, wxALL | wxEXPAND, 3);
+	leftSizer->Add(corridorBox, 0, wxALL | wxEXPAND, 3);
+
+	leftScroll->SetSizer(leftSizer);
+	mainHSizer->Add(leftScroll, 3, wxEXPAND | wxALL, 2);
+
+	// ===== RIGHT COLUMN: target selection + brush loader =====
+	wxBoxSizer* rightSizer = new wxBoxSizer(wxVERTICAL);
+
+	// Target selection
+	m_wallTarget = WALL_TARGET_ROOM;
+
+	wxStaticBoxSizer* targetBox = new wxStaticBoxSizer(wxVERTICAL, panel, "Apply to");
+	wxRadioButton* rRoomWalls = new wxRadioButton(panel, wxID_ANY, "Room Walls", wxDefaultPosition, wxDefaultSize, wxRB_GROUP);
+	wxRadioButton* rCorridorWalls = new wxRadioButton(panel, wxID_ANY, "Corridor Walls");
+	rRoomWalls->SetValue(true);
+
+	rRoomWalls->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { UpdateWallTarget(WALL_TARGET_ROOM); });
+	rCorridorWalls->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { UpdateWallTarget(WALL_TARGET_CORRIDOR); });
+
+	targetBox->Add(rRoomWalls, 0, wxALL, 2);
+	targetBox->Add(rCorridorWalls, 0, wxALL, 2);
+
+	m_wallTargetLabel = new wxStaticText(panel, wxID_ANY, "Target: Room Walls");
+	m_wallTargetLabel->SetForegroundColour(Theme::Get(Theme::Role::Accent));
+	targetBox->Add(m_wallTargetLabel, 0, wxALL, 4);
+
+	rightSizer->Add(targetBox, 0, wxALL | wxEXPAND, 3);
+
+	// Brush list
+	wxStaticBoxSizer* loadBox = new wxStaticBoxSizer(wxVERTICAL, panel, "Wall Brushes");
 
 	m_wallBrushSearch = CreateSearchField(panel);
 	m_wallBrushSearch->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { RebuildWallBrushList(); });
@@ -388,11 +497,13 @@ wxPanel* DungeonPresetEditorDialog::CreateWallsTab(wxNotebook* notebook) {
 	loadBox->Add(m_wallBrushList, 1, wxEXPAND | wxALL, 3);
 
 	RebuildWallBrushList();
+
 	loadBox->Add(new wxButton(panel, ID_LOAD_WALL_BRUSH, "Apply Wall Brush"), 0, wxALL | wxEXPAND, 3);
 
-	sizer->Add(loadBox, 1, wxALL | wxEXPAND, 5);
+	rightSizer->Add(loadBox, 1, wxALL | wxEXPAND, 3);
+	mainHSizer->Add(rightSizer, 2, wxEXPAND | wxALL, 2);
 
-	panel->SetSizer(sizer);
+	panel->SetSizer(mainHSizer);
 	return panel;
 }
 
@@ -549,6 +660,8 @@ wxPanel* DungeonPresetEditorDialog::CreateDetailsTab(wxNotebook* notebook) {
 	m_detailPlacementChoice->Append("north_wall");
 	m_detailPlacementChoice->Append("west_wall");
 	m_detailPlacementChoice->Append("center");
+	m_detailPlacementChoice->Append("room_only");
+	m_detailPlacementChoice->Append("corridor_only");
 	m_detailPlacementChoice->SetStringSelection(
 		DungeonGen::DetailGroup::placementToString(m_editDetails[0].placement));
 	groupBox->Add(m_detailPlacementChoice, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
@@ -824,11 +937,13 @@ void DungeonPresetEditorDialog::OnSave(wxCommandEvent& event) {
 }
 
 void DungeonPresetEditorDialog::OnCancel(wxCommandEvent& event) {
-	Destroy();
+	if (IsModal()) EndModal(wxID_CANCEL);
+	else Destroy();
 }
 
 void DungeonPresetEditorDialog::OnCloseWindow(wxCloseEvent& event) {
-	Destroy();
+	if (IsModal()) EndModal(wxID_CANCEL);
+	else Destroy();
 }
 
 void DungeonPresetEditorDialog::OnLoadGroundBrushGeneral(wxCommandEvent& event) {
@@ -1073,7 +1188,7 @@ void DungeonPresetEditorDialog::OnLoadGroundBrush(wxCommandEvent& event) {
 	}
 }
 
-void DungeonPresetEditorDialog::OnLoadWallBrush(wxCommandEvent& event) {
+void DungeonPresetEditorDialog::LoadWallBrushIntoConfig(DungeonGen::WallConfig& config, DungeonSlotGridPanel* grid) {
 	long sel = m_wallBrushList->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
 	if (sel < 0) {
 		wxMessageBox("Select a wall brush first.", "Info", wxICON_INFORMATION | wxOK, this);
@@ -1087,25 +1202,198 @@ void DungeonPresetEditorDialog::OnLoadWallBrush(wxCommandEvent& event) {
 	WallBrush* wallBrush = brush->as<WallBrush>();
 	if (!wallBrush) return;
 
-	// Map wall alignments to our dungeon slots
-	// WALL_HORIZONTAL (6) = North/South walls, WALL_VERTICAL (9) = East/West walls
+	// Helper: load all items from a wall node (with chances/variations)
+	auto loadAll = [&](int alignment) -> std::vector<DungeonGen::WallItem> {
+		std::vector<DungeonGen::WallItem> result;
+		const auto& node = wallBrush->items.getWallNode(alignment);
+		for (const auto& item : node.items) {
+			result.push_back({item.id, item.chance});
+		}
+		return result;
+	};
+
 	auto getFirst = [&](int alignment) -> uint16_t {
 		const auto& node = wallBrush->items.getWallNode(alignment);
 		if (!node.items.empty()) return node.items[0].id;
 		return 0;
 	};
 
-	m_wallsGrid->SetItemId(DSLOT_N, getFirst(WALL_HORIZONTAL));
-	m_wallsGrid->SetItemId(DSLOT_S, getFirst(WALL_HORIZONTAL));
-	m_wallsGrid->SetItemId(DSLOT_E, getFirst(WALL_VERTICAL));
-	m_wallsGrid->SetItemId(DSLOT_W, getFirst(WALL_VERTICAL));
-	m_wallsGrid->SetItemId(DSLOT_NW, getFirst(WALL_NORTHWEST_DIAGONAL));
-	m_wallsGrid->SetItemId(DSLOT_NE, getFirst(WALL_NORTHEAST_DIAGONAL));
-	m_wallsGrid->SetItemId(DSLOT_SW, getFirst(WALL_SOUTHWEST_DIAGONAL));
-	m_wallsGrid->SetItemId(DSLOT_SE, getFirst(WALL_SOUTHEAST_DIAGONAL));
-	m_wallsGrid->SetItemId(DSLOT_PILLAR, getFirst(WALL_POLE));
+	// Load all variations into config
+	config.north = loadAll(WALL_HORIZONTAL);
+	config.south = loadAll(WALL_HORIZONTAL);
+	config.east = loadAll(WALL_VERTICAL);
+	config.west = loadAll(WALL_VERTICAL);
+	config.nw = loadAll(WALL_NORTHWEST_DIAGONAL);
+	config.ne = loadAll(WALL_NORTHEAST_DIAGONAL);
+	config.sw = loadAll(WALL_SOUTHWEST_DIAGONAL);
+	config.se = loadAll(WALL_SOUTHEAST_DIAGONAL);
+	config.pillar = loadAll(WALL_POLE);
 
-	wxMessageBox(wxString::Format("Loaded wall brush '%s'.", selected), "Loaded", wxICON_INFORMATION | wxOK, this);
+	// Update grid (shows primary only)
+	grid->SetItemId(DSLOT_N, getFirst(WALL_HORIZONTAL));
+	grid->SetItemId(DSLOT_S, getFirst(WALL_HORIZONTAL));
+	grid->SetItemId(DSLOT_E, getFirst(WALL_VERTICAL));
+	grid->SetItemId(DSLOT_W, getFirst(WALL_VERTICAL));
+	grid->SetItemId(DSLOT_NW, getFirst(WALL_NORTHWEST_DIAGONAL));
+	grid->SetItemId(DSLOT_NE, getFirst(WALL_NORTHEAST_DIAGONAL));
+	grid->SetItemId(DSLOT_SW, getFirst(WALL_SOUTHWEST_DIAGONAL));
+	grid->SetItemId(DSLOT_SE, getFirst(WALL_SOUTHEAST_DIAGONAL));
+	grid->SetItemId(DSLOT_PILLAR, getFirst(WALL_POLE));
+
+	int totalVariations = 0;
+	for (const auto* items : {&config.north, &config.south, &config.east, &config.west,
+	                           &config.nw, &config.ne, &config.sw, &config.se, &config.pillar}) {
+		totalVariations += static_cast<int>(items->size());
+	}
+
+	wxMessageBox(wxString::Format("Loaded wall brush '%s' (%d total tile variations).",
+	             selected, totalVariations), "Loaded", wxICON_INFORMATION | wxOK, this);
+}
+
+void DungeonPresetEditorDialog::OnLoadWallBrush(wxCommandEvent& event) {
+	if (m_wallTarget == WALL_TARGET_CORRIDOR) {
+		LoadWallBrushIntoConfig(m_preset.corridorWalls, m_corridorWallsGrid);
+	} else {
+		LoadWallBrushIntoConfig(m_preset.walls, m_wallsGrid);
+	}
+}
+
+void DungeonPresetEditorDialog::UpdateWallTarget(WallTarget target) {
+	m_wallTarget = target;
+	switch (target) {
+		case WALL_TARGET_ROOM:
+			m_wallTargetLabel->SetLabel("Target: Room Walls");
+			m_wallsGrid->SetHighlighted(true);
+			m_corridorWallsGrid->SetHighlighted(false);
+			break;
+		case WALL_TARGET_CORRIDOR:
+			m_wallTargetLabel->SetLabel("Target: Corridor Walls");
+			m_wallsGrid->SetHighlighted(false);
+			m_corridorWallsGrid->SetHighlighted(true);
+			break;
+	}
+}
+
+//=============================================================================
+// Save preset
+//=============================================================================
+
+//=============================================================================
+// Floor variation helpers
+//=============================================================================
+
+void DungeonPresetEditorDialog::RefreshFloorList(wxListCtrl* list, wxImageList* imgList,
+                                                  const std::vector<DungeonGen::WallItem>& items) {
+	list->ClearAll();
+	imgList->RemoveAll();
+	list->InsertColumn(0, "Item");
+	list->InsertColumn(1, "Chance");
+
+	for (size_t i = 0; i < items.size(); ++i) {
+		imgList->Add(MakeItemBitmap(items[i].id, PREVIEW_SIZE));
+		long idx = list->InsertItem(static_cast<long>(i), wxString::Format("%d", items[i].id), static_cast<int>(i));
+		list->SetItem(idx, 1, wxString::Format("%d", items[i].chance));
+	}
+
+	list->SetColumnWidth(0, wxLIST_AUTOSIZE_USEHEADER);
+	list->SetColumnWidth(1, 60);
+}
+
+void DungeonPresetEditorDialog::AddFloorRange(std::vector<DungeonGen::WallItem>& items,
+                                                wxListCtrl* list, wxImageList* imgList) {
+	wxDialog dlg(this, wxID_ANY, "Add Item Range", wxDefaultPosition, wxDefaultSize,
+	             wxCAPTION | wxCLOSE_BOX | wxSTAY_ON_TOP);
+	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+
+	wxBoxSizer* row1 = new wxBoxSizer(wxHORIZONTAL);
+	row1->Add(new wxStaticText(&dlg, wxID_ANY, "From ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+	wxSpinCtrl* fromSpin = new wxSpinCtrl(&dlg, wxID_ANY, "", wxDefaultPosition, wxSize(80, -1),
+	                                       wxSP_ARROW_KEYS, 1, 65535, 1);
+	row1->Add(fromSpin, 0);
+	row1->Add(new wxStaticText(&dlg, wxID_ANY, "  To ID:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 5);
+	wxSpinCtrl* toSpin = new wxSpinCtrl(&dlg, wxID_ANY, "", wxDefaultPosition, wxSize(80, -1),
+	                                     wxSP_ARROW_KEYS, 1, 65535, 1);
+	row1->Add(toSpin, 0);
+	sizer->Add(row1, 0, wxALL, 10);
+
+	wxBoxSizer* row2 = new wxBoxSizer(wxHORIZONTAL);
+	row2->Add(new wxStaticText(&dlg, wxID_ANY, "Chance:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+	wxSpinCtrl* chanceSpin = new wxSpinCtrl(&dlg, wxID_ANY, "", wxDefaultPosition, wxSize(80, -1),
+	                                         wxSP_ARROW_KEYS, 1, 10000, 100);
+	row2->Add(chanceSpin, 0);
+	sizer->Add(row2, 0, wxLEFT | wxRIGHT | wxBOTTOM, 10);
+
+	wxBoxSizer* btnRow = new wxBoxSizer(wxHORIZONTAL);
+	btnRow->Add(new wxButton(&dlg, wxID_OK, "Add"), 0, wxRIGHT, 5);
+	btnRow->Add(new wxButton(&dlg, wxID_CANCEL, "Cancel"), 0);
+	sizer->Add(btnRow, 0, wxALL | wxALIGN_RIGHT, 10);
+
+	dlg.SetSizerAndFit(sizer);
+	dlg.CentreOnParent();
+
+	if (dlg.ShowModal() == wxID_OK) {
+		int from = fromSpin->GetValue();
+		int to = toSpin->GetValue();
+		int chance = chanceSpin->GetValue();
+
+		if (from > to) std::swap(from, to);
+
+		int count = 0;
+		for (int id = from; id <= to; ++id) {
+			items.push_back({static_cast<uint16_t>(id), chance});
+			++count;
+		}
+
+		if (count > 0) {
+			RefreshFloorList(list, imgList, items);
+		}
+	}
+}
+
+void DungeonPresetEditorDialog::OnAddRoomFloor(wxCommandEvent& event) {
+	FindItemDialog dlg(this, "Pick Floor Item");
+	if (dlg.ShowModal() == wxID_OK) {
+		uint16_t id = dlg.getResultID();
+		if (id > 0) {
+			m_editRoomFloors.push_back({id, 100});
+			RefreshFloorList(m_roomFloorList, m_roomFloorImageList, m_editRoomFloors);
+		}
+	}
+}
+
+void DungeonPresetEditorDialog::OnAddRoomFloorRange(wxCommandEvent& event) {
+	AddFloorRange(m_editRoomFloors, m_roomFloorList, m_roomFloorImageList);
+}
+
+void DungeonPresetEditorDialog::OnRemoveRoomFloor(wxCommandEvent& event) {
+	long sel = m_roomFloorList->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	if (sel >= 0 && sel < static_cast<long>(m_editRoomFloors.size())) {
+		m_editRoomFloors.erase(m_editRoomFloors.begin() + sel);
+		RefreshFloorList(m_roomFloorList, m_roomFloorImageList, m_editRoomFloors);
+	}
+}
+
+void DungeonPresetEditorDialog::OnAddCorridorFloor(wxCommandEvent& event) {
+	FindItemDialog dlg(this, "Pick Floor Item");
+	if (dlg.ShowModal() == wxID_OK) {
+		uint16_t id = dlg.getResultID();
+		if (id > 0) {
+			m_editCorridorFloors.push_back({id, 100});
+			RefreshFloorList(m_corridorFloorList, m_corridorFloorImageList, m_editCorridorFloors);
+		}
+	}
+}
+
+void DungeonPresetEditorDialog::OnAddCorridorFloorRange(wxCommandEvent& event) {
+	AddFloorRange(m_editCorridorFloors, m_corridorFloorList, m_corridorFloorImageList);
+}
+
+void DungeonPresetEditorDialog::OnRemoveCorridorFloor(wxCommandEvent& event) {
+	long sel = m_corridorFloorList->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	if (sel >= 0 && sel < static_cast<long>(m_editCorridorFloors.size())) {
+		m_editCorridorFloors.erase(m_editCorridorFloors.begin() + sel);
+		RefreshFloorList(m_corridorFloorList, m_corridorFloorImageList, m_editCorridorFloors);
+	}
 }
 
 //=============================================================================
@@ -1133,16 +1421,30 @@ void DungeonPresetEditorDialog::SavePresetData() {
 	m_preset.fillId = m_fillField->GetItemId();
 	m_preset.brushId = m_brushField->GetItemId();
 
-	// Walls (from grid panel)
-	m_preset.walls.north = m_wallsGrid->GetItemId(DSLOT_N);
-	m_preset.walls.south = m_wallsGrid->GetItemId(DSLOT_S);
-	m_preset.walls.east = m_wallsGrid->GetItemId(DSLOT_E);
-	m_preset.walls.west = m_wallsGrid->GetItemId(DSLOT_W);
-	m_preset.walls.nw = m_wallsGrid->GetItemId(DSLOT_NW);
-	m_preset.walls.ne = m_wallsGrid->GetItemId(DSLOT_NE);
-	m_preset.walls.sw = m_wallsGrid->GetItemId(DSLOT_SW);
-	m_preset.walls.se = m_wallsGrid->GetItemId(DSLOT_SE);
-	m_preset.walls.pillar = m_wallsGrid->GetItemId(DSLOT_PILLAR);
+	// Walls (from grid panel) - sync primary IDs, preserve variations
+	auto syncWallGrid = [](DungeonGen::WallConfig& cfg, DungeonSlotGridPanel* grid) {
+		auto syncDir = [](std::vector<DungeonGen::WallItem>& items, uint16_t gridId) {
+			if (gridId == 0) {
+				items.clear();
+			} else if (items.empty()) {
+				items.push_back({gridId, 100});
+			} else {
+				items.front().id = gridId;
+			}
+		};
+		syncDir(cfg.north, grid->GetItemId(DSLOT_N));
+		syncDir(cfg.south, grid->GetItemId(DSLOT_S));
+		syncDir(cfg.east, grid->GetItemId(DSLOT_E));
+		syncDir(cfg.west, grid->GetItemId(DSLOT_W));
+		syncDir(cfg.nw, grid->GetItemId(DSLOT_NW));
+		syncDir(cfg.ne, grid->GetItemId(DSLOT_NE));
+		syncDir(cfg.sw, grid->GetItemId(DSLOT_SW));
+		syncDir(cfg.se, grid->GetItemId(DSLOT_SE));
+		syncDir(cfg.pillar, grid->GetItemId(DSLOT_PILLAR));
+	};
+
+	syncWallGrid(m_preset.walls, m_wallsGrid);
+	syncWallGrid(m_preset.corridorWalls, m_corridorWallsGrid);
 
 	// Borders (from grid panel)
 	m_preset.borders.north = m_patchBordersGrid->GetItemId(DSLOT_N);
@@ -1181,6 +1483,10 @@ void DungeonPresetEditorDialog::SavePresetData() {
 		}
 	}
 
+	// Floor variations
+	m_preset.roomFloors.items = m_editRoomFloors;
+	m_preset.corridorFloors.items = m_editCorridorFloors;
+
 	// Hangables
 	m_preset.hangables.horizontalIds = m_editHorizontalIds;
 	m_preset.hangables.verticalIds = m_editVerticalIds;
@@ -1196,9 +1502,17 @@ void DungeonPresetEditorDialog::SavePresetData() {
 
 	mgr.addPreset(m_preset);
 
-	if (m_onSaveCallback) {
-		m_onSaveCallback();
+	// Copy callback before potential Destroy
+	auto callback = m_onSaveCallback;
+
+	if (IsModal()) {
+		EndModal(wxID_OK);
+	} else {
+		Destroy();
 	}
 
-	Destroy();
+	// Call after destroy so parent window refreshes with latest data
+	if (callback) {
+		callback();
+	}
 }

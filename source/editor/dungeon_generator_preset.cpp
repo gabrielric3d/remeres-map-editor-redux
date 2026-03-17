@@ -28,30 +28,99 @@ namespace DungeonGen {
 // WallConfig XML helpers
 //=============================================================================
 
+static void saveWallItems(pugi::xml_node& parent, const char* dirName, const std::vector<WallItem>& items) {
+	if (items.empty()) return;
+
+	// Single item: keep compact format as attribute on parent for backwards compat
+	if (items.size() == 1) {
+		parent.append_attribute(dirName) = items.front().id;
+		return;
+	}
+
+	// Multiple items: write child nodes
+	for (const auto& item : items) {
+		pugi::xml_node itemNode = parent.append_child(dirName);
+		itemNode.append_attribute("id") = item.id;
+		itemNode.append_attribute("chance") = item.chance;
+	}
+}
+
+static std::vector<WallItem> loadWallItems(const pugi::xml_node& parent, const char* dirName) {
+	std::vector<WallItem> items;
+
+	// Check for child nodes first (new format with variations)
+	for (pugi::xml_node child = parent.child(dirName); child; child = child.next_sibling(dirName)) {
+		uint16_t id = child.attribute("id").as_uint(0);
+		int chance = child.attribute("chance").as_int(100);
+		if (id > 0) {
+			items.push_back({id, chance});
+		}
+	}
+
+	// Fallback: single attribute (legacy format)
+	if (items.empty()) {
+		uint16_t id = parent.attribute(dirName).as_uint(0);
+		if (id > 0) {
+			items.push_back({id, 100});
+		}
+	}
+
+	return items;
+}
+
 static void saveWallConfig(pugi::xml_node& parent, const char* name, const WallConfig& cfg) {
+	if (!cfg.isValid()) return;
+
 	pugi::xml_node node = parent.append_child(name);
-	node.append_attribute("north") = cfg.north;
-	node.append_attribute("south") = cfg.south;
-	node.append_attribute("east") = cfg.east;
-	node.append_attribute("west") = cfg.west;
-	node.append_attribute("nw") = cfg.nw;
-	node.append_attribute("ne") = cfg.ne;
-	node.append_attribute("sw") = cfg.sw;
-	node.append_attribute("se") = cfg.se;
-	node.append_attribute("pillar") = cfg.pillar;
+	saveWallItems(node, "north", cfg.north);
+	saveWallItems(node, "south", cfg.south);
+	saveWallItems(node, "east", cfg.east);
+	saveWallItems(node, "west", cfg.west);
+	saveWallItems(node, "nw", cfg.nw);
+	saveWallItems(node, "ne", cfg.ne);
+	saveWallItems(node, "sw", cfg.sw);
+	saveWallItems(node, "se", cfg.se);
+	saveWallItems(node, "pillar", cfg.pillar);
 }
 
 static WallConfig loadWallConfig(const pugi::xml_node& node) {
 	WallConfig cfg;
-	cfg.north = node.attribute("north").as_uint(0);
-	cfg.south = node.attribute("south").as_uint(0);
-	cfg.east = node.attribute("east").as_uint(0);
-	cfg.west = node.attribute("west").as_uint(0);
-	cfg.nw = node.attribute("nw").as_uint(0);
-	cfg.ne = node.attribute("ne").as_uint(0);
-	cfg.sw = node.attribute("sw").as_uint(0);
-	cfg.se = node.attribute("se").as_uint(0);
-	cfg.pillar = node.attribute("pillar").as_uint(0);
+	cfg.north = loadWallItems(node, "north");
+	cfg.south = loadWallItems(node, "south");
+	cfg.east = loadWallItems(node, "east");
+	cfg.west = loadWallItems(node, "west");
+	cfg.nw = loadWallItems(node, "nw");
+	cfg.ne = loadWallItems(node, "ne");
+	cfg.sw = loadWallItems(node, "sw");
+	cfg.se = loadWallItems(node, "se");
+	cfg.pillar = loadWallItems(node, "pillar");
+	return cfg;
+}
+
+//=============================================================================
+// FloorConfig XML helpers
+//=============================================================================
+
+static void saveFloorConfig(pugi::xml_node& parent, const char* name, const FloorConfig& cfg) {
+	if (!cfg.isValid()) return;
+
+	pugi::xml_node node = parent.append_child(name);
+	for (const auto& item : cfg.items) {
+		pugi::xml_node itemNode = node.append_child("floor");
+		itemNode.append_attribute("id") = item.id;
+		itemNode.append_attribute("chance") = item.chance;
+	}
+}
+
+static FloorConfig loadFloorConfig(const pugi::xml_node& node) {
+	FloorConfig cfg;
+	for (pugi::xml_node child = node.child("floor"); child; child = child.next_sibling("floor")) {
+		uint16_t id = child.attribute("id").as_uint(0);
+		int chance = child.attribute("chance").as_int(100);
+		if (id > 0) {
+			cfg.items.push_back({id, chance});
+		}
+	}
 	return cfg;
 }
 
@@ -110,8 +179,13 @@ bool DungeonPreset::saveToFile(const std::string& filepath) const {
 	terrainNode.append_attribute("fill") = fillId;
 	terrainNode.append_attribute("brush") = brushId;
 
+	// Floor variations
+	saveFloorConfig(root, "room_floors", roomFloors);
+	saveFloorConfig(root, "corridor_floors", corridorFloors);
+
 	// Walls
 	saveWallConfig(root, "walls", walls);
+	saveWallConfig(root, "corridor_walls", corridorWalls);
 
 	// Borders
 	saveBorderConfig(root, "borders", borders);
@@ -168,10 +242,26 @@ bool DungeonPreset::loadFromFile(const std::string& filepath) {
 		brushId = terrainNode.attribute("brush").as_uint(0);
 	}
 
+	// Floor variations
+	pugi::xml_node roomFloorsNode = root.child("room_floors");
+	if (roomFloorsNode) {
+		roomFloors = loadFloorConfig(roomFloorsNode);
+	}
+
+	pugi::xml_node corridorFloorsNode = root.child("corridor_floors");
+	if (corridorFloorsNode) {
+		corridorFloors = loadFloorConfig(corridorFloorsNode);
+	}
+
 	// Walls
 	pugi::xml_node wallsNode = root.child("walls");
 	if (wallsNode) {
 		walls = loadWallConfig(wallsNode);
+	}
+
+	pugi::xml_node corridorWallsNode = root.child("corridor_walls");
+	if (corridorWallsNode) {
+		corridorWalls = loadWallConfig(corridorWallsNode);
 	}
 
 	// Borders
@@ -288,6 +378,7 @@ bool PresetManager::loadPresets() {
 
 bool PresetManager::savePresets() {
 	std::string dir = getPresetsDirectory();
+	bool allOk = true;
 
 	for (const auto& [name, preset] : m_presets) {
 		std::string filename = name;
@@ -297,10 +388,12 @@ bool PresetManager::savePresets() {
 		std::replace(filename.begin(), filename.end(), '\\', '_');
 
 		std::string filepath = dir + "/" + filename + ".xml";
-		preset.saveToFile(filepath);
+		if (!preset.saveToFile(filepath)) {
+			allOk = false;
+		}
 	}
 
-	return true;
+	return allOk;
 }
 
 std::vector<std::string> PresetManager::getPresetNames() const {

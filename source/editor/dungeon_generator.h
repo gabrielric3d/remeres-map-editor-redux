@@ -26,6 +26,7 @@
 #include <random>
 #include <memory>
 #include <functional>
+#include <unordered_set>
 #include <cstdint>
 
 class Editor;
@@ -35,20 +36,58 @@ class Tile;
 namespace DungeonGen {
 
 //=============================================================================
-// WallConfig - Wall tile IDs for each direction
+// WallItem - A single wall tile with a weighted chance
+//=============================================================================
+struct WallItem {
+	uint16_t id = 0;
+	int chance = 100;
+};
+
+//=============================================================================
+// WallConfig - Wall tile IDs for each direction (with variations)
 //=============================================================================
 struct WallConfig {
-	uint16_t north = 0;
-	uint16_t south = 0;
-	uint16_t east = 0;
-	uint16_t west = 0;
-	uint16_t nw = 0;
-	uint16_t ne = 0;
-	uint16_t sw = 0;
-	uint16_t se = 0;
-	uint16_t pillar = 0;
+	std::vector<WallItem> north;
+	std::vector<WallItem> south;
+	std::vector<WallItem> east;
+	std::vector<WallItem> west;
+	std::vector<WallItem> nw;
+	std::vector<WallItem> ne;
+	std::vector<WallItem> sw;
+	std::vector<WallItem> se;
+	std::vector<WallItem> pillar;
 
-	bool isValid() const { return north > 0 || west > 0; }
+	bool isValid() const { return !north.empty() || !west.empty(); }
+
+	// Get the primary (first) item ID for a direction, or 0 if empty
+	uint16_t primaryId(const std::vector<WallItem>& items) const {
+		return items.empty() ? 0 : items.front().id;
+	}
+
+	// Pick a random item from a direction's list using weighted chance
+	uint16_t pickRandom(const std::vector<WallItem>& items, std::mt19937& rng) const;
+
+	// Convenience: set a single ID for a direction (replaces all variations)
+	static void setSingle(std::vector<WallItem>& items, uint16_t id) {
+		items.clear();
+		if (id > 0) items.push_back({id, 100});
+	}
+};
+
+//=============================================================================
+// FloorConfig - Floor tile variations with weighted chances
+//=============================================================================
+struct FloorConfig {
+	std::vector<WallItem> items;  // Reuses WallItem {id, chance}
+
+	bool isValid() const { return !items.empty(); }
+	uint16_t primaryId() const { return items.empty() ? 0 : items.front().id; }
+	uint16_t pickRandom(std::mt19937& rng) const;
+
+	static void setSingle(FloorConfig& cfg, uint16_t id) {
+		cfg.items.clear();
+		if (id > 0) cfg.items.push_back({id, 100});
+	}
 };
 
 //=============================================================================
@@ -77,7 +116,7 @@ struct BorderConfig {
 struct DetailGroup {
 	std::vector<uint16_t> itemIds;
 	float chance = 0.0f;
-	enum Placement { Anywhere, NearWall, NorthWall, WestWall, Center };
+	enum Placement { Anywhere, NearWall, NorthWall, WestWall, Center, RoomOnly, CorridorOnly };
 	Placement placement = Anywhere;
 
 	static Placement placementFromString(const std::string& str);
@@ -107,7 +146,11 @@ struct DungeonPreset {
 	uint16_t fillId = 0;
 	uint16_t brushId = 0;
 
+	FloorConfig roomFloors;         // Floor variations for rooms (if empty, uses groundId)
+	FloorConfig corridorFloors;     // Floor variations for corridors (if empty, uses roomFloors/groundId)
+
 	WallConfig walls;
+	WallConfig corridorWalls;      // Separate walls for corridors (if empty, uses 'walls')
 	BorderConfig borders;
 	BorderConfig brushBorders;
 
@@ -179,7 +222,7 @@ struct BSPParams {
 struct RandomWalkParams {
 	int walkerCount = 3;       // Number of simultaneous walkers
 	float coverage = 0.40f;    // Target floor coverage (0.0 - 1.0)
-	int maxSteps = 50000;      // Safety limit for total steps
+	int maxSteps = 50000;      // Safety limit for total steps (shared across all walkers)
 	bool startCenter = true;   // Start walkers from center
 	float turnChance = 0.3f;   // Chance to change direction each step
 	int roomChance = 10;       // % chance to carve a small room at walker position
@@ -227,6 +270,9 @@ public:
 
 	bool generate(const DungeonConfig& config, const DungeonPreset& preset);
 
+	// Get the seed used for the last generation (for reproducing same structure)
+	uint64_t getLastSeed() const { return m_lastSeed; }
+
 	const std::string& getLastError() const { return m_lastError; }
 	int getTilesGenerated() const { return m_tilesGenerated; }
 
@@ -235,6 +281,7 @@ private:
 	std::mt19937 m_rng;
 	std::string m_lastError;
 	int m_tilesGenerated = 0;
+	uint64_t m_lastSeed = 0;
 	ProgressCallback m_progressCallback;
 
 	bool reportProgress(const std::string& step, int progress) {
@@ -242,8 +289,13 @@ private:
 		return true;
 	}
 
+	// Area type for distinguishing rooms from corridors
+	enum class AreaType : uint8_t { None = 0, Room, Corridor };
+
 	// Internal grid
 	std::unordered_map<uint64_t, uint16_t> m_grid;
+	std::unordered_map<uint64_t, AreaType> m_areaGrid;
+	std::unordered_set<uint64_t> m_wallPositionSet;
 	std::vector<Position> m_floorPositions;
 	std::vector<WallPlacement> m_wallPlacements;
 
@@ -255,7 +307,8 @@ private:
 
 	// Common helpers
 	void paintFloor(int x, int y, int z, uint16_t floorId,
-	                std::vector<std::pair<Position, uint16_t>>& tileChanges);
+	                std::vector<std::pair<Position, uint16_t>>& tileChanges,
+	                AreaType areaType = AreaType::Room);
 	void fillBackground(int startX, int startY, int width, int height, int z, uint16_t fillId,
 	                     std::vector<std::pair<Position, uint16_t>>& tileChanges);
 
@@ -288,7 +341,7 @@ private:
 	                    const BSPParams& params, std::vector<std::pair<Position, uint16_t>>& tileChanges);
 	void connectBSPRooms(BSPNode* node, int startX, int startY, int z, uint16_t floorId,
 	                     int corridorWidth, std::vector<std::pair<Position, uint16_t>>& tileChanges);
-	Room getBSPRoomCenter(BSPNode* node);
+	Room getBSPRoomCenter(BSPNode* node, int targetX = 0, int targetY = 0);
 
 	// Random Walk
 	void generateRandomWalk(int startX, int startY, int width, int height, int z,
@@ -296,8 +349,11 @@ private:
 	                        std::vector<std::pair<Position, uint16_t>>& tileChanges);
 
 	// ===== Post-processing (shared by all algorithms) =====
+	AreaType getAreaType(int x, int y) const;
+	void applyFloorVariations(int z, uint16_t baseFloorId, const DungeonPreset& preset,
+	                          std::vector<std::pair<Position, uint16_t>>& tileChanges);
 	void buildWalls(int startX, int startY, int width, int height, int z,
-	                uint16_t floorId, const WallConfig& wallConfig,
+	                uint16_t floorId, const WallConfig& roomWalls, const WallConfig& corridorWalls,
 	                std::vector<std::pair<Position, uint16_t>>& tileChanges);
 	void createHangableDetails(int z, const HangableConfig& hangables,
 	                           std::vector<std::pair<Position, uint16_t>>& tileChanges);

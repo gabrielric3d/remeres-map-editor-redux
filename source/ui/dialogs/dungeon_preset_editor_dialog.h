@@ -100,6 +100,7 @@ private:
 	void OnLoadGroundBrush(wxCommandEvent& event);
 	void OnLoadGroundBrushGeneral(wxCommandEvent& event);
 	void OnLoadWallBrush(wxCommandEvent& event);
+	void LoadWallBrushIntoConfig(DungeonGen::WallConfig& config, DungeonSlotGridPanel* grid);
 	void OnDetailGroupChanged(wxCommandEvent& event);
 	void OnAddDetailItem(wxCommandEvent& event);
 	void OnRemoveDetailItem(wxCommandEvent& event);
@@ -108,6 +109,13 @@ private:
 	void OnRemoveHangableH(wxCommandEvent& event);
 	void OnAddHangableV(wxCommandEvent& event);
 	void OnRemoveHangableV(wxCommandEvent& event);
+	void OnAddRoomFloor(wxCommandEvent& event);
+	void OnAddRoomFloorRange(wxCommandEvent& event);
+	void OnRemoveRoomFloor(wxCommandEvent& event);
+	void OnAddCorridorFloor(wxCommandEvent& event);
+	void OnAddCorridorFloorRange(wxCommandEvent& event);
+	void OnRemoveCorridorFloor(wxCommandEvent& event);
+	void AddFloorRange(std::vector<DungeonGen::WallItem>& items, wxListCtrl* list, wxImageList* imgList);
 
 	// Preset data
 	wxString m_originalName;
@@ -119,6 +127,15 @@ private:
 	wxTextCtrl* m_nameInput;
 	ItemFieldControl* m_groundField;
 	ItemFieldControl* m_fillField;
+
+	// General tab - floor variations
+	wxListCtrl* m_roomFloorList;
+	wxListCtrl* m_corridorFloorList;
+	wxImageList* m_roomFloorImageList;
+	wxImageList* m_corridorFloorImageList;
+	std::vector<DungeonGen::WallItem> m_editRoomFloors;
+	std::vector<DungeonGen::WallItem> m_editCorridorFloors;
+	void RefreshFloorList(wxListCtrl* list, wxImageList* imgList, const std::vector<DungeonGen::WallItem>& items);
 
 	// General tab - ground brush loader
 	wxTextCtrl* m_generalGroundSearch;
@@ -138,6 +155,12 @@ private:
 	BorderTarget m_borderTarget;
 	wxStaticText* m_borderTargetLabel;
 	void UpdateBorderTarget(BorderTarget target);
+
+	enum WallTarget { WALL_TARGET_ROOM = 0, WALL_TARGET_CORRIDOR = 1 };
+	WallTarget m_wallTarget;
+	wxStaticText* m_wallTargetLabel;
+	void UpdateWallTarget(WallTarget target);
+
 	void RebuildGroundBrushList();
 	void RebuildWallBrushList();
 	void RebuildDoodadBrushList();
@@ -146,8 +169,9 @@ private:
 	// Helper: create a search text ctrl that disables hotkeys on focus
 	wxTextCtrl* CreateSearchField(wxWindow* parent);
 
-	// Walls tab - visual grid panel
+	// Walls tab - visual grid panels
 	DungeonSlotGridPanel* m_wallsGrid;
+	DungeonSlotGridPanel* m_corridorWallsGrid;
 
 	// Borders tab
 	ItemFieldControl* m_patchField;

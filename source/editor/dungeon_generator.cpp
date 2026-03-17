@@ -30,6 +30,8 @@
 #include <algorithm>
 #include <cmath>
 #include <numeric>
+#include <queue>
+#include <unordered_set>
 #include <sstream>
 #include <wx/dir.h>
 #include <wx/filename.h>
@@ -63,6 +65,8 @@ DetailGroup::Placement DetailGroup::placementFromString(const std::string& str) 
 	if (str == "north_wall") return NorthWall;
 	if (str == "west_wall") return WestWall;
 	if (str == "center") return Center;
+	if (str == "room_only") return RoomOnly;
+	if (str == "corridor_only") return CorridorOnly;
 	return Anywhere;
 }
 
@@ -72,6 +76,8 @@ std::string DetailGroup::placementToString(Placement p) {
 		case NorthWall: return "north_wall";
 		case WestWall: return "west_wall";
 		case Center: return "center";
+		case RoomOnly: return "room_only";
+		case CorridorOnly: return "corridor_only";
 		default: return "anywhere";
 	}
 }
@@ -86,6 +92,50 @@ bool DungeonPreset::validate(std::string& errorOut) const {
 		return false;
 	}
 	return true;
+}
+
+//=============================================================================
+// WallConfig - pickRandom
+//=============================================================================
+
+uint16_t WallConfig::pickRandom(const std::vector<WallItem>& items, std::mt19937& rng) const {
+	if (items.empty()) return 0;
+	if (items.size() == 1) return items.front().id;
+
+	int totalChance = 0;
+	for (const auto& item : items) totalChance += item.chance;
+	if (totalChance <= 0) return items.front().id;
+
+	std::uniform_int_distribution<int> dist(0, totalChance - 1);
+	int roll = dist(rng);
+
+	for (const auto& item : items) {
+		roll -= item.chance;
+		if (roll < 0) return item.id;
+	}
+	return items.back().id;
+}
+
+//=============================================================================
+// FloorConfig - pickRandom
+//=============================================================================
+
+uint16_t FloorConfig::pickRandom(std::mt19937& rng) const {
+	if (items.empty()) return 0;
+	if (items.size() == 1) return items.front().id;
+
+	int totalChance = 0;
+	for (const auto& item : items) totalChance += item.chance;
+	if (totalChance <= 0) return items.front().id;
+
+	std::uniform_int_distribution<int> dist(0, totalChance - 1);
+	int roll = dist(rng);
+
+	for (const auto& item : items) {
+		roll -= item.chance;
+		if (roll < 0) return item.id;
+	}
+	return items.back().id;
 }
 
 //=============================================================================
@@ -114,9 +164,21 @@ bool DungeonGenerator::isFloorTile(int x, int y, uint16_t floorId) const {
 	return getGridTile(x, y) == floorId;
 }
 
+DungeonGenerator::AreaType DungeonGenerator::getAreaType(int x, int y) const {
+	auto it = m_areaGrid.find(posHash(x, y));
+	return it != m_areaGrid.end() ? it->second : AreaType::None;
+}
+
 void DungeonGenerator::paintFloor(int x, int y, int z, uint16_t floorId,
-                                   std::vector<std::pair<Position, uint16_t>>& tileChanges) {
+                                   std::vector<std::pair<Position, uint16_t>>& tileChanges,
+                                   AreaType areaType) {
+	if (getGridTile(x, y) == floorId) return;
+	bool existingFloor = m_areaGrid.count(posHash(x, y)) > 0;
 	setGridTile(x, y, floorId);
+	// Only set area type if this is a new floor tile (don't overwrite room->corridor for patches)
+	if (!existingFloor) {
+		m_areaGrid[posHash(x, y)] = areaType;
+	}
 	m_floorPositions.push_back(Position(x, y, z));
 	tileChanges.push_back({Position(x, y, z), floorId});
 }
@@ -127,8 +189,8 @@ void DungeonGenerator::fillBackground(int startX, int startY, int width, int hei
 	if (fillId == 0) return;
 	int halfW = width / 2;
 	int halfH = height / 2;
-	for (int y = 0; y <= height; ++y) {
-		for (int x = 0; x <= width; ++x) {
+	for (int y = 0; y < height; ++y) {
+		for (int x = 0; x < width; ++x) {
 			tileChanges.push_back({Position(startX + x - halfW, startY + y - halfH, z), fillId});
 		}
 	}
@@ -140,6 +202,8 @@ void DungeonGenerator::fillBackground(int startX, int startY, int width, int hei
 
 bool DungeonGenerator::generate(const DungeonConfig& config, const DungeonPreset& preset) {
 	m_grid.clear();
+	m_areaGrid.clear();
+	m_wallPositionSet.clear();
 	m_floorPositions.clear();
 	m_wallPlacements.clear();
 	m_tilesGenerated = 0;
@@ -162,12 +226,14 @@ bool DungeonGenerator::generate(const DungeonConfig& config, const DungeonPreset
 	int startY = config.center.y;
 	int z = config.center.z;
 
+	// Seed: use provided seed or generate a random one, and save it
 	if (config.seed != 0) {
-		m_rng.seed(static_cast<unsigned int>(config.seed));
+		m_lastSeed = config.seed;
 	} else {
 		std::random_device rd;
-		m_rng.seed(rd());
+		m_lastSeed = (static_cast<uint64_t>(rd()) << 32) | rd();
 	}
+	m_rng.seed(static_cast<unsigned int>(m_lastSeed));
 
 	uint16_t floorId = preset.groundId;
 
@@ -198,24 +264,39 @@ bool DungeonGenerator::generate(const DungeonConfig& config, const DungeonPreset
 		return false;
 	}
 
+	// Step 2.5: Apply floor variations
+	if (preset.roomFloors.isValid() || preset.corridorFloors.isValid()) {
+		if (!reportProgress("Applying floor variations...", 35)) { m_lastError = "Cancelled"; return false; }
+		applyFloorVariations(z, floorId, preset, tileChanges);
+	}
+
 	// Step 3: Build walls
 	if (!reportProgress("Building walls...", 45)) { m_lastError = "Cancelled"; return false; }
 	if (preset.walls.isValid()) {
-		buildWalls(startX, startY, width, height, z, floorId, preset.walls, tileChanges);
-		if (preset.hangables.isValid()) {
-			createHangableDetails(z, preset.hangables, tileChanges);
-		}
+		buildWalls(startX, startY, width, height, z, floorId, preset.walls, preset.corridorWalls, tileChanges);
 		for (const auto& wall : m_wallPlacements) {
-			setGridTile(wall.pos.x, wall.pos.y, 0xFFFF);
+			m_wallPositionSet.insert(posHash(wall.pos.x, wall.pos.y));
 		}
 	}
 
-	// Step 4: Patches + borders
-	if (!reportProgress("Applying patches and borders...", 60)) { m_lastError = "Cancelled"; return false; }
+	// === Details phase: reseed RNG so same structure produces different details each run ===
+	{
+		std::random_device rd;
+		m_rng.seed(rd());
+	}
+
+	// Step 4: Hangable wall items
+	if (!reportProgress("Adding wall items...", 55)) { m_lastError = "Cancelled"; return false; }
+	if (preset.hangables.isValid() && !m_wallPlacements.empty()) {
+		createHangableDetails(z, preset.hangables, tileChanges);
+	}
+
+	// Step 5: Patches + borders
+	if (!reportProgress("Applying patches and borders...", 65)) { m_lastError = "Cancelled"; return false; }
 	applyPatches(z, preset, tileChanges);
 
-	// Step 5: Floor decoration
-	if (!reportProgress("Decorating floors...", 75)) { m_lastError = "Cancelled"; return false; }
+	// Step 6: Floor decoration
+	if (!reportProgress("Decorating floors...", 80)) { m_lastError = "Cancelled"; return false; }
 	decorateFloors(z, preset, tileChanges);
 
 	// Apply to map
@@ -236,7 +317,7 @@ void DungeonGenerator::carveRoom(const Room& room, int z, uint16_t floorId,
                                   std::vector<std::pair<Position, uint16_t>>& tileChanges) {
 	for (int ry = room.y; ry < room.y + room.h; ++ry) {
 		for (int rx = room.x; rx < room.x + room.w; ++rx) {
-			paintFloor(rx, ry, z, floorId, tileChanges);
+			paintFloor(rx, ry, z, floorId, tileChanges, AreaType::Room);
 		}
 	}
 }
@@ -248,22 +329,35 @@ void DungeonGenerator::carveCorridor(int x1, int y1, int x2, int y2, int z, uint
 
 	int cx = x1, cy = y1;
 
-	// Horizontal first
-	int stepX = (x2 > cx) ? 1 : -1;
-	while (cx != x2) {
-		for (int off = -half; off < pw - half; ++off) {
-			paintFloor(cx, cy + off, z, floorId, tileChanges);
-		}
-		cx += stepX;
-	}
+	// Randomly choose horizontal-first or vertical-first for variety
+	bool horizontalFirst = std::uniform_int_distribution<int>(0, 1)(m_rng) == 0;
 
-	// Then vertical
-	int stepY = (y2 > cy) ? 1 : -1;
-	while (cy != y2) {
-		for (int off = -half; off < pw - half; ++off) {
-			paintFloor(cx + off, cy, z, floorId, tileChanges);
+	if (horizontalFirst) {
+		int stepX = (x2 > cx) ? 1 : -1;
+		while (cx != x2) {
+			for (int off = -half; off < pw - half; ++off)
+				paintFloor(cx, cy + off, z, floorId, tileChanges, AreaType::Corridor);
+			cx += stepX;
 		}
-		cy += stepY;
+		int stepY = (y2 > cy) ? 1 : -1;
+		while (cy != y2) {
+			for (int off = -half; off < pw - half; ++off)
+				paintFloor(cx + off, cy, z, floorId, tileChanges, AreaType::Corridor);
+			cy += stepY;
+		}
+	} else {
+		int stepY = (y2 > cy) ? 1 : -1;
+		while (cy != y2) {
+			for (int off = -half; off < pw - half; ++off)
+				paintFloor(cx + off, cy, z, floorId, tileChanges, AreaType::Corridor);
+			cy += stepY;
+		}
+		int stepX = (x2 > cx) ? 1 : -1;
+		while (cx != x2) {
+			for (int off = -half; off < pw - half; ++off)
+				paintFloor(cx, cy + off, z, floorId, tileChanges, AreaType::Corridor);
+			cx += stepX;
+		}
 	}
 }
 
@@ -479,15 +573,13 @@ void DungeonGenerator::createBSPRooms(BSPNode* node, int startX, int startY, int
 		int rw = std::uniform_int_distribution<int>(params.minRoomSize, std::min(maxW, node->w - 2))(m_rng);
 		int rh = std::uniform_int_distribution<int>(params.minRoomSize, std::min(maxH, node->h - 2))(m_rng);
 
-		int rx = node->x + std::uniform_int_distribution<int>(params.roomPadding, std::max(params.roomPadding, node->w - rw - params.roomPadding))(m_rng);
-		int ry = node->y + std::uniform_int_distribution<int>(params.roomPadding, std::max(params.roomPadding, node->h - rh - params.roomPadding))(m_rng);
+		int padMin = params.roomPadding;
+		int rx = std::uniform_int_distribution<int>(padMin, std::max(padMin, node->w - rw - padMin))(m_rng);
+		int ry = std::uniform_int_distribution<int>(padMin, std::max(padMin, node->h - rh - padMin))(m_rng);
 
-		node->room = {startX + rx - node->w, startY + ry - node->h, rw, rh};
-		// Offset to absolute coordinates
-		int halfW = 0; // The node coords are already relative
-		node->room = {startX - (node->w + node->x) / 2 + rx, startY - (node->h + node->y) / 2 + ry, rw, rh};
-		// Simpler: just offset from start
-		node->room = {startX + rx, startY + ry, rw, rh};
+		int absX = startX + node->x + rx;
+		int absY = startY + node->y + ry;
+		node->room = {absX, absY, rw, rh};
 		node->hasRoom = true;
 
 		carveRoom(node->room, z, floorId, tileChanges);
@@ -498,19 +590,25 @@ void DungeonGenerator::createBSPRooms(BSPNode* node, int startX, int startY, int
 	createBSPRooms(node->right.get(), startX, startY, z, floorId, params, tileChanges);
 }
 
-DungeonGenerator::Room DungeonGenerator::getBSPRoomCenter(BSPNode* node) {
+DungeonGenerator::Room DungeonGenerator::getBSPRoomCenter(BSPNode* node, int targetX, int targetY) {
 	if (!node) return {0, 0, 1, 1};
 	if (node->hasRoom) return node->room;
 
 	if (node->left && node->right) {
-		// Prefer left, then right
-		Room lr = getBSPRoomCenter(node->left.get());
-		if (lr.w > 0) return lr;
-		return getBSPRoomCenter(node->right.get());
+		Room lr = getBSPRoomCenter(node->left.get(), targetX, targetY);
+		Room rr = getBSPRoomCenter(node->right.get(), targetX, targetY);
+		if (lr.w <= 0) return rr;
+		if (rr.w <= 0) return lr;
+		// Pick the room closest to the target point
+		int dlx = lr.centerX() - targetX, dly = lr.centerY() - targetY;
+		int drx = rr.centerX() - targetX, dry = rr.centerY() - targetY;
+		int distL = dlx * dlx + dly * dly;
+		int distR = drx * drx + dry * dry;
+		return (distL <= distR) ? lr : rr;
 	}
 
-	if (node->left) return getBSPRoomCenter(node->left.get());
-	if (node->right) return getBSPRoomCenter(node->right.get());
+	if (node->left) return getBSPRoomCenter(node->left.get(), targetX, targetY);
+	if (node->right) return getBSPRoomCenter(node->right.get(), targetX, targetY);
 
 	return {0, 0, 1, 1};
 }
@@ -522,8 +620,13 @@ void DungeonGenerator::connectBSPRooms(BSPNode* node, int startX, int startY, in
 	connectBSPRooms(node->left.get(), startX, startY, z, floorId, corridorWidth, tileChanges);
 	connectBSPRooms(node->right.get(), startX, startY, z, floorId, corridorWidth, tileChanges);
 
-	Room leftRoom = getBSPRoomCenter(node->left.get());
-	Room rightRoom = getBSPRoomCenter(node->right.get());
+	// Find the rooms closest to the sibling partition for better corridor placement
+	int rightCenterX = node->right->x + node->right->w / 2 + startX;
+	int rightCenterY = node->right->y + node->right->h / 2 + startY;
+	int leftCenterX = node->left->x + node->left->w / 2 + startX;
+	int leftCenterY = node->left->y + node->left->h / 2 + startY;
+	Room leftRoom = getBSPRoomCenter(node->left.get(), rightCenterX, rightCenterY);
+	Room rightRoom = getBSPRoomCenter(node->right.get(), leftCenterX, leftCenterY);
 
 	carveCorridor(leftRoom.centerX(), leftRoom.centerY(),
 	              rightRoom.centerX(), rightRoom.centerY(),
@@ -609,7 +712,7 @@ void DungeonGenerator::generateRandomWalk(int startX, int startY, int width, int
 			walker.y = ny;
 
 			if (getGridTile(nx, ny) != floorId) {
-				paintFloor(nx, ny, z, floorId, tileChanges);
+				paintFloor(nx, ny, z, floorId, tileChanges, AreaType::Corridor);
 				++floorCount;
 			}
 
@@ -626,7 +729,7 @@ void DungeonGenerator::generateRandomWalk(int startX, int startY, int width, int
 						int py = ry + dy;
 						if (px > minX && px < maxX && py > minY && py < maxY) {
 							if (getGridTile(px, py) != floorId) {
-								paintFloor(px, py, z, floorId, tileChanges);
+								paintFloor(px, py, z, floorId, tileChanges, AreaType::Room);
 								++floorCount;
 							}
 						}
@@ -637,6 +740,80 @@ void DungeonGenerator::generateRandomWalk(int startX, int startY, int width, int
 			++totalSteps;
 		}
 	}
+
+	// Post-process: ensure connectivity via flood fill
+	// Find all connected components and connect them with corridors
+	std::unordered_set<uint64_t> unvisited;
+	for (const auto& pos : m_floorPositions) {
+		unvisited.insert(posHash(pos.x, pos.y));
+	}
+
+	std::vector<Position> componentSeeds;
+	while (!unvisited.empty()) {
+		// BFS to find one connected component
+		uint64_t seedHash = *unvisited.begin();
+		// Find the Position for this seed
+		Position seedPos(0, 0, z);
+		for (const auto& pos : m_floorPositions) {
+			if (posHash(pos.x, pos.y) == seedHash) { seedPos = pos; break; }
+		}
+		componentSeeds.push_back(seedPos);
+
+		std::queue<Position> bfsQueue;
+		bfsQueue.push(seedPos);
+		unvisited.erase(seedHash);
+
+		while (!bfsQueue.empty()) {
+			Position cur = bfsQueue.front();
+			bfsQueue.pop();
+			static const int dxs[] = {0, 0, 1, -1};
+			static const int dys[] = {-1, 1, 0, 0};
+			for (int d = 0; d < 4; ++d) {
+				int nx2 = cur.x + dxs[d], ny2 = cur.y + dys[d];
+				uint64_t nh = posHash(nx2, ny2);
+				if (unvisited.count(nh)) {
+					unvisited.erase(nh);
+					bfsQueue.push(Position(nx2, ny2, z));
+				}
+			}
+		}
+	}
+
+	// Connect each component to the first one
+	if (componentSeeds.size() > 1) {
+		for (size_t i = 1; i < componentSeeds.size(); ++i) {
+			carveCorridor(componentSeeds[0].x, componentSeeds[0].y,
+			              componentSeeds[i].x, componentSeeds[i].y,
+			              z, floorId, 2, tileChanges);
+		}
+	}
+}
+
+//=============================================================================
+// Post-processing: Floor Variations
+//=============================================================================
+
+void DungeonGenerator::applyFloorVariations(int z, uint16_t baseFloorId, const DungeonPreset& preset,
+                                             std::vector<std::pair<Position, uint16_t>>& tileChanges) {
+	bool hasRoomFloors = preset.roomFloors.isValid();
+	bool hasCorridorFloors = preset.corridorFloors.isValid();
+
+	for (const auto& pos : m_floorPositions) {
+		if (getGridTile(pos.x, pos.y) != baseFloorId) continue;
+
+		AreaType area = getAreaType(pos.x, pos.y);
+		uint16_t newFloorId = 0;
+
+		if (area == AreaType::Corridor && hasCorridorFloors) {
+			newFloorId = preset.corridorFloors.pickRandom(m_rng);
+		} else if (hasRoomFloors) {
+			newFloorId = preset.roomFloors.pickRandom(m_rng);
+		}
+
+		if (newFloorId > 0 && newFloorId != baseFloorId) {
+			tileChanges.push_back({Position(pos.x, pos.y, z), newFloorId});
+		}
+	}
 }
 
 //=============================================================================
@@ -644,15 +821,17 @@ void DungeonGenerator::generateRandomWalk(int startX, int startY, int width, int
 //=============================================================================
 
 void DungeonGenerator::buildWalls(int startX, int startY, int width, int height, int z,
-                                   uint16_t floorId, const WallConfig& wallConfig,
+                                   uint16_t floorId, const WallConfig& roomWalls, const WallConfig& corridorWalls,
                                    std::vector<std::pair<Position, uint16_t>>& tileChanges) {
 	int halfW = width / 2;
 	int halfH = height / 2;
 
-	uint16_t idHorz = wallConfig.north;
-	uint16_t idVert = wallConfig.west;
-	uint16_t idPillar = wallConfig.pillar;
-	uint16_t idCorner = wallConfig.nw;
+	// Helper: resolve fallbacks and pick a random variant for a direction
+	auto pickWall = [&](const WallConfig& cfg, const std::vector<WallItem>& primary,
+	                    const std::vector<WallItem>& fallback) -> uint16_t {
+		const auto& items = primary.empty() ? fallback : primary;
+		return cfg.pickRandom(items, m_rng);
+	};
 
 	auto place = [&](int x, int y, uint16_t id, WallPlacement::Type type) {
 		if (id == 0) return;
@@ -660,8 +839,10 @@ void DungeonGenerator::buildWalls(int startX, int startY, int width, int height,
 		m_wallPlacements.push_back({Position(x, y, z), type, id});
 	};
 
-	for (int y = 0; y <= height; ++y) {
-		for (int x = 0; x <= width; ++x) {
+	bool hasCorridorWalls = corridorWalls.isValid();
+
+	for (int y = -1; y <= height; ++y) {
+		for (int x = -1; x <= width; ++x) {
 			int absX = startX + x - halfW;
 			int absY = startY + y - halfH;
 			uint16_t itemId = getGridTile(absX, absY);
@@ -672,42 +853,52 @@ void DungeonGenerator::buildWalls(int startX, int startY, int width, int height,
 
 			if (itemId != floorId) continue;
 
+			// Choose wall config based on area type
+			AreaType area = getAreaType(absX, absY);
+			const WallConfig& walls = (hasCorridorWalls && area == AreaType::Corridor) ? corridorWalls : roomWalls;
+
+			// South edge: floor tile with empty below
 			if (check(0, 1) == 0) {
 				if (check(1, 0) == 0) {
-					place(absX, absY, idCorner, WallPlacement::Corner);
+					place(absX, absY, pickWall(walls, walls.se, walls.nw), WallPlacement::Corner);
 				} else {
-					place(absX, absY, idHorz, WallPlacement::Horizontal);
+					place(absX, absY, pickWall(walls, walls.south, walls.north), WallPlacement::Horizontal);
 				}
 			} else if (check(0, 1) == floorId) {
 				if (check(1, 0) == floorId && check(0, -1) == floorId && check(-1, 0) == floorId) {
 					if (check(-1, 1) == 0 && check(1, -1) == 0) {
-						place(absX, absY, idCorner, WallPlacement::Corner);
+						place(absX, absY, pickWall(walls, walls.nw, {}), WallPlacement::Corner);
 					}
 				}
 			}
 
+			// East edge: floor tile with empty to the right
 			if (check(1, 0) == 0 && check(0, 1) != 0) {
-				place(absX, absY, idVert, WallPlacement::Vertical);
+				place(absX, absY, pickWall(walls, walls.east, walls.west), WallPlacement::Vertical);
 			}
 
+			// North edge: floor tile with empty above — place wall above
 			if (check(0, -1) == 0) {
 				if (check(1, -1) == floorId) {
-					place(absX, absY - 1, idCorner, WallPlacement::Corner);
+					place(absX, absY - 1, pickWall(walls, walls.sw, walls.nw), WallPlacement::Corner);
 				} else {
-					place(absX, absY - 1, idHorz, WallPlacement::Horizontal);
+					place(absX, absY - 1, pickWall(walls, walls.north, {}), WallPlacement::Horizontal);
 				}
 			}
 
+			// West edge: floor tile with empty to the left — place wall to the left
 			if (check(-1, 0) == 0 && check(-1, 1) != floorId) {
-				place(absX - 1, absY, idVert, WallPlacement::Vertical);
+				place(absX - 1, absY, pickWall(walls, walls.west, {}), WallPlacement::Vertical);
 			}
 
+			// Inner corner pillar: floor extends right and down but diagonal is empty
 			if (check(1, 1) == 0 && check(1, 0) == floorId && check(0, 1) == floorId) {
-				place(absX, absY, idPillar, WallPlacement::Pillar);
+				place(absX, absY, pickWall(walls, walls.pillar, {}), WallPlacement::Pillar);
 			}
 
+			// Outer corner pillar: all three neighbors (left, up, diagonal) are empty
 			if (check(-1, -1) == 0 && check(-1, 0) == 0 && check(0, -1) == 0) {
-				place(absX - 1, absY - 1, idPillar, WallPlacement::Pillar);
+				place(absX - 1, absY - 1, pickWall(walls, walls.pillar, {}), WallPlacement::Pillar);
 			}
 		}
 	}
@@ -746,8 +937,13 @@ void DungeonGenerator::applyPatches(int z, const DungeonPreset& preset,
                                      std::vector<std::pair<Position, uint16_t>>& tileChanges) {
 	if (preset.patchId == 0) return;
 
+	static constexpr int PATCH_CHANCE_PERCENT = 1;
+	static constexpr int PATCH_RADIUS_MIN = 1;
+	static constexpr int PATCH_RADIUS_MAX = 4;
+	static constexpr float BRUSH_ON_PATCH_CHANCE = 0.15f;
+
 	std::uniform_int_distribution<int> patchChance(0, 99);
-	std::uniform_int_distribution<int> radiusDist(1, 4);
+	std::uniform_int_distribution<int> radiusDist(PATCH_RADIUS_MIN, PATCH_RADIUS_MAX);
 	std::uniform_real_distribution<float> brushChance(0.0f, 1.0f);
 
 	uint16_t floorId = preset.groundId;
@@ -756,9 +952,10 @@ void DungeonGenerator::applyPatches(int z, const DungeonPreset& preset,
 	std::vector<Position> patchPositions;
 	std::vector<Position> brushPositions;
 
-	auto floors = m_floorPositions;
-	for (const auto& pos : floors) {
-		if (patchChance(m_rng) >= 1) continue;
+	size_t originalFloorCount = m_floorPositions.size();
+	for (size_t fi = 0; fi < originalFloorCount; ++fi) {
+		const auto& pos = m_floorPositions[fi];
+		if (patchChance(m_rng) >= PATCH_CHANCE_PERCENT) continue;
 		int cx = pos.x, cy = pos.y;
 		int radius = radiusDist(m_rng);
 
@@ -776,7 +973,7 @@ void DungeonGenerator::applyPatches(int z, const DungeonPreset& preset,
 
 	if (preset.brushId > 0 && !patchPositions.empty()) {
 		for (const auto& pos : patchPositions) {
-			if (brushChance(m_rng) < 0.15f) {
+			if (brushChance(m_rng) < BRUSH_ON_PATCH_CHANCE) {
 				if (getGridTile(pos.x, pos.y) == patchId) {
 					paintFloor(pos.x, pos.y, z, preset.brushId, tileChanges);
 					brushPositions.push_back(pos);
@@ -890,9 +1087,17 @@ void DungeonGenerator::decorateFloors(int z, const DungeonPreset& preset,
 
 	for (const auto& pos : m_floorPositions) {
 		if (getGridTile(pos.x, pos.y) != floorId) continue;
+		if (m_wallPositionSet.count(posHash(pos.x, pos.y))) continue;
+
+		AreaType area = getAreaType(pos.x, pos.y);
 
 		for (const auto& group : preset.details) {
 			if (group.itemIds.empty() || group.chance <= 0.0f) continue;
+
+			// Area filter
+			if (group.placement == DetailGroup::RoomOnly && area != AreaType::Room) continue;
+			if (group.placement == DetailGroup::CorridorOnly && area != AreaType::Corridor) continue;
+
 			if (chanceDist(m_rng) >= group.chance) continue;
 			if (!isPlacementValid(group.placement, pos.x, pos.y, floorId)) continue;
 
@@ -919,9 +1124,7 @@ bool DungeonGenerator::applyChanges(const std::vector<std::pair<Position, uint16
 
 	std::unordered_map<uint64_t, std::vector<const std::pair<Position, uint16_t>*>> changesByPos;
 	for (const auto& change : tileChanges) {
-		uint64_t hash = (static_cast<uint64_t>(change.first.x & 0xFFFF) << 32) |
-		                (static_cast<uint64_t>(change.first.y & 0xFFFF) << 16) |
-		                static_cast<uint64_t>(change.first.z & 0xFFFF);
+		uint64_t hash = posHash(change.first.x, change.first.y) ^ (static_cast<uint64_t>(change.first.z) << 48);
 		changesByPos[hash].push_back(&change);
 	}
 
@@ -939,7 +1142,11 @@ bool DungeonGenerator::applyChanges(const std::vector<std::pair<Position, uint16
 		for (const auto* change : changes) {
 			auto item = Item::Create(change->second);
 			if (item) {
-				newTile->addItem(std::move(item));
+				if (item->isGroundTile()) {
+					newTile->ground = std::move(item);
+				} else {
+					newTile->addItem(std::move(item));
+				}
 			}
 		}
 

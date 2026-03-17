@@ -46,6 +46,8 @@ enum {
 	ID_DUPLICATE_PRESET_BTN,
 	ID_DELETE_PRESET_BTN,
 	ID_REROLL_BTN,
+	ID_REROLL_STRUCTURE_BTN,
+	ID_REROLL_DETAILS_BTN,
 	ID_SELECT_FROM_MAP,
 	ID_USE_SELECTION,
 };
@@ -54,7 +56,7 @@ wxBitmap CreateItemBitmap(uint16_t itemId, int size) {
 	wxBitmap bmp(size, size, 32);
 	wxMemoryDC dc(bmp);
 
-	dc.SetBackground(wxBrush(wxColour(0x0C, 0x14, 0x2A)));
+	dc.SetBackground(wxBrush(Theme::Get(Theme::Role::Background)));
 	dc.Clear();
 
 	const auto itemDef = g_item_definitions.get(itemId);
@@ -66,10 +68,10 @@ wxBitmap CreateItemBitmap(uint16_t itemId, int size) {
 	if (spr) {
 		spr->DrawTo(&dc, SPRITE_SIZE_32x32, 0, 0, size, size);
 	} else {
-		dc.SetBrush(wxBrush(wxColour(100, 100, 100)));
+		dc.SetBrush(wxBrush(Theme::Get(Theme::Role::Border)));
 		dc.SetPen(*wxTRANSPARENT_PEN);
 		dc.DrawRectangle(2, 2, size - 4, size - 4);
-		dc.SetTextForeground(*wxWHITE);
+		dc.SetTextForeground(Theme::Get(Theme::Role::Text));
 		dc.DrawText("?", size / 2 - 4, size / 2 - 8);
 	}
 
@@ -84,6 +86,8 @@ wxBEGIN_EVENT_TABLE(DungeonGeneratorDialog, wxDialog)
 	EVT_CHOICE(ID_ALGORITHM_CHOICE, DungeonGeneratorDialog::OnAlgorithmChanged)
 	EVT_BUTTON(ID_GENERATE_BTN, DungeonGeneratorDialog::OnGenerate)
 	EVT_BUTTON(ID_REROLL_BTN, DungeonGeneratorDialog::OnReroll)
+	EVT_BUTTON(ID_REROLL_STRUCTURE_BTN, DungeonGeneratorDialog::OnRerollStructure)
+	EVT_BUTTON(ID_REROLL_DETAILS_BTN, DungeonGeneratorDialog::OnRerollDetails)
 	EVT_BUTTON(ID_SELECT_FROM_MAP, DungeonGeneratorDialog::OnSelectFromMap)
 	EVT_BUTTON(ID_USE_SELECTION, DungeonGeneratorDialog::OnUseSelection)
 	EVT_BUTTON(ID_NEW_PRESET_BTN, DungeonGeneratorDialog::OnNewPreset)
@@ -94,7 +98,7 @@ wxBEGIN_EVENT_TABLE(DungeonGeneratorDialog, wxDialog)
 wxEND_EVENT_TABLE()
 
 DungeonGeneratorDialog::DungeonGeneratorDialog(wxWindow* parent)
-	: wxDialog(parent, wxID_ANY, "Dungeon Generator", wxDefaultPosition, wxSize(520, 700),
+	: wxDialog(parent, wxID_ANY, "Dungeon Generator", wxDefaultPosition, wxSize(620, 750),
 	           wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 	, m_imageList(nullptr)
 	, m_hasSelection(false)
@@ -158,10 +162,10 @@ void DungeonGeneratorDialog::UpdateSelectionInfo() {
 			"Selection: %dx%d at (%d, %d, %d)",
 			m_config.width, m_config.height,
 			m_config.center.x, m_config.center.y, m_config.center.z));
-		m_selectionLabel->SetForegroundColour(wxColour(100, 200, 100));
+		m_selectionLabel->SetForegroundColour(Theme::Get(Theme::Role::Success));
 	} else {
 		m_selectionLabel->SetLabel("No selection - please select an area on the map first");
-		m_selectionLabel->SetForegroundColour(wxColour(200, 100, 100));
+		m_selectionLabel->SetForegroundColour(Theme::Get(Theme::Role::Error));
 	}
 }
 
@@ -313,27 +317,47 @@ void DungeonGeneratorDialog::CreateControls() {
 	wxNotebook* notebook = new wxNotebook(this, wxID_ANY);
 
 	// Structure tab
-	wxPanel* structPanel = new wxPanel(notebook);
+	wxScrolledWindow* structPanel = new wxScrolledWindow(notebook, wxID_ANY);
+	structPanel->SetScrollRate(0, 10);
 	wxBoxSizer* structSizer = new wxBoxSizer(wxVERTICAL);
 
 	m_imageList = new wxImageList(ITEM_ICON_SIZE, ITEM_ICON_SIZE, true);
 
-	structSizer->Add(new wxStaticText(structPanel, wxID_ANY, "Terrain"), 0, wxALL, 3);
-	m_terrainList = new wxListCtrl(structPanel, wxID_ANY, wxDefaultPosition, wxSize(-1, 50),
-	                                wxLC_ICON | wxLC_SINGLE_SEL);
-	m_terrainList->SetImageList(m_imageList, wxIMAGE_LIST_NORMAL);
+	auto makeIconList = [&](wxWindow* parent, int height = 50) -> wxListCtrl* {
+		wxListCtrl* list = new wxListCtrl(parent, wxID_ANY, wxDefaultPosition, wxSize(-1, height),
+		                                   wxLC_ICON | wxLC_SINGLE_SEL);
+		list->SetImageList(m_imageList, wxIMAGE_LIST_NORMAL);
+		return list;
+	};
+
+	// Terrain
+	structSizer->Add(new wxStaticText(structPanel, wxID_ANY, "Base Terrain"), 0, wxLEFT | wxTOP, 5);
+	m_terrainList = makeIconList(structPanel);
 	structSizer->Add(m_terrainList, 0, wxALL | wxEXPAND, 3);
 
-	structSizer->Add(new wxStaticText(structPanel, wxID_ANY, "Walls & Pillars"), 0, wxALL, 3);
-	m_wallsList = new wxListCtrl(structPanel, wxID_ANY, wxDefaultPosition, wxSize(-1, 50),
-	                              wxLC_ICON | wxLC_SINGLE_SEL);
-	m_wallsList->SetImageList(m_imageList, wxIMAGE_LIST_NORMAL);
-	structSizer->Add(m_wallsList, 0, wxALL | wxEXPAND, 3);
+	// Room Floors
+	structSizer->Add(new wxStaticText(structPanel, wxID_ANY, "Room Floors"), 0, wxLEFT | wxTOP, 5);
+	m_roomFloorsList = makeIconList(structPanel);
+	structSizer->Add(m_roomFloorsList, 0, wxALL | wxEXPAND, 3);
 
-	structSizer->Add(new wxStaticText(structPanel, wxID_ANY, "Borders"), 0, wxALL, 3);
-	m_bordersList = new wxListCtrl(structPanel, wxID_ANY, wxDefaultPosition, wxSize(-1, 50),
-	                                wxLC_ICON | wxLC_SINGLE_SEL);
-	m_bordersList->SetImageList(m_imageList, wxIMAGE_LIST_NORMAL);
+	// Corridor Floors
+	structSizer->Add(new wxStaticText(structPanel, wxID_ANY, "Corridor Floors"), 0, wxLEFT | wxTOP, 5);
+	m_corridorFloorsList = makeIconList(structPanel);
+	structSizer->Add(m_corridorFloorsList, 0, wxALL | wxEXPAND, 3);
+
+	// Room Walls
+	structSizer->Add(new wxStaticText(structPanel, wxID_ANY, "Room Walls"), 0, wxLEFT | wxTOP, 5);
+	m_roomWallsList = makeIconList(structPanel);
+	structSizer->Add(m_roomWallsList, 0, wxALL | wxEXPAND, 3);
+
+	// Corridor Walls
+	structSizer->Add(new wxStaticText(structPanel, wxID_ANY, "Corridor Walls"), 0, wxLEFT | wxTOP, 5);
+	m_corridorWallsList = makeIconList(structPanel);
+	structSizer->Add(m_corridorWallsList, 0, wxALL | wxEXPAND, 3);
+
+	// Borders
+	structSizer->Add(new wxStaticText(structPanel, wxID_ANY, "Borders"), 0, wxLEFT | wxTOP, 5);
+	m_bordersList = makeIconList(structPanel);
 	structSizer->Add(m_bordersList, 0, wxALL | wxEXPAND, 3);
 
 	structPanel->SetSizer(structSizer);
@@ -361,15 +385,26 @@ void DungeonGeneratorDialog::CreateControls() {
 	mainSizer->Add(notebook, 1, wxALL | wxEXPAND, 5);
 
 	// Action buttons
-	wxBoxSizer* actionRow = new wxBoxSizer(wxHORIZONTAL);
+	wxBoxSizer* actionRow1 = new wxBoxSizer(wxHORIZONTAL);
 	wxButton* generateBtn = new wxButton(this, ID_GENERATE_BTN, "Generate Dungeon",
 	                                      wxDefaultPosition, wxSize(-1, 35));
-	wxButton* rerollBtn = new wxButton(this, ID_REROLL_BTN, "Reroll (Undo + Regenerate)",
+	wxButton* rerollBtn = new wxButton(this, ID_REROLL_BTN, "Reroll All",
 	                                    wxDefaultPosition, wxSize(-1, 35));
-	rerollBtn->SetToolTip("Undo the last generation and regenerate with a new random seed");
-	actionRow->Add(generateBtn, 1, wxRIGHT, 3);
-	actionRow->Add(rerollBtn, 1);
-	mainSizer->Add(actionRow, 0, wxALL | wxEXPAND, 5);
+	rerollBtn->SetToolTip("Undo the last generation and regenerate everything with a new random seed");
+	actionRow1->Add(generateBtn, 1, wxRIGHT, 3);
+	actionRow1->Add(rerollBtn, 1);
+	mainSizer->Add(actionRow1, 0, wxLEFT | wxRIGHT | wxTOP | wxEXPAND, 5);
+
+	wxBoxSizer* actionRow2 = new wxBoxSizer(wxHORIZONTAL);
+	wxButton* rerollStructBtn = new wxButton(this, ID_REROLL_STRUCTURE_BTN, "Reroll Structure",
+	                                          wxDefaultPosition, wxSize(-1, 30));
+	rerollStructBtn->SetToolTip("Undo and regenerate only the layout, floors and walls (keeps no details)");
+	wxButton* rerollDetailBtn = new wxButton(this, ID_REROLL_DETAILS_BTN, "Reroll Details",
+	                                          wxDefaultPosition, wxSize(-1, 30));
+	rerollDetailBtn->SetToolTip("Undo and regenerate only patches, decorations and wall items (same structure)");
+	actionRow2->Add(rerollStructBtn, 1, wxRIGHT, 3);
+	actionRow2->Add(rerollDetailBtn, 1);
+	mainSizer->Add(actionRow2, 0, wxALL | wxEXPAND, 5);
 
 	SetSizer(mainSizer);
 }
@@ -394,7 +429,10 @@ void DungeonGeneratorDialog::PopulatePresetList() {
 
 void DungeonGeneratorDialog::UpdatePreview() {
 	m_terrainList->ClearAll();
-	m_wallsList->ClearAll();
+	m_roomFloorsList->ClearAll();
+	m_corridorFloorsList->ClearAll();
+	m_roomWallsList->ClearAll();
+	m_corridorWallsList->ClearAll();
 	m_bordersList->ClearAll();
 	m_detailsList->ClearAll();
 	m_hangablesList->ClearAll();
@@ -411,23 +449,55 @@ void DungeonGeneratorDialog::UpdatePreview() {
 		list->InsertItem(list->GetItemCount(), label, imgIdx++);
 	};
 
-	// Terrain
+	auto addWallItems = [&](wxListCtrl* list, const std::vector<DungeonGen::WallItem>& items, const wxString& label) {
+		if (items.empty()) return;
+		addItem(list, items.front().id, label);
+		for (size_t i = 1; i < items.size(); ++i) {
+			addItem(list, items[i].id, label + wxString::Format("+%zu", i));
+		}
+	};
+
+	// Base Terrain
 	addItem(m_terrainList, preset->groundId, "Ground");
 	addItem(m_terrainList, preset->patchId, "Patch");
 	addItem(m_terrainList, preset->fillId, "Fill");
 	addItem(m_terrainList, preset->brushId, "Brush");
 
-	// Walls
+	// Room Floors
+	for (size_t i = 0; i < preset->roomFloors.items.size(); ++i) {
+		addItem(m_roomFloorsList, preset->roomFloors.items[i].id, wxString::Format("%d", preset->roomFloors.items[i].id));
+	}
+
+	// Corridor Floors
+	for (size_t i = 0; i < preset->corridorFloors.items.size(); ++i) {
+		addItem(m_corridorFloorsList, preset->corridorFloors.items[i].id, wxString::Format("%d", preset->corridorFloors.items[i].id));
+	}
+
+	// Room Walls
 	const auto& w = preset->walls;
-	addItem(m_wallsList, w.north, "N");
-	if (w.south != w.north) addItem(m_wallsList, w.south, "S");
-	if (w.east != w.north) addItem(m_wallsList, w.east, "E");
-	if (w.west != w.north) addItem(m_wallsList, w.west, "W");
-	addItem(m_wallsList, w.pillar, "Pillar");
-	addItem(m_wallsList, w.nw, "NW");
-	if (w.ne != w.nw) addItem(m_wallsList, w.ne, "NE");
-	if (w.sw != w.nw) addItem(m_wallsList, w.sw, "SW");
-	if (w.se != w.nw) addItem(m_wallsList, w.se, "SE");
+	addWallItems(m_roomWallsList, w.north, "N");
+	addWallItems(m_roomWallsList, w.south, "S");
+	addWallItems(m_roomWallsList, w.east, "E");
+	addWallItems(m_roomWallsList, w.west, "W");
+	addWallItems(m_roomWallsList, w.pillar, "Pillar");
+	addWallItems(m_roomWallsList, w.nw, "NW");
+	addWallItems(m_roomWallsList, w.ne, "NE");
+	addWallItems(m_roomWallsList, w.sw, "SW");
+	addWallItems(m_roomWallsList, w.se, "SE");
+
+	// Corridor Walls
+	const auto& cw = preset->corridorWalls;
+	if (cw.isValid()) {
+		addWallItems(m_corridorWallsList, cw.north, "N");
+		addWallItems(m_corridorWallsList, cw.south, "S");
+		addWallItems(m_corridorWallsList, cw.east, "E");
+		addWallItems(m_corridorWallsList, cw.west, "W");
+		addWallItems(m_corridorWallsList, cw.pillar, "Pillar");
+		addWallItems(m_corridorWallsList, cw.nw, "NW");
+		addWallItems(m_corridorWallsList, cw.ne, "NE");
+		addWallItems(m_corridorWallsList, cw.sw, "SW");
+		addWallItems(m_corridorWallsList, cw.se, "SE");
+	}
 
 	// Borders
 	const auto& b = preset->borders;
@@ -535,7 +605,7 @@ void DungeonGeneratorDialog::OnDeletePreset(wxCommandEvent& event) {
 
 void DungeonGeneratorDialog::OnSelectFromMap(wxCommandEvent& event) {
 	if (m_pickStatusText) {
-		m_pickStatusText->SetForegroundColour(wxColour(0, 100, 200));
+		m_pickStatusText->SetForegroundColour(Theme::Get(Theme::Role::Accent));
 		m_pickStatusText->SetLabel("Waiting for first corner click...");
 	}
 
@@ -555,7 +625,7 @@ void DungeonGeneratorDialog::OnSelectFromMap(wxCommandEvent& event) {
 			m_hasSelection = true;
 
 			if (m_pickStatusText) {
-				m_pickStatusText->SetForegroundColour(wxColour(0, 128, 0));
+				m_pickStatusText->SetForegroundColour(Theme::Get(Theme::Role::Success));
 				m_pickStatusText->SetLabel(wxString::Format("Selection complete: (%d,%d,Z%d) to (%d,%d,Z%d)",
 					first.x, first.y, first.z, second.x, second.y, second.z));
 			}
@@ -565,14 +635,14 @@ void DungeonGeneratorDialog::OnSelectFromMap(wxCommandEvent& event) {
 		// On cancel
 		[this]() {
 			if (m_pickStatusText) {
-				m_pickStatusText->SetForegroundColour(wxColour(180, 0, 0));
+				m_pickStatusText->SetForegroundColour(Theme::Get(Theme::Role::Error));
 				m_pickStatusText->SetLabel("Selection cancelled");
 			}
 		},
 		// On first click
 		[this](const Position& first) {
 			if (m_pickStatusText) {
-				m_pickStatusText->SetForegroundColour(wxColour(200, 130, 0));
+				m_pickStatusText->SetForegroundColour(Theme::Get(Theme::Role::Warning));
 				m_pickStatusText->SetLabel(wxString::Format("First corner: (%d, %d, Z%d) - Click second corner...",
 					first.x, first.y, first.z));
 			}
@@ -583,13 +653,13 @@ void DungeonGeneratorDialog::OnSelectFromMap(wxCommandEvent& event) {
 void DungeonGeneratorDialog::OnUseSelection(wxCommandEvent& event) {
 	if (ReadSelectionBounds()) {
 		if (m_pickStatusText) {
-			m_pickStatusText->SetForegroundColour(wxColour(0, 128, 0));
+			m_pickStatusText->SetForegroundColour(Theme::Get(Theme::Role::Success));
 			m_pickStatusText->SetLabel("Using current editor selection");
 		}
 		UpdateSelectionInfo();
 	} else {
 		if (m_pickStatusText) {
-			m_pickStatusText->SetForegroundColour(wxColour(180, 0, 0));
+			m_pickStatusText->SetForegroundColour(Theme::Get(Theme::Role::Error));
 			m_pickStatusText->SetLabel("No tiles selected in the editor");
 		}
 		UpdateSelectionInfo();
@@ -611,13 +681,64 @@ void DungeonGeneratorDialog::ShowAlgorithmParams() {
 }
 
 void DungeonGeneratorDialog::OnGenerate(wxCommandEvent& event) {
+	DoGenerate();
+}
+
+void DungeonGeneratorDialog::OnReroll(wxCommandEvent& event) {
+	Editor* editor = g_gui.GetCurrentEditor();
+	if (!editor) return;
+
+	if (m_lastGenerateSuccess) {
+		editor->actionQueue->undo();
+		g_gui.RefreshView();
+		m_lastGenerateSuccess = false;
+	}
+
+	DoGenerate();
+}
+
+void DungeonGeneratorDialog::OnRerollStructure(wxCommandEvent& event) {
+	Editor* editor = g_gui.GetCurrentEditor();
+	if (!editor) return;
+
+	if (m_lastGenerateSuccess) {
+		editor->actionQueue->undo();
+		g_gui.RefreshView();
+		m_lastGenerateSuccess = false;
+	}
+
+	DoGenerate();
+}
+
+void DungeonGeneratorDialog::OnRerollDetails(wxCommandEvent& event) {
+	Editor* editor = g_gui.GetCurrentEditor();
+	if (!editor) return;
+
+	if (m_lastStructureSeed == 0) {
+		wxMessageBox("Generate a dungeon first before rerolling details.",
+		             "No Structure", wxICON_WARNING | wxOK, this);
+		return;
+	}
+
+	if (m_lastGenerateSuccess) {
+		editor->actionQueue->undo();
+		g_gui.RefreshView();
+		m_lastGenerateSuccess = false;
+	}
+
+	// Regenerate with same structure seed — layout will be identical,
+	// but details (patches, decorations, hangables) will vary because
+	// they come after the structure phase which consumes a fixed amount of RNG
+	DoGenerate(true);
+}
+
+void DungeonGeneratorDialog::DoGenerate(bool rerollDetailsOnly) {
 	Editor* editor = g_gui.GetCurrentEditor();
 	if (!editor) {
 		wxMessageBox("No map open!", "Error", wxICON_ERROR | wxOK, this);
 		return;
 	}
 
-	// Re-read selection bounds
 	UpdateSelectionInfo();
 	if (!m_hasSelection) {
 		wxMessageBox("Please select an area on the map first.\n\nUse the selection tool to mark where the dungeon should be generated.",
@@ -654,7 +775,23 @@ void DungeonGeneratorDialog::OnGenerate(wxCommandEvent& event) {
 	m_config.randomWalk.minRoomSize = m_rwMinRoomSize->GetValue();
 	m_config.randomWalk.maxRoomSize = m_rwMaxRoomSize->GetValue();
 
-	m_config.seed = 0; // New random seed
+	// Validate min/max room sizes
+	if (m_config.algorithm == DungeonGen::Algorithm::RoomPlacement) {
+		if (m_config.roomPlacement.minRoomSize > m_config.roomPlacement.maxRoomSize) {
+			std::swap(m_config.roomPlacement.minRoomSize, m_config.roomPlacement.maxRoomSize);
+		}
+	} else if (m_config.algorithm == DungeonGen::Algorithm::RandomWalk) {
+		if (m_config.randomWalk.minRoomSize > m_config.randomWalk.maxRoomSize) {
+			std::swap(m_config.randomWalk.minRoomSize, m_config.randomWalk.maxRoomSize);
+		}
+	}
+
+	// Seed: for reroll details, reuse the structure seed so layout is identical
+	if (rerollDetailsOnly && m_lastStructureSeed != 0) {
+		m_config.seed = m_lastStructureSeed;
+	} else {
+		m_config.seed = 0; // New random seed
+	}
 
 	auto& presetMgr = DungeonGen::PresetManager::getInstance();
 	const DungeonGen::DungeonPreset* preset = presetMgr.getPreset(m_config.presetName);
@@ -662,6 +799,8 @@ void DungeonGeneratorDialog::OnGenerate(wxCommandEvent& event) {
 		wxMessageBox("Preset not found: " + m_config.presetName, "Error", wxICON_ERROR | wxOK, this);
 		return;
 	}
+
+	DungeonGen::DungeonGenerator generator(editor);
 
 	// Show progress dialog for large areas
 	int area = m_config.width * m_config.height;
@@ -676,14 +815,22 @@ void DungeonGeneratorDialog::OnGenerate(wxCommandEvent& event) {
 		progressDlg->Show();
 	}
 
-	DungeonGen::DungeonGenerator generator(editor);
+	// Disable action buttons during generation
+	wxWindow* btn1 = FindWindowById(ID_GENERATE_BTN, this);
+	wxWindow* btn2 = FindWindowById(ID_REROLL_BTN, this);
+	wxWindow* btn3 = FindWindowById(ID_REROLL_STRUCTURE_BTN, this);
+	wxWindow* btn4 = FindWindowById(ID_REROLL_DETAILS_BTN, this);
+	if (btn1) btn1->Disable();
+	if (btn2) btn2->Disable();
+	if (btn3) btn3->Disable();
+	if (btn4) btn4->Disable();
 
 	bool cancelled = false;
 	if (progressDlg) {
 		generator.setProgressCallback([&](const std::string& step, int progress) -> bool {
 			if (!progressDlg) return true;
 			bool cont = progressDlg->Update(progress, step);
-			wxYield();
+			wxSafeYield();
 			if (!cont) {
 				cancelled = true;
 				return false;
@@ -698,8 +845,17 @@ void DungeonGeneratorDialog::OnGenerate(wxCommandEvent& event) {
 		progressDlg->Destroy();
 	}
 
+	if (btn1) btn1->Enable();
+	if (btn2) btn2->Enable();
+	if (btn3) btn3->Enable();
+	if (btn4) btn4->Enable();
+
 	if (success) {
 		m_lastGenerateSuccess = true;
+		// Save the structure seed for potential "Reroll Details" later
+		if (!rerollDetailsOnly) {
+			m_lastStructureSeed = generator.getLastSeed();
+		}
 		g_gui.RefreshView();
 	} else if (cancelled) {
 		m_lastGenerateSuccess = false;
@@ -710,30 +866,12 @@ void DungeonGeneratorDialog::OnGenerate(wxCommandEvent& event) {
 	}
 }
 
-void DungeonGeneratorDialog::OnReroll(wxCommandEvent& event) {
-	Editor* editor = g_gui.GetCurrentEditor();
-	if (!editor) return;
-
-	if (!m_lastGenerateSuccess) {
-		// Nothing to undo, just generate
-		OnGenerate(event);
-		return;
-	}
-
-	// Undo the last generation
-	editor->actionQueue->undo();
-	g_gui.RefreshView();
-
-	// Generate with new seed
-	OnGenerate(event);
-}
-
 void DungeonGeneratorDialog::OnAlgoPreviewPaint(wxPaintEvent& event) {
 	wxAutoBufferedPaintDC dc(m_algoPreviewPanel);
 	wxRect rect = m_algoPreviewPanel->GetClientRect();
 
 	// Background
-	dc.SetBackground(wxBrush(wxColour(20, 20, 30)));
+	dc.SetBackground(wxBrush(Theme::Get(Theme::Role::Background)));
 	dc.Clear();
 
 	int sel = m_algorithmChoice->GetSelection();
@@ -745,7 +883,7 @@ void DungeonGeneratorDialog::OnAlgoPreviewPaint(wxPaintEvent& event) {
 
 	// Label
 	dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
-	dc.SetTextForeground(wxColour(180, 180, 180));
+	dc.SetTextForeground(Theme::Get(Theme::Role::TextSubtle));
 
 	wxString label;
 	if (sel == 0) label = "Room Placement";
@@ -759,14 +897,14 @@ void DungeonGeneratorDialog::OnAlgoPreviewPaint(wxPaintEvent& event) {
 	int oy = margin + 14;
 
 	// Border
-	dc.SetPen(wxPen(wxColour(60, 60, 80)));
+	dc.SetPen(wxPen(Theme::Get(Theme::Role::Border)));
 	dc.SetBrush(*wxTRANSPARENT_BRUSH);
 	dc.DrawRectangle(ox, oy, iw, ih);
 
 	if (sel == 0) {
 		// Room Placement: random rectangles + connecting lines
-		dc.SetBrush(wxBrush(wxColour(80, 140, 80)));
-		dc.SetPen(wxPen(wxColour(60, 110, 60)));
+		dc.SetBrush(wxBrush(Theme::Get(Theme::Role::Success)));
+		dc.SetPen(wxPen(Theme::Get(Theme::Role::Success)));
 
 		struct MiniRoom { int x, y, w, h; };
 		MiniRoom rooms[] = {
@@ -783,7 +921,7 @@ void DungeonGeneratorDialog::OnAlgoPreviewPaint(wxPaintEvent& event) {
 		}
 
 		// Corridors
-		dc.SetPen(wxPen(wxColour(80, 140, 80), 2));
+		dc.SetPen(wxPen(Theme::Get(Theme::Role::Success), 2));
 		for (int i = 0; i + 1 < 6; ++i) {
 			int cx1 = rooms[i].x + rooms[i].w/2;
 			int cy1 = rooms[i].y + rooms[i].h/2;
@@ -794,7 +932,7 @@ void DungeonGeneratorDialog::OnAlgoPreviewPaint(wxPaintEvent& event) {
 		}
 	} else if (sel == 1) {
 		// BSP: recursive subdivision lines + rooms in leaves
-		dc.SetPen(wxPen(wxColour(100, 100, 140), 1, wxPENSTYLE_DOT));
+		dc.SetPen(wxPen(Theme::Get(Theme::Role::TextSubtle), 1, wxPENSTYLE_DOT));
 
 		// Vertical split
 		int splitX = ox + iw * 45 / 100;
@@ -813,8 +951,8 @@ void DungeonGeneratorDialog::OnAlgoPreviewPaint(wxPaintEvent& event) {
 		dc.DrawLine(splitX2, oy, splitX2, splitY2);
 
 		// Rooms in leaves
-		dc.SetBrush(wxBrush(wxColour(70, 100, 150)));
-		dc.SetPen(wxPen(wxColour(50, 80, 130)));
+		dc.SetBrush(wxBrush(Theme::Get(Theme::Role::Accent)));
+		dc.SetPen(wxPen(Theme::Get(Theme::Role::Accent)));
 
 		int pad = 4;
 		// Top-left
@@ -829,14 +967,14 @@ void DungeonGeneratorDialog::OnAlgoPreviewPaint(wxPaintEvent& event) {
 		dc.DrawRectangle(splitX + pad, splitY2 + pad, iw - (splitX - ox) - pad*2, oy + ih - splitY2 - pad*2);
 
 		// Corridors between rooms
-		dc.SetPen(wxPen(wxColour(70, 100, 150), 2));
+		dc.SetPen(wxPen(Theme::Get(Theme::Role::Accent), 2));
 		int midY1 = (oy + splitY1) / 2;
 		int midY2 = (splitY1 + oy + ih) / 2;
 		dc.DrawLine(ox + (splitX - ox)/2, midY1, ox + (splitX - ox)/2, midY2);
 
 	} else {
 		// Random Walk: organic cave-like blobs
-		dc.SetBrush(wxBrush(wxColour(140, 100, 60)));
+		dc.SetBrush(wxBrush(Theme::Get(Theme::Role::Warning)));
 		dc.SetPen(*wxTRANSPARENT_PEN);
 
 		// Draw an organic shape using small squares

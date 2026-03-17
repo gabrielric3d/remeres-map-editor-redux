@@ -49,6 +49,9 @@ private:
 	void OnPresetChanged(wxCommandEvent& event);
 	void OnGenerate(wxCommandEvent& event);
 	void OnReroll(wxCommandEvent& event);
+	void OnRerollStructure(wxCommandEvent& event);
+	void OnRerollDetails(wxCommandEvent& event);
+	void DoGenerate(bool rerollDetailsOnly = false);
 	void OnSelectFromMap(wxCommandEvent& event);
 	void OnUseSelection(wxCommandEvent& event);
 	void OnNewPreset(wxCommandEvent& event);
@@ -101,7 +104,10 @@ private:
 
 	// Preview panels
 	wxListCtrl* m_terrainList;
-	wxListCtrl* m_wallsList;
+	wxListCtrl* m_roomFloorsList;
+	wxListCtrl* m_corridorFloorsList;
+	wxListCtrl* m_roomWallsList;
+	wxListCtrl* m_corridorWallsList;
 	wxListCtrl* m_bordersList;
 	wxListCtrl* m_detailsList;
 	wxListCtrl* m_hangablesList;
@@ -110,6 +116,7 @@ private:
 	// Current config
 	DungeonGen::DungeonConfig m_config;
 	bool m_lastGenerateSuccess = false;
+	uint64_t m_lastStructureSeed = 0;  // Saved seed for rerolling details with same structure
 
 	wxDECLARE_EVENT_TABLE();
 };
