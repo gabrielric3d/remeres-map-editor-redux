@@ -26,6 +26,7 @@
 #include <functional>
 
 #include "editor/dungeon_generator.h"
+#include "ui/dialogs/dungeon_border_grid_panel.h"
 
 //=============================================================================
 // ItemFieldDropTarget - Accepts RME_ITEM drag from palette
@@ -88,10 +89,6 @@ private:
 	wxPanel* CreateHangablesTab(wxNotebook* notebook);
 
 	// Helpers to build rows of ItemFieldControls
-	wxSizer* MakeItemRow(wxWindow* parent, const wxString& title,
-	                     std::initializer_list<std::pair<wxString, ItemFieldControl**>> fields,
-	                     const std::function<uint16_t(const wxString&)>& getter);
-
 	// Detail/hangable helpers
 	void RefreshDetailGrid();
 	void RefreshHangableGrid(const wxString& key);
@@ -100,9 +97,13 @@ private:
 	void OnSave(wxCommandEvent& event);
 	void OnCancel(wxCommandEvent& event);
 	void OnCloseWindow(wxCloseEvent& event);
+	void OnLoadGroundBrush(wxCommandEvent& event);
+	void OnLoadGroundBrushGeneral(wxCommandEvent& event);
+	void OnLoadWallBrush(wxCommandEvent& event);
 	void OnDetailGroupChanged(wxCommandEvent& event);
 	void OnAddDetailItem(wxCommandEvent& event);
 	void OnRemoveDetailItem(wxCommandEvent& event);
+	void OnLoadDoodadBrush(wxCommandEvent& event);
 	void OnAddHangableH(wxCommandEvent& event);
 	void OnRemoveHangableH(wxCommandEvent& event);
 	void OnAddHangableV(wxCommandEvent& event);
@@ -117,48 +118,42 @@ private:
 	// General tab
 	wxTextCtrl* m_nameInput;
 	ItemFieldControl* m_groundField;
-	ItemFieldControl* m_patchField;
 	ItemFieldControl* m_fillField;
-	ItemFieldControl* m_brushField;
 
-	// Walls tab
-	ItemFieldControl* m_wallN;
-	ItemFieldControl* m_wallS;
-	ItemFieldControl* m_wallE;
-	ItemFieldControl* m_wallW;
-	ItemFieldControl* m_wallNW;
-	ItemFieldControl* m_wallNE;
-	ItemFieldControl* m_wallSW;
-	ItemFieldControl* m_wallSE;
-	ItemFieldControl* m_wallPillar;
+	// General tab - ground brush loader
+	wxTextCtrl* m_generalGroundSearch;
+	wxListCtrl* m_generalGroundBrushList;
+	wxImageList* m_generalGroundBrushImageList;
+
+	// Walls tab - brush loader
+	wxTextCtrl* m_wallBrushSearch;
+	wxListCtrl* m_wallBrushList;
+	wxImageList* m_wallBrushImageList;
+
+	// Borders tab - brush loader
+	wxTextCtrl* m_groundBrushSearch;
+	wxListCtrl* m_groundBrushList;
+	wxImageList* m_groundBrushImageList;
+	enum BorderTarget { TARGET_PATCH_BORDER = 0, TARGET_BRUSH_BORDER = 1, TARGET_PATCH_TERRAIN = 2, TARGET_BRUSH_TERRAIN = 3 };
+	BorderTarget m_borderTarget;
+	wxStaticText* m_borderTargetLabel;
+	void UpdateBorderTarget(BorderTarget target);
+	void RebuildGroundBrushList();
+	void RebuildWallBrushList();
+	void RebuildDoodadBrushList();
+	void RebuildGeneralGroundBrushList();
+
+	// Helper: create a search text ctrl that disables hotkeys on focus
+	wxTextCtrl* CreateSearchField(wxWindow* parent);
+
+	// Walls tab - visual grid panel
+	DungeonSlotGridPanel* m_wallsGrid;
 
 	// Borders tab
-	ItemFieldControl* m_borderN;
-	ItemFieldControl* m_borderS;
-	ItemFieldControl* m_borderE;
-	ItemFieldControl* m_borderW;
-	ItemFieldControl* m_borderNW;
-	ItemFieldControl* m_borderNE;
-	ItemFieldControl* m_borderSW;
-	ItemFieldControl* m_borderSE;
-	ItemFieldControl* m_borderInnerNW;
-	ItemFieldControl* m_borderInnerNE;
-	ItemFieldControl* m_borderInnerSW;
-	ItemFieldControl* m_borderInnerSE;
-
-	// Brush borders
-	ItemFieldControl* m_bbN;
-	ItemFieldControl* m_bbS;
-	ItemFieldControl* m_bbE;
-	ItemFieldControl* m_bbW;
-	ItemFieldControl* m_bbNW;
-	ItemFieldControl* m_bbNE;
-	ItemFieldControl* m_bbSW;
-	ItemFieldControl* m_bbSE;
-	ItemFieldControl* m_bbInnerNW;
-	ItemFieldControl* m_bbInnerNE;
-	ItemFieldControl* m_bbInnerSW;
-	ItemFieldControl* m_bbInnerSE;
+	ItemFieldControl* m_patchField;
+	ItemFieldControl* m_brushField;
+	DungeonSlotGridPanel* m_patchBordersGrid;
+	DungeonSlotGridPanel* m_brushBordersGrid;
 
 	// Details tab
 	wxChoice* m_detailGroupChoice;
@@ -168,6 +163,9 @@ private:
 	wxImageList* m_detailImageList;
 	int m_currentDetailGroup;
 	std::vector<DungeonGen::DetailGroup> m_editDetails;
+	wxTextCtrl* m_doodadBrushSearch;
+	wxListCtrl* m_doodadBrushList;
+	wxImageList* m_doodadBrushImageList;
 
 	// Hangables tab
 	wxSpinCtrlDouble* m_hangableChanceSpin;

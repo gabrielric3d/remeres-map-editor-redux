@@ -22,6 +22,16 @@
 #include "rendering/core/graphics.h"
 #include "item_definitions/core/item_definition_store.h"
 #include "ui/theme.h"
+#include "brushes/brush.h"
+#include "brushes/ground/ground_brush.h"
+#include "brushes/ground/auto_border.h"
+#include "brushes/wall/wall_brush.h"
+#include "brushes/wall/wall_brush_items.h"
+#include "brushes/brush_enums.h"
+#include "brushes/doodad/doodad_brush.h"
+#include "brushes/doodad/doodad_brush_items.h"
+#include "game/item.h"
+#include "editor/hotkey_manager.h"
 
 #include <wx/statline.h>
 
@@ -64,6 +74,10 @@ enum {
 	ID_HANGABLE_H_REMOVE_BTN,
 	ID_HANGABLE_V_ADD_BTN,
 	ID_HANGABLE_V_REMOVE_BTN,
+	ID_LOAD_GROUND_BRUSH,
+	ID_LOAD_GROUND_BRUSH_GENERAL,
+	ID_LOAD_WALL_BRUSH,
+	ID_LOAD_DOODAD_BRUSH,
 };
 
 } // anonymous namespace
@@ -190,20 +204,36 @@ wxBEGIN_EVENT_TABLE(DungeonPresetEditorDialog, wxDialog)
 	EVT_BUTTON(ID_HANGABLE_H_REMOVE_BTN, DungeonPresetEditorDialog::OnRemoveHangableH)
 	EVT_BUTTON(ID_HANGABLE_V_ADD_BTN, DungeonPresetEditorDialog::OnAddHangableV)
 	EVT_BUTTON(ID_HANGABLE_V_REMOVE_BTN, DungeonPresetEditorDialog::OnRemoveHangableV)
+	EVT_BUTTON(ID_LOAD_GROUND_BRUSH, DungeonPresetEditorDialog::OnLoadGroundBrush)
+	EVT_BUTTON(ID_LOAD_GROUND_BRUSH_GENERAL, DungeonPresetEditorDialog::OnLoadGroundBrushGeneral)
+	EVT_BUTTON(ID_LOAD_WALL_BRUSH, DungeonPresetEditorDialog::OnLoadWallBrush)
+	EVT_BUTTON(ID_LOAD_DOODAD_BRUSH, DungeonPresetEditorDialog::OnLoadDoodadBrush)
 wxEND_EVENT_TABLE()
 
 DungeonPresetEditorDialog::DungeonPresetEditorDialog(wxWindow* parent, const wxString& editingPreset,
                                                      std::function<void()> onSaveCallback)
 	: wxDialog(parent, wxID_ANY,
 	           editingPreset.empty() ? wxString("New Dungeon Preset") : wxString("Edit Preset: ") + editingPreset,
-	           wxDefaultPosition, wxSize(620, 660), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
+	           wxDefaultPosition, wxSize(850, 680), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 	, m_originalName(editingPreset)
 	, m_isNewPreset(editingPreset.empty())
 	, m_onSaveCallback(std::move(onSaveCallback))
 	, m_currentDetailGroup(0)
 	, m_detailImageList(nullptr)
 	, m_hangableHImageList(nullptr)
-	, m_hangableVImageList(nullptr) {
+	, m_hangableVImageList(nullptr)
+	, m_wallBrushImageList(nullptr)
+	, m_groundBrushImageList(nullptr)
+	, m_borderTarget(TARGET_PATCH_BORDER)
+	, m_borderTargetLabel(nullptr)
+	, m_generalGroundBrushList(nullptr)
+	, m_generalGroundBrushImageList(nullptr)
+	, m_doodadBrushList(nullptr)
+	, m_doodadBrushImageList(nullptr)
+	, m_generalGroundSearch(nullptr)
+	, m_wallBrushSearch(nullptr)
+	, m_groundBrushSearch(nullptr)
+	, m_doodadBrushSearch(nullptr) {
 
 	LoadPresetData();
 	CreateControls();
@@ -214,6 +244,10 @@ DungeonPresetEditorDialog::~DungeonPresetEditorDialog() {
 	delete m_detailImageList;
 	delete m_hangableHImageList;
 	delete m_hangableVImageList;
+	delete m_wallBrushImageList;
+	delete m_groundBrushImageList;
+	delete m_generalGroundBrushImageList;
+	delete m_doodadBrushImageList;
 }
 
 void DungeonPresetEditorDialog::LoadPresetData() {
@@ -281,25 +315,38 @@ wxPanel* DungeonPresetEditorDialog::CreateGeneralTab(wxNotebook* notebook) {
 	wxPanel* panel = new wxPanel(notebook);
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
+	// Terrain tiles
 	wxStaticBoxSizer* terrainBox = new wxStaticBoxSizer(wxVERTICAL, panel, "Terrain Tiles");
 
-	// Row 1: Ground + Patch
 	wxBoxSizer* row1 = new wxBoxSizer(wxHORIZONTAL);
 	m_groundField = new ItemFieldControl(panel, wxID_ANY, "Ground", m_preset.groundId);
-	m_patchField = new ItemFieldControl(panel, wxID_ANY, "Patch", m_preset.patchId);
+	m_fillField = new ItemFieldControl(panel, wxID_ANY, "Fill", m_preset.fillId);
 	row1->Add(m_groundField, 0, wxRIGHT, 20);
-	row1->Add(m_patchField, 0);
+	row1->Add(m_fillField, 0);
 	terrainBox->Add(row1, 0, wxALL, 8);
 
-	// Row 2: Fill + Brush
-	wxBoxSizer* row2 = new wxBoxSizer(wxHORIZONTAL);
-	m_fillField = new ItemFieldControl(panel, wxID_ANY, "Fill", m_preset.fillId);
-	m_brushField = new ItemFieldControl(panel, wxID_ANY, "Brush", m_preset.brushId);
-	row2->Add(m_fillField, 0, wxRIGHT, 20);
-	row2->Add(m_brushField, 0);
-	terrainBox->Add(row2, 0, wxALL, 8);
-
 	sizer->Add(terrainBox, 0, wxALL | wxEXPAND, 8);
+
+	// Load from Ground Brush
+	wxStaticBoxSizer* loadBox = new wxStaticBoxSizer(wxVERTICAL, panel, "Load from Ground Brush");
+
+	m_generalGroundSearch = CreateSearchField(panel);
+	m_generalGroundSearch->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { RebuildGeneralGroundBrushList(); });
+	loadBox->Add(m_generalGroundSearch, 0, wxEXPAND | wxALL, 3);
+
+	m_generalGroundBrushImageList = new wxImageList(PREVIEW_SIZE, PREVIEW_SIZE, true);
+	m_generalGroundBrushList = new wxListCtrl(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 160),
+	                                          wxLC_REPORT | wxLC_SINGLE_SEL | wxLC_NO_HEADER);
+	m_generalGroundBrushList->SetImageList(m_generalGroundBrushImageList, wxIMAGE_LIST_SMALL);
+	m_generalGroundBrushList->InsertColumn(0, "Name");
+
+	loadBox->Add(m_generalGroundBrushList, 1, wxEXPAND | wxALL, 3);
+	loadBox->Add(new wxButton(panel, ID_LOAD_GROUND_BRUSH_GENERAL, "Apply Ground Tile"), 0, wxALL | wxEXPAND, 3);
+
+	RebuildGeneralGroundBrushList();
+
+	sizer->Add(loadBox, 1, wxALL | wxEXPAND, 8);
+
 	panel->SetSizer(sizer);
 	return panel;
 }
@@ -312,45 +359,38 @@ wxPanel* DungeonPresetEditorDialog::CreateWallsTab(wxNotebook* notebook) {
 	wxPanel* panel = new wxPanel(notebook);
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
-	// Straight walls
-	wxStaticBoxSizer* straightBox = new wxStaticBoxSizer(wxVERTICAL, panel, "Straight Walls");
-	wxBoxSizer* sRow1 = new wxBoxSizer(wxHORIZONTAL);
-	m_wallN = new ItemFieldControl(panel, wxID_ANY, "N", m_preset.walls.north);
-	m_wallS = new ItemFieldControl(panel, wxID_ANY, "S", m_preset.walls.south);
-	sRow1->Add(m_wallN, 0, wxRIGHT, 15);
-	sRow1->Add(m_wallS, 0);
-	straightBox->Add(sRow1, 0, wxALL, 6);
+	// Wall slots grid
+	m_wallsGrid = new DungeonSlotGridPanel(panel, DungeonSlotGridPanel::MODE_WALLS);
+	m_wallsGrid->SetItemId(DSLOT_N, m_preset.walls.north);
+	m_wallsGrid->SetItemId(DSLOT_S, m_preset.walls.south);
+	m_wallsGrid->SetItemId(DSLOT_E, m_preset.walls.east);
+	m_wallsGrid->SetItemId(DSLOT_W, m_preset.walls.west);
+	m_wallsGrid->SetItemId(DSLOT_NW, m_preset.walls.nw);
+	m_wallsGrid->SetItemId(DSLOT_NE, m_preset.walls.ne);
+	m_wallsGrid->SetItemId(DSLOT_SW, m_preset.walls.sw);
+	m_wallsGrid->SetItemId(DSLOT_SE, m_preset.walls.se);
+	m_wallsGrid->SetItemId(DSLOT_PILLAR, m_preset.walls.pillar);
+	sizer->Add(m_wallsGrid, 0, wxALL | wxEXPAND, 5);
 
-	wxBoxSizer* sRow2 = new wxBoxSizer(wxHORIZONTAL);
-	m_wallE = new ItemFieldControl(panel, wxID_ANY, "E", m_preset.walls.east);
-	m_wallW = new ItemFieldControl(panel, wxID_ANY, "W", m_preset.walls.west);
-	sRow2->Add(m_wallE, 0, wxRIGHT, 15);
-	sRow2->Add(m_wallW, 0);
-	straightBox->Add(sRow2, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
-	sizer->Add(straightBox, 0, wxALL | wxEXPAND, 6);
+	// Load from wall brush
+	wxStaticBoxSizer* loadBox = new wxStaticBoxSizer(wxVERTICAL, panel, "Load from Wall Brush");
 
-	// Corners
-	wxStaticBoxSizer* cornerBox = new wxStaticBoxSizer(wxVERTICAL, panel, "Corners");
-	wxBoxSizer* cRow1 = new wxBoxSizer(wxHORIZONTAL);
-	m_wallNW = new ItemFieldControl(panel, wxID_ANY, "NW", m_preset.walls.nw);
-	m_wallNE = new ItemFieldControl(panel, wxID_ANY, "NE", m_preset.walls.ne);
-	cRow1->Add(m_wallNW, 0, wxRIGHT, 15);
-	cRow1->Add(m_wallNE, 0);
-	cornerBox->Add(cRow1, 0, wxALL, 6);
+	m_wallBrushSearch = CreateSearchField(panel);
+	m_wallBrushSearch->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { RebuildWallBrushList(); });
+	loadBox->Add(m_wallBrushSearch, 0, wxEXPAND | wxALL, 3);
 
-	wxBoxSizer* cRow2 = new wxBoxSizer(wxHORIZONTAL);
-	m_wallSW = new ItemFieldControl(panel, wxID_ANY, "SW", m_preset.walls.sw);
-	m_wallSE = new ItemFieldControl(panel, wxID_ANY, "SE", m_preset.walls.se);
-	cRow2->Add(m_wallSW, 0, wxRIGHT, 15);
-	cRow2->Add(m_wallSE, 0);
-	cornerBox->Add(cRow2, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
-	sizer->Add(cornerBox, 0, wxALL | wxEXPAND, 6);
+	m_wallBrushImageList = new wxImageList(PREVIEW_SIZE, PREVIEW_SIZE, true);
+	m_wallBrushList = new wxListCtrl(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 120),
+	                                  wxLC_REPORT | wxLC_SINGLE_SEL | wxLC_NO_HEADER);
+	m_wallBrushList->SetImageList(m_wallBrushImageList, wxIMAGE_LIST_SMALL);
+	m_wallBrushList->InsertColumn(0, "Name");
 
-	// Pillar
-	wxStaticBoxSizer* pillarBox = new wxStaticBoxSizer(wxHORIZONTAL, panel, "Pillar");
-	m_wallPillar = new ItemFieldControl(panel, wxID_ANY, "Pillar", m_preset.walls.pillar);
-	pillarBox->Add(m_wallPillar, 0, wxALL, 6);
-	sizer->Add(pillarBox, 0, wxALL | wxEXPAND, 6);
+	loadBox->Add(m_wallBrushList, 1, wxEXPAND | wxALL, 3);
+
+	RebuildWallBrushList();
+	loadBox->Add(new wxButton(panel, ID_LOAD_WALL_BRUSH, "Apply Wall Brush"), 0, wxALL | wxEXPAND, 3);
+
+	sizer->Add(loadBox, 1, wxALL | wxEXPAND, 5);
 
 	panel->SetSizer(sizer);
 	return panel;
@@ -362,92 +402,118 @@ wxPanel* DungeonPresetEditorDialog::CreateWallsTab(wxNotebook* notebook) {
 
 wxPanel* DungeonPresetEditorDialog::CreateBordersTab(wxNotebook* notebook) {
 	wxPanel* panel = new wxPanel(notebook);
-	wxScrolledWindow* scroll = new wxScrolledWindow(panel, wxID_ANY);
-	scroll->SetScrollRate(0, 10);
 
-	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+	// Main horizontal layout: left = grids, right = brush loader
+	wxBoxSizer* mainHSizer = new wxBoxSizer(wxHORIZONTAL);
 
-	// --- Patch Borders ---
-	wxStaticBoxSizer* patchBox = new wxStaticBoxSizer(wxVERTICAL, scroll, "Patch Borders");
+	// ===== LEFT COLUMN: terrain fields + border grids =====
+	wxScrolledWindow* leftScroll = new wxScrolledWindow(panel, wxID_ANY);
+	leftScroll->SetScrollRate(0, 10);
+	wxBoxSizer* leftSizer = new wxBoxSizer(wxVERTICAL);
 
-	wxBoxSizer* pRow1 = new wxBoxSizer(wxHORIZONTAL);
-	m_borderN = new ItemFieldControl(scroll, wxID_ANY, "N", m_preset.borders.north);
-	m_borderS = new ItemFieldControl(scroll, wxID_ANY, "S", m_preset.borders.south);
-	m_borderE = new ItemFieldControl(scroll, wxID_ANY, "E", m_preset.borders.east);
-	m_borderW = new ItemFieldControl(scroll, wxID_ANY, "W", m_preset.borders.west);
-	pRow1->Add(m_borderN, 0, wxRIGHT, 8);
-	pRow1->Add(m_borderS, 0, wxRIGHT, 8);
-	pRow1->Add(m_borderE, 0, wxRIGHT, 8);
-	pRow1->Add(m_borderW, 0);
-	patchBox->Add(pRow1, 0, wxALL, 4);
+	// Border terrain tiles
+	wxStaticBoxSizer* terrainBox = new wxStaticBoxSizer(wxVERTICAL, leftScroll, "Border Terrain Tiles");
+	wxBoxSizer* terrainRow = new wxBoxSizer(wxHORIZONTAL);
+	m_patchField = new ItemFieldControl(leftScroll, wxID_ANY, "Patch", m_preset.patchId);
+	m_brushField = new ItemFieldControl(leftScroll, wxID_ANY, "Brush", m_preset.brushId);
+	terrainRow->Add(m_patchField, 0, wxRIGHT, 20);
+	terrainRow->Add(m_brushField, 0);
+	terrainBox->Add(terrainRow, 0, wxALL, 4);
+	leftSizer->Add(terrainBox, 0, wxALL | wxEXPAND, 3);
 
-	wxBoxSizer* pRow2 = new wxBoxSizer(wxHORIZONTAL);
-	m_borderNW = new ItemFieldControl(scroll, wxID_ANY, "NW", m_preset.borders.nw);
-	m_borderNE = new ItemFieldControl(scroll, wxID_ANY, "NE", m_preset.borders.ne);
-	m_borderSW = new ItemFieldControl(scroll, wxID_ANY, "SW", m_preset.borders.sw);
-	m_borderSE = new ItemFieldControl(scroll, wxID_ANY, "SE", m_preset.borders.se);
-	pRow2->Add(m_borderNW, 0, wxRIGHT, 8);
-	pRow2->Add(m_borderNE, 0, wxRIGHT, 8);
-	pRow2->Add(m_borderSW, 0, wxRIGHT, 8);
-	pRow2->Add(m_borderSE, 0);
-	patchBox->Add(pRow2, 0, wxALL, 4);
+	// Patch Borders grid
+	wxStaticBoxSizer* patchBox = new wxStaticBoxSizer(wxVERTICAL, leftScroll, "Patch Borders");
+	m_patchBordersGrid = new DungeonSlotGridPanel(leftScroll, DungeonSlotGridPanel::MODE_BORDERS);
+	m_patchBordersGrid->SetItemId(DSLOT_N, m_preset.borders.north);
+	m_patchBordersGrid->SetItemId(DSLOT_S, m_preset.borders.south);
+	m_patchBordersGrid->SetItemId(DSLOT_E, m_preset.borders.east);
+	m_patchBordersGrid->SetItemId(DSLOT_W, m_preset.borders.west);
+	m_patchBordersGrid->SetItemId(DSLOT_NW, m_preset.borders.nw);
+	m_patchBordersGrid->SetItemId(DSLOT_NE, m_preset.borders.ne);
+	m_patchBordersGrid->SetItemId(DSLOT_SW, m_preset.borders.sw);
+	m_patchBordersGrid->SetItemId(DSLOT_SE, m_preset.borders.se);
+	m_patchBordersGrid->SetItemId(DSLOT_INNER_NW, m_preset.borders.inner_nw);
+	m_patchBordersGrid->SetItemId(DSLOT_INNER_NE, m_preset.borders.inner_ne);
+	m_patchBordersGrid->SetItemId(DSLOT_INNER_SW, m_preset.borders.inner_sw);
+	m_patchBordersGrid->SetItemId(DSLOT_INNER_SE, m_preset.borders.inner_se);
+	m_patchBordersGrid->SetHighlighted(true);
+	patchBox->Add(m_patchBordersGrid, 0, wxEXPAND | wxALL, 2);
+	leftSizer->Add(patchBox, 0, wxALL | wxEXPAND, 3);
 
-	wxBoxSizer* pRow3 = new wxBoxSizer(wxHORIZONTAL);
-	m_borderInnerNW = new ItemFieldControl(scroll, wxID_ANY, "iNW", m_preset.borders.inner_nw);
-	m_borderInnerNE = new ItemFieldControl(scroll, wxID_ANY, "iNE", m_preset.borders.inner_ne);
-	m_borderInnerSW = new ItemFieldControl(scroll, wxID_ANY, "iSW", m_preset.borders.inner_sw);
-	m_borderInnerSE = new ItemFieldControl(scroll, wxID_ANY, "iSE", m_preset.borders.inner_se);
-	pRow3->Add(m_borderInnerNW, 0, wxRIGHT, 8);
-	pRow3->Add(m_borderInnerNE, 0, wxRIGHT, 8);
-	pRow3->Add(m_borderInnerSW, 0, wxRIGHT, 8);
-	pRow3->Add(m_borderInnerSE, 0);
-	patchBox->Add(pRow3, 0, wxALL, 4);
+	// Brush Borders grid
+	wxStaticBoxSizer* brushBox = new wxStaticBoxSizer(wxVERTICAL, leftScroll, "Brush Borders");
+	m_brushBordersGrid = new DungeonSlotGridPanel(leftScroll, DungeonSlotGridPanel::MODE_BORDERS);
+	m_brushBordersGrid->SetItemId(DSLOT_N, m_preset.brushBorders.north);
+	m_brushBordersGrid->SetItemId(DSLOT_S, m_preset.brushBorders.south);
+	m_brushBordersGrid->SetItemId(DSLOT_E, m_preset.brushBorders.east);
+	m_brushBordersGrid->SetItemId(DSLOT_W, m_preset.brushBorders.west);
+	m_brushBordersGrid->SetItemId(DSLOT_NW, m_preset.brushBorders.nw);
+	m_brushBordersGrid->SetItemId(DSLOT_NE, m_preset.brushBorders.ne);
+	m_brushBordersGrid->SetItemId(DSLOT_SW, m_preset.brushBorders.sw);
+	m_brushBordersGrid->SetItemId(DSLOT_SE, m_preset.brushBorders.se);
+	m_brushBordersGrid->SetItemId(DSLOT_INNER_NW, m_preset.brushBorders.inner_nw);
+	m_brushBordersGrid->SetItemId(DSLOT_INNER_NE, m_preset.brushBorders.inner_ne);
+	m_brushBordersGrid->SetItemId(DSLOT_INNER_SW, m_preset.brushBorders.inner_sw);
+	m_brushBordersGrid->SetItemId(DSLOT_INNER_SE, m_preset.brushBorders.inner_se);
+	brushBox->Add(m_brushBordersGrid, 0, wxEXPAND | wxALL, 2);
+	leftSizer->Add(brushBox, 0, wxALL | wxEXPAND, 3);
 
-	sizer->Add(patchBox, 0, wxALL | wxEXPAND, 5);
+	leftScroll->SetSizer(leftSizer);
+	mainHSizer->Add(leftScroll, 3, wxEXPAND | wxALL, 2);
 
-	// --- Brush Borders ---
-	wxStaticBoxSizer* brushBox = new wxStaticBoxSizer(wxVERTICAL, scroll, "Brush Borders");
+	// ===== RIGHT COLUMN: target selection + brush list =====
+	wxBoxSizer* rightSizer = new wxBoxSizer(wxVERTICAL);
 
-	wxBoxSizer* bRow1 = new wxBoxSizer(wxHORIZONTAL);
-	m_bbN = new ItemFieldControl(scroll, wxID_ANY, "N", m_preset.brushBorders.north);
-	m_bbS = new ItemFieldControl(scroll, wxID_ANY, "S", m_preset.brushBorders.south);
-	m_bbE = new ItemFieldControl(scroll, wxID_ANY, "E", m_preset.brushBorders.east);
-	m_bbW = new ItemFieldControl(scroll, wxID_ANY, "W", m_preset.brushBorders.west);
-	bRow1->Add(m_bbN, 0, wxRIGHT, 8);
-	bRow1->Add(m_bbS, 0, wxRIGHT, 8);
-	bRow1->Add(m_bbE, 0, wxRIGHT, 8);
-	bRow1->Add(m_bbW, 0);
-	brushBox->Add(bRow1, 0, wxALL, 4);
+	// Target selection
+	m_borderTarget = TARGET_PATCH_BORDER;
 
-	wxBoxSizer* bRow2 = new wxBoxSizer(wxHORIZONTAL);
-	m_bbNW = new ItemFieldControl(scroll, wxID_ANY, "NW", m_preset.brushBorders.nw);
-	m_bbNE = new ItemFieldControl(scroll, wxID_ANY, "NE", m_preset.brushBorders.ne);
-	m_bbSW = new ItemFieldControl(scroll, wxID_ANY, "SW", m_preset.brushBorders.sw);
-	m_bbSE = new ItemFieldControl(scroll, wxID_ANY, "SE", m_preset.brushBorders.se);
-	bRow2->Add(m_bbNW, 0, wxRIGHT, 8);
-	bRow2->Add(m_bbNE, 0, wxRIGHT, 8);
-	bRow2->Add(m_bbSW, 0, wxRIGHT, 8);
-	bRow2->Add(m_bbSE, 0);
-	brushBox->Add(bRow2, 0, wxALL, 4);
+	wxStaticBoxSizer* targetBox = new wxStaticBoxSizer(wxVERTICAL, panel, "Apply to");
+	wxRadioButton* rPatchBorder = new wxRadioButton(panel, wxID_ANY, "Patch Borders", wxDefaultPosition, wxDefaultSize, wxRB_GROUP);
+	wxRadioButton* rBrushBorder = new wxRadioButton(panel, wxID_ANY, "Brush Borders");
+	wxRadioButton* rPatchTerrain = new wxRadioButton(panel, wxID_ANY, "Patch Terrain");
+	wxRadioButton* rBrushTerrain = new wxRadioButton(panel, wxID_ANY, "Brush Terrain");
+	rPatchBorder->SetValue(true);
 
-	wxBoxSizer* bRow3 = new wxBoxSizer(wxHORIZONTAL);
-	m_bbInnerNW = new ItemFieldControl(scroll, wxID_ANY, "iNW", m_preset.brushBorders.inner_nw);
-	m_bbInnerNE = new ItemFieldControl(scroll, wxID_ANY, "iNE", m_preset.brushBorders.inner_ne);
-	m_bbInnerSW = new ItemFieldControl(scroll, wxID_ANY, "iSW", m_preset.brushBorders.inner_sw);
-	m_bbInnerSE = new ItemFieldControl(scroll, wxID_ANY, "iSE", m_preset.brushBorders.inner_se);
-	bRow3->Add(m_bbInnerNW, 0, wxRIGHT, 8);
-	bRow3->Add(m_bbInnerNE, 0, wxRIGHT, 8);
-	bRow3->Add(m_bbInnerSW, 0, wxRIGHT, 8);
-	bRow3->Add(m_bbInnerSE, 0);
-	brushBox->Add(bRow3, 0, wxALL, 4);
+	rPatchBorder->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { UpdateBorderTarget(TARGET_PATCH_BORDER); });
+	rBrushBorder->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { UpdateBorderTarget(TARGET_BRUSH_BORDER); });
+	rPatchTerrain->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { UpdateBorderTarget(TARGET_PATCH_TERRAIN); });
+	rBrushTerrain->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { UpdateBorderTarget(TARGET_BRUSH_TERRAIN); });
 
-	sizer->Add(brushBox, 0, wxALL | wxEXPAND, 5);
+	targetBox->Add(rPatchBorder, 0, wxALL, 2);
+	targetBox->Add(rBrushBorder, 0, wxALL, 2);
+	targetBox->Add(rPatchTerrain, 0, wxALL, 2);
+	targetBox->Add(rBrushTerrain, 0, wxALL, 2);
 
-	scroll->SetSizer(sizer);
+	m_borderTargetLabel = new wxStaticText(panel, wxID_ANY, "Target: Patch Borders");
+	m_borderTargetLabel->SetForegroundColour(Theme::Get(Theme::Role::Accent));
+	targetBox->Add(m_borderTargetLabel, 0, wxALL, 4);
 
-	wxBoxSizer* panelSizer = new wxBoxSizer(wxVERTICAL);
-	panelSizer->Add(scroll, 1, wxEXPAND);
-	panel->SetSizer(panelSizer);
+	rightSizer->Add(targetBox, 0, wxALL | wxEXPAND, 3);
+
+	// Brush list
+	wxStaticBoxSizer* loadBox = new wxStaticBoxSizer(wxVERTICAL, panel, "Ground Brushes");
+
+	m_groundBrushSearch = CreateSearchField(panel);
+	m_groundBrushSearch->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { RebuildGroundBrushList(); });
+	loadBox->Add(m_groundBrushSearch, 0, wxEXPAND | wxALL, 3);
+
+	m_groundBrushImageList = new wxImageList(PREVIEW_SIZE, PREVIEW_SIZE, true);
+	m_groundBrushList = new wxListCtrl(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+	                                    wxLC_REPORT | wxLC_SINGLE_SEL | wxLC_NO_HEADER);
+	m_groundBrushList->SetImageList(m_groundBrushImageList, wxIMAGE_LIST_SMALL);
+	m_groundBrushList->InsertColumn(0, "Name");
+
+	loadBox->Add(m_groundBrushList, 1, wxEXPAND | wxALL, 3);
+	loadBox->Add(new wxButton(panel, ID_LOAD_GROUND_BRUSH, "Apply from Brush"), 0, wxALL | wxEXPAND, 3);
+
+	rightSizer->Add(loadBox, 1, wxALL | wxEXPAND, 3);
+
+	mainHSizer->Add(rightSizer, 1, wxEXPAND | wxALL, 2);
+
+	panel->SetSizer(mainHSizer);
+
+	RebuildGroundBrushList();
+
 	return panel;
 }
 
@@ -457,7 +523,7 @@ wxPanel* DungeonPresetEditorDialog::CreateBordersTab(wxNotebook* notebook) {
 
 wxPanel* DungeonPresetEditorDialog::CreateDetailsTab(wxNotebook* notebook) {
 	wxPanel* panel = new wxPanel(notebook);
-	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+	wxBoxSizer* topSizer = new wxBoxSizer(wxVERTICAL);
 
 	// Group selector row
 	wxStaticBoxSizer* groupBox = new wxStaticBoxSizer(wxHORIZONTAL, panel, "Detail Group");
@@ -487,12 +553,15 @@ wxPanel* DungeonPresetEditorDialog::CreateDetailsTab(wxNotebook* notebook) {
 		DungeonGen::DetailGroup::placementToString(m_editDetails[0].placement));
 	groupBox->Add(m_detailPlacementChoice, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-	sizer->Add(groupBox, 0, wxALL | wxEXPAND, 5);
+	topSizer->Add(groupBox, 0, wxALL | wxEXPAND, 5);
 
-	// Item list
+	// Horizontal layout: items left, doodad brushes right
+	wxBoxSizer* hSizer = new wxBoxSizer(wxHORIZONTAL);
+
+	// Left: current group items
 	wxStaticBoxSizer* itemsBox = new wxStaticBoxSizer(wxVERTICAL, panel, "Items");
 	m_detailImageList = new wxImageList(PREVIEW_SIZE, PREVIEW_SIZE, true);
-	m_detailItemsList = new wxListCtrl(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 160),
+	m_detailItemsList = new wxListCtrl(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize,
 	                                    wxLC_ICON | wxLC_SINGLE_SEL);
 	m_detailItemsList->SetImageList(m_detailImageList, wxIMAGE_LIST_NORMAL);
 	itemsBox->Add(m_detailItemsList, 1, wxEXPAND | wxALL, 3);
@@ -500,11 +569,33 @@ wxPanel* DungeonPresetEditorDialog::CreateDetailsTab(wxNotebook* notebook) {
 	wxBoxSizer* btnRow = new wxBoxSizer(wxHORIZONTAL);
 	btnRow->Add(new wxButton(panel, ID_DETAIL_ADD_BTN, "Add Item..."), 0, wxRIGHT, 5);
 	btnRow->Add(new wxButton(panel, ID_DETAIL_REMOVE_BTN, "Remove Selected"), 0);
-	itemsBox->Add(btnRow, 0, wxALL, 5);
+	itemsBox->Add(btnRow, 0, wxALL, 3);
 
-	sizer->Add(itemsBox, 1, wxALL | wxEXPAND, 5);
+	hSizer->Add(itemsBox, 3, wxEXPAND | wxRIGHT, 5);
 
-	panel->SetSizer(sizer);
+	// Right: doodad brush list
+	wxStaticBoxSizer* doodadBox = new wxStaticBoxSizer(wxVERTICAL, panel, "Load from Doodad Brush");
+
+	m_doodadBrushSearch = CreateSearchField(panel);
+	m_doodadBrushSearch->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { RebuildDoodadBrushList(); });
+	doodadBox->Add(m_doodadBrushSearch, 0, wxEXPAND | wxALL, 3);
+
+	m_doodadBrushImageList = new wxImageList(PREVIEW_SIZE, PREVIEW_SIZE, true);
+	m_doodadBrushList = new wxListCtrl(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+	                                    wxLC_REPORT | wxLC_SINGLE_SEL | wxLC_NO_HEADER);
+	m_doodadBrushList->SetImageList(m_doodadBrushImageList, wxIMAGE_LIST_SMALL);
+	m_doodadBrushList->InsertColumn(0, "Name");
+
+	doodadBox->Add(m_doodadBrushList, 1, wxEXPAND | wxALL, 3);
+
+	RebuildDoodadBrushList();
+	doodadBox->Add(new wxButton(panel, ID_LOAD_DOODAD_BRUSH, "Add Items from Brush"), 0, wxALL | wxEXPAND, 3);
+
+	hSizer->Add(doodadBox, 1, wxEXPAND);
+
+	topSizer->Add(hSizer, 1, wxALL | wxEXPAND, 5);
+
+	panel->SetSizer(topSizer);
 	RefreshDetailGrid();
 	return panel;
 }
@@ -684,6 +775,50 @@ void DungeonPresetEditorDialog::OnRemoveHangableV(wxCommandEvent& event) {
 	}
 }
 
+void DungeonPresetEditorDialog::OnLoadDoodadBrush(wxCommandEvent& event) {
+	long sel = m_doodadBrushList->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	if (sel < 0) {
+		wxMessageBox("Select a doodad brush first.", "Info", wxICON_INFORMATION | wxOK, this);
+		return;
+	}
+	wxString selected = m_doodadBrushList->GetItemText(sel);
+
+	Brush* brush = g_brushes.getBrush(selected.ToStdString());
+	if (!brush) return;
+
+	DoodadBrush* doodadBrush = brush->as<DoodadBrush>();
+	if (!doodadBrush) return;
+
+	// Extract all single item IDs from all alternatives
+	int added = 0;
+	const auto& alternatives = doodadBrush->getItems().getAlternatives();
+	for (const auto& alt : alternatives) {
+		if (!alt) continue;
+		for (const auto& single : alt->single_items) {
+			if (single.item) {
+				uint16_t id = single.item->getID();
+				if (id > 0) {
+					// Avoid duplicates
+					auto& ids = m_editDetails[m_currentDetailGroup].itemIds;
+					if (std::find(ids.begin(), ids.end(), id) == ids.end()) {
+						ids.push_back(id);
+						++added;
+					}
+				}
+			}
+		}
+	}
+
+	RefreshDetailGrid();
+
+	if (added > 0) {
+		wxMessageBox(wxString::Format("Added %d items from '%s'.", added, selected),
+		             "Loaded", wxICON_INFORMATION | wxOK, this);
+	} else {
+		wxMessageBox("No new items to add.", "Info", wxICON_INFORMATION | wxOK, this);
+	}
+}
+
 void DungeonPresetEditorDialog::OnSave(wxCommandEvent& event) {
 	SavePresetData();
 }
@@ -694,6 +829,283 @@ void DungeonPresetEditorDialog::OnCancel(wxCommandEvent& event) {
 
 void DungeonPresetEditorDialog::OnCloseWindow(wxCloseEvent& event) {
 	Destroy();
+}
+
+void DungeonPresetEditorDialog::OnLoadGroundBrushGeneral(wxCommandEvent& event) {
+	long sel = m_generalGroundBrushList->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	if (sel < 0) {
+		wxMessageBox("Select a ground brush first.", "Info", wxICON_INFORMATION | wxOK, this);
+		return;
+	}
+	wxString selected = m_generalGroundBrushList->GetItemText(sel);
+
+	Brush* brush = g_brushes.getBrush(selected.ToStdString());
+	if (!brush) return;
+
+	GroundBrush* groundBrush = brush->as<GroundBrush>();
+	if (!groundBrush) return;
+
+	uint16_t groundItemId = groundBrush->getFirstGroundItemId();
+	if (groundItemId > 0) {
+		m_groundField->SetItemId(groundItemId);
+	}
+}
+
+wxTextCtrl* DungeonPresetEditorDialog::CreateSearchField(wxWindow* parent) {
+	wxTextCtrl* search = new wxTextCtrl(parent, wxID_ANY, "", wxDefaultPosition, wxDefaultSize,
+	                                     wxTE_PROCESS_ENTER);
+	search->SetHint("Search...");
+
+	// Disable hotkeys when search field has focus
+	search->Bind(wxEVT_SET_FOCUS, [](wxFocusEvent& evt) {
+		g_hotkeys.DisableHotkeys();
+		evt.Skip();
+	});
+	search->Bind(wxEVT_KILL_FOCUS, [](wxFocusEvent& evt) {
+		g_hotkeys.EnableHotkeys();
+		evt.Skip();
+	});
+
+	return search;
+}
+
+void DungeonPresetEditorDialog::RebuildGeneralGroundBrushList() {
+	if (!m_generalGroundBrushList || !m_generalGroundBrushImageList) return;
+
+	wxString filter = m_generalGroundSearch ? m_generalGroundSearch->GetValue().Lower() : wxString();
+
+	m_generalGroundBrushList->ClearAll();
+	m_generalGroundBrushImageList->RemoveAll();
+	m_generalGroundBrushList->InsertColumn(0, "Name");
+
+	std::vector<std::pair<std::string, uint16_t>> brushes;
+	for (const auto& [name, brush] : g_brushes.getMap()) {
+		if (auto* gb = brush->as<GroundBrush>()) {
+			if (!filter.empty() && wxString(name).Lower().Find(filter) == wxNOT_FOUND) continue;
+			brushes.push_back({name, gb->getFirstGroundItemId()});
+		}
+	}
+	std::sort(brushes.begin(), brushes.end());
+
+	int idx = 0;
+	for (const auto& [name, previewId] : brushes) {
+		m_generalGroundBrushImageList->Add(MakeItemBitmap(previewId, PREVIEW_SIZE));
+		m_generalGroundBrushList->InsertItem(idx, name, idx);
+		++idx;
+	}
+	m_generalGroundBrushList->SetColumnWidth(0, wxLIST_AUTOSIZE);
+}
+
+void DungeonPresetEditorDialog::RebuildWallBrushList() {
+	if (!m_wallBrushList || !m_wallBrushImageList) return;
+
+	wxString filter = m_wallBrushSearch ? m_wallBrushSearch->GetValue().Lower() : wxString();
+
+	m_wallBrushList->ClearAll();
+	m_wallBrushImageList->RemoveAll();
+	m_wallBrushList->InsertColumn(0, "Name");
+
+	std::vector<std::pair<std::string, uint16_t>> brushes;
+	for (const auto& [name, brush] : g_brushes.getMap()) {
+		if (auto* wb = brush->as<WallBrush>()) {
+			if (!filter.empty() && wxString(name).Lower().Find(filter) == wxNOT_FOUND) continue;
+			uint16_t previewId = wb->items.getRandomWallId(WALL_HORIZONTAL);
+			if (previewId == 0) previewId = wb->items.getRandomWallId(WALL_VERTICAL);
+			brushes.push_back({name, previewId});
+		}
+	}
+	std::sort(brushes.begin(), brushes.end());
+
+	int idx = 0;
+	for (const auto& [name, previewId] : brushes) {
+		m_wallBrushImageList->Add(MakeItemBitmap(previewId, PREVIEW_SIZE));
+		m_wallBrushList->InsertItem(idx, name, idx);
+		++idx;
+	}
+	m_wallBrushList->SetColumnWidth(0, wxLIST_AUTOSIZE);
+}
+
+void DungeonPresetEditorDialog::RebuildDoodadBrushList() {
+	if (!m_doodadBrushList || !m_doodadBrushImageList) return;
+
+	wxString filter = m_doodadBrushSearch ? m_doodadBrushSearch->GetValue().Lower() : wxString();
+
+	m_doodadBrushList->ClearAll();
+	m_doodadBrushImageList->RemoveAll();
+	m_doodadBrushList->InsertColumn(0, "Name");
+
+	std::vector<std::pair<std::string, uint16_t>> brushes;
+	for (const auto& [name, brush] : g_brushes.getMap()) {
+		if (auto* db = brush->as<DoodadBrush>()) {
+			if (!filter.empty() && wxString(name).Lower().Find(filter) == wxNOT_FOUND) continue;
+			uint16_t lookId = 0;
+			const auto& alts = db->getItems().getAlternatives();
+			if (!alts.empty() && !alts[0]->single_items.empty() && alts[0]->single_items[0].item) {
+				lookId = alts[0]->single_items[0].item->getID();
+			}
+			brushes.push_back({name, lookId});
+		}
+	}
+	std::sort(brushes.begin(), brushes.end());
+
+	int idx = 0;
+	for (const auto& [name, previewId] : brushes) {
+		m_doodadBrushImageList->Add(MakeItemBitmap(previewId, PREVIEW_SIZE));
+		m_doodadBrushList->InsertItem(idx, name, idx);
+		++idx;
+	}
+	m_doodadBrushList->SetColumnWidth(0, wxLIST_AUTOSIZE);
+}
+
+void DungeonPresetEditorDialog::UpdateBorderTarget(BorderTarget target) {
+	m_borderTarget = target;
+
+	// Update highlights
+	m_patchBordersGrid->SetHighlighted(target == TARGET_PATCH_BORDER);
+	m_brushBordersGrid->SetHighlighted(target == TARGET_BRUSH_BORDER);
+
+	// Update label
+	switch (target) {
+		case TARGET_PATCH_BORDER: m_borderTargetLabel->SetLabel("Target: Patch Borders"); break;
+		case TARGET_BRUSH_BORDER: m_borderTargetLabel->SetLabel("Target: Brush Borders"); break;
+		case TARGET_PATCH_TERRAIN: m_borderTargetLabel->SetLabel("Target: Patch Terrain"); break;
+		case TARGET_BRUSH_TERRAIN: m_borderTargetLabel->SetLabel("Target: Brush Terrain"); break;
+	}
+
+	// Rebuild list with different previews
+	RebuildGroundBrushList();
+}
+
+void DungeonPresetEditorDialog::RebuildGroundBrushList() {
+	if (!m_groundBrushList || !m_groundBrushImageList) return;
+
+	wxString filter = m_groundBrushSearch ? m_groundBrushSearch->GetValue().Lower() : wxString();
+
+	m_groundBrushList->ClearAll();
+	m_groundBrushImageList->RemoveAll();
+	m_groundBrushList->InsertColumn(0, "Name");
+
+	bool showGroundPreview = (m_borderTarget == TARGET_PATCH_TERRAIN || m_borderTarget == TARGET_BRUSH_TERRAIN);
+
+	std::vector<std::pair<std::string, uint16_t>> brushes;
+	for (const auto& [name, brush] : g_brushes.getMap()) {
+		if (auto* gb = brush->as<GroundBrush>()) {
+			if (!filter.empty() && wxString(name).Lower().Find(filter) == wxNOT_FOUND) continue;
+			if (showGroundPreview) {
+				// Show all grounds with ground tile preview
+				uint16_t previewId = gb->getFirstGroundItemId();
+				if (previewId > 0) {
+					brushes.push_back({name, previewId});
+				}
+			} else {
+				// Show only brushes with borders, using border tile preview
+				if (gb->hasOuterBorder() || gb->hasInnerBorder()) {
+					const AutoBorder* ab = gb->getFirstOuterAutoBorder();
+					uint16_t previewId = 0;
+					if (ab) {
+						previewId = static_cast<uint16_t>(ab->tiles[NORTH_HORIZONTAL]);
+						if (previewId == 0) previewId = static_cast<uint16_t>(ab->tiles[EAST_HORIZONTAL]);
+					}
+					if (previewId == 0) previewId = gb->getFirstGroundItemId();
+					brushes.push_back({name, previewId});
+				}
+			}
+		}
+	}
+	std::sort(brushes.begin(), brushes.end());
+
+	int idx = 0;
+	for (const auto& [name, previewId] : brushes) {
+		m_groundBrushImageList->Add(MakeItemBitmap(previewId, PREVIEW_SIZE));
+		m_groundBrushList->InsertItem(idx, name, idx);
+		++idx;
+	}
+	m_groundBrushList->SetColumnWidth(0, wxLIST_AUTOSIZE);
+}
+
+void DungeonPresetEditorDialog::OnLoadGroundBrush(wxCommandEvent& event) {
+	long sel = m_groundBrushList->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	if (sel < 0) {
+		wxMessageBox("Select a ground brush first.", "Info", wxICON_INFORMATION | wxOK, this);
+		return;
+	}
+	wxString selected = m_groundBrushList->GetItemText(sel);
+
+	Brush* brush = g_brushes.getBrush(selected.ToStdString());
+	if (!brush) return;
+
+	GroundBrush* groundBrush = brush->as<GroundBrush>();
+	if (!groundBrush) return;
+
+	if (m_borderTarget == TARGET_PATCH_TERRAIN || m_borderTarget == TARGET_BRUSH_TERRAIN) {
+		// Apply ground tile to the Patch or Brush terrain field
+		uint16_t groundItemId = groundBrush->getFirstGroundItemId();
+		if (groundItemId > 0) {
+			if (m_borderTarget == TARGET_PATCH_TERRAIN) {
+				m_patchField->SetItemId(groundItemId);
+			} else {
+				m_brushField->SetItemId(groundItemId);
+			}
+		}
+	} else {
+		// Apply borders to the selected border grid
+		DungeonSlotGridPanel* targetGrid = (m_borderTarget == TARGET_PATCH_BORDER)
+			? m_patchBordersGrid : m_brushBordersGrid;
+
+		const AutoBorder* ab = groundBrush->getFirstOuterAutoBorder();
+		if (ab) {
+			// Straights: AutoBorder N/S/E/W are swapped relative to dungeon convention
+			// AutoBorder "n" = piece on north side of terrain = dungeon "south" border
+			targetGrid->SetItemId(DSLOT_N, static_cast<uint16_t>(ab->tiles[SOUTH_HORIZONTAL]));
+			targetGrid->SetItemId(DSLOT_S, static_cast<uint16_t>(ab->tiles[NORTH_HORIZONTAL]));
+			targetGrid->SetItemId(DSLOT_E, static_cast<uint16_t>(ab->tiles[WEST_HORIZONTAL]));
+			targetGrid->SetItemId(DSLOT_W, static_cast<uint16_t>(ab->tiles[EAST_HORIZONTAL]));
+			// Corners: same swap logic
+			targetGrid->SetItemId(DSLOT_NW, static_cast<uint16_t>(ab->tiles[SOUTHEAST_DIAGONAL]));
+			targetGrid->SetItemId(DSLOT_NE, static_cast<uint16_t>(ab->tiles[SOUTHWEST_DIAGONAL]));
+			targetGrid->SetItemId(DSLOT_SW, static_cast<uint16_t>(ab->tiles[NORTHEAST_DIAGONAL]));
+			targetGrid->SetItemId(DSLOT_SE, static_cast<uint16_t>(ab->tiles[NORTHWEST_DIAGONAL]));
+			targetGrid->SetItemId(DSLOT_INNER_NW, static_cast<uint16_t>(ab->tiles[SOUTHEAST_CORNER]));
+			targetGrid->SetItemId(DSLOT_INNER_NE, static_cast<uint16_t>(ab->tiles[SOUTHWEST_CORNER]));
+			targetGrid->SetItemId(DSLOT_INNER_SW, static_cast<uint16_t>(ab->tiles[NORTHEAST_CORNER]));
+			targetGrid->SetItemId(DSLOT_INNER_SE, static_cast<uint16_t>(ab->tiles[NORTHWEST_CORNER]));
+		}
+	}
+}
+
+void DungeonPresetEditorDialog::OnLoadWallBrush(wxCommandEvent& event) {
+	long sel = m_wallBrushList->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	if (sel < 0) {
+		wxMessageBox("Select a wall brush first.", "Info", wxICON_INFORMATION | wxOK, this);
+		return;
+	}
+	wxString selected = m_wallBrushList->GetItemText(sel);
+
+	Brush* brush = g_brushes.getBrush(selected.ToStdString());
+	if (!brush) return;
+
+	WallBrush* wallBrush = brush->as<WallBrush>();
+	if (!wallBrush) return;
+
+	// Map wall alignments to our dungeon slots
+	// WALL_HORIZONTAL (6) = North/South walls, WALL_VERTICAL (9) = East/West walls
+	auto getFirst = [&](int alignment) -> uint16_t {
+		const auto& node = wallBrush->items.getWallNode(alignment);
+		if (!node.items.empty()) return node.items[0].id;
+		return 0;
+	};
+
+	m_wallsGrid->SetItemId(DSLOT_N, getFirst(WALL_HORIZONTAL));
+	m_wallsGrid->SetItemId(DSLOT_S, getFirst(WALL_HORIZONTAL));
+	m_wallsGrid->SetItemId(DSLOT_E, getFirst(WALL_VERTICAL));
+	m_wallsGrid->SetItemId(DSLOT_W, getFirst(WALL_VERTICAL));
+	m_wallsGrid->SetItemId(DSLOT_NW, getFirst(WALL_NORTHWEST_DIAGONAL));
+	m_wallsGrid->SetItemId(DSLOT_NE, getFirst(WALL_NORTHEAST_DIAGONAL));
+	m_wallsGrid->SetItemId(DSLOT_SW, getFirst(WALL_SOUTHWEST_DIAGONAL));
+	m_wallsGrid->SetItemId(DSLOT_SE, getFirst(WALL_SOUTHEAST_DIAGONAL));
+	m_wallsGrid->SetItemId(DSLOT_PILLAR, getFirst(WALL_POLE));
+
+	wxMessageBox(wxString::Format("Loaded wall brush '%s'.", selected), "Loaded", wxICON_INFORMATION | wxOK, this);
 }
 
 //=============================================================================
@@ -721,44 +1133,44 @@ void DungeonPresetEditorDialog::SavePresetData() {
 	m_preset.fillId = m_fillField->GetItemId();
 	m_preset.brushId = m_brushField->GetItemId();
 
-	// Walls
-	m_preset.walls.north = m_wallN->GetItemId();
-	m_preset.walls.south = m_wallS->GetItemId();
-	m_preset.walls.east = m_wallE->GetItemId();
-	m_preset.walls.west = m_wallW->GetItemId();
-	m_preset.walls.nw = m_wallNW->GetItemId();
-	m_preset.walls.ne = m_wallNE->GetItemId();
-	m_preset.walls.sw = m_wallSW->GetItemId();
-	m_preset.walls.se = m_wallSE->GetItemId();
-	m_preset.walls.pillar = m_wallPillar->GetItemId();
+	// Walls (from grid panel)
+	m_preset.walls.north = m_wallsGrid->GetItemId(DSLOT_N);
+	m_preset.walls.south = m_wallsGrid->GetItemId(DSLOT_S);
+	m_preset.walls.east = m_wallsGrid->GetItemId(DSLOT_E);
+	m_preset.walls.west = m_wallsGrid->GetItemId(DSLOT_W);
+	m_preset.walls.nw = m_wallsGrid->GetItemId(DSLOT_NW);
+	m_preset.walls.ne = m_wallsGrid->GetItemId(DSLOT_NE);
+	m_preset.walls.sw = m_wallsGrid->GetItemId(DSLOT_SW);
+	m_preset.walls.se = m_wallsGrid->GetItemId(DSLOT_SE);
+	m_preset.walls.pillar = m_wallsGrid->GetItemId(DSLOT_PILLAR);
 
-	// Borders
-	m_preset.borders.north = m_borderN->GetItemId();
-	m_preset.borders.south = m_borderS->GetItemId();
-	m_preset.borders.east = m_borderE->GetItemId();
-	m_preset.borders.west = m_borderW->GetItemId();
-	m_preset.borders.nw = m_borderNW->GetItemId();
-	m_preset.borders.ne = m_borderNE->GetItemId();
-	m_preset.borders.sw = m_borderSW->GetItemId();
-	m_preset.borders.se = m_borderSE->GetItemId();
-	m_preset.borders.inner_nw = m_borderInnerNW->GetItemId();
-	m_preset.borders.inner_ne = m_borderInnerNE->GetItemId();
-	m_preset.borders.inner_sw = m_borderInnerSW->GetItemId();
-	m_preset.borders.inner_se = m_borderInnerSE->GetItemId();
+	// Borders (from grid panel)
+	m_preset.borders.north = m_patchBordersGrid->GetItemId(DSLOT_N);
+	m_preset.borders.south = m_patchBordersGrid->GetItemId(DSLOT_S);
+	m_preset.borders.east = m_patchBordersGrid->GetItemId(DSLOT_E);
+	m_preset.borders.west = m_patchBordersGrid->GetItemId(DSLOT_W);
+	m_preset.borders.nw = m_patchBordersGrid->GetItemId(DSLOT_NW);
+	m_preset.borders.ne = m_patchBordersGrid->GetItemId(DSLOT_NE);
+	m_preset.borders.sw = m_patchBordersGrid->GetItemId(DSLOT_SW);
+	m_preset.borders.se = m_patchBordersGrid->GetItemId(DSLOT_SE);
+	m_preset.borders.inner_nw = m_patchBordersGrid->GetItemId(DSLOT_INNER_NW);
+	m_preset.borders.inner_ne = m_patchBordersGrid->GetItemId(DSLOT_INNER_NE);
+	m_preset.borders.inner_sw = m_patchBordersGrid->GetItemId(DSLOT_INNER_SW);
+	m_preset.borders.inner_se = m_patchBordersGrid->GetItemId(DSLOT_INNER_SE);
 
-	// Brush Borders
-	m_preset.brushBorders.north = m_bbN->GetItemId();
-	m_preset.brushBorders.south = m_bbS->GetItemId();
-	m_preset.brushBorders.east = m_bbE->GetItemId();
-	m_preset.brushBorders.west = m_bbW->GetItemId();
-	m_preset.brushBorders.nw = m_bbNW->GetItemId();
-	m_preset.brushBorders.ne = m_bbNE->GetItemId();
-	m_preset.brushBorders.sw = m_bbSW->GetItemId();
-	m_preset.brushBorders.se = m_bbSE->GetItemId();
-	m_preset.brushBorders.inner_nw = m_bbInnerNW->GetItemId();
-	m_preset.brushBorders.inner_ne = m_bbInnerNE->GetItemId();
-	m_preset.brushBorders.inner_sw = m_bbInnerSW->GetItemId();
-	m_preset.brushBorders.inner_se = m_bbInnerSE->GetItemId();
+	// Brush Borders (from grid panel)
+	m_preset.brushBorders.north = m_brushBordersGrid->GetItemId(DSLOT_N);
+	m_preset.brushBorders.south = m_brushBordersGrid->GetItemId(DSLOT_S);
+	m_preset.brushBorders.east = m_brushBordersGrid->GetItemId(DSLOT_E);
+	m_preset.brushBorders.west = m_brushBordersGrid->GetItemId(DSLOT_W);
+	m_preset.brushBorders.nw = m_brushBordersGrid->GetItemId(DSLOT_NW);
+	m_preset.brushBorders.ne = m_brushBordersGrid->GetItemId(DSLOT_NE);
+	m_preset.brushBorders.sw = m_brushBordersGrid->GetItemId(DSLOT_SW);
+	m_preset.brushBorders.se = m_brushBordersGrid->GetItemId(DSLOT_SE);
+	m_preset.brushBorders.inner_nw = m_brushBordersGrid->GetItemId(DSLOT_INNER_NW);
+	m_preset.brushBorders.inner_ne = m_brushBordersGrid->GetItemId(DSLOT_INNER_NE);
+	m_preset.brushBorders.inner_sw = m_brushBordersGrid->GetItemId(DSLOT_INNER_SW);
+	m_preset.brushBorders.inner_se = m_brushBordersGrid->GetItemId(DSLOT_INNER_SE);
 
 	// Details
 	m_preset.details.clear();

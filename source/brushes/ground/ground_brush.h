@@ -71,6 +71,29 @@ public:
 		return optional_border != nullptr;
 	}
 
+	// Accessors for dungeon generator / preset editor
+	uint16_t getFirstGroundItemId() const {
+		return border_items.empty() ? 0 : border_items[0].id;
+	}
+	const AutoBorder* getFirstOuterAutoBorder() const {
+		for (const auto& b : borders) {
+			if (b && b->autoborder && b->outer) return b->autoborder;
+		}
+		return nullptr;
+	}
+	const AutoBorder* getFirstInnerAutoBorder() const {
+		for (const auto& b : borders) {
+			if (b && b->autoborder && !b->outer) return b->autoborder;
+		}
+		return nullptr;
+	}
+	const AutoBorder* getFirstAutoBorder() const {
+		for (const auto& b : borders) {
+			if (b && b->autoborder) return b->autoborder;
+		}
+		return nullptr;
+	}
+
 protected: // Members
 	int32_t z_order;
 	bool has_zilch_outer_border;
