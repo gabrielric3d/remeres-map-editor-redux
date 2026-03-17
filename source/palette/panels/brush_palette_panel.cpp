@@ -3,6 +3,7 @@
 #include "ui/gui_ids.h"
 #include "ui/add_tileset_window.h"
 #include "ui/add_item_window.h"
+#include "ui/dialogs/border_editor_dialog.h"
 #include "game/materials.h"
 #include "palette/palette_window.h"
 #include "palette/managers/palette_manager.h"
@@ -19,6 +20,7 @@ BrushPalettePanel::BrushPalettePanel(wxWindow* parent, const TilesetContainer& t
 	choicebook(nullptr) {
 	Bind(wxEVT_BUTTON, &BrushPalettePanel::OnClickAddItemToTileset, this, wxID_ADD);
 	Bind(wxEVT_BUTTON, &BrushPalettePanel::OnClickAddTileset, this, wxID_NEW);
+	Bind(wxEVT_BUTTON, &BrushPalettePanel::OnClickCreateBorder, this, PALETTE_TERRAIN_CREATE_BORDER);
 	Bind(wxEVT_CHOICEBOOK_PAGE_CHANGING, &BrushPalettePanel::OnSwitchingPage, this);
 	Bind(wxEVT_CHOICEBOOK_PAGE_CHANGED, &BrushPalettePanel::OnPageChanged, this);
 
@@ -75,6 +77,12 @@ BrushPalettePanel::BrushPalettePanel(wxWindow* parent, const TilesetContainer& t
 
 		Bind(wxEVT_CHOICE, &BrushPalettePanel::OnIconBackgroundChanged, this, PALETTE_ICON_BG_CHOICE);
 		Bind(wxEVT_CHOICE, &BrushPalettePanel::OnSlotSizeChanged, this, PALETTE_SLOT_SIZE_CHOICE);
+	}
+
+	if (category == TILESET_TERRAIN) {
+		wxButton* createBorderButton = newd wxButton(this, PALETTE_TERRAIN_CREATE_BORDER, "Create Border");
+		createBorderButton->SetToolTip("Open the Border Editor to create or edit auto-borders");
+		topsizer->Add(createBorderButton, 0, wxEXPAND | wxALL, 5);
 	}
 
 	if (g_settings.getBoolean(Config::SHOW_TILESET_EDITOR)) {
@@ -377,4 +385,10 @@ void BrushPalettePanel::OnSlotSizeChanged(wxCommandEvent&) {
 	for (auto* palette : g_palettes.GetPalettes()) {
 		palette->InvalidateContents();
 	}
+}
+
+void BrushPalettePanel::OnClickCreateBorder(wxCommandEvent& WXUNUSED(event)) {
+	BorderEditorDialog* dialog = newd BorderEditorDialog(g_gui.root, "Auto Border Editor");
+	dialog->Show();
+	g_gui.RefreshView();
 }
