@@ -17,6 +17,7 @@
 
 #include "app/main.h"
 #include "ui/dialogs/dungeon_generator_dialog.h"
+#include "ui/dialogs/dungeon_preset_editor_dialog.h"
 #include "editor/editor.h"
 #include "editor/selection.h"
 #include "ui/gui.h"
@@ -36,6 +37,9 @@ enum {
 	ID_HEIGHT_SPIN,
 	ID_PATH_WIDTH_SPIN,
 	ID_GENERATE_BTN,
+	ID_NEW_PRESET_BTN,
+	ID_EDIT_PRESET_BTN,
+	ID_DUPLICATE_PRESET_BTN,
 	ID_DELETE_PRESET_BTN,
 };
 
@@ -71,12 +75,15 @@ wxBitmap CreateItemBitmap(uint16_t itemId, int size) {
 wxBEGIN_EVENT_TABLE(DungeonGeneratorDialog, wxDialog)
 	EVT_CHOICE(ID_PRESET_CHOICE, DungeonGeneratorDialog::OnPresetChanged)
 	EVT_BUTTON(ID_GENERATE_BTN, DungeonGeneratorDialog::OnGenerate)
+	EVT_BUTTON(ID_NEW_PRESET_BTN, DungeonGeneratorDialog::OnNewPreset)
+	EVT_BUTTON(ID_EDIT_PRESET_BTN, DungeonGeneratorDialog::OnEditPreset)
+	EVT_BUTTON(ID_DUPLICATE_PRESET_BTN, DungeonGeneratorDialog::OnDuplicatePreset)
 	EVT_BUTTON(ID_DELETE_PRESET_BTN, DungeonGeneratorDialog::OnDeletePreset)
 	EVT_CLOSE(DungeonGeneratorDialog::OnClose)
 wxEND_EVENT_TABLE()
 
 DungeonGeneratorDialog::DungeonGeneratorDialog(wxWindow* parent)
-	: wxDialog(parent, wxID_ANY, "Dungeon Generator", wxDefaultPosition, wxSize(520, 580),
+	: wxDialog(parent, wxID_ANY, "Dungeon Generator", wxDefaultPosition, wxSize(520, 620),
 	           wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 	, m_imageList(nullptr) {
 
@@ -129,13 +136,21 @@ DungeonGeneratorDialog::~DungeonGeneratorDialog() {
 void DungeonGeneratorDialog::CreateControls() {
 	wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
-	// Preset selection
-	wxStaticBoxSizer* presetBox = new wxStaticBoxSizer(wxHORIZONTAL, this, "Preset");
-	m_presetChoice = new wxChoice(this, ID_PRESET_CHOICE);
-	presetBox->Add(m_presetChoice, 1, wxALL | wxEXPAND, 5);
+	// Preset selection + management buttons
+	wxStaticBoxSizer* presetBox = new wxStaticBoxSizer(wxVERTICAL, this, "Preset");
 
-	wxButton* deleteBtn = new wxButton(this, ID_DELETE_PRESET_BTN, "Delete", wxDefaultPosition, wxSize(60, -1));
-	presetBox->Add(deleteBtn, 0, wxALL, 5);
+	wxBoxSizer* presetRow = new wxBoxSizer(wxHORIZONTAL);
+	m_presetChoice = new wxChoice(this, ID_PRESET_CHOICE);
+	presetRow->Add(m_presetChoice, 1, wxALL | wxEXPAND, 3);
+	presetBox->Add(presetRow, 0, wxEXPAND);
+
+	wxBoxSizer* presetBtnRow = new wxBoxSizer(wxHORIZONTAL);
+	presetBtnRow->Add(new wxButton(this, ID_NEW_PRESET_BTN, "New", wxDefaultPosition, wxSize(70, -1)), 0, wxRIGHT, 3);
+	presetBtnRow->Add(new wxButton(this, ID_EDIT_PRESET_BTN, "Edit", wxDefaultPosition, wxSize(70, -1)), 0, wxRIGHT, 3);
+	presetBtnRow->Add(new wxButton(this, ID_DUPLICATE_PRESET_BTN, "Duplicate", wxDefaultPosition, wxSize(70, -1)), 0, wxRIGHT, 3);
+	presetBtnRow->AddStretchSpacer();
+	presetBtnRow->Add(new wxButton(this, ID_DELETE_PRESET_BTN, "Delete", wxDefaultPosition, wxSize(70, -1)), 0);
+	presetBox->Add(presetBtnRow, 0, wxALL | wxEXPAND, 3);
 
 	mainSizer->Add(presetBox, 0, wxALL | wxEXPAND, 5);
 
@@ -233,7 +248,6 @@ void DungeonGeneratorDialog::PopulatePresetList() {
 	}
 
 	if (!names.empty()) {
-		// Try to select previously used preset
 		int idx = m_presetChoice->FindString(m_config.presetName);
 		if (idx == wxNOT_FOUND) idx = 0;
 		m_presetChoice->SetSelection(idx);
@@ -242,14 +256,11 @@ void DungeonGeneratorDialog::PopulatePresetList() {
 }
 
 void DungeonGeneratorDialog::UpdatePreview() {
-	// Clear all lists
 	m_terrainList->ClearAll();
 	m_wallsList->ClearAll();
 	m_bordersList->ClearAll();
 	m_detailsList->ClearAll();
 	m_hangablesList->ClearAll();
-
-	// Clear and rebuild image list
 	m_imageList->RemoveAll();
 
 	auto& presetMgr = DungeonGen::PresetManager::getInstance();
@@ -257,8 +268,6 @@ void DungeonGeneratorDialog::UpdatePreview() {
 	if (!preset) return;
 
 	int imgIdx = 0;
-
-	// Helper to add item
 	auto addItem = [&](wxListCtrl* list, uint16_t id, const wxString& label) {
 		if (id == 0) return;
 		m_imageList->Add(CreateItemBitmap(id, ITEM_ICON_SIZE));
@@ -320,6 +329,73 @@ void DungeonGeneratorDialog::OnPresetChanged(wxCommandEvent& event) {
 	UpdatePreview();
 }
 
+//=============================================================================
+// Preset management buttons
+//=============================================================================
+
+void DungeonGeneratorDialog::OnNewPreset(wxCommandEvent& event) {
+	auto* dlg = new DungeonPresetEditorDialog(this, "", [this]() {
+		RefreshPresetControls();
+	});
+	dlg->Show();
+}
+
+void DungeonGeneratorDialog::OnEditPreset(wxCommandEvent& event) {
+	wxString currentPreset = m_presetChoice->GetStringSelection();
+	if (currentPreset.empty()) return;
+
+	auto* dlg = new DungeonPresetEditorDialog(this, currentPreset, [this]() {
+		RefreshPresetControls();
+	});
+	dlg->Show();
+}
+
+void DungeonGeneratorDialog::OnDuplicatePreset(wxCommandEvent& event) {
+	wxString currentPreset = m_presetChoice->GetStringSelection();
+	if (currentPreset.empty()) return;
+
+	auto& mgr = DungeonGen::PresetManager::getInstance();
+	const auto* existing = mgr.getPreset(currentPreset.ToStdString());
+	if (!existing) return;
+
+	// Generate unique name
+	wxString newName = currentPreset + " (Copy)";
+	int suffix = 2;
+	while (mgr.getPreset(newName.ToStdString()) != nullptr) {
+		newName = wxString::Format("%s (Copy %d)", currentPreset, suffix++);
+	}
+
+	DungeonGen::DungeonPreset copy = *existing;
+	copy.name = newName.ToStdString();
+	mgr.addPreset(copy);
+
+	m_config.presetName = newName.ToStdString();
+	RefreshPresetControls();
+}
+
+void DungeonGeneratorDialog::OnDeletePreset(wxCommandEvent& event) {
+	auto& presetMgr = DungeonGen::PresetManager::getInstance();
+	auto names = presetMgr.getPresetNames();
+
+	if (names.size() <= 1) {
+		wxMessageBox("Cannot delete the last preset.", "Error", wxICON_WARNING | wxOK, this);
+		return;
+	}
+
+	wxString currentPreset = m_presetChoice->GetStringSelection();
+	int confirm = wxMessageBox("Delete preset '" + currentPreset + "'?",
+	                            "Confirm Delete", wxYES_NO | wxICON_QUESTION, this);
+	if (confirm != wxYES) return;
+
+	presetMgr.removePreset(currentPreset.ToStdString());
+	m_config.presetName = presetMgr.getPresetNames().front();
+	RefreshPresetControls();
+}
+
+//=============================================================================
+// Generate
+//=============================================================================
+
 void DungeonGeneratorDialog::OnGenerate(wxCommandEvent& event) {
 	Editor* editor = g_gui.GetCurrentEditor();
 	if (!editor) {
@@ -327,7 +403,6 @@ void DungeonGeneratorDialog::OnGenerate(wxCommandEvent& event) {
 		return;
 	}
 
-	// Read current values from controls
 	m_config.width = m_widthSpin->GetValue();
 	m_config.height = m_heightSpin->GetValue();
 	m_config.pathWidth = m_pathWidthSpin->GetValue();
@@ -355,7 +430,6 @@ void DungeonGeneratorDialog::OnGenerate(wxCommandEvent& event) {
 		m_config.center = Position(100, 100, 7);
 	}
 
-	// Get preset
 	auto& presetMgr = DungeonGen::PresetManager::getInstance();
 	const DungeonGen::DungeonPreset* preset = presetMgr.getPreset(m_config.presetName);
 	if (!preset) {
@@ -363,7 +437,6 @@ void DungeonGeneratorDialog::OnGenerate(wxCommandEvent& event) {
 		return;
 	}
 
-	// Generate
 	DungeonGen::DungeonGenerator generator(editor);
 	if (generator.generate(m_config, *preset)) {
 		g_gui.RefreshView();
@@ -374,25 +447,6 @@ void DungeonGeneratorDialog::OnGenerate(wxCommandEvent& event) {
 		wxMessageBox("Generation failed: " + generator.getLastError(),
 		             "Error", wxICON_ERROR | wxOK, this);
 	}
-}
-
-void DungeonGeneratorDialog::OnDeletePreset(wxCommandEvent& event) {
-	auto& presetMgr = DungeonGen::PresetManager::getInstance();
-	auto names = presetMgr.getPresetNames();
-
-	if (names.size() <= 1) {
-		wxMessageBox("Cannot delete the last preset.", "Error", wxICON_WARNING | wxOK, this);
-		return;
-	}
-
-	wxString currentPreset = m_presetChoice->GetStringSelection();
-	int confirm = wxMessageBox("Delete preset '" + currentPreset + "'?",
-	                            "Confirm Delete", wxYES_NO | wxICON_QUESTION, this);
-	if (confirm != wxYES) return;
-
-	presetMgr.removePreset(currentPreset.ToStdString());
-	m_config.presetName = presetMgr.getPresetNames().front();
-	RefreshPresetControls();
 }
 
 void DungeonGeneratorDialog::OnClose(wxCloseEvent& event) {

@@ -44,6 +44,9 @@ private:
 	// Event handlers
 	void OnPresetChanged(wxCommandEvent& event);
 	void OnGenerate(wxCommandEvent& event);
+	void OnNewPreset(wxCommandEvent& event);
+	void OnEditPreset(wxCommandEvent& event);
+	void OnDuplicatePreset(wxCommandEvent& event);
 	void OnDeletePreset(wxCommandEvent& event);
 	void OnClose(wxCloseEvent& event);
 
