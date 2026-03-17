@@ -687,6 +687,10 @@ void MainMenuBar::OnAreaDecoration(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.ShowAreaDecorationDialog();
 }
 
+void MainMenuBar::OnDungeonGenerator(wxCommandEvent& WXUNUSED(event)) {
+	g_gui.ShowDungeonGeneratorDialog();
+}
+
 void MainMenuBar::OnStructureManager(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.ShowStructureManagerDialog();
 }

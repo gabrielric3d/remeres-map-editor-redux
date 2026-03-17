@@ -247,6 +247,7 @@
 	-->
 	<menu name="Tools">
 		<item name="Area Decoration" action="AREA_DECORATION" help="Opens the area decoration tool for placing decorative items in regions."/>
+		<item name="Dungeon Generator" action="DUNGEON_GENERATOR" help="Generate procedural dungeons with rooms, corridors, walls and decorations."/>
 		<item name="Structure Manager" action="STRUCTURE_MANAGER" help="Manage and paste reusable map structures."/>
 		<separator/>
 		<item name="Radial Wheel" hotkey="Shift+Q" action="RADIAL_WHEEL" help="Opens the radial quick-access wheel for common actions."/>

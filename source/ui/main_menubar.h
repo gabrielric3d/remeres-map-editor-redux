@@ -171,6 +171,7 @@ namespace MenuBar {
 		SHOW_CREATURE_NAMES,
 		EXPERIMENTAL_FOG,
 		AREA_DECORATION,
+		DUNGEON_GENERATOR,
 		DEPLOY_MAP,
 		STRUCTURE_MANAGER,
 		RADIAL_WHEEL,
@@ -333,6 +334,7 @@ public:
 
 	void OnDebugViewDat(wxCommandEvent& event);
 	void OnAreaDecoration(wxCommandEvent& event);
+	void OnDungeonGenerator(wxCommandEvent& event);
 	void OnStructureManager(wxCommandEvent& event);
 	void OnDeployMap(wxCommandEvent& event);
 	void OnRadialWheel(wxCommandEvent& event);

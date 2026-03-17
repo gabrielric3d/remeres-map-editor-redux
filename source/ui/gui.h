@@ -352,9 +352,12 @@ public:
 	TilePropertiesPanel* tile_properties_panel;
 	AreaDecorationDialog* area_decoration_dialog = nullptr;
 	StructureManagerDialog* structure_manager_dialog = nullptr;
+	class DungeonGeneratorDialog* dungeon_generator_dialog = nullptr;
 
 	void ShowAreaDecorationDialog();
 	void DestroyAreaDecorationDialog();
+	void ShowDungeonGeneratorDialog();
+	void DestroyDungeonGeneratorDialog();
 	void ShowStructureManagerDialog();
 	void DestroyStructureManagerDialog();
 

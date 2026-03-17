@@ -177,6 +177,7 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(FLOOR_15, wxITEM_RADIO, OnChangeFloor);
 
 	MAKE_ACTION(AREA_DECORATION, wxITEM_NORMAL, OnAreaDecoration);
+	MAKE_ACTION(DUNGEON_GENERATOR, wxITEM_NORMAL, OnDungeonGenerator);
 	MAKE_ACTION(STRUCTURE_MANAGER, wxITEM_NORMAL, OnStructureManager);
 	MAKE_ACTION(RADIAL_WHEEL, wxITEM_NORMAL, OnRadialWheel);
 	MAKE_ACTION(DEBUG_VIEW_DAT, wxITEM_NORMAL, OnDebugViewDat);
@@ -303,6 +304,7 @@ void MenuBarActionManager::UpdateState(MainMenuBar* mb) {
 	mb->EnableItem(LIVE_CLOSE, is_live);
 
 	mb->EnableItem(AREA_DECORATION, has_map);
+	mb->EnableItem(DUNGEON_GENERATOR, has_map);
 	mb->EnableItem(DEBUG_VIEW_DAT, loaded);
 
 	mb->UpdateFloorMenu();

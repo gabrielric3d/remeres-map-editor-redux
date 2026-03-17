@@ -111,7 +111,9 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_manager.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/area_decoration.h
+    ${CMAKE_CURRENT_LIST_DIR}/editor/dungeon_generator.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_generator_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/structure_manager_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_rule_from_selection_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/cluster_preview_window.h
@@ -480,7 +482,10 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_manager.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/area_decoration.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/editor/dungeon_generator.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/editor/dungeon_generator_preset.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_generator_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/structure_manager_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_rule_from_selection_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/cluster_preview_window.cpp

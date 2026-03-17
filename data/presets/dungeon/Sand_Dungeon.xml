@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dungeon_preset name="Sand Dungeon" version="1.0">
+	<terrain ground="419" patch="231" fill="21197" brush="8033" />
+	<walls north="1061" south="1061" east="1060" west="1060" nw="1064" ne="1064" sw="1064" se="1064" pillar="1062" />
+	<borders north="4762" south="4760" east="4763" west="4761" nw="4767" ne="4766" sw="4765" se="4764" inner_nw="4764" inner_ne="4765" inner_sw="4766" inner_se="4767" />
+	<brush_borders north="8034" south="8036" east="8035" west="8037" nw="8041" ne="8038" sw="8040" se="8039" inner_nw="8044" inner_ne="8045" inner_sw="8043" inner_se="8042" />
+	<details>
+		<group chance="0.05" placement="anywhere">
+			<item id="2234" />
+			<item id="2230" />
+			<item id="2231" />
+			<item id="2227" />
+			<item id="2222" />
+			<item id="2225" />
+			<item id="2237" />
+		</group>
+		<group chance="0.02" placement="anywhere">
+			<item id="1409" />
+			<item id="1408" />
+			<item id="1407" />
+			<item id="2023" />
+		</group>
+		<group chance="0.03" placement="north_wall">
+			<item id="1450" />
+			<item id="1451" />
+			<item id="1444" />
+			<item id="1453" />
+			<item id="9306" />
+			<item id="9243" />
+		</group>
+		<group chance="0.03" placement="center">
+			<item id="1445" />
+			<item id="1550" />
+			<item id="1560" />
+			<item id="1561" />
+			<item id="7058" />
+			<item id="6972" />
+			<item id="1486" />
+			<item id="1549" />
+		</group>
+		<group chance="0.015" placement="anywhere">
+			<item id="1410" />
+			<item id="1415" />
+			<item id="1644" />
+			<item id="2610" />
+			<item id="2616" />
+		</group>
+		<group chance="0.02" placement="anywhere">
+			<item id="1485" />
+			<item id="1484" />
+		</group>
+	</details>
+	<hangables chance="0.15" enable_vertical="true">
+		<horizontal id="5058" />
+		<horizontal id="1474" />
+		<horizontal id="5016" />
+		<horizontal id="5018" />
+		<horizontal id="9517" />
+		<horizontal id="7234" />
+		<horizontal id="1829" />
+		<horizontal id="1900" />
+		<horizontal id="1901" />
+		<horizontal id="1902" />
+		<horizontal id="9731" />
+		<vertical id="5060" />
+		<vertical id="1472" />
+		<vertical id="5017" />
+		<vertical id="5019" />
+		<vertical id="9518" />
+		<vertical id="7235" />
+		<vertical id="1830" />
+		<vertical id="7139" />
+		<vertical id="7138" />
+		<vertical id="7137" />
+		<vertical id="9732" />
+	</hangables>
+</dungeon_preset>

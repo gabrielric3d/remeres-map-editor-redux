@@ -50,6 +50,7 @@
 #include "ui/welcome_dialog.h"
 #include "ui/tool_options_window.h"
 #include "ui/dialogs/area_decoration_dialog.h"
+#include "ui/dialogs/dungeon_generator_dialog.h"
 #include "ui/dialogs/structure_manager_window.h"
 
 #include "rendering/ui/toast_renderer.h"
@@ -519,6 +520,30 @@ void GUI::DestroyAreaDecorationDialog() {
 	if (area_decoration_dialog) {
 		area_decoration_dialog->Destroy();
 		area_decoration_dialog = nullptr;
+	}
+}
+
+//=============================================================================
+// Dungeon Generator Dialog management
+
+void GUI::ShowDungeonGeneratorDialog() {
+	if (!IsEditorOpen()) {
+		return;
+	}
+
+	if (dungeon_generator_dialog) {
+		dungeon_generator_dialog->Show();
+		dungeon_generator_dialog->Raise();
+	} else {
+		dungeon_generator_dialog = newd DungeonGeneratorDialog(root);
+		dungeon_generator_dialog->Show();
+	}
+}
+
+void GUI::DestroyDungeonGeneratorDialog() {
+	if (dungeon_generator_dialog) {
+		dungeon_generator_dialog->Destroy();
+		dungeon_generator_dialog = nullptr;
 	}
 }
 
