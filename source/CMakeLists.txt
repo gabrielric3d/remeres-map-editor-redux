@@ -116,6 +116,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_editor_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_generator_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_preset_editor_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/instance_layout_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_border_grid_panel.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/structure_manager_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_rule_from_selection_dialog.h
@@ -491,6 +492,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_editor_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_generator_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_preset_editor_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/instance_layout_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_border_grid_panel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/structure_manager_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_rule_from_selection_dialog.cpp

@@ -696,6 +696,10 @@ void MainMenuBar::OnStructureManager(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.ShowStructureManagerDialog();
 }
 
+void MainMenuBar::OnInstanceLayoutGenerator(wxCommandEvent& WXUNUSED(event)) {
+	g_gui.ShowInstanceLayoutDialog();
+}
+
 void MainMenuBar::OnRadialWheel(wxCommandEvent& WXUNUSED(event)) {
 	if (MapTab* tab = g_gui.GetCurrentMapTab()) {
 		if (MapWindow* window = tab->GetView()) {

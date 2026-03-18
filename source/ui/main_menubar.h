@@ -174,6 +174,7 @@ namespace MenuBar {
 		DUNGEON_GENERATOR,
 		DEPLOY_MAP,
 		STRUCTURE_MANAGER,
+		INSTANCE_LAYOUT_GENERATOR,
 		RADIAL_WHEEL,
 		SHOW_WALL_BORDERS,
 		SHOW_MOUNTAIN_OVERLAY,
@@ -336,6 +337,7 @@ public:
 	void OnAreaDecoration(wxCommandEvent& event);
 	void OnDungeonGenerator(wxCommandEvent& event);
 	void OnStructureManager(wxCommandEvent& event);
+	void OnInstanceLayoutGenerator(wxCommandEvent& event);
 	void OnDeployMap(wxCommandEvent& event);
 	void OnRadialWheel(wxCommandEvent& event);
 

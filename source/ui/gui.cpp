@@ -52,6 +52,7 @@
 #include "ui/dialogs/area_decoration_dialog.h"
 #include "ui/dialogs/dungeon_generator_dialog.h"
 #include "ui/dialogs/structure_manager_window.h"
+#include "ui/dialogs/instance_layout_dialog.h"
 
 #include "rendering/ui/toast_renderer.h"
 #include "live/live_client.h"
@@ -84,6 +85,7 @@ GUI::~GUI() {
 	spdlog::default_logger()->flush();
 
 	DestroyAreaDecorationDialog();
+	DestroyInstanceLayoutDialog();
 
 	// aui_manager and tabbook are owned by MainFrame, we don't delete them here.
 	spdlog::info("GUI destructor finished");
@@ -564,6 +566,31 @@ void GUI::DestroyStructureManagerDialog() {
 	if (structure_manager_dialog) {
 		structure_manager_dialog->Destroy();
 		structure_manager_dialog = nullptr;
+	}
+}
+
+//=============================================================================
+// Instance Layout Dialog management
+
+void GUI::ShowInstanceLayoutDialog() {
+	if (!IsEditorOpen()) {
+		return;
+	}
+
+	if (instance_layout_dialog) {
+		instance_layout_dialog->UpdateEditor();
+		instance_layout_dialog->Show();
+		instance_layout_dialog->Raise();
+	} else {
+		instance_layout_dialog = newd InstanceLayoutDialog(root);
+		instance_layout_dialog->Show();
+	}
+}
+
+void GUI::DestroyInstanceLayoutDialog() {
+	if (instance_layout_dialog) {
+		instance_layout_dialog->Destroy();
+		instance_layout_dialog = nullptr;
 	}
 }
 

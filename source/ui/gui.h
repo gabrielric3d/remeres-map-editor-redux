@@ -59,6 +59,7 @@ class ToolOptionsWindow;
 class TilePropertiesPanel;
 class AreaDecorationDialog;
 class StructureManagerDialog;
+class InstanceLayoutDialog;
 
 wxDECLARE_EVENT(EVT_UPDATE_MENUS, wxCommandEvent);
 
@@ -353,6 +354,7 @@ public:
 	AreaDecorationDialog* area_decoration_dialog = nullptr;
 	StructureManagerDialog* structure_manager_dialog = nullptr;
 	class DungeonGeneratorDialog* dungeon_generator_dialog = nullptr;
+	InstanceLayoutDialog* instance_layout_dialog = nullptr;
 
 	void ShowAreaDecorationDialog();
 	void DestroyAreaDecorationDialog();
@@ -360,6 +362,8 @@ public:
 	void DestroyDungeonGeneratorDialog();
 	void ShowStructureManagerDialog();
 	void DestroyStructureManagerDialog();
+	void ShowInstanceLayoutDialog();
+	void DestroyInstanceLayoutDialog();
 
 	// Rectangle pick mode for area decoration dialog
 	using RectanglePickComplete = std::function<void(const Position&, const Position&)>;
