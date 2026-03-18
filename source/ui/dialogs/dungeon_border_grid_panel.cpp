@@ -162,7 +162,7 @@ void DungeonSlotGridPanel::DrawSlot(wxDC& dc, DungeonSlotPosition pos, int x, in
 		}
 	} else {
 		// Empty: draw subtle background
-		dc.SetBrush(wxBrush(wxColour(30, 30, 40)));
+		dc.SetBrush(wxBrush(Theme::Get(Theme::Role::Header)));
 		dc.SetPen(*wxTRANSPARENT_PEN);
 		dc.DrawRectangle(innerX, innerY, innerW, innerH);
 	}
