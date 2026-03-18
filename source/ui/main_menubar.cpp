@@ -539,8 +539,9 @@ void MainMenuBar::OnMapProperties(wxCommandEvent& WXUNUSED(event)) {
 		*g_gui.GetCurrentEditor()
 	);
 
-	if (properties->ShowModal() == 0) {
-		// FAIL!
+	int result = properties->ShowModal();
+	if (result != wxID_OK && result != wxID_CANCEL) {
+		// Version conversion failure
 		g_gui.CloseAllEditors();
 	}
 	properties->Destroy();

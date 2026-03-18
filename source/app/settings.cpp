@@ -325,6 +325,8 @@ void Settings::IO(IOMode mode) {
 	Int(FIND_ITEM_MODE, 0);
 	Int(JUMP_TO_ITEM_MODE, 0);
 	String(GROUND_REPLACE_MODIFIER, "Alt");
+	Bool(MAP_PROPERTIES_REMEMBER_SAVE_LOCATION, false);
+	String(MAP_PROPERTIES_DEFAULT_SAVE_LOCATION, "");
 
 	section("Graphics");
 	Bool(TEXTURE_MANAGEMENT, true);

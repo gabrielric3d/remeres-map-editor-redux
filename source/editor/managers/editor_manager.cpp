@@ -25,6 +25,8 @@
 #include "io/iomap_otbm.h"
 #include "ui/dialogs/open_map_dialog.h"
 #include "ui/main_frame.h"
+#include "ui/map/map_properties_window.h"
+#include "editor/copybuffer.h"
 
 #include <set>
 #include <sstream>
@@ -219,6 +221,21 @@ bool EditorManager::NewMap() {
 	spdlog::info("EditorManager::NewMap - Creating new map");
 	g_gui.FinishWelcomeDialog();
 
+	// Capture selection from current editor (if any) before creating new map
+	Editor* source_editor = GetCurrentEditor();
+	std::unique_ptr<CopyBuffer> selection_snapshot;
+	bool has_selection_snapshot = false;
+	if (source_editor && source_editor->hasSelection()) {
+		Position selection_min = source_editor->selection.minPosition();
+		selection_snapshot = std::make_unique<CopyBuffer>();
+		selection_snapshot->copy(*source_editor, selection_min.z);
+		has_selection_snapshot = selection_snapshot->canPaste();
+		if (!has_selection_snapshot) {
+			selection_snapshot.reset();
+		}
+	}
+
+	// Create empty editor
 	std::unique_ptr<Editor> editor;
 	try {
 		editor = EditorFactory::CreateEmpty(g_gui.copybuffer);
@@ -227,9 +244,26 @@ bool EditorManager::NewMap() {
 		return false;
 	}
 
+	// Show Map Properties dialog before creating the map tab
+	MapPropertiesWindow properties(g_gui.root, nullptr, *editor, has_selection_snapshot);
+	int result = properties.ShowModal();
+	bool create_from_selection = properties.ShouldCreateFromSelection();
+
+	if (result != wxID_OK) {
+		// User cancelled - editor is automatically cleaned up by unique_ptr
+		return false;
+	}
+
+	// Create map tab
 	auto* mapTab = newd MapTab(g_gui.tabbook, editor.release());
 	mapTab->OnSwitchEditorMode(SELECTION_MODE);
-	mapTab->GetMap()->clearChanges();
+
+	// Paste selection if requested
+	if (create_from_selection && selection_snapshot && selection_snapshot->canPaste()) {
+		selection_snapshot->paste(*mapTab->GetEditor(), Position(0, 0, 7));
+	} else {
+		mapTab->GetMap()->clearChanges();
+	}
 
 	g_status.SetStatusText("Created new map");
 	g_status.UpdateTitle();
