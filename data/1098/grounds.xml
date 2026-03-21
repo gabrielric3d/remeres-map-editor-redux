@@ -3381,7 +3381,7 @@
 		<border align="outer" id="246" />
 		<border align="outer" to="none" id="246" />
 	</brush>
-	<brush name="cream ground" type="ground" server_lookid="47085" z-order="6400" activated="true">
+	<brush name="cream ground" type="ground" server_lookid="47085" z-order="6200" activated="true">
 		<item id="47085" chance="100" />
 		<item id="47086" chance="100" />
 		<item id="47087" chance="100" />
@@ -3577,4 +3577,29 @@
 		<border align="outer" id="275" borderlist="274, 275, 273" />
 		<border align="outer" to="none" id="275" borderlist="274, 275, 273" />
 	</brush>
+	<brush name="dark dirt 2" type="ground" server_lookid="45581" z-order="2800" activated="true">
+		<item id="45581" chance="200" />
+		<border align="outer" id="280" />
+		<!-- <border align="inner" to="none" id="280" /> -->
+	</brush>
+
+	<brush name="dead grass" type="ground" server_lookid="52602" z-order="1200" activated="true">
+		<item id="52602" chance="2500" />
+		<item id="52603" chance="10" />
+		<item id="52604" chance="25" />
+		<item id="52605" chance="25" />
+		<item id="52606" chance="25" />
+		<item id="52607" chance="25" />
+		<item id="52608" chance="25" />
+		<item id="52609" chance="25" />
+		<item id="52610" chance="15" />
+		<item id="52611" chance="25" />
+		<item id="52612" chance="25" />
+		<item id="52615" chance="25" />
+		<item id="52617" chance="20" />
+		<item id="52608" chance="20" />
+		<border align="outer" id="2" />
+		<border align="inner" to="none" id="1" />
+	</brush>
+
 </materials>

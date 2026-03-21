@@ -8,7 +8,9 @@
 		
 		
 		
+		
 		 -- mountain edge border (old) --	
+		
 		
 		
 		
@@ -38,7 +40,9 @@
 		
 		
 		
+		
 		 -- mountain edge border (new) --	
+		
 		
 		
 		
@@ -68,7 +72,9 @@
 		
 		
 		
+		
 		 -- grass border --
+		
 		
 		
 		
@@ -98,7 +104,9 @@
 		
 		
 		
+		
 		 -- Flat roof border --
+		
 		
 		
 		
@@ -128,7 +136,9 @@
 		
 		
 		
+		
 		 -- Sea border --
+		
 		
 		
 		
@@ -158,7 +168,9 @@
 		
 		
 		
+		
 		 -- snow border --
+		
 		
 		
 		
@@ -188,7 +200,9 @@
 		
 		
 		
+		
 		 -- cave border --
+		
 		
 		
 		
@@ -218,7 +232,9 @@
 		
 		
 		
+		
 		 -- lawn border --
+		
 		
 		
 		
@@ -248,7 +264,9 @@
 		
 		
 		
+		
 		 -- jungle grass border --
+		
 		
 		
 		
@@ -278,7 +296,9 @@
 		
 		
 		
+		
 		 -- mountain edge border --
+		
 		
 		
 		
@@ -308,7 +328,9 @@
 		
 		
 		
+		
 		 -- rock border --
+		
 		
 		
 		
@@ -338,7 +360,9 @@
 		
 		
 		
+		
 		 -- gravel border --
+		
 		
 		
 		
@@ -368,7 +392,9 @@
 		
 		
 		
+		
 		 -- dirt border --
+		
 		
 		
 		
@@ -398,7 +424,9 @@
 		
 		
 		
+		
 		 -- light dirt border --
+		
 		
 		
 		
@@ -428,7 +456,9 @@
 		
 		
 		
+		
 		 -- swamp border --
+		
 		
 		
 		
@@ -458,7 +488,9 @@
 		
 		
 		
+		
 		 -- desert sand border --
+		
 		
 		
 		
@@ -488,7 +520,9 @@
 		
 		
 		
+		
 		 -- beach sand border --
+		
 		
 		
 		
@@ -518,7 +552,9 @@
 		
 		
 		
+		
 		 -- lava border --
+		
 		
 		
 		
@@ -548,7 +584,9 @@
 		
 		
 		
+		
 		 -- hard rock border --
+		
 		
 		
 		
@@ -578,7 +616,9 @@
 		
 		
 		
+		
 		 -- cave wall border --
+		
 		
 		
 		
@@ -608,7 +648,9 @@
 		
 		
 		
+		
 		 -- stone cave wall border --
+		
 		
 		
 		
@@ -638,7 +680,9 @@
 		
 		
 		
+		
 		 -- brick roof, vertical--
+		
 		
 		
 		
@@ -661,7 +705,9 @@
 		
 		
 		
+		
 		 -- brick roof, left--
+		
 		
 		
 		
@@ -684,7 +730,9 @@
 		
 		
 		
+		
 		 -- brick roof, right --
+		
 		
 		
 		
@@ -707,7 +755,9 @@
 		
 		
 		
+		
 		 -- brick roof, up --
+		
 		
 		
 		
@@ -730,7 +780,9 @@
 		
 		
 		
+		
 		 -- brick roof, horizontal --
+		
 		
 		
 		
@@ -753,7 +805,9 @@
 		
 		
 		
+		
 		 -- brick roof, down --
+		
 		
 		
 		
@@ -776,7 +830,9 @@
 		
 		
 		
+		
 		 -- normal mountain gravel border --
+		
 		
 		
 		
@@ -806,7 +862,9 @@
 		
 		
 		
+		
 		 -- partial mountain gravel border --
+		
 		
 		
 		
@@ -828,7 +886,9 @@
 		
 		
 		
+		
 		 -- mountain inner border --
+		
 		
 		
 		
@@ -1041,7 +1101,9 @@
 		
 		
 		
+		
 		 -- lava rock border --
+		
 		
 		
 		
@@ -1071,7 +1133,9 @@
 		
 		
 		
+		
 		 -- Flat brown bomboo roof border --
+		
 		
 		
 		
@@ -1101,7 +1165,9 @@
 		
 		
 		
+		
 		 -- Flat green bamboo roof border --
+		
 		
 		
 		
@@ -1131,7 +1197,9 @@
 		
 		
 		
+		
 		 -- snowY sea border (NOT SNOW BORDER TO SEA, JUST A SNOWY SEA BORDER (Confusing yes... ) --
+		
 		
 		
 		
@@ -1161,7 +1229,9 @@
 		
 		
 		
+		
 		 -- wooden roof, up --
+		
 		
 		
 		
@@ -1184,7 +1254,9 @@
 		
 		
 		
+		
 		 -- wooden roof, horizontal --
+		
 		
 		
 		
@@ -1207,7 +1279,9 @@
 		
 		
 		
+		
 		 -- wooden roof, down --
+		
 		
 		
 		
@@ -1230,7 +1304,9 @@
 		
 		
 		
+		
 		 -- wooden roof, left --
+		
 		
 		
 		
@@ -1253,7 +1329,9 @@
 		
 		
 		
+		
 		 -- wooden roof, vertical --
+		
 		
 		
 		
@@ -1276,7 +1354,9 @@
 		
 		
 		
+		
 		 -- wooden roof, right --
+		
 		
 		
 		
@@ -1299,7 +1379,9 @@
 		
 		
 		
+		
 		 -- dark wooden floor border --
+		
 		
 		
 		
@@ -1329,7 +1411,9 @@
 		
 		
 		
+		
 		 -- wooden floor border --
+		
 		
 		
 		
@@ -1359,7 +1443,9 @@
 		
 		
 		
+		
 		 -- melting ground border --
+		
 		
 		
 		
@@ -1389,7 +1475,9 @@
 		
 		
 		
+		
 		 -- ice border--
+		
 		
 		
 		
@@ -1419,7 +1507,9 @@
 		
 		
 		
+		
 		 -- frozen mud slim border--
+		
 		
 		
 		
@@ -1449,7 +1539,9 @@
 		
 		
 		
+		
 		 -- wooden raft border--
+		
 		
 		
 		
@@ -1479,7 +1571,9 @@
 		
 		
 		
+		
 		 -- frozen mud thick border--
+		
 		
 		
 		
@@ -1509,7 +1603,9 @@
 		
 		
 		
+		
 		 -- frozen mud sea border --
+		
 		
 		
 		
@@ -1539,7 +1635,9 @@
 		
 		
 		
+		
 		 -- snow sea border --
+		
 		
 		
 		
@@ -1569,8 +1667,10 @@
 		
 		
 		
+		
 		 -- invisible border --
 	
+		
 		
 		
 		
@@ -1604,7 +1704,9 @@
 		
 		
 		
+		
 		 -- snowy mountain gravel border --
+		
 		
 		
 		
@@ -1634,7 +1736,9 @@
 		
 		
 		
+		
 		 -- "lofty" (Thanks MMB :P) snow border--
+		
 		
 		
 		
@@ -1664,7 +1768,9 @@
 		
 		
 		
+		
 		 -- partial snowy mountain gravel border --
+		
 		
 		
 		
@@ -1688,7 +1794,9 @@
 		
 		
 		
+		
 		 -- inner icy mountain border--
+		
 		
 		
 		
@@ -1710,7 +1818,9 @@
 		
 		
 		
+		
 		 -- Fur roof border --
+		
 		
 		
 		
@@ -1740,7 +1850,9 @@
 		
 		
 		
+		
 		 -- dark swamp border --
+		
 		
 		
 		
@@ -1770,7 +1882,9 @@
 		
 		
 		
+		
 		 -- thick grass border --
+		
 		
 		
 		
@@ -1800,7 +1914,9 @@
 		
 		
 		
+		
 		 -- thick cave border --
+		
 		
 		
 		
@@ -1830,7 +1946,9 @@
 		
 		
 		
+		
 		 -- icy cave wall border --
+		
 		
 		
 		
@@ -1860,7 +1978,9 @@
 		
 		
 		
+		
 		 -- icy cave wall border --
+		
 		
 		
 		
@@ -1880,7 +2000,9 @@
 		
 		
 		
+		
 		 -- icy cave wall border --
+		
 		
 		
 		
@@ -1900,7 +2022,9 @@
 		
 		
 		
+		
 		 -- dirt mountain ground border --
+		
 		
 		
 		
@@ -1930,7 +2054,9 @@
 		
 		
 		
+		
 		 -- ugly cobblestone border --
+		
 		
 		
 		
@@ -1960,7 +2086,9 @@
 		
 		
 		
+		
 		 -- dark cobblestone border --
+		
 		
 		
 		
@@ -1990,7 +2118,9 @@
 		
 		
 		
+		
 		 -- dried grass border --
+		
 		
 		
 		
@@ -2020,7 +2150,9 @@
 		
 		
 		
+		
 		 -- thick sand border --
+		
 		
 		
 		
@@ -2050,7 +2182,9 @@
 		
 		
 		
+		
 		 -- normal dirt mountain gravel --
+		
 		
 		
 		
@@ -2080,7 +2214,9 @@
 		
 		
 		
+		
 		 -- thick sand border --
+		
 		
 		
 		
@@ -2110,7 +2246,9 @@
 		
 		
 		
+		
 		 -- "lofty" (Thanks MMB :P) ice border--
+		
 		
 		
 		
@@ -2140,7 +2278,9 @@
 		
 		
 		
+		
 		 -- dark sand dirt border --
+		
 		
 		
 		
@@ -2170,7 +2310,9 @@
 		
 		
 		
+		
 		 -- lush grass border --
+		
 		
 		
 		
@@ -2200,7 +2342,9 @@
 		
 		
 		
+		
 		 -- mossy floor border --
+		
 		
 		
 		
@@ -2230,7 +2374,9 @@
 		
 		
 		
+		
 		 -- forest floor border --
+		
 		
 		
 		
@@ -2260,7 +2406,9 @@
 		
 		
 		
+		
 		 -- brown sand border --
+		
 		
 		
 		
@@ -2290,7 +2438,9 @@
 		
 		
 		
+		
 		 -- dirt mud border --
+		
 		
 		
 		
@@ -2320,7 +2470,9 @@
 		
 		
 		
+		
 		 -- dark dirt mud border --
+		
 		
 		
 		
@@ -2350,7 +2502,9 @@
 		
 		
 		
+		
 		 -- unknown brown dirt border --
+		
 		
 		
 		
@@ -2380,7 +2534,9 @@
 		
 		
 		
+		
 		 -- pink sand border --
+		
 		
 		
 		
@@ -2410,7 +2566,9 @@
 		
 		
 		
+		
 		 -- dark sand border --
+		
 		
 		
 		
@@ -2440,7 +2598,9 @@
 		
 		
 		
+		
 		 -- mud sand border --
+		
 		
 		
 		
@@ -2470,7 +2630,9 @@
 		
 		
 		
+		
 		 -- mud sand brown border (unused) --
+		
 		
 		
 		
@@ -2500,7 +2662,9 @@
 		
 		
 		
+		
 		 -- light dirt border --
+		
 		
 		
 		
@@ -2530,7 +2694,9 @@
 		
 		
 		
+		
 		 -- cake tile border --
+		
 		
 		
 		
@@ -2560,7 +2726,9 @@
 		
 		
 		
+		
 		 -- venore swamp border --
+		
 		
 		
 		
@@ -2590,7 +2758,9 @@
 		
 		
 		
+		
 		 -- muddy floor border --
+		
 		
 		
 		
@@ -2620,7 +2790,9 @@
 		
 		
 		
+		
 		 -- venore muddy floor border --
+		
 		
 		
 		
@@ -2650,7 +2822,9 @@
 		
 		
 		
+		
 		 -- darkest mud border --
+		
 		
 		
 		
@@ -2680,7 +2854,9 @@
 		
 		
 		
+		
 		 -- purple mud border --
+		
 		
 		
 		
@@ -2710,7 +2886,9 @@
 		
 		
 		
+		
 		 -- mysterious border --
+		
 		
 		
 		
@@ -2740,7 +2918,9 @@
 		
 		
 		
+		
 		 -- dark spikes border --
+		
 		
 		
 		
@@ -2770,7 +2950,9 @@
 		
 		
 		
+		
 		 -- red spikes border --
+		
 		
 		
 		
@@ -2800,7 +2982,9 @@
 		
 		
 		
+		
 		 -- slime fungus border --
+		
 		
 		
 		
@@ -2830,7 +3014,9 @@
 		
 		
 		
+		
 		 -- blue sea floor border --
+		
 		
 		
 		
@@ -2860,7 +3046,9 @@
 		
 		
 		
+		
 		 -- brown/green sea floor border --
+		
 		
 		
 		
@@ -2890,7 +3078,9 @@
 		
 		
 		
+		
 		 -- crystal floor border --
+		
 		
 		
 		
@@ -2920,7 +3110,9 @@
 		
 		
 		
+		
 		 -- crystal floor depth border --
+		
 		
 		
 		
@@ -2950,7 +3142,9 @@
 		
 		
 		
+		
 		 -- basalt border --
+		
 		
 		
 		
@@ -2980,7 +3174,9 @@
 		
 		
 		
+		
 		 -- mold border --
+		
 		
 		
 		
@@ -3010,7 +3206,9 @@
 		
 		
 		
+		
 		 -- mushroom sponge border --
+		
 		
 		
 		
@@ -3040,7 +3238,9 @@
 		
 		
 		
+		
 		 -- salt floor border --
+		
 		
 		
 		
@@ -3070,7 +3270,9 @@
 		
 		
 		
+		
 		 -- cookie border --
+		
 		
 		
 		
@@ -3100,7 +3302,9 @@
 		
 		
 		
+		
 		 -- branches border --
+		
 		
 		
 		
@@ -3130,7 +3334,9 @@
 		
 		
 		
+		
 		 -- grey floor (unknown4) border --
+		
 		
 		
 		
@@ -3160,7 +3366,9 @@
 		
 		
 		
+		
 		 -- serpent seacrest ground border --
+		
 		
 		
 		
@@ -3190,7 +3398,9 @@
 		
 		
 		
+		
 		 -- muddy water border --
+		
 		
 		
 		
@@ -3220,7 +3430,9 @@
 		
 		
 		
+		
 		 -- acid border --
+		
 		
 		
 		
@@ -3250,7 +3462,9 @@
 		
 		
 		
+		
 		 -- dirty water border --
+		
 		
 		
 		
@@ -3280,7 +3494,9 @@
 		
 		
 		
+		
 		 -- shallow water border --
+		
 		
 		
 		
@@ -3310,7 +3526,9 @@
 		
 		
 		
+		
 		 -- small brook water border --
+		
 		
 		
 		
@@ -3340,7 +3558,9 @@
 		
 		
 		
+		
 		 -- crystal dirt border --
+		
 		
 		
 		
@@ -3370,7 +3590,9 @@
 		
 		
 		
+		
 		 -- coubblestone border --
+		
 		
 		
 		
@@ -3400,7 +3622,9 @@
 		
 		
 		
+		
 		 -- oramond pavement border --
+		
 		
 		
 		
@@ -3430,7 +3654,9 @@
 		
 		
 		
+		
 		 -- oramond border --
+		
 		
 		
 		
@@ -3460,7 +3686,9 @@
 		
 		
 		
+		
 		 -- oramond other pavement border --
+		
 		
 		
 		
@@ -3490,7 +3718,9 @@
 		
 		
 		
+		
 		 -- venore cobblestone border --
+		
 		
 		
 		
@@ -3520,7 +3750,9 @@
 		
 		
 		
+		
 		 -- venore plaster border --
+		
 		
 		
 		
@@ -3550,7 +3782,9 @@
 		
 		
 		
+		
 		 -- terracotta border --
+		
 		
 		
 		
@@ -3580,7 +3814,9 @@
 		
 		
 		
+		
 		 -- roshamuul border --
+		
 		
 		
 		
@@ -3610,7 +3846,9 @@
 		
 		
 		
+		
 		 -- unknown1 border --
+		
 		
 		
 		
@@ -3640,7 +3878,9 @@
 		
 		
 		
+		
 		 -- darkest wooden floor border --
+		
 		
 		
 		
@@ -3660,7 +3900,9 @@
 		
 		
 		
+		
 		 -- light wooden floor border --
+		
 		
 		
 		
@@ -3690,7 +3932,9 @@
 		
 		
 		
+		
 		 -- timber floor border --
+		
 		
 		
 		
@@ -3720,7 +3964,9 @@
 		
 		
 		
+		
 		 -- grimy wooden plank horizontal border --
+		
 		
 		
 		
@@ -3746,7 +3992,9 @@
 		
 		
 		
+		
 		 -- grimy wooden plank vertical border --
+		
 		
 		
 		
@@ -3772,7 +4020,9 @@
 		
 		
 		
+		
 		 -- pink wooden plank border --
+		
 		
 		
 		
@@ -3798,7 +4048,9 @@
 		
 		
 		
+		
 		 -- yellow pavement border --
+		
 		
 		
 		
@@ -3828,7 +4080,9 @@
 		
 		
 		
+		
 		 -- dark pavement border --
+		
 		
 		
 		
@@ -3858,7 +4112,9 @@
 		
 		
 		
+		
 		 -- serpent ground border --
+		
 		
 		
 		
@@ -3888,7 +4144,9 @@
 		
 		
 		
+		
 		 -- ice stone floor border --
+		
 		
 		
 		
@@ -3918,7 +4176,9 @@
 		
 		
 		
+		
 		 -- hive strucutre --
+		
 		
 		
 		
@@ -3948,7 +4208,9 @@
 		
 		
 		
+		
 		 -- red hive structure --
+		
 		
 		
 		
@@ -3978,7 +4240,9 @@
 		
 		
 		
+		
 		 -- dark hive structure --
+		
 		
 		
 		
@@ -4008,7 +4272,9 @@
 		
 		
 		
+		
 		 -- colourful honeycomb --
+		
 		
 		
 		
@@ -4038,7 +4304,9 @@
 		
 		
 		
+		
 		 -- bland honeycomb --
+		
 		
 		
 		
@@ -4068,7 +4336,9 @@
 		
 		
 		
+		
 		 -- ocean floor --
+		
 		
 		
 		
@@ -4098,7 +4368,9 @@
 		
 		
 		
+		
 		 -- krailos grass --
+		
 		
 		
 		
@@ -4128,7 +4400,9 @@
 		
 		
 		
+		
 		 -- krailos dirt --
+		
 		
 		
 		
@@ -4158,7 +4432,9 @@
 		
 		
 		
+		
 		 -- dark scaled ground --
+		
 		
 		
 		
@@ -4188,7 +4464,9 @@
 		
 		
 		
+		
 		 -- unknown7 --
+		
 		
 		
 		
@@ -4218,7 +4496,9 @@
 		
 		
 		
+		
 		 -- krailos orange --
+		
 		
 		
 		
@@ -4248,7 +4528,9 @@
 		
 		
 		
+		
 		 -- krailos yellow --
+		
 		
 		
 		
@@ -4278,7 +4560,9 @@
 		
 		
 		
+		
 		 -- krailos purple --
+		
 		
 		
 		
@@ -4308,7 +4592,9 @@
 		
 		
 		
+		
 		 -- unknown5 --
+		
 		
 		
 		
@@ -4338,7 +4624,9 @@
 		
 		
 		
+		
 		 -- unknown6 pink acid --
+		
 		
 		
 		
@@ -4368,7 +4656,9 @@
 		
 		
 		
+		
 		 -- lava new border --
+		
 		
 		
 		
@@ -4398,7 +4688,9 @@
 		
 		
 		
+		
 		 -- scale roof --
+		
 		
 		
 		
@@ -4428,7 +4720,9 @@
 		
 		
 		
+		
 		 -- rocky wall bottoms --
+		
 		
 		
 		
@@ -4450,7 +4744,9 @@
 		
 		
 		
+		
 		 -- striped marquee red white (vertical) --
+		
 		
 		
 		
@@ -4476,7 +4772,9 @@
 		
 		
 		
+		
 		 -- striped marquee red white (horizontal) --
+		
 		
 		
 		
@@ -4502,7 +4800,9 @@
 		
 		
 		
+		
 		 -- striped marquee blue yellow (vertical) --
+		
 		
 		
 		
@@ -4528,7 +4828,9 @@
 		
 		
 		
+		
 		 -- striped marquee blue yellow (horizontal) --
+		
 		
 		
 		
@@ -4554,7 +4856,9 @@
 		
 		
 		
+		
 		 -- marquee green (vertical) --
+		
 		
 		
 		
@@ -4580,7 +4884,9 @@
 		
 		
 		
+		
 		 -- marquee green (horizontal) --
+		
 		
 		
 		
@@ -4606,7 +4912,9 @@
 		
 		
 		
+		
 		 -- marquee blue (vertical) --
+		
 		
 		
 		
@@ -4632,7 +4940,9 @@
 		
 		
 		
+		
 		 -- marquee blue (horizontal) --
+		
 		
 		
 		
@@ -4658,7 +4968,9 @@
 		
 		
 		
+		
 		 -- broken blue marble floor --
+		
 		
 		
 		
@@ -4688,7 +5000,9 @@
 		
 		
 		
+		
 		 -- orange zao carpet --
+		
 		
 		
 		
@@ -4718,7 +5032,9 @@
 		
 		
 		
+		
 		 -- brown zao carpet --
+		
 		
 		
 		
@@ -4748,7 +5064,9 @@
 		
 		
 		
+		
 		 -- jungle grass with wather border --
+		
 		
 		
 		
@@ -4778,7 +5096,9 @@
 		
 		
 		
+		
 		 -- mountain two --
+		
 		
 		
 		
@@ -4808,7 +5128,9 @@
 		
 		
 		
+		
 		 -- underworld scratched mountain
+		
 		
 		
 		
@@ -4838,7 +5160,9 @@
 		
 		
 		
+		
 		 -- rotten mountain --
+		
 		
 		
 		
@@ -4868,7 +5192,9 @@
 		
 		
 		
+		
 		 -- rotten border --
+		
 		
 		
 		
@@ -4898,7 +5224,9 @@
 		
 		
 		
+		
 		 -- stone pavement lighter --
+		
 		
 		
 		
@@ -4928,7 +5256,9 @@
 		
 		
 		
+		
 		 -- dark dirt new --
+		
 		
 		
 		
@@ -4958,7 +5288,9 @@
 		
 		
 		
+		
 		 -- fancy mountain --
+		
 		
 		
 		
@@ -4988,7 +5320,9 @@
 		
 		
 		
+		
 		 -- edgy stone border --
+		
 		
 		
 		
@@ -5018,7 +5352,9 @@
 		
 		
 		
+		
 		 -- mountain edge border (new) --	
+		
 		
 		
 		
@@ -5048,7 +5384,9 @@
 		
 		
 		
+		
 		 -- white marble floor border --
+		
 		
 		
 		
@@ -5078,7 +5416,9 @@
 		
 		
 		
+		
 		 -- new ice mountain --
+		
 		
 		
 		
@@ -5108,7 +5448,9 @@
 		
 		
 		
+		
 		 -- rotten mountain 2 --
+		
 		
 		
 		
@@ -5138,7 +5480,9 @@
 		
 		
 		
+		
 		 -- "lofty" (Thanks MMB :P) snow border--
+		
 		
 		
 		
@@ -5182,7 +5526,9 @@
 		
 		
 		
+		
 		 -- candia chocolate mountain border --
+		
 		
 		
 		
@@ -5212,7 +5558,9 @@
 		
 		
 		
+		
 		 -- candia green border --
+		
 		
 		
 		
@@ -5242,7 +5590,9 @@
 		
 		
 		
+		
 		 -- candia chocolate ground border --
+		
 		
 		
 		
@@ -5272,7 +5622,9 @@
 		
 		
 		
+		
 		 -- candia cream border --
+		
 		
 		
 		
@@ -5302,7 +5654,9 @@
 		
 		
 		
+		
 		 -- candia green border --
+		
 		
 		
 		
@@ -5332,7 +5686,9 @@
 		
 		
 		
+		
 		 -- cake mountain border --
+		
 		
 		
 		
@@ -5358,7 +5714,9 @@
 		
 		
 		
+		
 		 -- waffle border --
+		
 		
 		
 		
@@ -5388,7 +5746,9 @@
 		
 		
 		
+		
 		 -- candia chocolate mountain border --
+		
 		
 		
 		
@@ -5418,7 +5778,9 @@
 		
 		
 		
+		
 		 -- frozen mud thick border--
+		
 		
 		
 		
@@ -5462,7 +5824,9 @@
 		
 		
 		
+		
 		 -- shallow water --
+		
 		
 		
 		
@@ -5492,7 +5856,9 @@
 		
 		
 		
+		
 		 -- grass border 2 --
+		
 		
 		
 		
@@ -5522,7 +5888,9 @@
 		
 		
 		
+		
 		 -- grass border 3 --
+		
 		
 		
 		
@@ -5552,7 +5920,9 @@
 		
 		
 		
+		
 		 -- sunken sand packed --
+		
 		
 		
 		
@@ -5582,7 +5952,9 @@
 		
 		
 		
+		
 		 -- sunken sand sediment --
+		
 		
 		
 		
@@ -5612,7 +5984,9 @@
 		
 		
 		
+		
 		 -- sunken sand sediment 2 --
+		
 		
 		
 		
@@ -5642,7 +6016,9 @@
 		
 		
 		
+		
 		 -- desert mountain border
+		
 		
 		
 		
@@ -5670,7 +6046,9 @@
 		
 		
 		
+		
 		 -- darkisland brown/green sea floor border --
+		
 		
 		
 		
@@ -5700,7 +6078,9 @@
 		
 		
 		
+		
 		 -- stone ice
+		
 		
 		
 		
@@ -5730,7 +6110,9 @@
 		
 		
 		
+		
 		 -- ice mountain inside border
+		
 		
 		
 		
@@ -5760,7 +6142,9 @@
 		
 		
 		
+		
 		 -- ice ground 4
+		
 		
 		
 		
@@ -5793,7 +6177,9 @@
 		
 		
 		
+		
 		 -- snow ground border 5
+		
 		
 		
 		
@@ -5829,7 +6215,9 @@
 		
 		
 		
+		
 		 -- black border
+		
 		
 		
 		
@@ -5865,7 +6253,9 @@
 		
 		
 		
+		
 		 -- black border mountain
+		
 		
 		
 		
@@ -6085,5 +6475,19 @@
 		<borderitem edge="dne" item="45141" />
 		<borderitem edge="dse" item="45138" />
 		<borderitem edge="dsw" item="45139" />
+	</border>
+	<border id="280">
+		<borderitem edge="n" item="45582" />
+		<borderitem edge="w" item="45585" />
+		<borderitem edge="e" item="45583" />
+		<borderitem edge="s" item="45584" />
+		<borderitem edge="cnw" item="45586" />
+		<borderitem edge="cne" item="45587" />
+		<borderitem edge="cse" item="45589" />
+		<borderitem edge="csw" item="45588" />
+		<borderitem edge="dnw" item="45590" />
+		<borderitem edge="dne" item="45591" />
+		<borderitem edge="dse" item="45593" />
+		<borderitem edge="dsw" item="45592" />
 	</border>
 </materials>
