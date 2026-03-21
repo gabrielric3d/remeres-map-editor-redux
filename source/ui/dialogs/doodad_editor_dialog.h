@@ -116,6 +116,7 @@ public:
     void OnPrevPage(wxCommandEvent& event);
     void OnNextPage(wxCommandEvent& event);
     void OnCreateNew(wxCommandEvent& event);
+    void OnCloseWindow(wxCloseEvent& event);
 
     // Public methods for grid panel to access
     void ApplyItemToGridPosition(int gridX, int gridY, uint16_t itemId);

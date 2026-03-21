@@ -126,6 +126,7 @@ BEGIN_EVENT_TABLE(DoodadEditorDialog, wxDialog)
     EVT_NOTEBOOK_PAGE_CHANGED(wxID_ANY, DoodadEditorDialog::OnPageChanged)
     EVT_TIMER(ID_LOAD_TIMER, DoodadEditorDialog::OnLoadTimer)
     EVT_TEXT(ID_FILTER_TEXT, DoodadEditorDialog::OnFilterChanged)
+    EVT_CLOSE(DoodadEditorDialog::OnCloseWindow)
 END_EVENT_TABLE()
 
 BEGIN_EVENT_TABLE(DoodadGridPanel, wxPanel)
@@ -144,7 +145,7 @@ END_EVENT_TABLE()
 
 DoodadEditorDialog::DoodadEditorDialog(wxWindow* parent, const wxString& title) :
     wxDialog(parent, wxID_ANY, title, wxDefaultPosition, wxSize(1200, 800),
-        wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER | wxMAXIMIZE_BOX),
+        wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER | wxMAXIMIZE_BOX | wxFRAME_FLOAT_ON_PARENT),
     m_currentCompositeIndex(-1),
     m_activeTab(0),
     m_loadTimer(nullptr),
@@ -912,7 +913,11 @@ void DoodadEditorDialog::OnSave(wxCommandEvent& event) {
 }
 
 void DoodadEditorDialog::OnClose(wxCommandEvent& event) {
-    EndModal(wxID_CLOSE);
+    Destroy();
+}
+
+void DoodadEditorDialog::OnCloseWindow(wxCloseEvent& event) {
+    Destroy();
 }
 
 // ============================================================================

@@ -402,6 +402,6 @@ void BrushPalettePanel::OnClickCreateBorder(wxCommandEvent& WXUNUSED(event)) {
 }
 
 void BrushPalettePanel::OnClickEditDoodad(wxCommandEvent& WXUNUSED(event)) {
-	DoodadEditorDialog dialog(g_gui.root, "Doodad Brush Editor");
-	dialog.ShowModal();
+	DoodadEditorDialog* dialog = newd DoodadEditorDialog(g_gui.root, "Doodad Brush Editor");
+	dialog->Show();
 }
