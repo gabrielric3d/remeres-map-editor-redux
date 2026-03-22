@@ -334,10 +334,6 @@ bool EditorManager::LoadMap(const FileName& fileName, const MapLoadOptions& load
 	}
 	g_gui.FinishWelcomeDialog();
 
-	if (GetCurrentEditor() && !GetCurrentMap().hasChanged() && !GetCurrentMap().hasFile()) {
-		CloseCurrentEditor();
-	}
-
 	std::unique_ptr<Editor> editor;
 	try {
 		MapVersion ver;
