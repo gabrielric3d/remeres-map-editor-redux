@@ -19,6 +19,7 @@
 #define RME_EDITOR_TABS_H_
 
 #include "ui/gui_ids.h"
+#include <wx/timer.h>
 
 class EditorTab;
 
@@ -46,10 +47,18 @@ public:
 	void OnNotebookPageChanged(wxAuiNotebookEvent& evt);
 	void OnSwitchEditorMode(EditorMode mode);
 
+	// Pulse animation for unsaved changes
+	void UpdatePulseState();
+
 protected:
 	EditorTab* GetInternalTab(int idx);
 	wxAuiNotebook* notebook;
 	std::map<wxWindow*, EditorTab*> conv;
+
+private:
+	void OnPulseTimer(wxTimerEvent& evt);
+	wxTimer pulse_timer;
+	bool pulse_active = false;
 };
 
 class EditorTab {

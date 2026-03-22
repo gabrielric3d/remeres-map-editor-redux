@@ -20,6 +20,75 @@
 #include "editor/editor_tabs.h"
 #include "editor/editor.h"
 #include "live/live_tab.h"
+#include "ui/map_tab.h"
+#include "ui/theme.h"
+
+#include <wx/aui/tabart.h>
+#include <wx/datetime.h>
+
+namespace {
+
+wxColour LerpColour(const wxColour& from, const wxColour& to, double t) {
+	if (t < 0.0) t = 0.0;
+	if (t > 1.0) t = 1.0;
+	return wxColour(
+		static_cast<unsigned char>(from.Red() + (to.Red() - from.Red()) * t + 0.5),
+		static_cast<unsigned char>(from.Green() + (to.Green() - from.Green()) * t + 0.5),
+		static_cast<unsigned char>(from.Blue() + (to.Blue() - from.Blue()) * t + 0.5)
+	);
+}
+
+double PulseMix() {
+	constexpr int kPeriodMs = 1200;
+	long long t = wxGetUTCTimeMillis().GetValue();
+	double phase = static_cast<double>(t % kPeriodMs) / kPeriodMs;
+	return (phase < 0.5) ? (phase * 2.0) : ((1.0 - phase) * 2.0);
+}
+
+class MapTabArt : public wxAuiSimpleTabArt {
+public:
+	wxAuiTabArt* Clone() override {
+		return new MapTabArt(*this);
+	}
+
+	void DrawTab(wxDC& dc,
+		wxWindow* wnd,
+		const wxAuiNotebookPage& pane,
+		const wxRect& inRect,
+		int closeButtonState,
+		wxRect* outTabRect,
+		wxRect* outButtonRect,
+		int* xExtent) override
+	{
+		const wxColour active_green(83, 158, 42);
+		const wxColour unsaved_yellow(200, 180, 50);
+		const wxColour inactive_grey = Theme::Get(Theme::Role::Surface);
+
+		bool is_active = pane.active;
+		bool has_changes = false;
+
+		if (auto* map_tab = dynamic_cast<MapTab*>(pane.window)) {
+			Editor* editor = map_tab->GetEditor();
+			if (editor) {
+				has_changes = editor->map.hasChanged();
+			}
+		}
+
+		if (has_changes && is_active) {
+			SetActiveColour(LerpColour(unsaved_yellow, active_green, PulseMix()));
+		} else if (has_changes && !is_active) {
+			SetColour(unsaved_yellow);
+		} else if (is_active) {
+			SetActiveColour(active_green);
+		} else {
+			SetColour(inactive_grey);
+		}
+
+		wxAuiSimpleTabArt::DrawTab(dc, wnd, pane, inRect, closeButtonState, outTabRect, outButtonRect, xExtent);
+	}
+};
+
+} // anonymous namespace
 
 EditorTab::EditorTab() {
 	;
@@ -30,14 +99,22 @@ EditorTab::~EditorTab() {
 }
 
 MapTabbook::MapTabbook(wxWindow* parent, wxWindowID id) :
-	wxPanel(parent, id, wxDefaultPosition, wxDefaultSize) {
+	wxPanel(parent, id, wxDefaultPosition, wxDefaultSize),
+	pulse_timer(this) {
 	wxSizer* wxz = newd wxBoxSizer(wxHORIZONTAL);
 	notebook = newd wxAuiNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);
 	wxz->Add(notebook, 1, wxEXPAND);
 	SetSizerAndFit(wxz);
 
+	// Custom tab art with visual indicators
+	auto* art = new MapTabArt();
+	art->SetColour(Theme::Get(Theme::Role::Surface));
+	art->SetActiveColour(wxColour(83, 158, 42));
+	notebook->SetArtProvider(art);
+
 	notebook->Bind(wxEVT_AUINOTEBOOK_PAGE_CLOSE, &MapTabbook::OnNotebookPageClose, this);
 	notebook->Bind(wxEVT_AUINOTEBOOK_PAGE_CHANGED, &MapTabbook::OnNotebookPageChanged, this);
+	Bind(wxEVT_TIMER, &MapTabbook::OnPulseTimer, this);
 }
 
 MapTabbook::~MapTabbook() {
@@ -92,6 +169,7 @@ void MapTabbook::OnNotebookPageClose(wxAuiNotebookEvent& evt) {
 
 void MapTabbook::OnNotebookPageChanged(wxAuiNotebookEvent& evt) {
 	g_gui.UpdateMinimap();
+	UpdatePulseState();
 
 	int32_t oldSelection = evt.GetOldSelection();
 	int32_t newSelection = evt.GetSelection();
@@ -203,4 +281,29 @@ int MapTabbook::GetSelection() {
 		return notebook->GetSelection();
 	}
 	return 0;
+}
+
+void MapTabbook::UpdatePulseState() {
+	bool should_pulse = false;
+	EditorTab* editor_tab = GetCurrentTab();
+	if (auto* map_tab = dynamic_cast<MapTab*>(editor_tab)) {
+		Editor* editor = map_tab->GetEditor();
+		should_pulse = editor && editor->map.hasChanged();
+	}
+	if (should_pulse && !pulse_active) {
+		pulse_active = true;
+		pulse_timer.Start(80);
+	} else if (!should_pulse && pulse_active) {
+		pulse_active = false;
+		pulse_timer.Stop();
+		if (notebook) {
+			notebook->Refresh();
+		}
+	}
+}
+
+void MapTabbook::OnPulseTimer(wxTimerEvent&) {
+	if (notebook) {
+		notebook->Refresh();
+	}
 }

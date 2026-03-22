@@ -19,6 +19,10 @@ void SetupCallbacks(Editor* editor) {
 		g_gui.UpdateTitle();
 		g_gui.UpdateMenus();
 
+		if (g_gui.tabbook) {
+			g_gui.tabbook->UpdatePulseState();
+		}
+
 		if (g_gui.tile_properties_panel) {
 			g_gui.tile_properties_panel->UpdateFromEditor(editor);
 		}
