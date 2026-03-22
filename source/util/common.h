@@ -86,6 +86,9 @@ int random(int low, int high);
 std::wstring string2wstring(const std::string& utf8string);
 std::string wstring2string(const std::wstring& widestring);
 
+// Parses position values from a string (e.g. "1022,1032,7")
+bool posFromString(const std::string& input, Position& position, const int mapWidth = MAP_MAX_WIDTH, const int mapHeight = MAP_MAX_HEIGHT);
+
 // Gets position values from ClipBoard
 bool posFromClipboard(Position& position, const int mapWidth = MAP_MAX_WIDTH, const int mapHeight = MAP_MAX_HEIGHT);
 

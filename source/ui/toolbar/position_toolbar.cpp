@@ -107,9 +107,21 @@ void PositionToolBar::OnKeyUp(wxKeyEvent& event) {
 }
 
 void PositionToolBar::OnPaste(wxClipboardTextEvent& event) {
+	// Read clipboard text directly instead of using posFromClipboard,
+	// because the clipboard may already be locked by the paste operation.
+	wxString clipText;
+	if (wxTheClipboard->Open()) {
+		if (wxTheClipboard->IsSupported(wxDF_TEXT)) {
+			wxTextDataObject data;
+			wxTheClipboard->GetData(data);
+			clipText = data.GetText();
+		}
+		wxTheClipboard->Close();
+	}
+
 	Position position;
 	const Map& currentMap = g_gui.GetCurrentMap();
-	if (posFromClipboard(position, currentMap.getWidth(), currentMap.getHeight())) {
+	if (!clipText.empty() && posFromString(clipText.ToStdString(), position, currentMap.getWidth(), currentMap.getHeight())) {
 		x_control->SetIntValue(position.x);
 		y_control->SetIntValue(position.y);
 		z_control->SetIntValue(position.z);

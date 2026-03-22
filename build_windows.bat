@@ -397,7 +397,7 @@ REM ==========================================================
 echo %BOLD%[Build 2/3]%RESET% Building Release...
 echo [2/3] Building Release... >> "%LOG_FILE%"
 
-cmake --build "!BUILD_DIR!" --config Release --target rme --parallel 14 2>&1 | powershell -Command "$input | Tee-Object -Append -FilePath '!LOG_FILE!'"
+cmake --build "!BUILD_DIR!" --config Release --target rme --parallel 8 -- /maxcpucount:8 2>&1 | powershell -Command "$input | Tee-Object -Append -FilePath '!LOG_FILE!'"
 
 if !ERRORLEVEL! neq 0 (
     echo.

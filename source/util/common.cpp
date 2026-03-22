@@ -169,25 +169,11 @@ std::string wstring2string(const std::wstring& widestring) {
 	return std::string(s.ToUTF8());
 }
 
-bool posFromClipboard(Position& position, const int mapWidth /* = MAP_MAX_WIDTH */, const int mapHeight /* = MAP_MAX_HEIGHT */) {
-	wxClipboardLocker locker(wxTheClipboard);
-	if (!locker) {
-		return false;
-	}
-
-	if (!wxTheClipboard->IsSupported(wxDF_TEXT)) {
-		return false;
-	}
-
-	wxTextDataObject data;
-	wxTheClipboard->GetData(data);
-
-	std::string input = data.GetText().ToStdString();
+bool posFromString(const std::string& input, Position& position, const int mapWidth /* = MAP_MAX_WIDTH */, const int mapHeight /* = MAP_MAX_HEIGHT */) {
 	if (input.empty()) {
 		return false;
 	}
 
-	bool done = false;
 	std::smatch matches;
 	static const std::regex expression = std::regex(R"(.*?(\d+).*?(\d+).*?(\d+).*?)", std::regex_constants::ECMAScript);
 	if (std::regex_match(input, matches, expression)) {
@@ -201,12 +187,28 @@ bool posFromClipboard(Position& position, const int mapWidth /* = MAP_MAX_WIDTH 
 				position.x = tmpX;
 				position.y = tmpY;
 				position.z = tmpZ;
-				done = true;
+				return true;
 			}
 		} catch (const std::out_of_range&) { }
 	}
 
-	return done;
+	return false;
+}
+
+bool posFromClipboard(Position& position, const int mapWidth /* = MAP_MAX_WIDTH */, const int mapHeight /* = MAP_MAX_HEIGHT */) {
+	wxClipboardLocker locker(wxTheClipboard);
+	if (!locker) {
+		return false;
+	}
+
+	if (!wxTheClipboard->IsSupported(wxDF_TEXT)) {
+		return false;
+	}
+
+	wxTextDataObject data;
+	wxTheClipboard->GetData(data);
+
+	return posFromString(data.GetText().ToStdString(), position, mapWidth, mapHeight);
 }
 
 wxString b2yn(bool value) {

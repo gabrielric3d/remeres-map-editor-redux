@@ -69,18 +69,8 @@ void ClipboardHandler::copyPosition(const Selection& selection) {
 
 	std::ostringstream clip;
 	if (minPos != maxPos) {
-		clip << "{";
-		clip << "fromx = " << minPos.x << ", ";
-		clip << "tox = " << maxPos.x << ", ";
-		clip << "fromy = " << minPos.y << ", ";
-		clip << "toy = " << maxPos.y << ", ";
-		if (minPos.z != maxPos.z) {
-			clip << "fromz = " << minPos.z << ", ";
-			clip << "toz = " << maxPos.z;
-		} else {
-			clip << "z = " << minPos.z;
-		}
-		clip << "}";
+		clip << "fromPos = Position(" << minPos.x << ", " << minPos.y << ", " << minPos.z << "), "
+			<< "toPos = Position(" << maxPos.x << ", " << maxPos.y << ", " << maxPos.z << ")";
 	} else {
 		switch (ClampCopyPositionFormat(g_settings.getInteger(Config::COPY_POSITION_FORMAT))) {
 			case 0:

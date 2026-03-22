@@ -65,8 +65,20 @@ bool PositionCtrl::Enable(bool enable) {
 }
 
 void PositionCtrl::OnClipboardText(wxClipboardTextEvent& evt) {
+	// Read clipboard text directly instead of using posFromClipboard,
+	// because the clipboard may already be locked by the paste operation.
+	wxString clipText;
+	if (wxTheClipboard->Open()) {
+		if (wxTheClipboard->IsSupported(wxDF_TEXT)) {
+			wxTextDataObject data;
+			wxTheClipboard->GetData(data);
+			clipText = data.GetText();
+		}
+		wxTheClipboard->Close();
+	}
+
 	Position position;
-	if (posFromClipboard(position, maxWidth, maxHeight)) {
+	if (!clipText.empty() && posFromString(clipText.ToStdString(), position, maxWidth, maxHeight)) {
 		x_field->SetIntValue(position.x);
 		y_field->SetIntValue(position.y);
 		z_field->SetIntValue(position.z);
