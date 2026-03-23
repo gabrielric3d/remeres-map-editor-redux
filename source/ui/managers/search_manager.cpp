@@ -24,7 +24,7 @@ void SearchManager::HideSearchWindow() {
 SearchResultWindow* SearchManager::ShowSearchWindow() {
 	if (search_result_window == nullptr) {
 		search_result_window = newd SearchResultWindow(g_gui.root);
-		g_gui.aui_manager->AddPane(search_result_window, wxAuiPaneInfo().Caption("Search Results"));
+		g_gui.aui_manager->AddPane(search_result_window, wxAuiPaneInfo().Name("SearchResults").Caption("Search Results"));
 	} else {
 		g_gui.aui_manager->GetPane(search_result_window).Show();
 	}

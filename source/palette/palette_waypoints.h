@@ -54,14 +54,22 @@ public:
 	void OnEditWaypointLabel(wxListEvent& event);
 	void OnClickAddWaypoint(wxCommandEvent& event);
 	void OnClickRemoveWaypoint(wxCommandEvent& event);
+	void OnClickSetPosition(wxCommandEvent& event);
+	void OnFilterTextChange(wxCommandEvent& event);
+	void OnFilterCharHook(wxKeyEvent& event);
 
 	void SetMap(Map* map);
 
 protected:
+	void UpdateList();
+	Waypoint* GetSelectedWaypoint() const;
+
 	Map* map;
+	wxTextCtrl* filter_text;
 	wxListCtrl* waypoint_list;
 	wxButton* add_waypoint_button;
 	wxButton* remove_waypoint_button;
+	wxButton* set_position_button;
 };
 
 #endif

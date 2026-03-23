@@ -10,13 +10,13 @@ set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "Minimum CMake policy version 
 
 project(rme)
 
-# Limit parallel compilation to 20 threads
+# Limit parallel compilation threads per project
 if(MSVC)
-	add_compile_options(/MP20)
+	add_compile_options(/MP4)
 else()
 	set(CMAKE_JOB_POOL_COMPILE compile_pool)
 	set(CMAKE_JOB_POOL_LINK link_pool)
-	set_property(GLOBAL PROPERTY JOB_POOLS compile_pool=20 link_pool=4)
+	set_property(GLOBAL PROPERTY JOB_POOLS compile_pool=4 link_pool=4)
 endif()
 
 set(CMAKE_CXX_STANDARD 23)

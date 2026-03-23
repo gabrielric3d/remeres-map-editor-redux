@@ -68,7 +68,7 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
 
 	tool_bar = std::make_unique<MainToolBar>(this, g_gui.aui_manager);
 
-	g_gui.aui_manager->AddPane(g_gui.tabbook, wxAuiPaneInfo().CenterPane().Floatable(false).CloseButton(false).PaneBorder(false));
+	g_gui.aui_manager->AddPane(g_gui.tabbook, wxAuiPaneInfo().Name("MapTabbook").CenterPane().Floatable(false).CloseButton(false).PaneBorder(false));
 
 	g_gui.tile_properties_panel = newd TilePropertiesPanel(this);
 	g_gui.aui_manager->AddPane(g_gui.tile_properties_panel, wxAuiPaneInfo().Name("TileProperties").Caption("Tile Properties").Right().Layer(1).Position(1).CloseButton(true).MaximizeButton(true).Hide());

@@ -86,6 +86,7 @@ void LayoutManager::LoadPerspective() {
 
 				const wxString& data = wxstr(g_settings.getString(Config::MINIMAP_LAYOUT));
 				g_gui.aui_manager->LoadPaneInfo(data, info);
+				info.Name("Minimap");
 
 				g_minimap.SetWindow(newd MinimapWindow(g_gui.root));
 				g_gui.aui_manager->AddPane(g_minimap.GetWindow(), info);
@@ -130,9 +131,7 @@ void LayoutManager::LoadPerspective() {
 		} else {
 			info.Name("ToolOptions").Caption("Tool Options").Right().Layer(0).Position(0).CloseButton(true).MaximizeButton(true).BestSize(230, 300);
 		}
-		if (info.name.empty()) {
-			info.Name("ToolOptions");
-		}
+		info.Name("ToolOptions");
 
 		g_gui.aui_manager->AddPane(g_gui.tool_options, info);
 	} else {
@@ -163,9 +162,7 @@ void LayoutManager::LoadPerspective() {
 		} else {
 			info.Name("HousePalette").Caption("Houses").DefaultPane().Right().Layer(0).Position(1).CloseButton(true).MaximizeButton(true).BestSize(230, 400);
 		}
-		if (info.name.empty()) {
-			info.Name("HousePalette");
-		}
+		info.Name("HousePalette");
 		g_gui.aui_manager->AddPane(g_gui.house_palette, info);
 	} else {
 		wxAuiPaneInfo& info = g_gui.aui_manager->GetPane(g_gui.house_palette);
