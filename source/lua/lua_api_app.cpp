@@ -375,7 +375,12 @@ namespace LuaAPI {
 		try {
 			trans.begin(editor);
 			func();
-			trans.commit();
+			if (g_gui.GetCurrentEditor() == editor) {
+				trans.commit();
+			} else {
+				trans.rollback();
+				throw sol::error("Editor changed during transaction");
+			}
 			g_gui.RefreshView();
 		} catch (const sol::error&) {
 			trans.rollback();
@@ -441,7 +446,50 @@ namespace LuaAPI {
 		if (filename.find('.') == std::string::npos) {
 			filename += ".json";
 		}
-		std::string path = scriptDir + "/" + filename;
+
+		namespace fs = std::filesystem;
+		
+		// Determine potential base directories
+		fs::path scriptsPath = fs::weakly_canonical(LuaScriptManager::getInstance().getScriptsDirectory());
+		fs::path dataPath = fs::weakly_canonical(FileSystem::GetDataDirectory().ToStdString());
+		fs::path execPath = fs::weakly_canonical(FileSystem::GetExecDirectory().ToStdString());
+
+		fs::path fullPath;
+		bool allowed = false;
+
+		try {
+			fs::path p(filename);
+			if (p.is_absolute()) {
+				fullPath = fs::weakly_canonical(p);
+				// Check if absolute path is within allowed roots
+				if (fullPath.string().find(scriptsPath.string()) == 0 ||
+					fullPath.string().find(dataPath.string()) == 0 ||
+					fullPath.string().find(execPath.string()) == 0) {
+					allowed = true;
+				}
+			} else {
+				// For relative paths, try anchoring to each root
+				std::vector<fs::path> roots = { scriptsPath, dataPath, execPath, fs::path(scriptDir) };
+				for (const auto& root : roots) {
+					fs::path candidate = fs::weakly_canonical(root / p);
+					if (candidate.string().find(root.string()) == 0) {
+						fullPath = candidate;
+						allowed = true;
+						break;
+					}
+				}
+			}
+		} catch (...) {
+			printf("[Lua Security] Failed to canonicalize path in app.storage: %s\n", filename.c_str());
+			return lua.create_table();
+		}
+
+		if (!allowed) {
+			printf("[Lua Security] Blocked unsafe path in app.storage: %s\n", filename.c_str());
+			return lua.create_table();
+		}
+
+		std::string path = fullPath.string();
 		storage["path"] = path;
 
 		storage["load"] = [path](sol::this_state ts2, sol::object) -> sol::object {

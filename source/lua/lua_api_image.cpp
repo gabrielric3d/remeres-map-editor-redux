@@ -40,44 +40,49 @@ namespace LuaAPI {
 			return;
 		}
 
-		// Security Check
-		if (path.find("..") != std::string::npos) {
-			printf("[Lua Security] Blocked image path with traversal: %s\n", path.c_str());
-			return;
-		}
-
 		namespace fs = std::filesystem;
+		fs::path scriptsPath = fs::weakly_canonical(LuaScriptManager::getInstance().getScriptsDirectory());
+		fs::path dataPath = fs::weakly_canonical(FileSystem::GetDataDirectory().ToStdString());
+		fs::path execPath = fs::weakly_canonical(FileSystem::GetExecDirectory().ToStdString());
+
+		fs::path fullPath;
+		bool allowed = false;
+
 		try {
 			fs::path p(path);
 			if (p.is_absolute()) {
-				// Normalize directories for comparison
-				fs::path scriptsPath = fs::absolute(LuaScriptManager::getInstance().getScriptsDirectory());
-				fs::path dataPath = fs::absolute(FileSystem::GetDataDirectory().ToStdString());
-				fs::path absPath = fs::absolute(p);
-
-				std::string absStr = absPath.string();
-				std::string scriptsStr = scriptsPath.string();
-				std::string dataStr = dataPath.string();
-
-				bool allowed = false;
-				if (absStr.find(scriptsStr) == 0) {
+				fullPath = fs::weakly_canonical(p);
+				if (fullPath.string().find(scriptsPath.string()) == 0 ||
+					fullPath.string().find(dataPath.string()) == 0 ||
+					fullPath.string().find(execPath.string()) == 0) {
 					allowed = true;
 				}
-				if (absStr.find(dataStr) == 0) {
-					allowed = true;
-				}
-
-				if (!allowed) {
-					printf("[Lua Security] Blocked absolute image path outside allowed directories: %s\n", path.c_str());
-					return;
+			} else {
+				// For relative paths, try anchoring to each root
+				std::vector<fs::path> roots = { scriptsPath, dataPath, execPath };
+				for (const auto& root : roots) {
+					fs::path candidate = fs::weakly_canonical(root / p);
+					if (candidate.string().find(root.string()) == 0) {
+						fullPath = candidate;
+						allowed = true;
+						break;
+					}
 				}
 			}
 		} catch (...) {
+			printf("[Lua Security] Failed to canonicalize image path: %s\n", path.c_str());
 			return;
 		}
 
-		if (!path.empty()) {
-			image.LoadFile(wxString(path));
+		if (!allowed) {
+			printf("[Lua Security] Blocked image path outside allowed directories: %s\n", path.c_str());
+			return;
+		}
+		
+		filePath = fullPath.string();
+
+		if (!filePath.empty()) {
+			image.LoadFile(wxString(filePath));
 		}
 	}
 
@@ -88,6 +93,7 @@ namespace LuaAPI {
 			if (g_items.typeExists(id)) {
 				ItemType itemType = g_items.getItemType(id);
 				if (itemType.id != 0) {
+					spriteId = itemType.clientID;
 					loadFromSpriteId(itemType.clientID);
 				}
 			}

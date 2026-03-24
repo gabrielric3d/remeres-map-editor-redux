@@ -135,7 +135,9 @@ namespace LuaAPI {
 			FastNoiseLite noise = createNoiseGenerator(s, FastNoiseLite::NoiseType_Cellular, freq);
 
 			// Set distance function
-			if (distFn == "euclidean" || distFn == "euclideanSq") {
+			if (distFn == "euclidean") {
+				noise.SetCellularDistanceFunction(FastNoiseLite::CellularDistanceFunction_Euclidean);
+			} else if (distFn == "euclideanSq") {
 				noise.SetCellularDistanceFunction(FastNoiseLite::CellularDistanceFunction_EuclideanSq);
 			} else if (distFn == "manhattan") {
 				noise.SetCellularDistanceFunction(FastNoiseLite::CellularDistanceFunction_Manhattan);

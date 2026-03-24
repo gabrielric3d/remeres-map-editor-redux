@@ -137,7 +137,7 @@ namespace LuaAPI {
 			sol::state_view lua(s);
 			sol::table result = lua.create_table();
 
-			int numSteps = steps.value_or(20);
+			int numSteps = std::max(1, steps.value_or(20));
 
 			// Parse control points
 			std::vector<std::pair<float, float>> points;
@@ -191,7 +191,7 @@ namespace LuaAPI {
 			sol::state_view lua(s);
 			sol::table result = lua.create_table();
 
-			int numSteps = steps.value_or(20);
+			int numSteps = std::max(1, steps.value_or(20));
 
 			// Parse control points
 			std::vector<std::tuple<float, float, float>> points;
@@ -885,6 +885,10 @@ namespace LuaAPI {
 			}
 
 			std::mt19937 rng(seed);
+
+			if (minDistance <= 0) {
+				return result;
+			}
 
 			int minX = std::min(x1, x2);
 			int maxX = std::max(x1, x2);

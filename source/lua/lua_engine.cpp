@@ -242,19 +242,25 @@ bool LuaEngine::executeFile(const std::string& filepath) {
 		lua["SCRIPT_DIR"] = scriptDir;
 
 		// Add SCRIPT_DIR to package.path so 'require' can find local modules
-		std::string path = lua["package"]["path"];
-		std::string newPath = scriptDir + "/?.lua;" + path;
-		lua["package"]["path"] = newPath;
+		std::string originalPath = lua["package"]["path"];
+		std::string scriptPattern = scriptDir + "/?.lua;";
+		if (originalPath.find(scriptPattern) == std::string::npos) {
+			lua["package"]["path"] = scriptPattern + originalPath;
+		}
 
 		sol::load_result loaded = lua.load_file(filepath);
 		if (!loaded.valid()) {
 			sol::error err = loaded;
 			lastError = std::string("Failed to load script '") + filepath + "': " + err.what();
+			lua["package"]["path"] = originalPath;
 			return false;
 		}
 
 		sol::protected_function script = loaded;
 		sol::protected_function_result result = script();
+
+		// Restore original path
+		lua["package"]["path"] = originalPath;
 
 		if (!result.valid()) {
 			sol::error err = result;

@@ -57,7 +57,7 @@ local config = {
 }
 
 -- Store for persistence
-local store = app.storage and app.storage("terrain_generator_demo")
+local store = app and app.storage and app.storage("terrain_generator_demo")
 local savedConfig = store and store:load()
 if savedConfig then
 	-- Merge saved config (shallow)
@@ -83,7 +83,7 @@ local function saveConfig()
 end
 
 local function getSelection()
-	local sel = app.selection
+	local sel = app and app.selection
 	if not sel or sel.isEmpty then
 		return nil
 	end
@@ -93,7 +93,7 @@ end
 local function requireSelection()
 	local bounds = getSelection()
 	if not bounds then
-		app.alert("Please select an area on the map first!")
+		if app then app.alert("Please select an area on the map first!") end
 		return nil
 	end
 	return bounds
@@ -101,8 +101,9 @@ end
 
 -- Apply ground tile with auto-borderize
 local function setGroundTile(x, y, z, tileId)
-	local tile = app.map:getOrCreateTile(x, y, z)
+	local tile = app and app.map and app.map:getOrCreateTile(x, y, z)
 	if tile then
+		tile:clearGround()
 		tile:addItem(tileId)
 	end
 end
@@ -111,7 +112,7 @@ end
 local function borderizeArea(x1, y1, x2, y2, z)
 	for y = y1 - 1, y2 + 1 do
 		for x = x1 - 1, x2 + 1 do
-			local tile = app.map:getTile(x, y, z)
+			local tile = app and app.map and app.map:getTile(x, y, z)
 			if tile then
 				tile:borderize()
 			end
@@ -135,69 +136,71 @@ local function generateIsland(bounds, cfg)
 	local seed = cfg.seed or os.time()
 	local treesPlaced = 0
 
-	app.transaction("Generate Island", function()
-		for y = minY, maxY do
-			for x = minX, maxX do
-				local localX = x - minX
-				local localY = y - minY
+	if app then
+		app.transaction("Generate Island", function()
+			for y = minY, maxY do
+				for x = minX, maxX do
+					local localX = x - minX
+					local localY = y - minY
 
-				-- Get noise value
-				local n = noise.fbm(x, y, seed, {
-					frequency = cfg.frequency,
-					octaves = cfg.octaves,
-					noiseType = "simplex"
-				})
+					-- Get noise value
+					local n = noise.fbm(x, y, seed, {
+						frequency = cfg.frequency,
+						octaves = cfg.octaves,
+						noiseType = "simplex"
+					})
 
-				-- Apply radial falloff (island shape)
-				local dx = localX - centerX
-				local dy = localY - centerY
-				local distFromCenter = math.sqrt(dx * dx + dy * dy) / maxRadius
-				local falloff = 1 - distFromCenter * distFromCenter
-				n = n * falloff
+					-- Apply radial falloff (island shape)
+					local dx = localX - centerX
+					local dy = localY - centerY
+					local distFromCenter = math.sqrt(dx * dx + dy * dy) / maxRadius
+					local falloff = 1 - distFromCenter * distFromCenter
+					n = n * falloff
 
-				-- Determine terrain type
-				local tileId
-				local canPlaceTree = false
+					-- Determine terrain type
+					local tileId
+					local canPlaceTree = false
 
-				if n < cfg.waterLevel then
-					tileId = cfg.waterTile
-				elseif n < cfg.sandLevel then
-					tileId = cfg.sandTile
-				elseif n < cfg.forestLevel then
-					tileId = cfg.grassTile
-					canPlaceTree = cfg.addTrees
-				elseif n < cfg.mountainLevel then
-					tileId = cfg.forestTile
-					canPlaceTree = cfg.addTrees
-				else
-					tileId = cfg.mountainTile
-				end
+					if n < cfg.waterLevel then
+						tileId = cfg.waterTile
+					elseif n < cfg.sandLevel then
+						tileId = cfg.sandTile
+					elseif n < cfg.forestLevel then
+						tileId = cfg.grassTile
+						canPlaceTree = cfg.addTrees
+					elseif n < cfg.mountainLevel then
+						tileId = cfg.forestTile
+						canPlaceTree = cfg.addTrees
+					else
+						tileId = cfg.mountainTile
+					end
 
-				setGroundTile(x, y, z, tileId)
+					setGroundTile(x, y, z, tileId)
 
-				-- Place trees
-				if canPlaceTree and math.random() < cfg.treeDensity then
-					local tile = app.map:getTile(x, y, z)
-					if tile then
-						-- Use doodad brush for trees if available
-						local treeBrush = Brushes.get("palm trees") or Brushes.get("trees") or Brushes.get("green trees")
-						if treeBrush then
-							tile:applyBrush(treeBrush.name, false)
-							treesPlaced = treesPlaced + 1
+					-- Place trees
+					if canPlaceTree and math.random() < cfg.treeDensity then
+						local tile = app.map and app.map:getTile(x, y, z)
+						if tile then
+							-- Use doodad brush for trees if available
+							local treeBrush = Brushes.get("palm trees") or Brushes.get("trees") or Brushes.get("green trees")
+							if treeBrush then
+								tile:applyBrush(treeBrush.name, false)
+								treesPlaced = treesPlaced + 1
+							end
 						end
 					end
 				end
+
+				-- Yield periodically to keep UI responsive
+				if y % 10 == 0 and app then
+					app.yield()
+				end
 			end
 
-			-- Yield periodically to keep UI responsive
-			if y % 10 == 0 then
-				app.yield()
-			end
-		end
-
-		-- Borderize
-		borderizeArea(minX, minY, maxX, maxY, z)
-	end)
+			-- Borderize
+			borderizeArea(minX, minY, maxX, maxY, z)
+		end)
+	end
 
 	return { treesPlaced = treesPlaced }
 end
@@ -221,25 +224,28 @@ local function generateCave(bounds, cfg)
 		seed = cfg.seed or os.time(),
 	})
 
-	app.transaction("Generate Cave", function()
-		for y = 1, height do
-			for x = 1, width do
-				local mapX = minX + x - 1
-				local mapY = minY + y - 1
+	if app then
+		app.transaction("Generate Cave", function()
+			for y = 1, height do
+				for x = 1, width do
+					local mapX = minX + x - 1
+					local mapY = minY + y - 1
 
-				local isWall = caveMap[y] and caveMap[y][x] == 1
-				local tileId = isWall and cfg.wallTile or cfg.floorTile
+					local isWall = caveMap[y] and caveMap[y][x] == 1
+					local tileId = isWall and cfg.wallTile or cfg.floorTile
 
-				setGroundTile(mapX, mapY, z, tileId)
+					setGroundTile(mapX, mapY, z, tileId)
+				end
+
+				if y % 10 == 0 and app then
+					app.yield()
+				end
 			end
 
-			if y % 10 == 0 then
-				app.yield()
-			end
-		end
-
-		borderizeArea(minX, minY, maxX, maxY, z)
-	end)
+			-- Borderize
+			borderizeArea(minX, minY, maxX, maxY, z)
+		end)
+	end
 end
 
 -- ============================================================================
@@ -263,25 +269,28 @@ local function generateDungeon(bounds, cfg)
 	local dungeonMap = result.grid
 	local rooms = result.rooms
 
-	app.transaction("Generate Dungeon", function()
-		for y = 1, height do
-			for x = 1, width do
-				local mapX = minX + x - 1
-				local mapY = minY + y - 1
+	if app then
+		app.transaction("Generate Dungeon", function()
+			for y = 1, height do
+				for x = 1, width do
+					local mapX = minX + x - 1
+					local mapY = minY + y - 1
 
-				local isWall = dungeonMap[y] and dungeonMap[y][x] == 1
-				local tileId = isWall and cfg.wallTile or cfg.floorTile
+					local isWall = dungeonMap[y] and dungeonMap[y][x] == 1
+					local tileId = isWall and cfg.wallTile or cfg.floorTile
 
-				setGroundTile(mapX, mapY, z, tileId)
+					setGroundTile(mapX, mapY, z, tileId)
+				end
+
+				if y % 10 == 0 and app then
+					app.yield()
+				end
 			end
 
-			if y % 10 == 0 then
-				app.yield()
-			end
-		end
-
-		borderizeArea(minX, minY, maxX, maxY, z)
-	end)
+			-- Borderize
+			borderizeArea(minX, minY, maxX, maxY, z)
+		end)
+	end
 
 	return { roomCount = #rooms }
 end
@@ -310,23 +319,26 @@ local function generateRiver(bounds, cfg)
 	-- Get bezier curve points
 	local riverPath = geo.bezierCurve(controlPoints, width * 2)
 
-	app.transaction("Generate River", function()
-		-- Draw river with width
-		for _, point in ipairs(riverPath) do
-			local cx = math.floor(point.x)
-			local cy = math.floor(point.y)
+	if app then
+		app.transaction("Generate River", function()
+			-- Draw river with width
+			for _, point in ipairs(riverPath) do
+				local cx = math.floor(point.x)
+				local cy = math.floor(point.y)
 
-			-- Draw circle at each point for river width
-			local circlePoints = geo.circle(cx, cy, cfg.pathWidth, { filled = true })
-			for _, cp in ipairs(circlePoints) do
-				if cp.x >= minX and cp.x <= maxX and cp.y >= minY and cp.y <= maxY then
-					setGroundTile(cp.x, cp.y, z, cfg.waterTile)
+				-- Draw circle at each point for river width
+				local circlePoints = geo.circle(cx, cy, cfg.pathWidth, { filled = true })
+				for _, cp in ipairs(circlePoints) do
+					if cp.x >= minX and cp.x <= maxX and cp.y >= minY and cp.y <= maxY then
+						setGroundTile(cp.x, cp.y, z, cfg.waterTile)
+					end
 				end
 			end
-		end
 
-		borderizeArea(minX, minY, maxX, maxY, z)
-	end)
+			-- Borderize
+			borderizeArea(minX, minY, maxX, maxY, z)
+		end)
+	end
 
 	return { pointCount = #riverPath }
 end
@@ -335,9 +347,12 @@ end
 -- Noise Preview
 -- ============================================================================
 
-local function generateNoisePreview(bounds, noiseType, seed, frequency)
+local function generateNoisePreview(bounds, cfg)
 	local minX, minY, z = bounds.min.x, bounds.min.y, bounds.min.z
 	local maxX, maxY = bounds.max.x, bounds.max.y
+	local noiseType = cfg.noiseType or "simplex"
+	local seed = cfg.seed or os.time()
+	local frequency = cfg.frequency or 0.05
 
 	-- Define gradient from water to mountain
 	local gradientTiles = {
@@ -349,53 +364,58 @@ local function generateNoisePreview(bounds, noiseType, seed, frequency)
 		919,  -- Mountain (n >= 0.6)
 	}
 
-	app.transaction("Noise Preview", function()
-		for y = minY, maxY do
-			for x = minX, maxX do
-				local n
+	if app then
+		app.transaction("Noise Preview", function()
+			for y = minY, maxY do
+				for x = minX, maxX do
+					local n
 
-				if noiseType == "perlin" then
-					n = noise.perlin(x, y, seed, frequency)
-				elseif noiseType == "simplex" then
-					n = noise.simplex(x, y, seed, frequency)
-				elseif noiseType == "cellular" then
-					n = noise.cellular(x, y, seed, frequency)
-				elseif noiseType == "fbm" then
-					n = noise.fbm(x, y, seed, { frequency = frequency, octaves = 4 })
-				elseif noiseType == "ridged" then
-					n = noise.ridged(x, y, seed, { frequency = frequency })
-				else
-					n = noise.simplex(x, y, seed, frequency)
+					if noiseType == "perlin" then
+						n = noise.perlin(x, y, seed, frequency)
+					elseif noiseType == "simplex" then
+						n = noise.simplex(x, y, seed, frequency)
+					elseif noiseType == "cellular" then
+						n = noise.cellular(x, y, seed, frequency)
+					elseif noiseType == "fbm" then
+						n = noise.fbm(x, y, seed, { frequency = frequency, octaves = 4 })
+					elseif noiseType == "ridged" then
+						n = noise.ridged(x, y, seed, { frequency = frequency })
+					else
+						n = noise.simplex(x, y, seed, frequency)
+					end
+
+					-- Map noise to gradient
+					local idx = math.floor(noise.normalize(n, 1, #gradientTiles))
+					idx = math.max(1, math.min(idx, #gradientTiles))
+
+					setGroundTile(x, y, z, gradientTiles[idx])
 				end
 
-				-- Map noise to gradient
-				local idx = math.floor(noise.normalize(n, 1, #gradientTiles))
-				idx = math.max(1, math.min(idx, #gradientTiles))
-
-				setGroundTile(x, y, z, gradientTiles[idx])
+				if y % 10 == 0 and app then
+					app.yield()
+				end
 			end
 
-			if y % 10 == 0 then
-				app.yield()
-			end
-		end
-
-		borderizeArea(minX, minY, maxX, maxY, z)
-	end)
+			-- Borderize
+			borderizeArea(minX, minY, maxX, maxY, z)
+		end)
+	end
 end
 
 -- ============================================================================
 -- Voronoi Regions
 -- ============================================================================
 
-local function generateVoronoi(bounds, numRegions)
+local function generateVoronoi(bounds, cfg)
 	local minX, minY, z = bounds.min.x, bounds.min.y, bounds.min.z
 	local maxX, maxY = bounds.max.x, bounds.max.y
 	local width = maxX - minX + 1
 	local height = maxY - minY + 1
+	local numRegions = cfg.numRegions or 10
+	local seed = cfg.seed or os.time()
 
 	-- Generate seed points
-	local points = algo.generateRandomPoints(width, height, numRegions, config.seed)
+	local points = algo.generateRandomPoints(width, height, numRegions, seed)
 
 	-- Generate Voronoi diagram
 	local voronoiMap = algo.voronoi(width, height, points)
@@ -403,25 +423,28 @@ local function generateVoronoi(bounds, numRegions)
 	-- Define tiles for each region (cycle through)
 	local regionTiles = { 4526, 4608, 919, 4526, 4608, 919 }
 
-	app.transaction("Generate Voronoi", function()
-		for y = 1, height do
-			for x = 1, width do
-				local mapX = minX + x - 1
-				local mapY = minY + y - 1
+	if app then
+		app.transaction("Generate Voronoi", function()
+			for y = 1, height do
+				for x = 1, width do
+					local mapX = minX + x - 1
+					local mapY = minY + y - 1
 
-				local region = voronoiMap[y] and voronoiMap[y][x] or 1
-				local tileId = regionTiles[((region - 1) % #regionTiles) + 1]
+					local region = voronoiMap[y] and voronoiMap[y][x] or 1
+					local tileId = regionTiles[((region - 1) % #regionTiles) + 1]
 
-				setGroundTile(mapX, mapY, z, tileId)
+					setGroundTile(mapX, mapY, z, tileId)
+				end
+
+				if y % 10 == 0 and app then
+					app.yield()
+				end
 			end
 
-			if y % 10 == 0 then
-				app.yield()
-			end
-		end
-
-		borderizeArea(minX, minY, maxX, maxY, z)
-	end)
+			-- Borderize
+			borderizeArea(minX, minY, maxX, maxY, z)
+		end)
+	end
 
 	return { regionCount = numRegions }
 end
@@ -430,36 +453,42 @@ end
 -- Maze Generator
 -- ============================================================================
 
-local function generateMaze(bounds, wallTile, floorTile)
+local function generateMaze(bounds, cfg)
 	local minX, minY, z = bounds.min.x, bounds.min.y, bounds.min.z
 	local maxX, maxY = bounds.max.x, bounds.max.y
 	local width = maxX - minX + 1
 	local height = maxY - minY + 1
+	local wallTile = cfg.wallTile or 919
+	local floorTile = cfg.floorTile or 4526
+	local seed = cfg.seed or os.time()
 
-	local mazeMap = algo.generateMaze(width, height, { seed = config.seed })
+	local mazeMap = algo.generateMaze(width, height, { seed = seed })
 	local mazeHeight = #mazeMap
 	local mazeWidth = mazeMap[1] and #mazeMap[1] or 0
 
-	app.transaction("Generate Maze", function()
-		for y = 1, mazeHeight do
-			for x = 1, mazeWidth do
-				local mapX = minX + x - 1
-				local mapY = minY + y - 1
+	if app then
+		app.transaction("Generate Maze", function()
+			for y = 1, mazeHeight do
+				for x = 1, mazeWidth do
+					local mapX = minX + x - 1
+					local mapY = minY + y - 1
 
-				if mapX <= maxX and mapY <= maxY then
-					local isWall = mazeMap[y] and mazeMap[y][x] == 1
-					local tileId = isWall and wallTile or floorTile
-					setGroundTile(mapX, mapY, z, tileId)
+					if mapX <= maxX and mapY <= maxY then
+						local isWall = mazeMap[y] and mazeMap[y][x] == 1
+						local tileId = isWall and wallTile or floorTile
+						setGroundTile(mapX, mapY, z, tileId)
+					end
+				end
+
+				if y % 10 == 0 and app then
+					app.yield()
 				end
 			end
 
-			if y % 10 == 0 then
-				app.yield()
-			end
-		end
-
-		borderizeArea(minX, minY, maxX, maxY, z)
-	end)
+			-- Borderize
+			borderizeArea(minX, minY, maxX, maxY, z)
+		end)
+	end
 end
 
 -- ============================================================================
@@ -510,22 +539,25 @@ local function createAndShowDialog()
 		if not bounds then return end
 
 		-- Update config from UI
-		config.seed = d.data.island_seed
-		config.island.frequency = d.data.island_frequency / 100
-		config.island.octaves = d.data.island_octaves
-		config.island.waterLevel = d.data.island_water / 50 - 1
-		config.island.sandLevel = d.data.island_sand / 50 - 1
-		config.island.forestLevel = d.data.island_forest / 50 - 1
-		config.island.mountainLevel = d.data.island_mountain / 50 - 1
-		config.island.waterTile = d.data.island_water_tile
-		config.island.grassTile = d.data.island_grass_tile
-		config.island.mountainTile = d.data.island_mountain_tile
-		config.island.addTrees = d.data.island_trees
-		config.island.treeDensity = d.data.island_tree_density / 100
+		local cfg = config.island
+		cfg.seed = d.data.island_seed
+		cfg.frequency = d.data.island_frequency / 100
+		cfg.octaves = d.data.island_octaves
+		cfg.waterLevel = d.data.island_water / 50 - 1
+		cfg.sandLevel = d.data.island_sand / 50 - 1
+		cfg.forestLevel = d.data.island_forest / 50 - 1
+		cfg.mountainLevel = d.data.island_mountain / 50 - 1
+		cfg.waterTile = d.data.island_water_tile
+		cfg.grassTile = d.data.island_grass_tile
+		cfg.mountainTile = d.data.island_mountain_tile
+		cfg.addTrees = d.data.island_trees
+		cfg.treeDensity = d.data.island_tree_density / 100
 
-		local result = generateIsland(bounds, config.island)
-		app.alert("Island generated! Trees placed: " .. result.treesPlaced)
-		app.refresh()
+		local result = generateIsland(bounds, cfg)
+		if app then
+			app.alert("Island generated! Trees placed: " .. result.treesPlaced)
+			app.refresh()
+		end
 	end }
 
 	-- ========================================
@@ -550,17 +582,20 @@ local function createAndShowDialog()
 		local bounds = requireSelection()
 		if not bounds then return end
 
-		config.seed = d.data.cave_seed
-		config.cave.fillProbability = d.data.cave_fill / 100
-		config.cave.iterations = d.data.cave_iterations
-		config.cave.birthLimit = d.data.cave_birth
-		config.cave.deathLimit = d.data.cave_death
-		config.cave.wallTile = d.data.cave_wall_tile
-		config.cave.floorTile = d.data.cave_floor_tile
+		local cfg = config.cave
+		cfg.seed = d.data.cave_seed
+		cfg.fillProbability = d.data.cave_fill / 100
+		cfg.iterations = d.data.cave_iterations
+		cfg.birthLimit = d.data.cave_birth
+		cfg.deathLimit = d.data.cave_death
+		cfg.wallTile = d.data.cave_wall_tile
+		cfg.floorTile = d.data.cave_floor_tile
 
-		generateCave(bounds, config.cave)
-		app.alert("Cave generated!")
-		app.refresh()
+		generateCave(bounds, cfg)
+		if app then
+			app.alert("Cave generated!")
+			app.refresh()
+		end
 	end }
 
 	-- ========================================
@@ -584,16 +619,19 @@ local function createAndShowDialog()
 		local bounds = requireSelection()
 		if not bounds then return end
 
-		config.seed = d.data.dungeon_seed
-		config.dungeon.minRoomSize = d.data.dungeon_min_room
-		config.dungeon.maxRoomSize = d.data.dungeon_max_room
-		config.dungeon.maxDepth = d.data.dungeon_depth
-		config.dungeon.wallTile = d.data.dungeon_wall_tile
-		config.dungeon.floorTile = d.data.dungeon_floor_tile
+		local cfg = config.dungeon
+		cfg.seed = d.data.dungeon_seed
+		cfg.minRoomSize = d.data.dungeon_min_room
+		cfg.maxRoomSize = d.data.dungeon_max_room
+		cfg.maxDepth = d.data.dungeon_depth
+		cfg.wallTile = d.data.dungeon_wall_tile
+		cfg.floorTile = d.data.dungeon_floor_tile
 
-		local result = generateDungeon(bounds, config.dungeon)
-		app.alert("Dungeon generated! Rooms: " .. result.roomCount)
-		app.refresh()
+		local result = generateDungeon(bounds, cfg)
+		if app then
+			app.alert("Dungeon generated! Rooms: " .. result.roomCount)
+			app.refresh()
+		end
 	end }
 
 	-- ========================================
@@ -609,13 +647,17 @@ local function createAndShowDialog()
 		local bounds = requireSelection()
 		if not bounds then return end
 
-		config.river.waterTile = d.data.river_tile
-		config.river.pathWidth = d.data.river_width
-		config.river.curveStrength = d.data.river_curve
+		local cfg = config.river
+		cfg.seed = config.seed
+		cfg.waterTile = d.data.river_tile
+		cfg.pathWidth = d.data.river_width
+		cfg.curveStrength = d.data.river_curve
 
-		generateRiver(bounds, config.river)
-		app.alert("River generated!")
-		app.refresh()
+		generateRiver(bounds, cfg)
+		if app then
+			app.alert("River generated!")
+			app.refresh()
+		end
 	end }
 	dlg:endbox()
 
@@ -627,9 +669,11 @@ local function createAndShowDialog()
 		local bounds = requireSelection()
 		if not bounds then return end
 
-		local result = generateVoronoi(bounds, d.data.voronoi_regions)
-		app.alert("Voronoi generated! Regions: " .. result.regionCount)
-		app.refresh()
+		local result = generateVoronoi(bounds, { seed = config.seed, numRegions = d.data.voronoi_regions })
+		if app then
+			app.alert("Voronoi generated! Regions: " .. result.regionCount)
+			app.refresh()
+		end
 	end }
 	dlg:endbox()
 
@@ -642,9 +686,11 @@ local function createAndShowDialog()
 		local bounds = requireSelection()
 		if not bounds then return end
 
-		generateMaze(bounds, d.data.maze_wall, d.data.maze_floor)
-		app.alert("Maze generated!")
-		app.refresh()
+		generateMaze(bounds, { seed = config.seed, wallTile = d.data.maze_wall, floorTile = d.data.maze_floor })
+		if app then
+			app.alert("Maze generated!")
+			app.refresh()
+		end
 	end }
 	dlg:endbox()
 
@@ -664,8 +710,10 @@ local function createAndShowDialog()
 		local bounds = requireSelection()
 		if not bounds then return end
 
-		generateNoisePreview(bounds, d.data.preview_type, d.data.preview_seed, d.data.preview_freq / 100)
-		app.refresh()
+		generateNoisePreview(bounds, { noiseType = d.data.preview_type, seed = d.data.preview_seed, frequency = d.data.preview_freq / 100 })
+		if app then
+			app.refresh()
+		end
 	end }
 
 	dlg:separator()
@@ -701,12 +749,12 @@ end
 -- ============================================================================
 
 if not app then
-	app.alert("Error: RME Lua API not found.")
+	print("Error: RME Lua API not found.")
 	return
 end
 
 if not noise then
-	app.alert("Error: The 'noise' API is not available.\nPlease update RME to the latest version.")
+	if app then app.alert("Error: The 'noise' API is not available.\nPlease update RME to the latest version.") end
 	return
 end
 

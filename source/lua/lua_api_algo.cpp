@@ -314,14 +314,22 @@ namespace LuaAPI {
 			std::vector<std::vector<float>> brushWeights(erosionRadius * 2 + 1);
 
 			for (int radius = 0; radius <= erosionRadius; ++radius) {
+				float weightSum = 0;
 				for (int y = -radius; y <= radius; ++y) {
 					for (int x = -radius; x <= radius; ++x) {
 						float sqrDst = (float)(x * x + y * y);
 						if (sqrDst <= radius * radius) {
 							brushIndices[radius].push_back({ x, y });
-							float weight = 1.0f - std::sqrt(sqrDst) / (float)radius;
+							float weight = (radius == 0) ? 1.0f : (1.0f - std::sqrt(sqrDst) / (float)radius);
 							brushWeights[radius].push_back(weight);
+							weightSum += weight;
 						}
+					}
+				}
+				// Normalize weights
+				if (weightSum > 0) {
+					for (auto& w : brushWeights[radius]) {
+						w /= weightSum;
 					}
 				}
 			}
@@ -433,7 +441,7 @@ namespace LuaAPI {
 					// Update position and speed
 					posX = newPosX;
 					posY = newPosY;
-					speed = std::sqrt(speed * speed + deltaHeight * gravity);
+					speed = std::sqrt(std::max(0.0f, speed * speed + (-deltaHeight) * gravity));
 					water *= (1 - evaporateSpeed);
 				}
 			}
@@ -543,6 +551,12 @@ namespace LuaAPI {
 				sol::table opts = *options;
 				iterations = opts.get_or(std::string("iterations"), 1);
 				kernelSize = opts.get_or(std::string("kernelSize"), 3);
+			}
+
+			// Ensure kernelSize is positive and odd
+			kernelSize = std::max(1, kernelSize);
+			if (kernelSize % 2 == 0) {
+				kernelSize++;
 			}
 
 			auto grid = tableToFloatGrid(inputGrid, width, height);

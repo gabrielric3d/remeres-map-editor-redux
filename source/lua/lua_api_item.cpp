@@ -93,19 +93,6 @@ namespace LuaAPI {
 			"clone", [](const Item& item) { return item.deepCopy(); },
 			"rotate", &Item::doRotate,
 
-			"getName", [](int id) -> std::string {
-				if (g_items.typeExists(id)) {
-					return g_items.getItemType(id).name;
-				}
-				return "";
-			},
-			"getDescription", [](int id) -> std::string {
-				if (g_items.typeExists(id)) {
-					return g_items.getItemType(id).description;
-				}
-				return "";
-			},
-
 			// String representation
 			sol::meta_function::to_string, [](const Item& item) {
 				return "Item(id=" + std::to_string(item.getID()) + ", name=\"" + std::string(item.getName()) + "\")";

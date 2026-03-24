@@ -35,11 +35,10 @@ namespace LuaAPI {
 	}
 
 	// Get tiles as a Lua table
-	static sol::table getSelectionTiles(sol::this_state ts) {
+	static sol::table getSelectionTiles(sol::this_state ts, Selection* sel) {
 		sol::state_view lua(ts);
 		sol::table result = lua.create_table();
 
-		Selection* sel = getCurrentSelection();
 		if (!sel) {
 			return result;
 		}
@@ -54,11 +53,10 @@ namespace LuaAPI {
 	}
 
 	// Get bounds as a table with min/max positions
-	static sol::table getSelectionBounds(sol::this_state ts) {
+	static sol::table getSelectionBounds(sol::this_state ts, Selection* sel) {
 		sol::state_view lua(ts);
 		sol::table result = lua.create_table();
 
-		Selection* sel = getCurrentSelection();
 		if (!sel || sel->size() == 0) {
 			return result;
 		}
@@ -88,16 +86,12 @@ namespace LuaAPI {
 
 			// Tiles collection (as a table)
 			"tiles", sol::property([](Selection* sel, sol::this_state ts) {
-				return getSelectionTiles(ts);
+				return getSelectionTiles(ts, sel);
 			}),
 
 			// Bounds
 			"bounds", sol::property([](Selection* sel, sol::this_state ts) -> sol::table {
-				sol::state_view lua(ts);
-				if (!sel) {
-					return lua.create_table();
-				}
-				return getSelectionBounds(ts);
+				return getSelectionBounds(ts, sel);
 			}),
 			"minPosition", sol::property([](Selection* sel) -> sol::optional<Position> {
 				if (!sel || sel->size() == 0) {

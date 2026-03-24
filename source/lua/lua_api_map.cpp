@@ -84,10 +84,13 @@ namespace LuaAPI {
 				return nullptr;
 			}
 
-			if (iter != endIter) {
+			while (iter != endIter) {
 				Position pos = *iter;
 				++iter;
-				return map->getTile(pos);
+				Tile* tile = map->getTile(pos);
+				if (tile) {
+					return tile;
+				}
 			}
 			return nullptr;
 		}

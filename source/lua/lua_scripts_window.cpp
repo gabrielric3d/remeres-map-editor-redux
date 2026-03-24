@@ -54,7 +54,9 @@ LuaScriptsWindow::LuaScriptsWindow(wxWindow* parent) :
 		} else {
 			// Post event to main thread
 			wxTheApp->CallAfter([this, msg, isError]() {
-				LogMessage(wxString::FromUTF8(msg), isError);
+				if (instance == this) {
+					LogMessage(wxString::FromUTF8(msg), isError);
+				}
 			});
 		}
 	});
@@ -262,13 +264,7 @@ void LuaScriptsWindow::OnOpenFolder(wxCommandEvent& event) {
 		wxMkdir(scriptsPath);
 	}
 
-#ifdef _WIN32
-	wxExecute("explorer \"" + scriptsPath + "\"", wxEXEC_ASYNC);
-#elif defined(__APPLE__)
-	wxExecute("open \"" + scriptsPath + "\"", wxEXEC_ASYNC);
-#else
-	wxExecute("xdg-open \"" + scriptsPath + "\"", wxEXEC_ASYNC);
-#endif
+	wxLaunchDefaultApplication(scriptsPath);
 }
 
 void LuaScriptsWindow::OnClearConsole(wxCommandEvent& event) {

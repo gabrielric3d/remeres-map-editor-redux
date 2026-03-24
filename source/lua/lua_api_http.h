@@ -18,8 +18,7 @@
 #ifndef RME_LUA_API_HTTP_H
 #define RME_LUA_API_HTTP_H
 
-#define SOL_ALL_SAFETIES_ON 1
-#include <sol/sol.hpp>
+#include "lua_sol_config.h"
 
 namespace LuaAPI {
 

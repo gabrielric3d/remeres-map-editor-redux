@@ -2,15 +2,13 @@
 // This file is part of Remere's Map Editor
 //////////////////////////////////////////////////////////////////////
 
-#ifndef LUA_API_JSON_H
-#define LUA_API_JSON_H
+#ifndef RME_LUA_SOL_CONFIG_H
+#define RME_LUA_SOL_CONFIG_H
 
-#include "lua_sol_config.h"
-
-namespace LuaAPI {
-
-	void registerJson(sol::state& lua);
-
-}
-
+#ifndef SOL_ALL_SAFETIES_ON
+#define SOL_ALL_SAFETIES_ON 1
 #endif
+
+#include <sol/sol.hpp>
+
+#endif // RME_LUA_SOL_CONFIG_H

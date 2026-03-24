@@ -21,8 +21,7 @@
 #include "lua_engine.h"
 #include "lua_script.h"
 
-#define SOL_ALL_SAFETIES_ON 1
-#include <sol/sol.hpp>
+#include "lua_sol_config.h"
 
 #include <string>
 #include <vector>
@@ -111,12 +110,14 @@ public:
 			return;
 		}
 
+		auto captured_args = std::make_tuple(std::forward<Args>(args)...);
+
 		// Iterate over a copy to allow callbacks to modify the listener list safely
 		std::vector<EventListener> listenersCopy = eventListeners;
 		for (const auto& listener : listenersCopy) {
 			if (listener.eventName == eventName && listener.callback.valid()) {
 				try {
-					listener.callback(std::forward<Args>(args)...);
+					std::apply(listener.callback, captured_args);
 				} catch (const sol::error& e) {
 					logOutput("Event '" + eventName + "' error: " + std::string(e.what()), true);
 				}
@@ -130,13 +131,15 @@ public:
 			return false;
 		}
 
+		auto captured_args = std::make_tuple(std::forward<Args>(args)...);
+
 		// Iterate over a copy to allow callbacks to modify the listener list safely
 		std::vector<EventListener> listenersCopy = eventListeners;
 		bool consumed = false;
 		for (const auto& listener : listenersCopy) {
 			if (listener.eventName == eventName && listener.callback.valid()) {
 				try {
-					sol::object result = listener.callback(std::forward<Args>(args)...);
+					sol::object result = std::apply(listener.callback, captured_args);
 					if (result.valid() && result.is<bool>() && result.as<bool>()) {
 						consumed = true;
 						break; // Stop propagation

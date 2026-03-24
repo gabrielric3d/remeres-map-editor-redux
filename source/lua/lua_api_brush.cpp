@@ -17,6 +17,7 @@
 
 #include "app/main.h"
 #include "lua_api_brush.h"
+#include "map/map.h"
 #include "brushes/brush.h"
 #include "brushes/raw/raw_brush.h"
 #include "brushes/doodad/doodad_brush.h"
@@ -104,7 +105,7 @@ namespace LuaAPI {
 
 								// Methods
 								"canDraw", [](Brush* b, Map* map, int x, int y, int z) -> bool {
-									return b && map && b->canDraw(reinterpret_cast<BaseMap*>(map), Position(x, y, z));
+									return b && map && b->canDraw(static_cast<BaseMap*>(map), Position(x, y, z));
 								},
 								"needBorders", [](Brush* b) -> bool {
 									return b && b->needBorders();

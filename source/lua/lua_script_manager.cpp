@@ -54,16 +54,18 @@ bool LuaScriptManager::initialize() {
 		// Register all APIs
 		registerAPIs();
 
-		initialized = true;
-
 		// Discover scripts
 		discoverScripts();
+
+		initialized = true;
 		return true;
 	} catch (const std::exception& e) {
+		initialized = false;
 		lastError = "Exception during Lua initialization: " + std::string(e.what());
 		spdlog::error("LuaScriptManager::initialize - Caught std::exception: {}", lastError);
 		return false;
 	} catch (...) {
+		initialized = false;
 		lastError = "Unknown exception during Lua initialization";
 		spdlog::error("LuaScriptManager::initialize - Caught unknown exception");
 		return false;
@@ -187,6 +189,13 @@ bool LuaScriptManager::removeMapOverlay(const std::string& id) {
 	for (auto it = mapOverlays.begin(); it != mapOverlays.end(); ++it) {
 		if (it->id == id) {
 			mapOverlays.erase(it);
+
+			// Also erase from mapOverlayShows
+			mapOverlayShows.erase(
+				std::remove_if(mapOverlayShows.begin(), mapOverlayShows.end(),
+					[&id](const MapOverlayShowItem& item) { return item.overlayId == id; }),
+				mapOverlayShows.end());
+
 			return true;
 		}
 	}
@@ -622,8 +631,8 @@ void LuaScriptManager::runAutoScripts() {
 }
 
 bool LuaScriptManager::executeScript(const std::string& filepath) {
-	if (!initialized) {
-		lastError = "Script manager not initialized";
+	if (!engine.isInitialized()) {
+		lastError = "Lua engine not initialized";
 		return false;
 	}
 
@@ -710,13 +719,5 @@ void LuaScriptManager::openScriptsFolder() {
 	// Create directory if it doesn't exist
 	wxFileName::Mkdir(scriptsDir, wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
 
-#ifdef _WIN32
-	ShellExecuteA(nullptr, "explore", scriptsDir.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-#elif defined(__APPLE__)
-	std::string cmd = "open \"" + scriptsDir + "\"";
-	system(cmd.c_str());
-#else
-	std::string cmd = "xdg-open \"" + scriptsDir + "\"";
-	system(cmd.c_str());
-#endif
+	wxLaunchDefaultApplication(scriptsDir);
 }

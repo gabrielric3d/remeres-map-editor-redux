@@ -112,38 +112,70 @@ void LuaScript::parseMetadataFromManifest() {
 
 	// Simple Lua table parser for manifest
 	auto getValue = [&content](const std::string& key) -> std::string {
-		// Look for: key = "value" or key = 'value'
-		std::string pattern1 = key + " = \"";
-		std::string pattern2 = key + " = '";
-		std::string pattern3 = key + "=\"";
-		std::string pattern4 = key + "='";
+		size_t pos = 0;
+		while (pos < content.size()) {
+			// Skip whitespace
+			pos = content.find_first_not_of(" \t\n\r", pos);
+			if (pos == std::string::npos) break;
 
-		size_t pos = content.find(pattern1);
-		char quote = '"';
-		if (pos == std::string::npos) {
-			pos = content.find(pattern2);
-			quote = '\'';
-		}
-		if (pos == std::string::npos) {
-			pos = content.find(pattern3);
-			quote = '"';
-		}
-		if (pos == std::string::npos) {
-			pos = content.find(pattern4);
-			quote = '\'';
-		}
+			// Skip comments
+			if (content.compare(pos, 2, "--") == 0) {
+				pos = content.find('\n', pos);
+				if (pos == std::string::npos) break;
+				continue;
+			}
 
-		if (pos == std::string::npos) {
-			return "";
-		}
+			// Check for key
+			if (content.compare(pos, key.length(), key) == 0) {
+				size_t nextCharPos = pos + key.length();
+				// Ensure exact match (next char is whitespace or '=')
+				if (nextCharPos < content.size() && (isspace(content[nextCharPos]) || content[nextCharPos] == '=')) {
+					// Found key, look for '='
+					size_t eqPos = content.find('=', nextCharPos);
+					if (eqPos != std::string::npos) {
+						// Look for quote
+						size_t quotePos = content.find_first_of("\"'", eqPos);
+						if (quotePos != std::string::npos) {
+							char quote = content[quotePos];
+							size_t valStart = quotePos + 1;
+							size_t valEnd = content.find(quote, valStart);
+							
+							// Handle escaped quotes
+							while (valEnd != std::string::npos && content[valEnd - 1] == '\\') {
+								valEnd = content.find(quote, valEnd + 1);
+							}
 
-		size_t valueStart = content.find(quote, pos) + 1;
-		size_t valueEnd = content.find(quote, valueStart);
-		if (valueEnd == std::string::npos) {
-			return "";
+							if (valEnd != std::string::npos) {
+								std::string rawVal = content.substr(valStart, valEnd - valStart);
+								// Unescape
+								std::string unescaped;
+								for (size_t i = 0; i < rawVal.size(); ++i) {
+									if (rawVal[i] == '\\' && i + 1 < rawVal.size()) {
+										switch (rawVal[++i]) {
+											case 'n': unescaped += '\n'; break;
+											case 'r': unescaped += '\r'; break;
+											case 't': unescaped += '\t'; break;
+											case '\\': unescaped += '\\'; break;
+											case '\"': unescaped += '\"'; break;
+											case '\'': unescaped += '\''; break;
+											default: unescaped += rawVal[i]; break;
+										}
+									} else {
+										unescaped += rawVal[i];
+									}
+								}
+								return unescaped;
+							}
+						}
+					}
+				}
+			}
+			// Move to next line or potential token
+			size_t nextLine = content.find('\n', pos);
+			if (nextLine == std::string::npos) break;
+			pos = nextLine + 1;
 		}
-
-		return content.substr(valueStart, valueEnd - valueStart);
+		return "";
 	};
 
 	std::string val;
@@ -179,7 +211,7 @@ void LuaScript::parseMetadataFromManifest() {
 			autorun = true;
 		}
 	} else {
-		// Also check boolean literal
+		// Also check boolean literal using the same logic if possible, or keep simple check
 		if (content.find("autorun = true") != std::string::npos || content.find("autorun=true") != std::string::npos) {
 			autorun = true;
 		}

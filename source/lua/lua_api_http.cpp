@@ -125,9 +125,67 @@ namespace LuaAPI {
 	static bool isUrlSafe(const std::string& url_str) {
 		std::string low = url_str;
 		std::transform(low.begin(), low.end(), low.begin(), ::tolower);
-		if (low.find("localhost") != std::string::npos || low.find("127.0.0.1") != std::string::npos || low.find("::1") != std::string::npos) {
+
+		// Basic host extraction
+		std::string host = low;
+		size_t protocol_pos = host.find("://");
+		if (protocol_pos != std::string::npos) {
+			host = host.substr(protocol_pos + 3);
+		}
+		size_t path_pos = host.find_first_of("/?#");
+		if (path_pos != std::string::npos) {
+			host = host.substr(0, path_pos);
+		}
+		size_t port_pos = host.find(':');
+		if (port_pos != std::string::npos) {
+			host = host.substr(0, port_pos);
+		}
+
+		if (host.empty()) return false;
+
+		// Resolve host to IP addresses
+		try {
+			boost::asio::io_context io_context;
+			boost::asio::ip::tcp::resolver resolver(io_context);
+			boost::asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(host, "");
+
+			for (auto it = endpoints.begin(); it != endpoints.end(); ++it) {
+				boost::asio::ip::address addr = it->endpoint().address();
+
+				// Check if loopback
+				if (addr.is_loopback()) return false;
+
+				// Check if unspecified (0.0.0.0 or ::)
+				if (addr.is_unspecified()) return false;
+
+				// Check private ranges for IPv4
+				if (addr.is_v4()) {
+					auto v4 = addr.to_v4().to_bytes();
+					// 10.0.0.0/8
+					if (v4[0] == 10) return false;
+					// 172.16.0.0/12
+					if (v4[0] == 172 && (v4[1] >= 16 && v4[1] <= 31)) return false;
+					// 192.168.0.0/16
+					if (v4[0] == 192 && v4[1] == 168) return false;
+					// 169.254.0.0/16 (Link-local)
+					if (v4[0] == 169 && v4[1] == 254) return false;
+				} else if (addr.is_v6()) {
+					// Check unique local or link local for IPv6
+					auto v6 = addr.to_v6();
+					if (v6.is_link_local() || v6.is_site_local()) return false;
+					
+					// Unique local address (fc00::/7)
+					auto bytes = v6.to_bytes();
+					if ((bytes[0] & 0xfe) == 0xfc) return false;
+				}
+			}
+		} catch (...) {
+			// If we can't resolve it, we might want to block it just in case,
+			// or if it's already an IP that failed to parse, it might be safe to let it fail later.
+			// However, most invalid hosts should be blocked.
 			return false;
 		}
+
 		return true;
 	}
 
@@ -214,8 +272,10 @@ namespace LuaAPI {
 
 	// Helper function to convert Lua table to JSON
 	static std::function<nlohmann::json(sol::object)> getLuaToJsonConverter() {
-		std::function<nlohmann::json(sol::object)> luaToJson;
-		luaToJson = [&luaToJson](sol::object obj) -> nlohmann::json {
+		auto luaToJsonPtr = std::make_shared<std::function<nlohmann::json(sol::object)>>();
+		auto& luaToJson = *luaToJsonPtr;
+		luaToJson = [luaToJsonPtr](sol::object obj) -> nlohmann::json {
+			auto& luaToJson = *luaToJsonPtr;
 			if (obj.is<bool>()) {
 				return obj.as<bool>();
 			} else if (obj.is<int>()) {
