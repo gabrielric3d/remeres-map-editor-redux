@@ -40,6 +40,7 @@
 #include "ui/find_item_window.h"
 #include "app/preferences.h"
 #include "ui/result_window.h"
+#include "ui/menubar/script_menu_handler.h"
 
 #include "ui/menubar/search_handler.h"
 #include "ui/menubar/view_settings_handler.h"
@@ -71,6 +72,7 @@ MainMenuBar::MainMenuBar(MainFrame* frame) :
 	fileMenuHandler = new FileMenuHandler(frame, this);
 	navigationMenuHandler = new NavigationMenuHandler(frame, this);
 	paletteMenuHandler = new PaletteMenuHandler(frame, this);
+	scriptMenuHandler = newd ScriptMenuHandler(frame);
 
 	MenuBarActionManager::RegisterActions(this, actions);
 
@@ -98,6 +100,7 @@ MainMenuBar::~MainMenuBar() {
 	delete fileMenuHandler;
 	delete navigationMenuHandler;
 	delete paletteMenuHandler;
+	delete scriptMenuHandler;
 }
 
 void MainMenuBar::EnableItem(MenuBar::ActionID id, bool enable) {
@@ -225,6 +228,20 @@ void MainMenuBar::OnImportMap(wxCommandEvent& event) {
 
 void MainMenuBar::OnImportMonsterData(wxCommandEvent& event) {
 	fileMenuHandler->OnImportMonsterData(event);
+}
+
+void MainMenuBar::LoadScriptsMenu() const {
+	if (scriptMenuHandler) {
+		// Just a trigger if needed, but Loader handles menu instances.
+		// Handled via MenuBarLoader parsing Special="SCRIPTS".
+	}
+}
+
+void MainMenuBar::RefreshScriptsMenu() const {
+	if (scriptMenuHandler) {
+		wxCommandEvent dummy;
+		scriptMenuHandler->OnScriptsReload(dummy);
+	}
 }
 
 void MainMenuBar::OnImportMinimap(wxCommandEvent& event) {

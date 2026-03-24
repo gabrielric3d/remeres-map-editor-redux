@@ -29,6 +29,8 @@
 #include "palette/palette_window.h"
 #include "app/preferences.h"
 #include "net/net_connection.h"
+#include "lua/lua_script_manager.h"
+#include "lua/lua_scripts_window.h"
 #include "ui/result_window.h"
 #include "rendering/ui/minimap_window.h"
 #include "ui/about_window.h"
@@ -209,6 +211,13 @@ bool Application::OnInit() {
 		g_gui.root->Show();
 	}
 
+	// Initialize Lua scripting system
+	if (!g_luaScripts.initialize()) {
+		spdlog::warn("Failed to initialize Lua scripting: {}", g_luaScripts.getLastError());
+	} else if (g_gui.root && g_gui.root->menu_bar) {
+		g_gui.root->menu_bar->LoadScriptsMenu();
+	}
+
 	// Set idle event handling mode
 	wxIdleEvent::SetMode(wxIDLE_PROCESS_SPECIFIED);
 
@@ -378,6 +387,9 @@ void Application::Unload() {
 }
 
 int Application::OnExit() {
+	// Shutdown Lua scripting system
+	g_luaScripts.shutdown();
+
 #ifdef _USE_PROCESS_COM
 	wxDELETE(m_proc_server);
 	wxDELETE(m_single_instance_checker);

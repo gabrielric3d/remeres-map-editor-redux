@@ -107,6 +107,7 @@ void ActionQueue::addBatch(std::unique_ptr<BatchAction> batch, int stacking_dela
 		actions.push_back(std::move(batch));
 		current++;
 	} while (false);
+	g_luaScripts.emit("actionChange");
 }
 
 void ActionQueue::addAction(std::unique_ptr<Action> action, int stacking_delay) {

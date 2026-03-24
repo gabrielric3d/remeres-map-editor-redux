@@ -6,6 +6,10 @@
 #include "ui/menubar_loader.h"
 #include "ui/gui_ids.h"
 #include "util/image_manager.h"
+#include "ui/gui.h"
+#include "ui/main_frame.h"
+#include "ui/main_menubar.h"
+#include "ui/menubar/script_menu_handler.h"
 #include <wx/wx.h>
 #include <algorithm>
 
@@ -65,6 +69,11 @@ wxObject* MenuBarLoader::LoadItem(pugi::xml_node node, wxMenu* parent, std::unor
 		wxMenu* menu = newd wxMenu;
 		if ((attribute = node.attribute("special")) && std::string(attribute.as_string()) == "RECENT_FILES") {
 			recentFilesManager.UseMenu(menu);
+		} else if ((attribute = node.attribute("special")) && std::string(attribute.as_string()) == "SCRIPTS") {
+			for (pugi::xml_node menuNode = node.first_child(); menuNode; menuNode = menuNode.next_sibling()) {
+				LoadItem(menuNode, menu, items, actions, recentFilesManager, warnings, error);
+			}
+			g_gui.root->menu_bar->scriptMenuHandler->LoadScriptsMenu(menu);
 		} else {
 			for (pugi::xml_node menuNode = node.first_child(); menuNode; menuNode = menuNode.next_sibling()) {
 				// Load an add each item in order

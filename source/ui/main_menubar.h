@@ -173,6 +173,7 @@ class MapActionsHandler;
 class FileMenuHandler;
 class NavigationMenuHandler;
 class PaletteMenuHandler;
+class ScriptMenuHandler;
 
 class MainMenuBar : public wxEvtHandler {
 	friend class MenuBarLoader;
@@ -321,6 +322,12 @@ protected:
 	FileMenuHandler* fileMenuHandler;
 	NavigationMenuHandler* navigationMenuHandler;
 	PaletteMenuHandler* paletteMenuHandler;
+
+public:
+	ScriptMenuHandler* scriptMenuHandler;
+
+	void LoadScriptsMenu() const;
+	void RefreshScriptsMenu() const;
 };
 
 namespace MenuBar {

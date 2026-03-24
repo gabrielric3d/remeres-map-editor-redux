@@ -30,7 +30,7 @@
 #include <map>
 #include <functional>
 
-#include "../map_overlay.h"
+#include "rendering/core/map_overlay.h"
 
 class Tile;
 class Item;

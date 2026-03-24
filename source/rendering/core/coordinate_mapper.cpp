@@ -27,3 +27,12 @@ void CoordinateMapper::ScreenToMap(int screen_x, int screen_y, int view_start_x,
 	}
 }
 
+void CoordinateMapper::MapToScreen(int map_x, int map_y, int view_start_x, int view_start_y, double zoom, int floor, double scale_factor, int* screen_x, int* screen_y) {
+	if (floor <= GROUND_LAYER) {
+		map_x -= (GROUND_LAYER - floor);
+		map_y -= (GROUND_LAYER - floor);
+	}
+
+	*screen_x = static_cast<int>((map_x * TILE_SIZE - view_start_x) / zoom / scale_factor);
+	*screen_y = static_cast<int>((map_y * TILE_SIZE - view_start_y) / zoom / scale_factor);
+}

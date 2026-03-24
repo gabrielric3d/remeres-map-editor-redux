@@ -21,6 +21,7 @@
 #include "editor/selection.h"
 #include "editor/selection_thread.h"
 #include "map/tile.h"
+#include "lua/lua_script_manager.h"
 #include "game/creature.h"
 #include "game/item.h"
 #include "editor/editor.h"
@@ -401,6 +402,13 @@ void Selection::finish(SessionFlags flags) {
 		deferred = false;
 	}
 	busy = false;
+
+	// Notify Lua scripts only if we're on the main thread and it's a "real" selection change
+	if (!(flags & (INTERNAL | SUBTHREAD))) {
+		if (g_luaScripts.isInitialized()) {
+			g_luaScripts.emit("selectionChange");
+		}
+	}
 }
 
 void Selection::updateSelectionCount() {

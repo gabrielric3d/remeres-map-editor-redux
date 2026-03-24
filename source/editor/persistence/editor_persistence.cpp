@@ -16,6 +16,7 @@
 #include "app/settings.h"
 #include "app/managers/version_manager.h"
 #include "ui/gui.h"
+#include "lua/lua_script_manager.h"
 
 #include <fstream>
 #include <ctime>

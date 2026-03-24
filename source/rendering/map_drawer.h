@@ -59,6 +59,7 @@ class TileRenderer;
 class CreatureNameDrawer;
 class HookIndicatorDrawer;
 class DoorIndicatorDrawer;
+class LuaOverlayDrawer;
 
 class MapDrawer {
 	MapCanvas* canvas;
@@ -86,6 +87,7 @@ class MapDrawer {
 	std::unique_ptr<CreatureNameDrawer> creature_name_drawer;
 	std::unique_ptr<HookIndicatorDrawer> hook_indicator_drawer;
 	std::unique_ptr<DoorIndicatorDrawer> door_indicator_drawer;
+	std::unique_ptr<LuaOverlayDrawer> lua_overlay_drawer;
 	std::unique_ptr<SpriteBatch> sprite_batch;
 	std::unique_ptr<PrimitiveRenderer> primitive_renderer;
 

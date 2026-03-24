@@ -16,6 +16,8 @@
 #include "palette/palette_window.h"
 #include "app/preferences.h"
 #include "ui/result_window.h"
+#include "lua/lua_script_manager.h"
+#include "lua/lua_scripts_window.h"
 #include "rendering/ui/minimap_window.h"
 #include "ui/about_window.h"
 #include "ui/main_menubar.h"
@@ -72,6 +74,23 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
 
 	g_gui.tile_properties_panel = newd TilePropertiesPanel(this);
 	g_gui.aui_manager->AddPane(g_gui.tile_properties_panel, wxAuiPaneInfo().Name("TileProperties").Caption("Tile Properties").Right().Layer(1).Position(1).CloseButton(true).MaximizeButton(true).Hide());
+
+	// Create Script Manager panel (dockable)
+	LuaScriptsWindow* scriptsWindow = newd LuaScriptsWindow(this);
+	LuaScriptsWindow::SetInstance(scriptsWindow);
+	g_gui.aui_manager->AddPane(scriptsWindow,
+		wxAuiPaneInfo()
+			.Name("ScriptManager")
+			.Caption("Script Manager")
+			.Right()
+			.CloseButton(true)
+			.MaximizeButton(false)
+			.MinimizeButton(false)
+			.Floatable(true)
+			.BestSize(450, 350)
+			.MinSize(300, 200)
+			.Hide()  // Hidden by default, show from menu
+	);
 
 	g_gui.aui_manager->Update();
 
