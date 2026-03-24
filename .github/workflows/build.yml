@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - master
+      - Jules-Lua
   pull_request:
     branches:
       - master
+      - Jules-Lua
   workflow_dispatch:
 
 jobs:
