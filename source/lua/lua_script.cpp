@@ -217,10 +217,15 @@ void LuaScript::parseMetadataFromManifest() {
 		// Use regex for word-boundary matches like "autorun = true"
 		// This prevents comments or substrings from triggering it.
 		// Pattern matches 'autorun' optional spaces '=' optional spaces 'true'
-		std::regex arRegex(R"(^[^--]*\bautorun\s*=\s*true\b)", std::regex_constants::icase);
+		std::regex arRegex(R"(^\s*autorun\s*=\s*true\b)", std::regex_constants::icase);
 		std::istringstream iss(content);
 		std::string line;
 		while (std::getline(iss, line)) {
+			// Skip comment suffix
+			size_t firstNonSpace = line.find_first_not_of(" \t");
+			if (firstNonSpace != std::string::npos && line.compare(firstNonSpace, 2, "--") == 0) {
+				continue;
+			}
 			if (std::regex_search(line, arRegex)) {
 				autorun = true;
 				break;

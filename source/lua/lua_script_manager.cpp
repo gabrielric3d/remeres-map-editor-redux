@@ -20,6 +20,7 @@
 #include "lua_api.h"
 #include "lua_api_image.h"
 #include "ui/gui.h"
+#include "app/settings.h"
 #include "map/tile.h"
 
 #include <wx/dir.h>
@@ -600,6 +601,16 @@ void LuaScriptManager::scanDirectory(const std::string& directory) {
 	std::string manifestPath = directory + sep + "manifest.lua";
 	if (wxFileExists(manifestPath)) {
 		auto script = std::make_unique<LuaScript>(directory, true);
+		
+		auto& table = g_settings.getTable();
+		if (auto scriptsNode = table.get_as<toml::table>("scripts")) {
+			if (auto node = scriptsNode->get(script->getFileName())) {
+				if (node->is_boolean()) {
+					script->setEnabled(node->as_boolean()->get());
+				}
+			}
+		}
+
 		scripts.push_back(std::move(script));
 		return;
 	}
@@ -625,6 +636,16 @@ void LuaScriptManager::scanDirectory(const std::string& directory) {
 		std::string filepath = directory + sep + filename;
 
 		auto script = std::make_unique<LuaScript>(filepath);
+		
+		auto& table = g_settings.getTable();
+		if (auto scriptsNode = table.get_as<toml::table>("scripts")) {
+			if (auto node = scriptsNode->get(script->getFileName())) {
+				if (node->is_boolean()) {
+					script->setEnabled(node->as_boolean()->get());
+				}
+			}
+		}
+
 		scripts.push_back(std::move(script));
 
 		cont = dir.GetNext(&name);
@@ -696,6 +717,16 @@ bool LuaScriptManager::executeScript(size_t index, std::string& errorOut) {
 void LuaScriptManager::setScriptEnabled(size_t index, bool enabled) {
 	if (index < scripts.size()) {
 		scripts[index]->setEnabled(enabled);
+		
+		auto& table = g_settings.getTable();
+		if (!table.contains("scripts")) {
+			table.insert("scripts", toml::table{});
+		}
+		auto scriptsNode = table.get_as<toml::table>("scripts");
+		if (scriptsNode) {
+			scriptsNode->insert_or_assign(scripts[index]->getFileName(), enabled);
+		}
+		g_settings.save();
 	}
 }
 

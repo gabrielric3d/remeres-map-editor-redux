@@ -100,8 +100,7 @@ public:
 	}
 
 	// Position of the tile
-	Position getPosition();
-	const Position getPosition() const;
+	Position getPosition() const;
 	int getX() const;
 	int getY() const;
 	int getZ() const;

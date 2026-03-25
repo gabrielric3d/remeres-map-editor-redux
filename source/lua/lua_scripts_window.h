@@ -21,6 +21,7 @@
 #include <wx/panel.h>
 #include <wx/listctrl.h>
 #include <wx/textctrl.h>
+#include <wx/button.h>
 
 class LuaScriptsWindow : public wxPanel {
 public:
@@ -48,6 +49,7 @@ protected:
 	// Event handlers
 	void OnScriptActivated(wxListEvent& event);
 	void OnScriptSelected(wxListEvent& event);
+	void OnScriptChecked(wxListEvent& event);
 	void OnReloadScripts(wxCommandEvent& event);
 	void OnOpenFolder(wxCommandEvent& event);
 	void OnClearConsole(wxCommandEvent& event);

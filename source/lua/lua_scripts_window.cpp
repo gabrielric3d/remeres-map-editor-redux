@@ -22,6 +22,7 @@
 
 #include <wx/filename.h>
 #include <wx/stdpaths.h>
+#include <wx/settings.h>
 
 // Static instance
 LuaScriptsWindow* LuaScriptsWindow::instance = nullptr;
@@ -29,6 +30,8 @@ LuaScriptsWindow* LuaScriptsWindow::instance = nullptr;
 BEGIN_EVENT_TABLE(LuaScriptsWindow, wxPanel)
 EVT_LIST_ITEM_ACTIVATED(SCRIPT_MANAGER_LIST, LuaScriptsWindow::OnScriptActivated)
 EVT_LIST_ITEM_SELECTED(SCRIPT_MANAGER_LIST, LuaScriptsWindow::OnScriptSelected)
+EVT_LIST_ITEM_CHECKED(SCRIPT_MANAGER_LIST, LuaScriptsWindow::OnScriptChecked)
+EVT_LIST_ITEM_UNCHECKED(SCRIPT_MANAGER_LIST, LuaScriptsWindow::OnScriptChecked)
 EVT_BUTTON(SCRIPT_MANAGER_RELOAD, LuaScriptsWindow::OnReloadScripts)
 EVT_BUTTON(SCRIPT_MANAGER_OPEN_FOLDER, LuaScriptsWindow::OnOpenFolder)
 EVT_BUTTON(SCRIPT_MANAGER_CLEAR_CONSOLE, LuaScriptsWindow::OnClearConsole)
@@ -43,6 +46,7 @@ LuaScriptsWindow::LuaScriptsWindow(wxWindow* parent) :
 	open_folder_button(nullptr),
 	clear_console_button(nullptr),
 	run_script_button(nullptr) {
+	instance = this;
 	BuildUI();
 	RefreshScriptList();
 
@@ -216,7 +220,7 @@ void LuaScriptsWindow::UpdateScriptState(long index) {
 		script_list->SetItem(index, 0, script->isEnabled() ? "On" : "Off");
 
 		if (script->isEnabled()) {
-			script_list->SetItemTextColour(index, wxColour(0, 0, 0));
+			script_list->SetItemTextColour(index, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		} else {
 			script_list->SetItemTextColour(index, wxColour(128, 128, 128));
 		}
@@ -248,8 +252,44 @@ void LuaScriptsWindow::OnScriptActivated(wxListEvent& event) {
 }
 
 void LuaScriptsWindow::OnScriptSelected(wxListEvent& event) {
-	// Enable/disable run button based on selection
-	run_script_button->Enable(event.GetIndex() >= 0);
+	long index = event.GetIndex();
+	bool canRun = false;
+	if (index >= 0 && script_list) {
+		size_t scriptIndex = static_cast<size_t>(script_list->GetItemData(index));
+		const auto& scripts = g_luaScripts.getScripts();
+		if (scriptIndex < scripts.size()) {
+			canRun = scripts[scriptIndex]->isEnabled();
+		}
+	}
+	run_script_button->Enable(canRun);
+}
+
+void LuaScriptsWindow::OnScriptChecked(wxListEvent& event) {
+	long index = event.GetIndex();
+	if (index < 0 || !script_list) return;
+
+	size_t scriptIndex = static_cast<size_t>(script_list->GetItemData(index));
+	const auto& scripts = g_luaScripts.getScripts();
+
+	if (scriptIndex < scripts.size()) {
+		bool isChecked = script_list->IsItemChecked(index);
+		
+		// Prevent infinite recursion during RefreshScriptList
+		if (scripts[scriptIndex]->isEnabled() == isChecked) {
+			return;
+		}
+
+		g_luaScripts.setScriptEnabled(scriptIndex, isChecked);
+		
+		LogMessage(isChecked ? "Enabling script..." : "Disabling script...");
+		g_luaScripts.reloadScripts();
+		RefreshScriptList();
+		
+		if (index < script_list->GetItemCount()) {
+			script_list->SetItemState(index, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED);
+			script_list->EnsureVisible(index);
+		}
+	}
 }
 
 void LuaScriptsWindow::OnReloadScripts(wxCommandEvent& event) {
@@ -285,6 +325,9 @@ void LuaScriptsWindow::OnRunScript(wxCommandEvent& event) {
 
 	if (scriptIndex < scripts.size()) {
 		const auto& script = scripts[scriptIndex];
+		if (!script->isEnabled()) {
+			return;
+		}
 		LogMessage("Running: " + wxString::FromUTF8(script->getDisplayName()));
 		std::string error;
 		if (!g_luaScripts.executeScript(scriptIndex, error)) {

@@ -455,6 +455,11 @@ namespace LuaAPI {
 			return result;
 		});
 
+		// noise.clearCache()
+		noiseTable.set_function("clearCache", []() {
+			// FastNoiseLite does not cache internally, but we retain this function for backwards compatibility.
+		});
+
 		lua["noise"] = noiseTable;
 	}
 

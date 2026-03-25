@@ -26,18 +26,10 @@
 #include "map/basemap.h"
 #include "map/map_region.h"
 #include "game/spawn.h"
-#include "brushes/ground/ground_brush.h"
-#include "brushes/wall/wall_brush.h"
-#include "brushes/carpet/carpet_brush.h"
-#include "brushes/table/table_brush.h"
-#include "game/town.h"
-#include "map/map.h"
-
 #include <ranges>
 #include <algorithm>
 #include <iterator>
 #include <memory>
-#include <numeric>
 
 Tile::Tile(int x, int y, int z) :
 	location(nullptr),
@@ -59,11 +51,7 @@ Tile::Tile(TileLocation& loc) :
 	////
 }
 
-Position Tile::getPosition() {
-	return location->getPosition();
-}
-
-const Position Tile::getPosition() const {
+Position Tile::getPosition() const {
 	return location->getPosition();
 }
 
@@ -109,7 +97,8 @@ std::unique_ptr<Tile> Tile::deepCopy() const {
 	if (location) {
 		copy = std::make_unique<Tile>(*location);
 	} else {
-		copy = std::make_unique<Tile>(getX(), getY(), getZ());
+		// Detached tile: avoid dereferencing location
+		copy = std::make_unique<Tile>(0, 0, 0);
 	}
 	if (ground) {
 		copy->ground = ground->deepCopy();
@@ -262,8 +251,10 @@ void Tile::addItem(std::unique_ptr<Item> item) {
 		ground = Item::Create(gid);
 		TileOperations::update(this);
 		return;
-		// At the very bottom!
-	} else if (item->isAlwaysOnBottom()) {
+	} 
+	
+	// At the very bottom!
+	if (item->isAlwaysOnBottom()) {
 		// Find insertion point for always-on-bottom items
 		// They are sorted by TopOrder, and come before normal items.
 		it = std::ranges::find_if(items, [&](const std::unique_ptr<Item>& i) {

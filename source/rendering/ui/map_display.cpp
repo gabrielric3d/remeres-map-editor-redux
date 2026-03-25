@@ -113,6 +113,7 @@ MapCanvas::MapCanvas(wxWindow* parent, Editor& editor, int* attriblist) :
 	last_click_abs_y(-1),
 	last_click_x(-1),
 	last_click_y(-1),
+	last_mmb_click_x(-1),
 	last_mmb_click_y(-1),
 	m_last_gc_time(0) {
 	// Context creation must happen on the main/UI thread
@@ -182,12 +183,19 @@ void MapCanvas::SetZoom(double value) {
 }
 
 void MapCanvas::GetViewBox(int* view_scroll_x, int* view_scroll_y, int* screensize_x, int* screensize_y) const {
-	GetMapWindow()->GetViewSize(screensize_x, screensize_y);
-	GetMapWindow()->GetViewStart(view_scroll_x, view_scroll_y);
+	if (auto mw = GetMapWindow()) {
+		mw->GetViewSize(screensize_x, screensize_y);
+		mw->GetViewStart(view_scroll_x, view_scroll_y);
+	} else {
+		if (screensize_x) *screensize_x = GetSize().x;
+		if (screensize_y) *screensize_y = GetSize().y;
+		if (view_scroll_x) *view_scroll_x = 0;
+		if (view_scroll_y) *view_scroll_y = 0;
+	}
 }
 
 MapWindow* MapCanvas::GetMapWindow() const {
-	return static_cast<MapWindow*>(GetParent());
+	return wxDynamicCast(GetParent(), MapWindow);
 }
 
 void MapCanvas::EnsureNanoVG() {
@@ -319,8 +327,10 @@ void MapCanvas::TakeScreenshot(wxFileName path, wxString format) {
 }
 
 void MapCanvas::ScreenToMap(int screen_x, int screen_y, int* map_x, int* map_y) {
-	int start_x, start_y;
-	GetMapWindow()->GetViewStart(&start_x, &start_y);
+	int start_x = 0, start_y = 0;
+	if (auto mw = GetMapWindow()) {
+		mw->GetViewStart(&start_x, &start_y);
+	}
 
 	CoordinateMapper::ScreenToMap(screen_x, screen_y, start_x, start_y, zoom, floor, GetContentScaleFactor(), map_x, map_y);
 }
@@ -340,8 +350,10 @@ if (floor <= GROUND_LAYER) {
 
 #endif
 void MapCanvas::GetScreenCenter(int* map_x, int* map_y) {
-	int width, height;
-	GetMapWindow()->GetViewSize(&width, &height);
+	int width = GetSize().x, height = GetSize().y;
+	if (auto mw = GetMapWindow()) {
+		mw->GetViewSize(&width, &height);
+	}
 	ScreenToMap(width / 2, height / 2, map_x, map_y);
 }
 
@@ -534,8 +546,10 @@ void MapCanvas::OnMousePropertiesClick(wxMouseEvent& event) {
 	selection_controller->HandlePropertiesClick(Position(mouse_map_x, mouse_map_y, floor), event.ShiftDown(), event.ControlDown(), event.AltDown());
 	last_click_y = int(event.GetY() * zoom);
 
-	int start_x, start_y;
-	static_cast<MapWindow*>(GetParent())->GetViewStart(&start_x, &start_y);
+	int start_x = 0, start_y = 0;
+	if (auto mw = GetMapWindow()) {
+		mw->GetViewStart(&start_x, &start_y);
+	}
 	last_click_abs_x = last_click_x + start_x;
 	last_click_abs_y = last_click_y + start_y;
 

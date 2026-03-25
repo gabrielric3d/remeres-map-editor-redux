@@ -20,13 +20,13 @@
 
 #include <string>
 
-// Represents a single Lua script (file or directory with manifest.json)
+// Represents a single Lua script (file or directory with manifest.lua)
 class LuaScript {
 public:
 	// Constructor for single .lua file
 	LuaScript(const std::string& filepath);
 
-	// Constructor for directory with manifest.json
+	// Constructor for directory with manifest.lua
 	LuaScript(const std::string& directory, bool isDirectory);
 
 	~LuaScript() = default;
@@ -73,7 +73,7 @@ public:
 		enabled = value;
 	}
 
-	// Parse metadata from comments or manifest.json
+	// Parse metadata from comments or manifest.lua
 	void parseMetadata();
 
 private:
@@ -90,7 +90,7 @@ private:
 	std::string shortcut; // Keyboard shortcut
 	bool enabled;
 	bool autorun;
-	bool isPackageScript; // True if loaded from directory with manifest.json
+	bool isPackageScript; // True if loaded from directory with manifest.lua
 };
 
 #endif // RME_LUA_SCRIPT_H
