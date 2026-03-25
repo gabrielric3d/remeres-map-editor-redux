@@ -286,6 +286,9 @@ bool LuaEngine::executeFile(const std::string& filepath) {
 	}
 
 	try {
+		// Capture previous SCRIPT_DIR
+		sol::object prevScriptDir = lua["SCRIPT_DIR"];
+
 		// Extract the directory from the filepath and set SCRIPT_DIR global
 		std::string scriptDir;
 		size_t lastSlash = filepath.find_last_of("/\\");
@@ -308,14 +311,16 @@ bool LuaEngine::executeFile(const std::string& filepath) {
 			sol::error err = loaded;
 			lastError = std::string("Failed to load script '") + filepath + "': " + err.what();
 			lua["package"]["path"] = originalPath;
+			lua["SCRIPT_DIR"] = prevScriptDir;
 			return false;
 		}
 
 		sol::protected_function script = loaded;
 		sol::protected_function_result result = script();
 
-		// Restore original path
+		// Restore original path and SCRIPT_DIR
 		lua["package"]["path"] = originalPath;
+		lua["SCRIPT_DIR"] = prevScriptDir;
 
 		if (!result.valid()) {
 			sol::error err = result;

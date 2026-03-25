@@ -41,6 +41,12 @@ public:
 	const std::string& getFileName() const {
 		return filename;
 	}
+	const std::string& getUniqueId() const {
+		return uniqueId;
+	}
+	void setUniqueId(const std::string& id) {
+		uniqueId = id;
+	}
 	const std::string& getDisplayName() const {
 		return displayName;
 	}
@@ -83,6 +89,7 @@ private:
 	std::string filepath; // Full path to the main .lua file
 	std::string directory; // Directory containing the script (for packages)
 	std::string filename; // Just the filename
+	std::string uniqueId;
 	std::string displayName; // Display name (from metadata or filename)
 	std::string description; // Description
 	std::string author; // Author

@@ -696,46 +696,57 @@ namespace LuaAPI {
 
 			std::mt19937 rng(seed);
 
-			// Make dimensions odd for proper maze
-			if (width % 2 == 0) {
-				width++;
-			}
-			if (height % 2 == 0) {
-				height++;
-			}
+			// Inner carving area should be odd for proper maze
+			int carveWidth = width;
+			int carveHeight = height;
+			if (carveWidth % 2 == 0) carveWidth--;
+			if (carveHeight % 2 == 0) carveHeight--;
 
-			if (width < 3 || height < 3) {
+			if (carveWidth < 3 || carveHeight < 3) {
 				return gridToTable(std::vector<std::vector<int>>(height, std::vector<int>(width, 1)), lua);
 			}
 
-			// Initialize grid with walls
+			// Initialize grid with walls (using original size)
 			std::vector<std::vector<int>> grid(height, std::vector<int>(width, 1));
 
-			// Recursive backtracking
-			std::function<void(int, int)> carve = [&](int x, int y) {
-				grid[y][x] = 0;
+			// Iterative backtracking using explicit stack
+			struct Cell {
+				int x, y;
+			};
+			std::vector<Cell> stack;
+			stack.push_back({ 1, 1 });
+			grid[1][1] = 0;
 
-				// Shuffle directions
+			const int dx[] = { 0, 1, 0, -1 };
+			const int dy[] = { -1, 0, 1, 0 };
+
+			while (!stack.empty()) {
+				Cell current = stack.back();
+
+				// Find unvisited neighbors
 				std::vector<int> dirs = { 0, 1, 2, 3 }; // N, E, S, W
 				std::shuffle(dirs.begin(), dirs.end(), rng);
 
-				const int dx[] = { 0, 1, 0, -1 };
-				const int dy[] = { -1, 0, 1, 0 };
-
+				bool found = false;
 				for (int dir : dirs) {
-					int nx = x + dx[dir] * 2;
-					int ny = y + dy[dir] * 2;
+					int nx = current.x + dx[dir] * 2;
+					int ny = current.y + dy[dir] * 2;
 
-					if (nx > 0 && nx < width - 1 && ny > 0 && ny < height - 1 && grid[ny][nx] == 1) {
+					// Check bounds against carveWidth/Height
+					if (nx > 0 && nx < carveWidth - 1 && ny > 0 && ny < carveHeight - 1 && grid[ny][nx] == 1) {
 						// Carve through wall
-						grid[y + dy[dir]][x + dx[dir]] = 0;
-						carve(nx, ny);
+						grid[current.y + dy[dir]][current.x + dx[dir]] = 0;
+						grid[ny][nx] = 0;
+						stack.push_back({ nx, ny });
+						found = true;
+						break;
 					}
 				}
-			};
 
-			// Start from (1, 1)
-			carve(1, 1);
+				if (!found) {
+					stack.pop_back();
+				}
+			}
 
 			return gridToTable(grid, lua);
 		});

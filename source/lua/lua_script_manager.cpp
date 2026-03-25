@@ -296,13 +296,15 @@ bool LuaScriptManager::isMapOverlayEnabled(const std::string& id) const {
 }
 
 void LuaScriptManager::collectMapOverlayCommands(const MapViewInfo& view, std::vector<MapOverlayCommand>& out) {
-	out.clear();
 	if (!initialized) {
 		return;
 	}
 
+	auto outPtr = std::make_shared<std::vector<MapOverlayCommand>>();
 	sol::state& lua = engine.getState();
 	sol::table ctx = lua.create_table();
+
+	// Prepare view table
 	sol::table viewTable = lua.create_table();
 	viewTable["x1"] = view.start_x;
 	viewTable["y1"] = view.start_y;
@@ -314,12 +316,44 @@ void LuaScriptManager::collectMapOverlayCommands(const MapViewInfo& view, std::v
 	viewTable["screenHeight"] = view.screen_height;
 	ctx["view"] = viewTable;
 
+	// Register drawing functions (rect, line, etc.)
+	registerOverlayFunctions(ctx, outPtr, view);
+
+	if (mapOverlays.empty()) {
+		out = *outPtr;
+		return;
+	}
+
+	// Sort overlays by order (ascending) then by id
+	std::vector<MapOverlay> sorted = mapOverlays;
+	std::sort(sorted.begin(), sorted.end(), [](const MapOverlay& a, const MapOverlay& b) {
+		if (a.order == b.order) {
+			return a.id < b.id;
+		}
+		return a.order < b.order;
+	});
+
+	std::string oldScriptDir = engine.getState()["SCRIPT_DIR"].get_or(std::string(""));
+	for (const auto& overlay : sorted) {
+		if (overlay.enabled && overlay.ondraw.valid()) {
+			engine.getState()["SCRIPT_DIR"] = overlay.ownerScriptDir;
+			engine.safeCall([&]() { return overlay.ondraw(ctx); });
+		}
+	}
+	engine.getState()["SCRIPT_DIR"] = oldScriptDir;
+
+	out = *outPtr;
+}
+
+void LuaScriptManager::registerOverlayFunctions(sol::table& ctx, std::shared_ptr<std::vector<MapOverlayCommand>>& out, const MapViewInfo& view) {
 	auto getOptsTable = [](sol::variadic_args va) -> sol::table {
 		for (size_t i = 0; i < va.size(); ++i) {
 			if (va[i].is<sol::table>()) {
 				sol::table t = va[i].as<sol::table>();
 				// Skip the ctx table (it has 'view', 'rect', 'line', 'text' fields)
 				if (t["view"].valid() && t["rect"].valid()) {
+					// We check if it looks like the context table we just created
+					// Simple heuristic: if it has 'view' and 'rect' (which are functions), it's probably the context
 					continue;
 				}
 				return t;
@@ -328,7 +362,7 @@ void LuaScriptManager::collectMapOverlayCommands(const MapViewInfo& view, std::v
 		return sol::table();
 	};
 
-	ctx["rect"] = [&, getOptsTable](sol::variadic_args va) {
+	ctx["rect"] = [out, view, getOptsTable](sol::variadic_args va) {
 		sol::table opts = getOptsTable(va);
 		if (!opts.valid()) {
 			return;
@@ -346,10 +380,10 @@ void LuaScriptManager::collectMapOverlayCommands(const MapViewInfo& view, std::v
 		cmd.w = opts.get_or(std::string("w"), 1);
 		cmd.h = opts.get_or(std::string("h"), 1);
 		cmd.color = parseColor(opts["color"], wxColor(255, 255, 255, 128));
-		out.push_back(cmd);
+		out->push_back(cmd);
 	};
 
-	ctx["line"] = [&, getOptsTable](sol::variadic_args va) {
+	ctx["line"] = [out, view, getOptsTable](sol::variadic_args va) {
 		sol::table opts = getOptsTable(va);
 		if (!opts.valid()) {
 			return;
@@ -367,10 +401,10 @@ void LuaScriptManager::collectMapOverlayCommands(const MapViewInfo& view, std::v
 		cmd.y2 = opts.get_or(std::string("y2"), 0);
 		cmd.z2 = opts.get_or(std::string("z2"), view.floor);
 		cmd.color = parseColor(opts["color"], wxColor(255, 255, 255, 200));
-		out.push_back(cmd);
+		out->push_back(cmd);
 	};
 
-	ctx["text"] = [&, getOptsTable](sol::variadic_args va) {
+	ctx["text"] = [out, view, getOptsTable](sol::variadic_args va) {
 		sol::table opts = getOptsTable(va);
 		if (!opts.valid()) {
 			return;
@@ -384,11 +418,11 @@ void LuaScriptManager::collectMapOverlayCommands(const MapViewInfo& view, std::v
 		cmd.text = opts.get_or(std::string("text"), std::string());
 		cmd.color = parseColor(opts["color"], wxColor(255, 255, 255, 255));
 		if (!cmd.text.empty()) {
-			out.push_back(cmd);
+			out->push_back(cmd);
 		}
 	};
 
-	ctx["image"] = [&, getOptsTable](sol::variadic_args va) {
+	ctx["image"] = [out, view, getOptsTable](sol::variadic_args va) {
 		sol::table opts = getOptsTable(va);
 		if (!opts.valid()) {
 			return;
@@ -409,29 +443,10 @@ void LuaScriptManager::collectMapOverlayCommands(const MapViewInfo& view, std::v
 				double opacity = opts.get_or(std::string("opacity"), 1.0);
 				cmd.color = wxColor(255, 255, 255, static_cast<uint8_t>(opacity * 255));
 
-				out.push_back(cmd);
+				out->push_back(cmd);
 			}
 		}
 	};
-
-	std::vector<MapOverlay> sorted = mapOverlays;
-	std::sort(sorted.begin(), sorted.end(), [](const MapOverlay& a, const MapOverlay& b) {
-		if (a.order == b.order) {
-			return a.id < b.id;
-		}
-		return a.order < b.order;
-	});
-
-	for (const auto& overlay : sorted) {
-		if (!overlay.enabled || !overlay.ondraw.valid()) {
-			continue;
-		}
-		try {
-			overlay.ondraw(ctx);
-		} catch (const sol::error& e) {
-			logOutput("Overlay '" + overlay.id + "' error: " + std::string(e.what()), true);
-		}
-	}
 }
 
 void LuaScriptManager::updateMapOverlayHover(int map_x, int map_y, int map_z, int screen_x, int screen_y, Tile* tile, Item* topItem) {
@@ -567,6 +582,8 @@ std::string LuaScriptManager::getScriptsDirectory() const {
 }
 
 void LuaScriptManager::discoverScripts() {
+	engine.shutdown();
+	engine.initialize();
 	scripts.clear();
 	clearAllCallbacks();
 
@@ -582,6 +599,7 @@ void LuaScriptManager::discoverScripts() {
 }
 
 void LuaScriptManager::scanDirectory(const std::string& directory) {
+	std::string scriptsBaseDir = getScriptsDirectory();
 	wxDir dir(directory);
 	if (!dir.IsOpened()) {
 		spdlog::warn("Could not open scripts directory: {}", directory);
@@ -602,9 +620,14 @@ void LuaScriptManager::scanDirectory(const std::string& directory) {
 	if (wxFileExists(manifestPath)) {
 		auto script = std::make_unique<LuaScript>(directory, true);
 		
+		// Set unique ID as relative path
+		wxFileName fn(directory);
+		fn.MakeRelativeTo(scriptsBaseDir);
+		script->setUniqueId(fn.GetFullPath().ToStdString());
+
 		auto& table = g_settings.getTable();
 		if (auto scriptsNode = table.get_as<toml::table>("scripts")) {
-			if (auto node = scriptsNode->get(script->getFileName())) {
+			if (auto node = scriptsNode->get(script->getUniqueId())) {
 				if (node->is_boolean()) {
 					script->setEnabled(node->as_boolean()->get());
 				}
@@ -637,9 +660,14 @@ void LuaScriptManager::scanDirectory(const std::string& directory) {
 
 		auto script = std::make_unique<LuaScript>(filepath);
 		
+		// Set unique ID as relative path
+		wxFileName fn(filepath);
+		fn.MakeRelativeTo(scriptsBaseDir);
+		script->setUniqueId(fn.GetFullPath().ToStdString());
+
 		auto& table = g_settings.getTable();
 		if (auto scriptsNode = table.get_as<toml::table>("scripts")) {
-			if (auto node = scriptsNode->get(script->getFileName())) {
+			if (auto node = scriptsNode->get(script->getUniqueId())) {
 				if (node->is_boolean()) {
 					script->setEnabled(node->as_boolean()->get());
 				}
@@ -722,9 +750,12 @@ void LuaScriptManager::setScriptEnabled(size_t index, bool enabled) {
 		if (!table.contains("scripts")) {
 			table.insert("scripts", toml::table{});
 		}
-		auto scriptsNode = table.get_as<toml::table>("scripts");
-		if (scriptsNode) {
-			scriptsNode->insert_or_assign(scripts[index]->getFileName(), enabled);
+		if (auto scriptsNode = table.get_as<toml::table>("scripts")) {
+			scriptsNode->insert_or_assign(scripts[index]->getUniqueId(), enabled);
+		} else {
+			toml::table sNode;
+			sNode.insert_or_assign(scripts[index]->getUniqueId(), enabled);
+			table.insert_or_assign("scripts", std::move(sNode));
 		}
 		g_settings.save();
 	}

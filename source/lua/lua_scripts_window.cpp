@@ -282,7 +282,6 @@ void LuaScriptsWindow::OnScriptChecked(wxListEvent& event) {
 		g_luaScripts.setScriptEnabled(scriptIndex, isChecked);
 		
 		LogMessage(isChecked ? "Enabling script..." : "Disabling script...");
-		g_luaScripts.reloadScripts();
 		RefreshScriptList();
 		
 		if (index < script_list->GetItemCount()) {

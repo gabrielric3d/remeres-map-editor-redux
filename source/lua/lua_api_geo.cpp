@@ -90,7 +90,6 @@ namespace LuaAPI {
 			// Driving axis is the one with greatest delta
 			int dm = std::max({ dx, dy, dz });
 
-			int i = dm;
 			int x = x1, y = y1, z = z1;
 
 			int xErr = dm / 2;

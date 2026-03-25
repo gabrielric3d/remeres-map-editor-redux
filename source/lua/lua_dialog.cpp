@@ -50,10 +50,22 @@ static std::set<LuaDialog*> g_pinnedDialogs;
 
 void LuaDialog::pin(LuaDialog* dialog) {
 	g_pinnedDialogs.insert(dialog);
+	if (dialog->lua.lua_state()) {
+		sol::state_view s(dialog->lua.lua_state());
+		if (s["dialog"].valid()) {
+			s["dialog"]["is_open"] = true;
+		}
+	}
 }
 
 void LuaDialog::unpin(LuaDialog* dialog) {
 	g_pinnedDialogs.erase(dialog);
+	if (dialog->lua.lua_state()) {
+		sol::state_view s(dialog->lua.lua_state());
+		if (s["dialog"].valid()) {
+			s["dialog"]["is_open"] = !g_pinnedDialogs.empty();
+		}
+	}
 }
 
 class CustomButton : public wxControl {
@@ -3146,6 +3158,9 @@ namespace LuaAPI {
 									"data", sol::property(&LuaDialog::getData, &LuaDialog::setData), "bounds", sol::property(&LuaDialog::getBounds, &LuaDialog::setBounds), "dockable", sol::property(&LuaDialog::isDockable), "activeTab", sol::property(&LuaDialog::getActiveTab),
 									
 									sol::meta_function::garbage_collect, sol::destructor([](LuaDialog& d) { d.Destroy(); }));
+
+		lua["dialog"] = lua.create_table();
+		lua["dialog"]["is_open"] = !g_pinnedDialogs.empty();
 	}
 
 } // namespace LuaAPI

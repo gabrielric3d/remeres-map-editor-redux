@@ -438,23 +438,6 @@ namespace LuaAPI {
 		sol::state_view lua(ts);
 		sol::table storage = lua.create_table();
 
-		std::string scriptDir = ".";
-		if (lua["SCRIPT_DIR"].valid()) {
-			scriptDir = lua["SCRIPT_DIR"];
-		}
-
-		std::string filename = name;
-
-		// Security check: Prevent path traversal and absolute paths
-		if (filename.find("..") != std::string::npos || std::filesystem::path(filename).is_absolute()) {
-			printf("[Lua Security] Blocked unsafe path in app.storage: %s\n", filename.c_str());
-			return lua.create_table();
-		}
-
-		if (filename.find('.') == std::string::npos) {
-			filename += ".json";
-		}
-
 		namespace fs = std::filesystem;
 		
 		// Determine potential base directories
@@ -462,11 +445,22 @@ namespace LuaAPI {
 		fs::path dataPath = fs::weakly_canonical(FileSystem::GetDataDirectory().ToStdString());
 		fs::path execPath = fs::weakly_canonical(FileSystem::GetExecDirectory().ToStdString());
 
+		std::string scriptDir = lua["SCRIPT_DIR"].get_or(std::string(""));
+
+		// Ensure scriptDir is safe and canonical
+		fs::path canonicalScriptDir = fs::weakly_canonical(scriptDir);
+		auto scriptDirRel = canonicalScriptDir.lexically_relative(scriptsPath);
+		if (scriptDirRel.empty() || scriptDirRel.string().find("..") != std::string::npos) {
+			scriptDir = scriptsPath.string(); 
+		} else {
+			scriptDir = canonicalScriptDir.string();
+		}
+
 		fs::path fullPath;
 		bool allowed = false;
 
 		try {
-			fs::path p(filename);
+			fs::path p(name);
 			if (p.is_absolute()) {
 				fullPath = fs::weakly_canonical(p);
 				// Check if absolute path is within allowed roots
@@ -492,12 +486,12 @@ namespace LuaAPI {
 				}
 			}
 		} catch (...) {
-			printf("[Lua Security] Failed to canonicalize path in app.storage: %s\n", filename.c_str());
+			printf("[Lua Security] Failed to canonicalize path in app.storage: %s\n", name.c_str());
 			return lua.create_table();
 		}
 
 		if (!allowed) {
-			printf("[Lua Security] Blocked unsafe path in app.storage: %s\n", filename.c_str());
+			printf("[Lua Security] Blocked unsafe path in app.storage: %s\n", name.c_str());
 			return lua.create_table();
 		}
 

@@ -217,6 +217,7 @@ private:
 	void registerAPIs();
 	void scanDirectory(const std::string& directory);
 	void runAutoScripts();
+	void registerOverlayFunctions(sol::table& ctx, std::shared_ptr<std::vector<MapOverlayCommand>>& out, const MapViewInfo& view);
 };
 
 // Global accessor macro

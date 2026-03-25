@@ -134,47 +134,49 @@ void LuaScript::parseMetadataFromManifest() {
 					// Found key, look for '='
 					size_t eqPos = content.find('=', nextCharPos);
 					if (eqPos != std::string::npos) {
-						// Look for quote
-						size_t quotePos = content.find_first_of("\"'", eqPos);
-						if (quotePos != std::string::npos) {
-							char quote = content[quotePos];
-							size_t valStart = quotePos + 1;
-							size_t valEnd = content.find(quote, valStart);
-							
-							// Handle escaped quotes
-							while (valEnd != std::string::npos && content[valEnd - 1] == '\\') {
-								valEnd = content.find(quote, valEnd + 1);
-							}
-
-							if (valEnd != std::string::npos) {
-								std::string rawVal = content.substr(valStart, valEnd - valStart);
-								// Unescape
-								std::string unescaped;
-								for (size_t i = 0; i < rawVal.size(); ++i) {
-									if (rawVal[i] == '\\' && i + 1 < rawVal.size()) {
-										switch (rawVal[++i]) {
-											case 'n': unescaped += '\n'; break;
-											case 'r': unescaped += '\r'; break;
-											case 't': unescaped += '\t'; break;
-											case '\\': unescaped += '\\'; break;
-											case '\"': unescaped += '\"'; break;
-											case '\'': unescaped += '\''; break;
-											default: unescaped += rawVal[i]; break;
-										}
-									} else {
-										unescaped += rawVal[i];
-									}
+						// Ensure '=' is before any potential newline
+						size_t nextLine = content.find('\n', nextCharPos);
+						if (nextLine == std::string::npos || eqPos < nextLine) {
+							// Look for quote
+							size_t quotePos = content.find_first_of("\"'", eqPos);
+							if (quotePos != std::string::npos && (nextLine == std::string::npos || quotePos < nextLine)) {
+								char quote = content[quotePos];
+								size_t valStart = quotePos + 1;
+								size_t valEnd = content.find(quote, valStart);
+								
+								// Handle escaped quotes
+								while (valEnd != std::string::npos && content[valEnd - 1] == '\\') {
+									valEnd = content.find(quote, valEnd + 1);
 								}
-								return unescaped;
+
+								if (valEnd != std::string::npos) {
+									std::string rawVal = content.substr(valStart, valEnd - valStart);
+									// Unescape
+									std::string unescaped;
+									for (size_t i = 0; i < rawVal.size(); ++i) {
+										if (rawVal[i] == '\\' && i + 1 < rawVal.size()) {
+											switch (rawVal[++i]) {
+												case 'n': unescaped += '\n'; break;
+												case 'r': unescaped += '\r'; break;
+												case 't': unescaped += '\t'; break;
+												case '\\': unescaped += '\\'; break;
+												case '\"': unescaped += '\"'; break;
+												case '\'': unescaped += '\''; break;
+												default: unescaped += rawVal[i]; break;
+											}
+										} else {
+											unescaped += rawVal[i];
+										}
+									}
+									return unescaped;
+								}
 							}
 						}
 					}
 				}
 			}
-			// Move to next line or potential token
-			size_t nextLine = content.find('\n', pos);
-			if (nextLine == std::string::npos) break;
-			pos = nextLine + 1;
+			// Move forward to scan next potential token
+			pos++;
 		}
 		return "";
 	};
