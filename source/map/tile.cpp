@@ -26,31 +26,26 @@
 #include "map/basemap.h"
 #include "map/map_region.h"
 #include "game/spawn.h"
-#include "brushes/ground/ground_brush.h"
-#include "brushes/wall/wall_brush.h"
-#include "brushes/carpet/carpet_brush.h"
-#include "brushes/table/table_brush.h"
-#include "game/town.h"
-#include "map/map.h"
-
 #include <ranges>
 #include <algorithm>
 #include <iterator>
 #include <memory>
-#include <numeric>
 
 Tile::Tile(int x, int y, int z) :
 	location(nullptr),
+	ownedLocation(new TileLocation()),
 	ground(nullptr),
 	house_id(0),
 	mapflags(0),
 	statflags(0),
 	minimapColor(INVALID_MINIMAP_COLOR) {
-	////
+	ownedLocation->setPosition(Position(x, y, z));
+	location = ownedLocation;
 }
 
 Tile::Tile(TileLocation& loc) :
 	location(&loc),
+	ownedLocation(nullptr),
 	ground(nullptr),
 	house_id(0),
 	mapflags(0),
@@ -59,32 +54,42 @@ Tile::Tile(TileLocation& loc) :
 	////
 }
 
-Position Tile::getPosition() {
-	return location->getPosition();
+void Tile::setLocation(TileLocation* where) {
+	if (ownedLocation) {
+		delete ownedLocation;
+		ownedLocation = nullptr;
+	}
+	location = where;
 }
 
-const Position Tile::getPosition() const {
-	return location->getPosition();
+Position Tile::getPosition() const {
+	const TileLocation* loc = location ? location : ownedLocation;
+	return loc ? loc->getPosition() : Position();
 }
 
 int Tile::getX() const {
-	return location->getPosition().x;
+	const TileLocation* loc = location ? location : ownedLocation;
+	return loc ? loc->getPosition().x : 0;
 }
 
 int Tile::getY() const {
-	return location->getPosition().y;
+	const TileLocation* loc = location ? location : ownedLocation;
+	return loc ? loc->getPosition().y : 0;
 }
 
 int Tile::getZ() const {
-	return location->getPosition().z;
+	const TileLocation* loc = location ? location : ownedLocation;
+	return loc ? loc->getPosition().z : 0;
 }
 
 HouseExitList* Tile::getHouseExits() {
-	return location ? location->getHouseExits() : nullptr;
+	TileLocation* loc = location ? location : ownedLocation;
+	return loc ? loc->getHouseExits() : nullptr;
 }
 
 const HouseExitList* Tile::getHouseExits() const {
-	return location ? location->getHouseExits() : nullptr;
+	const TileLocation* loc = location ? location : ownedLocation;
+	return loc ? loc->getHouseExits() : nullptr;
 }
 
 bool Tile::isHouseExit() const {
@@ -101,11 +106,52 @@ bool Tile::hasHouseExit(uint32_t exit) const {
 }
 
 Tile::~Tile() {
+	if (ownedLocation) {
+		delete ownedLocation;
+		ownedLocation = nullptr;
+	}
 	// Smart pointers handle deletion
+}
+
+std::unique_ptr<Tile> Tile::deepCopy() const {
+	std::unique_ptr<Tile> copy;
+	const TileLocation* loc = location ? location : ownedLocation;
+	if (loc) {
+		copy = std::make_unique<Tile>(loc->getPosition().x, loc->getPosition().y, loc->getPosition().z);
+		std::unique_ptr<TileLocation> clonedLocation = loc->clone();
+		if (copy->ownedLocation) {
+			delete copy->ownedLocation;
+		}
+		copy->ownedLocation = clonedLocation.release();
+		copy->location = copy->ownedLocation;
+	} else {
+		// Detached tile: keep a safe owned location even if we do not have one yet.
+		copy = std::make_unique<Tile>(0, 0, 0);
+	}
+	if (ground) {
+		copy->ground = ground->deepCopy();
+	}
+	for (const auto& item : items) {
+		copy->items.push_back(item->deepCopy());
+	}
+	if (creature) {
+		copy->creature = creature->deepCopy();
+	}
+	if (spawn) {
+		copy->spawn = spawn->deepCopy();
+	}
+	copy->house_id = house_id;
+	copy->mapflags = mapflags;
+	copy->statflags = statflags;
+	copy->minimapColor = minimapColor;
+	return copy;
 }
 
 uint32_t Tile::memsize() const {
 	uint32_t mem = sizeof(*this);
+	if (ownedLocation) {
+		mem += sizeof(TileLocation);
+	}
 	if (ground) {
 		mem += ground->memsize();
 	}
@@ -137,14 +183,15 @@ int Tile::size() const {
 	if (mapflags) {
 		++sz;
 	}
-	if (location) {
-		if (location->getHouseExits()) {
+	const TileLocation* loc = location ? location : ownedLocation;
+	if (loc) {
+		if (loc && loc->getHouseExits()) {
 			++sz;
 		}
-		if (location->getSpawnCount()) {
+		if (loc && loc->getSpawnCount()) {
 			++sz;
 		}
-		if (location->getWaypointCount()) {
+		if (loc && loc->getWaypointCount()) {
 			++sz;
 		}
 	}
@@ -236,8 +283,10 @@ void Tile::addItem(std::unique_ptr<Item> item) {
 		ground = Item::Create(gid);
 		TileOperations::update(this);
 		return;
-		// At the very bottom!
-	} else if (item->isAlwaysOnBottom()) {
+	} 
+	
+	// At the very bottom!
+	if (item->isAlwaysOnBottom()) {
 		// Find insertion point for always-on-bottom items
 		// They are sorted by TopOrder, and come before normal items.
 		it = std::ranges::find_if(items, [&](const std::unique_ptr<Item>& i) {
@@ -344,7 +393,8 @@ void Tile::setHouseID(uint32_t newHouseId) {
 }
 
 bool Tile::isTownExit(Map& map) const {
-	return location->getTownCount() > 0;
+	const TileLocation* loc = location ? location : ownedLocation;
+	return loc && loc->getTownCount() > 0;
 }
 
 bool Tile::isContentEqual(const Tile* other) const {

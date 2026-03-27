@@ -162,6 +162,10 @@ namespace MenuBar {
 		GOTO_WEBSITE,
 		ABOUT,
 
+		SCRIPTS_MANAGER,
+		SCRIPTS_OPEN_FOLDER,
+		SCRIPTS_RELOAD,
+
 		EXPERIMENTAL_FOG,
 	};
 }
@@ -173,6 +177,7 @@ class MapActionsHandler;
 class FileMenuHandler;
 class NavigationMenuHandler;
 class PaletteMenuHandler;
+class ScriptMenuHandler;
 
 class MainMenuBar : public wxEvtHandler {
 	friend class MenuBarLoader;
@@ -298,6 +303,10 @@ public:
 	void OnSelectWaypointPalette(wxCommandEvent& event);
 	void OnSelectRawPalette(wxCommandEvent& event);
 
+	void OnScriptsOpenFolder(wxCommandEvent& event);
+	void OnScriptsReload(wxCommandEvent& event);
+	void OnScriptsManager(wxCommandEvent& event);
+
 	void OnDebugViewDat(wxCommandEvent& event);
 
 	void OnOpenRecent(wxCommandEvent& event);
@@ -321,6 +330,12 @@ protected:
 	FileMenuHandler* fileMenuHandler;
 	NavigationMenuHandler* navigationMenuHandler;
 	PaletteMenuHandler* paletteMenuHandler;
+
+public:
+	ScriptMenuHandler* scriptMenuHandler;
+
+	void LoadScriptsMenu() const;
+	void RefreshScriptsMenu() const;
 };
 
 namespace MenuBar {

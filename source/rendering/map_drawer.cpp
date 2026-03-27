@@ -61,6 +61,7 @@
 #include "rendering/drawers/overlays/marker_drawer.h"
 #include "rendering/drawers/overlays/hook_indicator_drawer.h"
 #include "rendering/drawers/overlays/door_indicator_drawer.h"
+#include "rendering/drawers/overlays/lua_overlay_drawer.h"
 #include "rendering/drawers/overlays/preview_drawer.h"
 #include "rendering/drawers/tiles/shade_drawer.h"
 #include "rendering/drawers/tiles/tile_color_calculator.h"
@@ -116,6 +117,7 @@ MapDrawer::MapDrawer(MapCanvas* canvas) :
 	primitive_renderer = std::make_unique<PrimitiveRenderer>();
 	hook_indicator_drawer = std::make_unique<HookIndicatorDrawer>();
 	door_indicator_drawer = std::make_unique<DoorIndicatorDrawer>();
+	lua_overlay_drawer = std::make_unique<LuaOverlayDrawer>(this);
 
 	item_drawer->SetHookIndicatorDrawer(hook_indicator_drawer.get());
 	item_drawer->SetDoorIndicatorDrawer(door_indicator_drawer.get());
@@ -359,6 +361,9 @@ void MapDrawer::Draw() {
 	if (options.show_ingame_box) {
 		DrawIngameBox(original_bounds);
 	}
+
+	// Draw Lua Overlays (sprites, lines, rects, etc.)
+	lua_overlay_drawer->Draw(view, options);
 
 	// Draw creature names (Overlay) moved to DrawCreatureNames()
 

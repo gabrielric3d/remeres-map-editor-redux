@@ -23,6 +23,7 @@
 
 namespace TileOperations {
 	void update(class Tile* tile);
+	void markSelectionChanged(class Tile* tile);
 }
 
 class TileLocation;
@@ -65,6 +66,7 @@ enum : uint8_t {
 class Tile {
 public: // Members
 	TileLocation* location;
+	TileLocation* ownedLocation;
 	std::unique_ptr<Item> ground;
 	std::vector<std::unique_ptr<Item>> items;
 	std::unique_ptr<Creature> creature;
@@ -85,11 +87,11 @@ public:
 	Tile(const Tile&) = delete;
 	Tile& operator=(const Tile&) = delete;
 
+	std::unique_ptr<Tile> deepCopy() const;
+
 	// The location of the tile
 	// Stores state that remains between the tile being moved (like house exits)
-	void setLocation(TileLocation* where) {
-		location = where;
-	}
+	void setLocation(TileLocation* where);
 	TileLocation* getLocation() {
 		return location;
 	}
@@ -98,8 +100,7 @@ public:
 	}
 
 	// Position of the tile
-	Position getPosition();
-	const Position getPosition() const;
+	Position getPosition() const;
 	int getX() const;
 	int getY() const;
 	int getZ() const;
@@ -114,6 +115,9 @@ public: // Functions
 	}
 	void modify() {
 		statflags |= TILESTATE_MODIFIED;
+		if (isSelected()) {
+			TileOperations::markSelectionChanged(this);
+		}
 	}
 	void unmodify() {
 		statflags &= ~TILESTATE_MODIFIED;
@@ -153,6 +157,12 @@ public: // Functions
 
 	bool isSelected() const {
 		return testFlags(statflags, TILESTATE_SELECTED);
+	}
+	void select() {
+		statflags |= TILESTATE_SELECTED;
+	}
+	void deselect() {
+		statflags &= ~TILESTATE_SELECTED;
 	}
 	bool hasUniqueItem() const {
 		return testFlags(statflags, TILESTATE_UNIQUE);
