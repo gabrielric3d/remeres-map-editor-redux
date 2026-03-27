@@ -111,6 +111,7 @@ local img = Image.fromFile(SCRIPT_DIR .. "/assets/icon.png")
 ### Best Practices
 *   Wrap your functionality in local functions.
 *   Use `app.transaction` for any operations that modify the map to ensure Undo/Redo support works correctly.
+*   Use `tile.ground = itemId` for terrain tiles and `tile:addItem(id)` for non-ground items.
 *   Use `app.alert` for simple user feedback.
 
 ---
@@ -516,10 +517,10 @@ end
 Use `app.mapView` to draw overlays on the map and react to hover changes. Overlays run without requiring a dialog and can still expose UI if desired.
 
 ```lua
-app.mapView:addOverlay("Light Strength", {
+app.mapView:addOverlay("light_strength", {
     ondraw = function(ctx)
-        -- ctx.view: {x1,y1,x2,y2,z,zoom}
-        -- ctx:rect{ x,y,z,w,h,color={r,g,b,a}, filled=true }
+        -- ctx.view: { x1, y1, x2, y2, z, zoom, screenWidth, screenHeight }
+        -- ctx.rect({ x=0, y=0, z=7, w=32, h=32, color={255, 200, 50, 120}, filled=true })
     end,
     onhover = function(info)
         -- info.pos, info.screen, info.tile, info.topItem
@@ -534,7 +535,7 @@ app.mapView:addOverlay("Light Strength", {
 To add a toggle in the **Show** menu, register a show input (custom entries are appended after a separator):
 
 ```lua
-app.mapView:registerShow("Light Strength", "Light Strength", {
+app.mapView:registerShow("Light Strength", "light_strength", {
     enabled = true,
     ontoggle = function(enabled)
         -- Persist or react to state change
@@ -845,11 +846,11 @@ app.transaction("Generate Island", function()
 
             local tile = app.map:getOrCreateTile(x, y, z)
             if n < -0.2 then
-                tile:addItem(4608)  -- Water
+                tile.ground = 4608  -- Water
             elseif n < 0.3 then
-                tile:addItem(4526)  -- Grass
+                tile.ground = 4526  -- Grass
             else
-                tile:addItem(919)   -- Mountain
+                tile.ground = 919   -- Mountain
             end
         end
     end
@@ -1069,7 +1070,7 @@ app.transaction("Draw River", function()
         for _, cp in ipairs(circle) do
             local tile = app.map:getOrCreateTile(cp.x, cp.y, z)
             if tile then
-                tile:addItem(4608)  -- Water
+                tile.ground = 4608  -- Water
             end
         end
     end
