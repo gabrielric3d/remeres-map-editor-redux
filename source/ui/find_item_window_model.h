@@ -108,7 +108,6 @@ struct AdvancedFinderCatalogRow {
 	std::string lower_label;
 	std::vector<std::string> name_tokens;
 	std::vector<std::string> search_terms;
-	std::string secondary_label;
 	AdvancedFinderFilterMask type_mask = 0;
 	AdvancedFinderFilterMask property_mask = 0;
 	AdvancedFinderFilterMask interaction_mask = 0;
@@ -132,7 +131,6 @@ struct AdvancedFinderSelectionKey {
 struct AdvancedFinderPersistedState {
 	AdvancedFinderQuery query;
 	AdvancedFinderSelectionKey selection;
-	AdvancedFinderDefaultAction last_action = AdvancedFinderDefaultAction::SelectItem;
 	wxPoint position = wxDefaultPosition;
 	wxSize size = wxDefaultSize;
 };

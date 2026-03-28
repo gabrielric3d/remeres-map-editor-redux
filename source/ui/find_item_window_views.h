@@ -20,24 +20,6 @@ enum class AdvancedFinderResultViewMode : uint8_t {
 	Grid,
 };
 
-class AdvancedFinderPreviewPanel final : public NanoVGCanvas {
-public:
-	AdvancedFinderPreviewPanel(wxWindow* parent, wxWindowID id);
-
-	void SetRow(const AdvancedFinderCatalogRow* row);
-	void Clear();
-
-protected:
-	void OnNanoVGPaint(NVGcontext* vg, int width, int height) override;
-
-private:
-	[[nodiscard]] Sprite* spriteForRow() const;
-	void drawEmptyState(NVGcontext* vg, int width, int height) const;
-	void drawRowState(NVGcontext* vg, int width, int height) const;
-
-	const AdvancedFinderCatalogRow* row_ = nullptr;
-};
-
 class AdvancedFinderResultsView final : public NanoVGCanvas {
 public:
 	AdvancedFinderResultsView(wxWindow* parent, wxWindowID id);

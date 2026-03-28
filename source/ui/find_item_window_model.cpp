@@ -395,8 +395,6 @@ AdvancedFinderPersistedState LoadAdvancedFinderPersistedState() {
 	state.selection.kind = static_cast<AdvancedFinderCatalogKind>(std::clamp(g_settings.getInteger(Config::ADVANCED_ITEM_FINDER_SELECTED_KIND), 0, 1));
 	state.selection.server_id = static_cast<ServerItemId>(std::clamp<int>(g_settings.getInteger(Config::ADVANCED_ITEM_FINDER_SELECTED_SERVER_ID), 0, std::numeric_limits<uint16_t>::max()));
 	state.selection.creature_name = as_lower_str(g_settings.getString(Config::ADVANCED_ITEM_FINDER_SELECTED_CREATURE));
-	state.last_action = static_cast<AdvancedFinderDefaultAction>(std::clamp(g_settings.getInteger(Config::ADVANCED_ITEM_FINDER_LAST_ACTION), 0, 1));
-
 	const auto position_x = g_settings.getInteger(Config::ADVANCED_ITEM_FINDER_WINDOW_X);
 	const auto position_y = g_settings.getInteger(Config::ADVANCED_ITEM_FINDER_WINDOW_Y);
 	if (position_x >= 0 && position_y >= 0) {
@@ -420,8 +418,6 @@ void SaveAdvancedFinderPersistedState(const AdvancedFinderPersistedState& state)
 	g_settings.setInteger(Config::ADVANCED_ITEM_FINDER_SELECTED_KIND, static_cast<int>(state.selection.kind));
 	g_settings.setInteger(Config::ADVANCED_ITEM_FINDER_SELECTED_SERVER_ID, state.selection.server_id);
 	g_settings.setString(Config::ADVANCED_ITEM_FINDER_SELECTED_CREATURE, state.selection.creature_name);
-	g_settings.setInteger(Config::ADVANCED_ITEM_FINDER_LAST_ACTION, static_cast<int>(state.last_action));
-
 	if (state.position != wxDefaultPosition && state.position.x >= 0 && state.position.y >= 0) {
 		g_settings.setInteger(Config::ADVANCED_ITEM_FINDER_WINDOW_X, state.position.x);
 		g_settings.setInteger(Config::ADVANCED_ITEM_FINDER_WINDOW_Y, state.position.y);
@@ -467,7 +463,6 @@ std::vector<AdvancedFinderCatalogRow> BuildAdvancedFinderCatalog(bool include_cr
 		if (row.client_id != 0) {
 			row.search_terms.push_back(std::to_string(row.client_id));
 		}
-		row.secondary_label = "Item";
 		row.type_mask = buildTypeMask(definition);
 		row.property_mask = buildPropertyMask(definition);
 		row.interaction_mask = buildInteractionMask(definition);
@@ -491,7 +486,6 @@ std::vector<AdvancedFinderCatalogRow> BuildAdvancedFinderCatalog(bool include_cr
 			row.name_tokens = tokenizeLower(row.lower_label);
 			row.search_terms = row.name_tokens;
 			row.search_terms.push_back("creature");
-			row.secondary_label = "Creature";
 			row.type_mask = advancedFinderBit(AdvancedFinderTypeFilter::Creature);
 			catalog.push_back(std::move(row));
 		}

@@ -410,11 +410,6 @@ void FindItemDialog::savePersistedState() {
 	auto state = persisted_state_;
 	state.query = query_;
 	state.selection = current_selection_;
-	if (result_action_ == ResultAction::SearchMap) {
-		state.last_action = AdvancedFinderDefaultAction::SearchMap;
-	} else if (result_action_ == ResultAction::SelectItem) {
-		state.last_action = AdvancedFinderDefaultAction::SelectItem;
-	}
 	state.position = GetPosition();
 	state.size = GetSize();
 	g_session_finder_state = SessionFinderState {

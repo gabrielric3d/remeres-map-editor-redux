@@ -8,7 +8,6 @@
 #include <nanovg.h>
 
 #include <algorithm>
-#include <format>
 #include <limits>
 #include <string_view>
 
@@ -19,137 +18,12 @@ namespace {
 		return nvgRGBA(colour.Red(), colour.Green(), colour.Blue(), colour.Alpha());
 	}
 
-	[[nodiscard]] std::string rowSummary(const AdvancedFinderCatalogRow& row) {
+	[[nodiscard]] std::string hoverSummary(const AdvancedFinderCatalogRow& row) {
 		if (row.isCreature()) {
-			return std::format("SID: -   CID: -   {}", row.label);
+			return "SID: -   CID: -   " + row.label;
 		}
-		return std::format("SID: {}   CID: {}   {}", row.server_id, row.client_id, row.label);
+		return "SID: " + std::to_string(row.server_id) + "   CID: " + std::to_string(row.client_id) + "   " + row.label;
 	}
-}
-
-AdvancedFinderPreviewPanel::AdvancedFinderPreviewPanel(wxWindow* parent, wxWindowID id) :
-	NanoVGCanvas(parent, id, wxWANTS_CHARS) {
-	SetBackgroundColour(Theme::Get(Theme::Role::Surface));
-}
-
-void AdvancedFinderPreviewPanel::SetRow(const AdvancedFinderCatalogRow* row) {
-	row_ = row;
-	Refresh();
-}
-
-void AdvancedFinderPreviewPanel::Clear() {
-	row_ = nullptr;
-	Refresh();
-}
-
-Sprite* AdvancedFinderPreviewPanel::spriteForRow() const {
-	if (row_ == nullptr) {
-		return nullptr;
-	}
-
-	if (row_->isCreature() && row_->creature_brush != nullptr) {
-		return row_->creature_brush->getSprite();
-	}
-
-	if (row_->client_id != 0) {
-		return g_gui.gfx.getSprite(row_->client_id);
-	}
-
-	return nullptr;
-}
-
-void AdvancedFinderPreviewPanel::drawEmptyState(NVGcontext* vg, int width, int height) const {
-	const wxColour surface = Theme::Get(Theme::Role::RaisedSurface);
-	const wxColour border = Theme::Get(Theme::Role::CardBorder);
-	const wxColour title = Theme::Get(Theme::Role::TextSubtle);
-	const wxColour body = Theme::Get(Theme::Role::TextSubtle);
-
-	nvgBeginPath(vg);
-	nvgRoundedRect(vg, 8.0f, 8.0f, static_cast<float>(width - 16), static_cast<float>(height - 16), 10.0f);
-	nvgFillColor(vg, toColor(surface));
-	nvgFill(vg);
-
-	nvgStrokeWidth(vg, 1.0f);
-	nvgStrokeColor(vg, toColor(border));
-	nvgStroke(vg);
-
-	nvgFontFace(vg, "sans");
-	nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
-
-	nvgFontSize(vg, 15.0f);
-	nvgFillColor(vg, toColor(title));
-	nvgText(vg, 24.0f, height * 0.42f, "No selection", nullptr);
-
-	nvgFontSize(vg, 12.0f);
-	nvgFillColor(vg, toColor(body));
-	nvgText(vg, 24.0f, height * 0.58f, "Pick a result to preview its metadata.", nullptr);
-}
-
-void AdvancedFinderPreviewPanel::drawRowState(NVGcontext* vg, int width, int height) const {
-	const wxColour surface = Theme::Get(Theme::Role::RaisedSurface);
-	const wxColour border = Theme::Get(Theme::Role::CardBorder);
-	const wxColour title = Theme::Get(Theme::Role::Text);
-	const wxColour body = Theme::Get(Theme::Role::TextSubtle);
-	const wxColour accent = Theme::Get(Theme::Role::Accent);
-
-	nvgBeginPath(vg);
-	nvgRoundedRect(vg, 8.0f, 8.0f, static_cast<float>(width - 16), static_cast<float>(height - 16), 10.0f);
-	nvgFillColor(vg, toColor(surface));
-	nvgFill(vg);
-
-	nvgStrokeWidth(vg, 1.0f);
-	nvgStrokeColor(vg, toColor(border));
-	nvgStroke(vg);
-
-	const float card_x = 18.0f;
-	const float card_y = 18.0f;
-	const float card_h = static_cast<float>(height - 36);
-	const float icon_size = std::min(76.0f, card_h - 16.0f);
-	const float icon_x = card_x + 6.0f;
-	const float icon_y = card_y + (card_h - icon_size) * 0.5f;
-
-	if (Sprite* sprite = spriteForRow()) {
-		if (const int texture = const_cast<AdvancedFinderPreviewPanel*>(this)->GetOrCreateSpriteTexture(vg, sprite); texture > 0) {
-			const float radius = 8.0f;
-			NVGpaint paint = nvgImagePattern(vg, icon_x, icon_y, icon_size, icon_size, 0.0f, texture, 1.0f);
-			nvgBeginPath(vg);
-			nvgRoundedRect(vg, icon_x, icon_y, icon_size, icon_size, radius);
-			nvgFillPaint(vg, paint);
-			nvgFill(vg);
-		}
-	}
-
-	nvgBeginPath(vg);
-	nvgRoundedRect(vg, icon_x, icon_y, icon_size, icon_size, 8.0f);
-	nvgStrokeWidth(vg, 1.0f);
-	nvgStrokeColor(vg, toColor(accent));
-	nvgStroke(vg);
-
-	nvgFontFace(vg, "sans");
-	nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
-
-	const float text_x = icon_x + icon_size + 18.0f;
-	nvgFontSize(vg, 16.0f);
-	nvgFillColor(vg, toColor(title));
-	nvgText(vg, text_x, card_y + 28.0f, row_->label.c_str(), nullptr);
-
-	nvgFontSize(vg, 12.0f);
-	nvgFillColor(vg, toColor(body));
-	nvgText(vg, text_x, card_y + 52.0f, row_->secondary_label.c_str(), nullptr);
-
-	nvgFontSize(vg, 11.0f);
-	nvgFillColor(vg, toColor(body));
-	const std::string summary = rowSummary(*row_);
-	nvgText(vg, text_x, card_y + 74.0f, summary.c_str(), nullptr);
-}
-
-void AdvancedFinderPreviewPanel::OnNanoVGPaint(NVGcontext* vg, int width, int height) {
-	if (row_ == nullptr) {
-		drawEmptyState(vg, width, height);
-		return;
-	}
-
-	drawRowState(vg, width, height);
 }
 
 AdvancedFinderResultsView::AdvancedFinderResultsView(wxWindow* parent, wxWindowID id) :
@@ -804,7 +678,7 @@ void AdvancedFinderResultsView::drawGridHoverInfo(NVGcontext* vg, int width, int
 	}
 
 	const auto& row = *rows_[hover_index_];
-	const std::string summary = rowSummary(row);
+	const std::string summary = hoverSummary(row);
 	const wxColour panel = Theme::Get(Theme::Role::RaisedSurface);
 	const wxColour border = Theme::Get(Theme::Role::CardBorder);
 	const wxColour text = Theme::Get(Theme::Role::Text);
