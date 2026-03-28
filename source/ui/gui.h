@@ -169,9 +169,6 @@ public:
 	SearchResultWindow* ShowSearchWindow() {
 		return g_search.ShowSearchWindow();
 	}
-	void HideSearchWindow() {
-		g_search.HideSearchWindow();
-	}
 	void DestroySearchWindow() {
 		g_search.DestroySearchWindow();
 	}

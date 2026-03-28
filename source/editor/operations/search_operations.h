@@ -24,10 +24,6 @@ namespace EditorOperations {
 		uint32_t totalMatches = 0;
 		std::vector<std::pair<Tile*, Item*>> result;
 
-		bool limitReached() const {
-			return totalMatches > offset + result.size();
-		}
-
 		void operator()(Map& map, Tile* tile, Item* item, long long done) {
 			if (done % SEARCH_UPDATE_INTERVAL == 0) {
 				g_gui.SetLoadDone((unsigned int)(100 * done / map.getTileCount()));
@@ -153,10 +149,6 @@ namespace EditorOperations {
 		uint32_t offset;
 		uint32_t totalMatches = 0;
 		std::vector<std::pair<Tile*, Creature*>> result;
-
-		bool limitReached() const {
-			return totalMatches > offset + result.size();
-		}
 
 		void operator()(Map& map, Tile* tile, long long done) {
 			if (done % SEARCH_UPDATE_INTERVAL == 0) {

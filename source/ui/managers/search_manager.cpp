@@ -13,13 +13,6 @@ SearchManager::~SearchManager() {
 	DestroySearchWindow();
 }
 
-void SearchManager::HideSearchWindow() {
-	if (search_result_window) {
-		g_gui.aui_manager->GetPane(search_result_window).Show(false);
-		g_gui.aui_manager->Update();
-	}
-}
-
 void SearchManager::DestroySearchWindow() {
 	if (search_result_window == nullptr) {
 		return;

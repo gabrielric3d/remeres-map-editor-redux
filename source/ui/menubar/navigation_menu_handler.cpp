@@ -1,7 +1,6 @@
 #include "ui/menubar/navigation_menu_handler.h"
 #include "app/main.h"
 #include "ui/gui.h"
-#include "ui/dialog_util.h"
 #include "ui/dialogs/find_dialog.h"
 #include "ui/map_tab.h"
 #include "ui/map_window.h"
