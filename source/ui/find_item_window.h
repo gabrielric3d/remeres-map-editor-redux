@@ -2,8 +2,10 @@
 #define RME_FIND_ITEM_WINDOW_H_
 
 #include "ui/find_item_window_model.h"
+#include "ui/find_item_window_views.h"
 
 #include <wx/dialog.h>
+#include <wx/notebook.h>
 #include <wx/timer.h>
 
 #include <array>
@@ -11,24 +13,15 @@
 
 class Brush;
 class CreatureBrush;
-class KeyForwardingTextCtrl;
 class wxButton;
+class wxBitmapButton;
 class wxCheckBox;
-class wxRadioButton;
-class wxStaticBox;
-
-class AdvancedFinderResultListBox;
+class wxStaticText;
+class wxSearchCtrl;
+class wxNotebook;
 
 class FindItemDialog : public wxDialog {
 public:
-	enum SearchMode {
-		ServerIDs = 0,
-		ClientIDs,
-		Names,
-		Types,
-		Properties,
-	};
-
 	enum class ActionSet : uint8_t {
 		ConfirmOnly = 0,
 		SearchAndSelect,
@@ -75,11 +68,7 @@ public:
 		return result_action_;
 	}
 
-	[[nodiscard]] SearchMode getSearchMode() const;
-	void setSearchMode(SearchMode mode);
-
 private:
-	static constexpr size_t kFindByModeCount = 3;
 	static constexpr size_t kTypeCheckboxCount = static_cast<size_t>(AdvancedFinderTypeFilter::Count);
 	static constexpr size_t kPropertyCheckboxCount = static_cast<size_t>(AdvancedFinderPropertyFilter::Count);
 	static constexpr size_t kInteractionCheckboxCount = static_cast<size_t>(AdvancedFinderInteractionFilter::Count);
@@ -97,38 +86,43 @@ private:
 	void updateCurrentSelection();
 	void triggerDefaultAction();
 	void handlePositiveAction(ResultAction action);
-	bool shouldApplyLegacyFallback() const;
+	void setResultViewMode(AdvancedFinderResultViewMode mode);
+	[[nodiscard]] AdvancedFinderResultsView* activeResultsView() const;
+	void syncResultViews(AdvancedFinderResultsView* source_view);
 
-	void OnFindByChanged(wxCommandEvent& event);
 	void OnFilterChanged(wxCommandEvent& event);
 	void OnTextChanged(wxCommandEvent& event);
-	void OnInputTimer(wxTimerEvent& event);
+	void OnKeyDown(wxKeyEvent& event);
+	void OnResultPageChanged(wxBookCtrlEvent& event);
 	void OnResultSelection(wxCommandEvent& event);
 	void OnResultActivate(wxCommandEvent& event);
+	void OnResultRightActivate(wxCommandEvent& event);
 	void OnSearchMap(wxCommandEvent& event);
 	void OnSelectItem(wxCommandEvent& event);
+	void OnResetSearch(wxCommandEvent& event);
 	void OnCancel(wxCommandEvent& event);
 	void OnTextEnter(wxCommandEvent& event);
+	void OnDeferredSelectTimer(wxTimerEvent& event);
 
-	wxTimer input_timer_;
-	KeyForwardingTextCtrl* search_field_ = nullptr;
-	std::array<wxRadioButton*, kFindByModeCount> find_by_buttons_ {};
+	wxSearchCtrl* search_field_ = nullptr;
+	wxBitmapButton* reset_search_button_ = nullptr;
 	std::array<wxCheckBox*, kTypeCheckboxCount> type_checkboxes_ {};
 	std::array<wxCheckBox*, kPropertyCheckboxCount> property_checkboxes_ {};
 	std::array<wxCheckBox*, kInteractionCheckboxCount> interaction_checkboxes_ {};
 	std::array<wxCheckBox*, kVisualCheckboxCount> visual_checkboxes_ {};
-	AdvancedFinderResultListBox* result_list_ = nullptr;
-	wxStaticBox* result_box_ = nullptr;
+	wxStaticText* result_count_label_ = nullptr;
 	wxButton* search_map_button_ = nullptr;
 	wxButton* select_item_button_ = nullptr;
 	wxButton* ok_button_ = nullptr;
 	wxButton* cancel_button_ = nullptr;
+	wxNotebook* results_notebook_ = nullptr;
+	AdvancedFinderResultsView* list_results_view_ = nullptr;
+	AdvancedFinderResultsView* grid_results_view_ = nullptr;
 
 	AdvancedFinderQuery query_;
 	AdvancedFinderPersistedState persisted_state_;
 	AdvancedFinderSelectionKey current_selection_;
 	std::vector<AdvancedFinderCatalogRow> catalog_;
-	std::vector<size_t> filtered_indices_;
 
 	ResultAction result_action_ = ResultAction::None;
 	AdvancedFinderCatalogKind result_kind_ = AdvancedFinderCatalogKind::Item;
@@ -136,6 +130,8 @@ private:
 	CreatureBrush* result_creature_brush_ = nullptr;
 	uint16_t result_id_ = 0;
 	std::string result_creature_name_;
+	AdvancedFinderResultViewMode result_view_mode_ = AdvancedFinderResultViewMode::Grid;
+	wxTimer deferred_select_timer_ { this };
 
 	bool only_pickupables_ = false;
 	bool include_creatures_ = false;

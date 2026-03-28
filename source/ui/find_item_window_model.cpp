@@ -10,23 +10,23 @@
 #include "util/common.h"
 
 #include <algorithm>
-#include <charconv>
-#include <format>
+#include <cctype>
 #include <limits>
-#include <optional>
 #include <string_view>
-#include <system_error>
 #include <tuple>
 
 namespace {
-	template <typename Enum>
-	constexpr size_t enumCount() {
-		return static_cast<size_t>(Enum::Count);
-	}
-
 	struct CatalogMatch {
 		size_t index = 0;
 		int score = 0;
+		size_t token_count = 0;
+	};
+
+	struct QueryToken {
+		std::string value;
+		bool numeric = false;
+		bool prefix_wildcard = false;
+		bool suffix_wildcard = false;
 	};
 
 	[[nodiscard]] std::string trimCopy(std::string_view value) {
@@ -36,83 +36,6 @@ namespace {
 		}
 		const auto last = value.find_last_not_of(" \t\r\n");
 		return std::string(value.substr(first, last - first + 1));
-	}
-
-	[[nodiscard]] std::optional<uint16_t> parseItemId(std::string_view value) {
-		const auto trimmed = trimCopy(value);
-		if (trimmed.empty()) {
-			return std::nullopt;
-		}
-
-		uint32_t parsed = 0;
-		const auto* begin = trimmed.data();
-		const auto* end = begin + trimmed.size();
-		const auto [ptr, error] = std::from_chars(begin, end, parsed);
-		if (error != std::errc {} || ptr != end || parsed > std::numeric_limits<uint16_t>::max()) {
-			return std::nullopt;
-		}
-
-		return static_cast<uint16_t>(parsed);
-	}
-
-	[[nodiscard]] bool isSubsequence(std::string_view needle, std::string_view haystack) {
-		if (needle.empty()) {
-			return true;
-		}
-
-		size_t needle_index = 0;
-		for (const char ch : haystack) {
-			if (needle[needle_index] == ch) {
-				++needle_index;
-				if (needle_index == needle.size()) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	[[nodiscard]] bool editDistanceAtMostOne(std::string_view lhs, std::string_view rhs) {
-		if (lhs == rhs) {
-			return true;
-		}
-
-		if (lhs.empty() || rhs.empty()) {
-			return std::max(lhs.size(), rhs.size()) <= 1;
-		}
-
-		if (lhs.size() > rhs.size()) {
-			std::swap(lhs, rhs);
-		}
-
-		if (rhs.size() - lhs.size() > 1) {
-			return false;
-		}
-
-		size_t i = 0;
-		size_t j = 0;
-		bool used_edit = false;
-		while (i < lhs.size() && j < rhs.size()) {
-			if (lhs[i] == rhs[j]) {
-				++i;
-				++j;
-				continue;
-			}
-
-			if (used_edit) {
-				return false;
-			}
-			used_edit = true;
-
-			if (lhs.size() == rhs.size()) {
-				++i;
-				++j;
-			} else {
-				++j;
-			}
-		}
-
-		return true;
 	}
 
 	[[nodiscard]] std::vector<std::string> tokenizeLower(std::string_view value) {
@@ -138,42 +61,161 @@ namespace {
 		return tokens;
 	}
 
-	[[nodiscard]] int fuzzyMatchScore(const AdvancedFinderCatalogRow& row, std::string_view query_lower) {
-		if (query_lower.empty()) {
+	struct ParsedQuery {
+		std::string lower_text;
+		std::vector<QueryToken> tokens;
+	};
+
+	[[nodiscard]] std::string trimToken(std::string_view value) {
+		size_t first = 0;
+		size_t last = value.size();
+
+		while (first < last) {
+			const unsigned char ch = static_cast<unsigned char>(value[first]);
+			if (std::isalnum(ch) != 0 || ch == '*') {
+				break;
+			}
+			++first;
+		}
+
+		while (last > first) {
+			const unsigned char ch = static_cast<unsigned char>(value[last - 1]);
+			if (std::isalnum(ch) != 0 || ch == '*') {
+				break;
+			}
+			--last;
+		}
+
+		return std::string(value.substr(first, last - first));
+	}
+
+	[[nodiscard]] std::vector<QueryToken> parseQueryTokens(std::string_view value) {
+		std::vector<QueryToken> tokens;
+		size_t cursor = 0;
+
+		while (cursor < value.size()) {
+			while (cursor < value.size() && std::isspace(static_cast<unsigned char>(value[cursor])) != 0) {
+				++cursor;
+			}
+
+			if (cursor >= value.size()) {
+				break;
+			}
+
+			size_t next = cursor;
+			while (next < value.size() && std::isspace(static_cast<unsigned char>(value[next])) == 0) {
+				++next;
+			}
+
+			std::string raw = trimToken(value.substr(cursor, next - cursor));
+			cursor = next;
+			if (raw.empty()) {
+				continue;
+			}
+
+			QueryToken token;
+			token.prefix_wildcard = raw.starts_with('*');
+			token.suffix_wildcard = raw.ends_with('*');
+			if (token.prefix_wildcard) {
+				raw.erase(raw.begin());
+			}
+			if (token.suffix_wildcard && !raw.empty()) {
+				raw.pop_back();
+			}
+
+			for (const unsigned char ch : raw) {
+				if (std::isalnum(ch) != 0) {
+					token.value.push_back(static_cast<char>(ch));
+				}
+			}
+
+			if (token.value.empty()) {
+				continue;
+			}
+
+			token.numeric = std::all_of(token.value.begin(), token.value.end(), [](unsigned char ch) {
+				return std::isdigit(ch) != 0;
+			});
+
+			tokens.push_back(std::move(token));
+		}
+
+		return tokens;
+	}
+
+	[[nodiscard]] ParsedQuery parseFinderQuery(const AdvancedFinderQuery& query) {
+		ParsedQuery parsed;
+		parsed.lower_text = trimCopy(as_lower_str(query.text));
+		parsed.tokens = parseQueryTokens(parsed.lower_text);
+		return parsed;
+	}
+
+	[[nodiscard]] int scoreTextTokenMatch(const QueryToken& query_token, std::string_view name_token) {
+		if (query_token.value == name_token) {
 			return 0;
 		}
 
-		if (row.lower_label == query_lower) {
+		if (query_token.suffix_wildcard && name_token.starts_with(query_token.value)) {
+			return 10 + static_cast<int>(name_token.size() - query_token.value.size());
+		}
+
+		if (query_token.prefix_wildcard && name_token.ends_with(query_token.value)) {
+			return 20 + static_cast<int>(name_token.size() - query_token.value.size());
+		}
+
+		if (!query_token.prefix_wildcard && !query_token.suffix_wildcard && name_token.starts_with(query_token.value)) {
+			return 10 + static_cast<int>(name_token.size() - query_token.value.size());
+		}
+		return -1;
+	}
+
+	[[nodiscard]] int scoreNumericTokenMatch(const QueryToken& query_token, std::string_view name_token) {
+		if (query_token.value == name_token) {
 			return 0;
 		}
 
-		for (const auto& token : row.name_tokens) {
-			if (token == query_lower) {
-				return 8;
-			}
+		if (query_token.suffix_wildcard && name_token.starts_with(query_token.value)) {
+			return 10 + static_cast<int>(name_token.size() - query_token.value.size());
 		}
 
-		for (const auto& token : row.name_tokens) {
-			if (token.starts_with(query_lower)) {
-				return 16 + static_cast<int>(token.size() - query_lower.size());
-			}
-		}
-
-		if (const auto position = row.lower_label.find(query_lower); position != std::string::npos) {
-			return 32 + static_cast<int>(position);
-		}
-
-		if (isSubsequence(query_lower, row.lower_label)) {
-			return 64 + static_cast<int>(row.lower_label.size() - query_lower.size());
-		}
-
-		for (const auto& token : row.name_tokens) {
-			if (editDistanceAtMostOne(query_lower, token)) {
-				return 96 + static_cast<int>(token.size());
-			}
+		if (query_token.prefix_wildcard && name_token.ends_with(query_token.value)) {
+			return 20 + static_cast<int>(name_token.size() - query_token.value.size());
 		}
 
 		return -1;
+	}
+
+	[[nodiscard]] int scoreTokenMatch(const QueryToken& query_token, std::string_view search_term) {
+		return query_token.numeric ? scoreNumericTokenMatch(query_token, search_term) : scoreTextTokenMatch(query_token, search_term);
+	}
+
+	[[nodiscard]] int fuzzyMatchScore(const AdvancedFinderCatalogRow& row, const ParsedQuery& query) {
+		if (query.tokens.empty()) {
+			return query.lower_text.empty() ? 0 : -1;
+		}
+
+		if (row.lower_label == query.lower_text) {
+			return 0;
+		}
+
+		int score = 0;
+		for (const auto& query_token : query.tokens) {
+			int best_score = std::numeric_limits<int>::max();
+			for (const auto& search_term : row.search_terms) {
+				const int token_score = scoreTokenMatch(query_token, search_term);
+				if (token_score >= 0) {
+					best_score = std::min(best_score, token_score);
+				}
+			}
+
+			if (best_score == std::numeric_limits<int>::max()) {
+				return -1;
+			}
+			score += best_score;
+		}
+
+		score += static_cast<int>(row.search_terms.size());
+		return score;
 	}
 
 	[[nodiscard]] bool matchesMasks(const AdvancedFinderCatalogRow& row, const AdvancedFinderQuery& query) {
@@ -192,35 +234,16 @@ namespace {
 		return true;
 	}
 
-	[[nodiscard]] int matchScore(const AdvancedFinderCatalogRow& row, const AdvancedFinderQuery& query) {
+	[[nodiscard]] int matchScore(const AdvancedFinderCatalogRow& row, const AdvancedFinderQuery& query, const ParsedQuery& parsed_query) {
 		if (!matchesMasks(row, query)) {
 			return -1;
 		}
 
-		switch (query.find_by) {
-			case AdvancedFinderFindByMode::FuzzyName: {
-				if (query.text.empty()) {
-					return query.hasAnyFilter() ? 0 : -1;
-				}
-				return fuzzyMatchScore(row, as_lower_str(query.text));
-			}
-			case AdvancedFinderFindByMode::ServerId: {
-				const auto parsed = parseItemId(query.text);
-				if (!parsed || !row.isItem() || row.server_id != *parsed) {
-					return -1;
-				}
-				return 0;
-			}
-			case AdvancedFinderFindByMode::ClientId: {
-				const auto parsed = parseItemId(query.text);
-				if (!parsed || !row.isItem() || row.client_id != *parsed) {
-					return -1;
-				}
-				return 0;
-			}
+		if (parsed_query.lower_text.empty()) {
+			return 0;
 		}
 
-		return -1;
+		return fuzzyMatchScore(row, parsed_query);
 	}
 
 	[[nodiscard]] AdvancedFinderFilterMask buildTypeMask(const ItemDefinitionView& definition) {
@@ -363,7 +386,6 @@ namespace {
 AdvancedFinderPersistedState LoadAdvancedFinderPersistedState() {
 	AdvancedFinderPersistedState state;
 
-	state.query.find_by = static_cast<AdvancedFinderFindByMode>(std::clamp(g_settings.getInteger(Config::ADVANCED_ITEM_FINDER_FIND_BY), 0, 2));
 	state.query.type_mask = static_cast<AdvancedFinderFilterMask>(std::max(0, g_settings.getInteger(Config::ADVANCED_ITEM_FINDER_TYPE_FILTERS)));
 	state.query.property_mask = static_cast<AdvancedFinderFilterMask>(std::max(0, g_settings.getInteger(Config::ADVANCED_ITEM_FINDER_PROPERTY_FILTERS)));
 	state.query.interaction_mask = static_cast<AdvancedFinderFilterMask>(std::max(0, g_settings.getInteger(Config::ADVANCED_ITEM_FINDER_INTERACTION_FILTERS)));
@@ -390,7 +412,6 @@ AdvancedFinderPersistedState LoadAdvancedFinderPersistedState() {
 }
 
 void SaveAdvancedFinderPersistedState(const AdvancedFinderPersistedState& state) {
-	g_settings.setInteger(Config::ADVANCED_ITEM_FINDER_FIND_BY, static_cast<int>(state.query.find_by));
 	g_settings.setInteger(Config::ADVANCED_ITEM_FINDER_TYPE_FILTERS, static_cast<int>(state.query.type_mask));
 	g_settings.setInteger(Config::ADVANCED_ITEM_FINDER_PROPERTY_FILTERS, static_cast<int>(state.query.property_mask));
 	g_settings.setInteger(Config::ADVANCED_ITEM_FINDER_INTERACTION_FILTERS, static_cast<int>(state.query.interaction_mask));
@@ -410,36 +431,6 @@ void SaveAdvancedFinderPersistedState(const AdvancedFinderPersistedState& state)
 		g_settings.setInteger(Config::ADVANCED_ITEM_FINDER_WINDOW_WIDTH, state.size.GetWidth());
 		g_settings.setInteger(Config::ADVANCED_ITEM_FINDER_WINDOW_HEIGHT, state.size.GetHeight());
 	}
-}
-
-void ApplyLegacySearchModeFallback(AdvancedFinderQuery& query, int legacy_search_mode) {
-	switch (legacy_search_mode) {
-		case 0:
-			query.find_by = AdvancedFinderFindByMode::ServerId;
-			break;
-		case 1:
-			query.find_by = AdvancedFinderFindByMode::ClientId;
-			break;
-		default:
-			query.find_by = AdvancedFinderFindByMode::FuzzyName;
-			break;
-	}
-}
-
-int DeriveLegacySearchMode(const AdvancedFinderQuery& query) {
-	if (query.find_by == AdvancedFinderFindByMode::ServerId) {
-		return 0;
-	}
-	if (query.find_by == AdvancedFinderFindByMode::ClientId) {
-		return 1;
-	}
-	if (query.property_mask != 0 || query.interaction_mask != 0 || query.visual_mask != 0) {
-		return 4;
-	}
-	if (query.type_mask != 0) {
-		return 3;
-	}
-	return 2;
 }
 
 std::vector<AdvancedFinderCatalogRow> BuildAdvancedFinderCatalog(bool include_creatures) {
@@ -469,7 +460,14 @@ std::vector<AdvancedFinderCatalogRow> BuildAdvancedFinderCatalog(bool include_cr
 		}
 		row.lower_label = as_lower_str(row.label);
 		row.name_tokens = tokenizeLower(row.lower_label);
-		row.secondary_label = std::format("SID {}  CID {}", row.server_id, row.client_id);
+		row.search_terms = row.name_tokens;
+		if (row.server_id != 0) {
+			row.search_terms.push_back(std::to_string(row.server_id));
+		}
+		if (row.client_id != 0) {
+			row.search_terms.push_back(std::to_string(row.client_id));
+		}
+		row.secondary_label = "Item";
 		row.type_mask = buildTypeMask(definition);
 		row.property_mask = buildPropertyMask(definition);
 		row.interaction_mask = buildInteractionMask(definition);
@@ -491,6 +489,8 @@ std::vector<AdvancedFinderCatalogRow> BuildAdvancedFinderCatalog(bool include_cr
 			row.label = creature_type->name;
 			row.lower_label = as_lower_str(row.label);
 			row.name_tokens = tokenizeLower(row.lower_label);
+			row.search_terms = row.name_tokens;
+			row.search_terms.push_back("creature");
 			row.secondary_label = "Creature";
 			row.type_mask = advancedFinderBit(AdvancedFinderTypeFilter::Creature);
 			catalog.push_back(std::move(row));
@@ -501,21 +501,30 @@ std::vector<AdvancedFinderCatalogRow> BuildAdvancedFinderCatalog(bool include_cr
 }
 
 std::vector<size_t> FilterAdvancedFinderCatalog(const std::vector<AdvancedFinderCatalogRow>& catalog, const AdvancedFinderQuery& query) {
+	const auto parsed_query = parseFinderQuery(query);
 	std::vector<CatalogMatch> matches;
 	matches.reserve(catalog.size());
 
 	for (size_t index = 0; index < catalog.size(); ++index) {
-		const int score = matchScore(catalog[index], query);
+		const int score = matchScore(catalog[index], query, parsed_query);
 		if (score >= 0) {
-			matches.push_back(CatalogMatch { index, score });
+			matches.push_back(CatalogMatch { index, score, catalog[index].name_tokens.size() });
 		}
 	}
 
 	std::ranges::sort(matches, [&](const CatalogMatch& lhs, const CatalogMatch& rhs) {
 		const auto& lhs_row = catalog[lhs.index];
 		const auto& rhs_row = catalog[rhs.index];
-		return std::tie(lhs.score, lhs_row.lower_label, lhs_row.server_id, lhs_row.client_id) <
-			std::tie(rhs.score, rhs_row.lower_label, rhs_row.server_id, rhs_row.client_id);
+
+		if (parsed_query.lower_text.empty()) {
+			const auto lhs_cid = lhs_row.isCreature() ? std::numeric_limits<uint32_t>::max() : static_cast<uint32_t>(lhs_row.client_id);
+			const auto rhs_cid = rhs_row.isCreature() ? std::numeric_limits<uint32_t>::max() : static_cast<uint32_t>(rhs_row.client_id);
+			return std::tie(lhs_cid, lhs_row.server_id, lhs_row.lower_label) <
+				std::tie(rhs_cid, rhs_row.server_id, rhs_row.lower_label);
+		}
+
+		return std::tie(lhs.score, lhs.token_count, lhs_row.lower_label, lhs_row.server_id, lhs_row.client_id) <
+			std::tie(rhs.score, rhs.token_count, rhs_row.lower_label, rhs_row.server_id, rhs_row.client_id);
 	});
 
 	std::vector<size_t> filtered_indices;

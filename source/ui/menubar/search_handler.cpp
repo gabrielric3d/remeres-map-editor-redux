@@ -70,7 +70,6 @@ void SearchHandler::OnSearchForItem(wxCommandEvent& WXUNUSED(event)) {
 	}
 
 	FindItemDialog dialog(frame, "Search for Item", false, FindItemDialog::ActionSet::SearchAndSelect, AdvancedFinderDefaultAction::SearchMap, true);
-	dialog.setSearchMode((FindItemDialog::SearchMode)g_settings.getInteger(Config::FIND_ITEM_MODE));
 	const int modal_result = dialog.ShowModal();
 	if (modal_result != wxID_CANCEL) {
 		if (dialog.getResultAction() == FindItemDialog::ResultAction::SearchMap) {
@@ -82,7 +81,6 @@ void SearchHandler::OnSearchForItem(wxCommandEvent& WXUNUSED(event)) {
 		} else if (dialog.getResultAction() == FindItemDialog::ResultAction::SelectItem) {
 			selectFoundBrush(dialog);
 		}
-		g_settings.setInteger(Config::FIND_ITEM_MODE, (int)dialog.getSearchMode());
 	}
 }
 
@@ -144,7 +142,6 @@ void SearchHandler::OnSearchForItemOnSelection(wxCommandEvent& WXUNUSED(event)) 
 	}
 
 	FindItemDialog dialog(frame, "Search on Selection");
-	dialog.setSearchMode((FindItemDialog::SearchMode)g_settings.getInteger(Config::FIND_ITEM_MODE));
 	if (dialog.ShowModal() == wxID_OK) {
 		EditorOperations::ItemSearcher finder(dialog.getResultID(), (uint32_t)g_settings.getInteger(Config::REPLACE_SIZE));
 		g_gui.CreateLoadBar("Searching on selected area...");
@@ -165,8 +162,6 @@ void SearchHandler::OnSearchForItemOnSelection(wxCommandEvent& WXUNUSED(event)) 
 		for (const auto& [tile, item] : result) {
 			window->AddPosition(wxstr(item->getName()), tile->getPosition());
 		}
-
-		g_settings.setInteger(Config::FIND_ITEM_MODE, (int)dialog.getSearchMode());
 	}
 }
 

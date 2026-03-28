@@ -15,12 +15,6 @@ class Brush;
 class CreatureBrush;
 class RAWBrush;
 
-enum class AdvancedFinderFindByMode : uint8_t {
-	FuzzyName = 0,
-	ServerId,
-	ClientId,
-};
-
 enum class AdvancedFinderCatalogKind : uint8_t {
 	Item = 0,
 	Creature,
@@ -93,7 +87,6 @@ constexpr AdvancedFinderFilterMask advancedFinderBit(Enum value) {
 
 struct AdvancedFinderQuery {
 	std::string text;
-	AdvancedFinderFindByMode find_by = AdvancedFinderFindByMode::FuzzyName;
 	AdvancedFinderFilterMask type_mask = 0;
 	AdvancedFinderFilterMask property_mask = 0;
 	AdvancedFinderFilterMask interaction_mask = 0;
@@ -114,6 +107,7 @@ struct AdvancedFinderCatalogRow {
 	std::string label;
 	std::string lower_label;
 	std::vector<std::string> name_tokens;
+	std::vector<std::string> search_terms;
 	std::string secondary_label;
 	AdvancedFinderFilterMask type_mask = 0;
 	AdvancedFinderFilterMask property_mask = 0;
@@ -145,8 +139,6 @@ struct AdvancedFinderPersistedState {
 
 AdvancedFinderPersistedState LoadAdvancedFinderPersistedState();
 void SaveAdvancedFinderPersistedState(const AdvancedFinderPersistedState& state);
-void ApplyLegacySearchModeFallback(AdvancedFinderQuery& query, int legacy_search_mode);
-int DeriveLegacySearchMode(const AdvancedFinderQuery& query);
 std::vector<AdvancedFinderCatalogRow> BuildAdvancedFinderCatalog(bool include_creatures);
 std::vector<size_t> FilterAdvancedFinderCatalog(const std::vector<AdvancedFinderCatalogRow>& catalog, const AdvancedFinderQuery& query);
 AdvancedFinderSelectionKey MakeAdvancedFinderSelectionKey(const AdvancedFinderCatalogRow& row);

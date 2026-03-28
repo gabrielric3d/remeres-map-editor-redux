@@ -1,37 +1,68 @@
 #include "app/main.h"
 #include "ui/find_item_window.h"
 
+#include "app/settings.h"
 #include "brushes/creature/creature_brush.h"
-#include "ui/dialogs/find_dialog.h"
+#include "brushes/raw/raw_brush.h"
+#include "item_definitions/core/item_definition_store.h"
 #include "ui/gui.h"
 #include "ui/theme.h"
+#include "util/common.h"
 #include "util/image_manager.h"
-#include "util/nanovg_listbox.h"
-
-#include <glad/glad.h>
-#include <nanovg.h>
 
 #include <wx/button.h>
+#include <wx/bmpbuttn.h>
 #include <wx/checkbox.h>
-#include <wx/radiobut.h>
+#include <wx/notebook.h>
+#include <wx/panel.h>
+#include <wx/scrolwin.h>
+#include <wx/srchctrl.h>
 #include <wx/sizer.h>
 #include <wx/statline.h>
+#include <wx/statbox.h>
 #include <wx/stattext.h>
 
 #include <array>
+#include <optional>
 #include <string_view>
+#include <utility>
 
 namespace {
 	template <typename Enum>
 	constexpr size_t toIndex(Enum value) {
-		return static_cast<size_t>(value);
+		return static_cast<size_t>(std::to_underlying(value));
 	}
 
-	constexpr auto kFindByButtons = std::to_array<std::pair<AdvancedFinderFindByMode, std::string_view>>({
-		{ AdvancedFinderFindByMode::FuzzyName, "Name (fuzzy)" },
-		{ AdvancedFinderFindByMode::ServerId, "Server ID" },
-		{ AdvancedFinderFindByMode::ClientId, "Client ID" },
-	});
+	class ForwardingSearchCtrl final : public wxSearchCtrl {
+	public:
+		ForwardingSearchCtrl(wxWindow* parent, wxWindowID id) :
+			wxSearchCtrl(parent, id, "", wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER) {
+			Bind(wxEVT_KEY_DOWN, &ForwardingSearchCtrl::OnKeyDown, this);
+		}
+
+	private:
+		void OnKeyDown(wxKeyEvent& event) {
+			switch (event.GetKeyCode()) {
+				case WXK_UP:
+				case WXK_DOWN:
+				case WXK_PAGEUP:
+				case WXK_PAGEDOWN:
+				case WXK_HOME:
+				case WXK_END:
+					if (auto* top_level = wxGetTopLevelParent(this)) {
+						if (top_level->GetEventHandler()->ProcessEvent(event)) {
+							return;
+						}
+						return;
+					}
+					break;
+				default:
+					break;
+			}
+
+			event.Skip();
+		}
+	};
 
 	constexpr auto kTypeCheckboxes = std::to_array<std::pair<AdvancedFinderTypeFilter, std::string_view>>({
 		{ AdvancedFinderTypeFilter::Depot, "Depot" },
@@ -82,173 +113,40 @@ namespace {
 		{ AdvancedFinderVisualFilter::HasSpeed, "Has Speed" },
 	});
 
-	wxStaticText* makeSubtleText(wxWindow* parent, std::string_view text, bool bold = false) {
+	wxStaticBoxSizer* createStaticBox(wxWindow* parent, std::string_view title) {
+		auto* group = newd wxStaticBoxSizer(wxVERTICAL, parent, wxString::FromUTF8(title.data(), title.size()));
+		group->GetStaticBox()->SetForegroundColour(Theme::Get(Theme::Role::Text));
+		group->GetStaticBox()->SetFont(Theme::GetFont(9, true));
+		return group;
+	}
+
+	wxStaticText* createHintText(wxWindow* parent, std::string_view text) {
 		auto* label = newd wxStaticText(parent, wxID_ANY, wxString::FromUTF8(text.data(), text.size()));
 		label->SetForegroundColour(Theme::Get(Theme::Role::TextSubtle));
-		label->SetFont(Theme::GetFont(9, bold));
+		label->SetFont(Theme::GetFont(9, false));
 		return label;
 	}
 
-	wxStaticText* makeSectionLabel(wxWindow* parent, std::string_view text) {
-		auto* label = newd wxStaticText(parent, wxID_ANY, wxString::FromUTF8(text.data(), text.size()));
-		label->SetForegroundColour(Theme::Get(Theme::Role::TextSubtle));
-		label->SetFont(Theme::GetFont(9, true));
-		return label;
-	}
-
-}
-
-class AdvancedFinderResultListBox final : public NanoVGListBox {
-public:
-	AdvancedFinderResultListBox(wxWindow* parent, wxWindowID id) :
-		NanoVGListBox(parent, id, wxLB_SINGLE) {
-		Bind(wxEVT_LEFT_DCLICK, &AdvancedFinderResultListBox::OnLeftDoubleClick, this);
-		SetPrompt("No matching items", "Enter search term or select filters");
-	}
-
-	void SetPrompt(std::string primary, std::string secondary) {
-		state_ = State::Prompt;
-		primary_message_ = std::move(primary);
-		secondary_message_ = std::move(secondary);
-		rows_.clear();
-		SetItemCount(1);
-		SetSelection(-1);
-		Refresh();
-	}
-
-	void SetNoMatches(std::string primary, std::string secondary) {
-		state_ = State::NoMatches;
-		primary_message_ = std::move(primary);
-		secondary_message_ = std::move(secondary);
-		rows_.clear();
-		SetItemCount(1);
-		SetSelection(-1);
-		Refresh();
-	}
-
-	void SetRows(std::vector<const AdvancedFinderCatalogRow*> rows) {
-		state_ = rows.empty() ? State::Prompt : State::Rows;
-		rows_ = std::move(rows);
-		if (state_ == State::Rows) {
-			SetItemCount(rows_.size());
-		} else {
-			SetItemCount(1);
+	template <typename FilterEnum, size_t Count>
+	wxGridSizer* addCheckboxGrid(wxWindow* parent, const std::array<std::pair<FilterEnum, std::string_view>, Count>& entries, std::array<wxCheckBox*, Count>& targets) {
+		auto* grid = newd wxGridSizer(0, 2, 6, 12);
+		for (const auto& [filter, label] : entries) {
+			auto* checkbox = newd wxCheckBox(parent, wxID_ANY, wxString::FromUTF8(label.data(), label.size()));
+			checkbox->SetFont(Theme::GetFont(9, false));
+			checkbox->SetForegroundColour(Theme::Get(Theme::Role::Text));
+			targets[toIndex(filter)] = checkbox;
+			grid->Add(checkbox, 0, wxEXPAND);
 		}
-		SetSelection(-1);
-		Refresh();
+		return grid;
 	}
 
-	[[nodiscard]] const AdvancedFinderCatalogRow* GetSelectedRow() const {
-		if (state_ != State::Rows) {
-			return nullptr;
-		}
-
-		const int selection = GetSelection();
-		if (selection < 0 || selection >= static_cast<int>(rows_.size())) {
-			return nullptr;
-		}
-
-		return rows_[selection];
-	}
-
-	void OnDrawItem(NVGcontext* vg, const wxRect& rect, size_t index) override {
-		if (state_ != State::Rows) {
-			drawEmptyState(vg, rect);
-			return;
-		}
-
-		ASSERT(index < rows_.size());
-		const AdvancedFinderCatalogRow& row = *rows_[index];
-
-		if (Sprite* sprite = spriteForRow(row)) {
-			if (const int texture = GetOrCreateSpriteTexture(vg, sprite); texture > 0) {
-				const int icon_size = rect.height - 10;
-				const int icon_x = rect.x + 6;
-				const int icon_y = rect.y + 5;
-				NVGpaint img_paint = nvgImagePattern(vg, icon_x, icon_y, icon_size, icon_size, 0.0f, texture, 1.0f);
-				nvgBeginPath(vg);
-				nvgRoundedRect(vg, icon_x, icon_y, icon_size, icon_size, 4.0f);
-				nvgFillPaint(vg, img_paint);
-				nvgFill(vg);
-			}
-		}
-
-		const wxColour primary_colour = IsSelected(static_cast<int>(index)) ? Theme::Get(Theme::Role::TextOnAccent) : Theme::Get(Theme::Role::Text);
-		const wxColour secondary_colour = IsSelected(static_cast<int>(index)) ? Theme::Get(Theme::Role::TextOnAccent) : Theme::Get(Theme::Role::TextSubtle);
-		const float text_x = static_cast<float>(rect.x + rect.height + 10);
-		const float title_y = static_cast<float>(rect.y + 18);
-		const float subtitle_y = static_cast<float>(rect.y + rect.height - 14);
-
-		nvgFontFace(vg, "sans");
-		nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
-
-		nvgFontSize(vg, 12.0f);
-		nvgFillColor(vg, nvgRGBA(primary_colour.Red(), primary_colour.Green(), primary_colour.Blue(), primary_colour.Alpha()));
-		nvgText(vg, text_x, title_y, row.label.c_str(), nullptr);
-
-		nvgFontSize(vg, 11.0f);
-		nvgFillColor(vg, nvgRGBA(secondary_colour.Red(), secondary_colour.Green(), secondary_colour.Blue(), secondary_colour.Alpha()));
-		nvgText(vg, text_x, subtitle_y, row.secondary_label.c_str(), nullptr);
-	}
-
-	int OnMeasureItem(size_t WXUNUSED(index)) const override {
-		return FromDIP(50);
-	}
-
-private:
-	enum class State : uint8_t {
-		Prompt = 0,
-		NoMatches,
-		Rows,
+	struct SessionFinderState {
+		AdvancedFinderPersistedState persisted;
+		AdvancedFinderResultViewMode result_view_mode = AdvancedFinderResultViewMode::Grid;
 	};
 
-	void drawEmptyState(NVGcontext* vg, const wxRect& rect) {
-		const wxColour primary_colour = Theme::Get(Theme::Role::TextSubtle);
-		const wxColour secondary_colour = Theme::Get(Theme::Role::TextSubtle);
-		nvgFontFace(vg, "sans");
-		nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
-
-		nvgFontSize(vg, 12.0f);
-		nvgFillColor(vg, nvgRGBA(primary_colour.Red(), primary_colour.Green(), primary_colour.Blue(), primary_colour.Alpha()));
-		nvgText(vg, rect.x + 18.0f, rect.y + 20.0f, primary_message_.c_str(), nullptr);
-
-		nvgFontSize(vg, 11.0f);
-		nvgFillColor(vg, nvgRGBA(secondary_colour.Red(), secondary_colour.Green(), secondary_colour.Blue(), secondary_colour.Alpha()));
-		nvgText(vg, rect.x + 18.0f, rect.y + 40.0f, secondary_message_.c_str(), nullptr);
-	}
-
-	[[nodiscard]] Sprite* spriteForRow(const AdvancedFinderCatalogRow& row) const {
-		if (row.isCreature() && row.creature_brush != nullptr) {
-			return row.creature_brush->getSprite();
-		}
-		if (row.client_id != 0) {
-			return g_gui.gfx.getSprite(row.client_id);
-		}
-		return nullptr;
-	}
-
-	void OnLeftDoubleClick(wxMouseEvent& event) {
-		const int index = HitTest(event.GetX(), event.GetY() + GetScrollPosition());
-		if (state_ != State::Rows || index < 0) {
-			return;
-		}
-
-		SetSelection(index);
-		SendSelectionEvent();
-
-		wxCommandEvent activate_event(wxEVT_LISTBOX_DCLICK, GetId());
-		activate_event.SetEventObject(this);
-		activate_event.SetInt(index);
-		ProcessWindowEvent(activate_event);
-		SetFocus();
-		Refresh();
-	}
-
-	State state_ = State::Prompt;
-	std::string primary_message_;
-	std::string secondary_message_;
-	std::vector<const AdvancedFinderCatalogRow*> rows_;
-};
+	std::optional<SessionFinderState> g_session_finder_state;
+}
 
 FindItemDialog::FindItemDialog(
 	wxWindow* parent,
@@ -259,7 +157,6 @@ FindItemDialog::FindItemDialog(
 	bool include_creatures
 ) :
 	wxDialog(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
-	input_timer_(this),
 	only_pickupables_(onlyPickupables),
 	include_creatures_(include_creatures),
 	persist_shared_state_(action_set == ActionSet::SearchAndSelect),
@@ -275,125 +172,140 @@ FindItemDialog::~FindItemDialog() {
 	savePersistedState();
 }
 
-FindItemDialog::SearchMode FindItemDialog::getSearchMode() const {
-	return static_cast<SearchMode>(DeriveLegacySearchMode(query_));
-}
-
-void FindItemDialog::setSearchMode(SearchMode mode) {
-	if (!shouldApplyLegacyFallback()) {
-		return;
-	}
-
-	ApplyLegacySearchModeFallback(query_, static_cast<int>(mode));
-	applyQueryToControls();
-	refreshResults();
-}
-
 void FindItemDialog::buildLayout() {
-	SetMinSize(wxSize(1100, 740));
+	SetMinSize(FromDIP(wxSize(1360, 860)));
+	SetBackgroundColour(Theme::Get(Theme::Role::Surface));
 
 	auto* root_sizer = newd wxBoxSizer(wxVERTICAL);
-	auto* content_sizer = newd wxBoxSizer(wxHORIZONTAL);
+	auto* body_sizer = newd wxBoxSizer(wxHORIZONTAL);
 
-	auto* find_by_sizer = newd wxStaticBoxSizer(newd wxStaticBox(this, wxID_ANY, "Find By"), wxVERTICAL);
-	search_field_ = newd KeyForwardingTextCtrl(find_by_sizer->GetStaticBox(), wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
-	search_field_->SetHint("Name or ID...");
-	find_by_sizer->Add(search_field_, 0, wxEXPAND | wxALL, 6);
+	auto* left_panel = newd wxPanel(this, wxID_ANY);
+	left_panel->SetBackgroundColour(Theme::Get(Theme::Role::Surface));
+	left_panel->SetMinSize(FromDIP(wxSize(360, -1)));
+	auto* left_sizer = newd wxBoxSizer(wxVERTICAL);
 
-	for (size_t index = 0; index < kFindByButtons.size(); ++index) {
-		const auto [mode, label] = kFindByButtons[index];
-		const long style = index == 0 ? wxRB_GROUP : 0;
-		auto* button = newd wxRadioButton(find_by_sizer->GetStaticBox(), wxID_ANY, wxString::FromUTF8(label.data(), label.size()), wxDefaultPosition, wxDefaultSize, style);
-		find_by_buttons_[toIndex(mode)] = button;
-		find_by_sizer->Add(button, 0, wxLEFT | wxRIGHT | wxTOP, 6);
-	}
+	auto* search_box = createStaticBox(left_panel, "Search");
+	auto* search_box_sizer = newd wxBoxSizer(wxHORIZONTAL);
+	search_field_ = newd ForwardingSearchCtrl(search_box->GetStaticBox(), wxID_ANY);
+	search_field_->SetDescriptiveText("Name, SID, or CID...");
+	search_field_->SetMinSize(FromDIP(wxSize(-1, 32)));
+	search_box_sizer->Add(search_field_, 1, wxEXPAND | wxALL, 8);
+	reset_search_button_ = newd wxBitmapButton(search_box->GetStaticBox(), wxID_ANY, IMAGE_MANAGER.GetBitmap(ICON_XMARK, wxSize(16, 16)));
+	reset_search_button_->SetMinSize(FromDIP(wxSize(30, 30)));
+	search_box_sizer->Add(reset_search_button_, 0, wxTOP | wxRIGHT | wxBOTTOM, 8);
+	search_box->Add(search_box_sizer, 1, wxEXPAND);
+	left_sizer->Add(search_box, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
 
-	find_by_sizer->AddSpacer(10);
-	find_by_sizer->Add(makeSubtleText(find_by_sizer->GetStaticBox(), "Searches by:", true), 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
-	find_by_sizer->Add(makeSubtleText(find_by_sizer->GetStaticBox(), "- Name (fuzzy)\n- Server ID\n- Client ID\n\nLeave empty to search by filters only."), 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
-	content_sizer->Add(find_by_sizer, 0, wxEXPAND | wxALL, 6);
+	auto* filter_scroll = newd wxScrolledWindow(left_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL | wxBORDER_NONE);
+	filter_scroll->SetBackgroundColour(Theme::Get(Theme::Role::Surface));
+	filter_scroll->SetScrollRate(0, FromDIP(18));
 
-	auto* type_sizer = newd wxStaticBoxSizer(newd wxStaticBox(this, wxID_ANY, "Types"), wxVERTICAL);
-	type_sizer->Add(makeSubtleText(type_sizer->GetStaticBox(), "(OR logic)"), 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
-	for (const auto& [type_filter, label] : kTypeCheckboxes) {
-		auto* checkbox = newd wxCheckBox(type_sizer->GetStaticBox(), wxID_ANY, wxString::FromUTF8(label.data(), label.size()));
-		type_checkboxes_[toIndex(type_filter)] = checkbox;
-		type_sizer->Add(checkbox, 0, wxLEFT | wxRIGHT | wxBOTTOM, 4);
-	}
-	content_sizer->Add(type_sizer, 0, wxEXPAND | wxALL, 6);
+	auto* filter_scroll_sizer = newd wxBoxSizer(wxVERTICAL);
+	auto* or_box = createStaticBox(filter_scroll, "OR");
+	or_box->Add(addCheckboxGrid(or_box->GetStaticBox(), kTypeCheckboxes, type_checkboxes_), 0, wxEXPAND | wxALL, 8);
+	filter_scroll_sizer->Add(or_box, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 4);
 
-	auto* properties_sizer = newd wxStaticBoxSizer(newd wxStaticBox(this, wxID_ANY, "Properties"), wxVERTICAL);
-	properties_sizer->Add(makeSubtleText(properties_sizer->GetStaticBox(), "(AND logic)"), 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+	auto* and_box = createStaticBox(filter_scroll, "AND");
+	auto* and_grid = newd wxGridSizer(0, 2, 6, 12);
 	for (const auto& [property_filter, label] : kPropertyCheckboxes) {
-		auto* checkbox = newd wxCheckBox(properties_sizer->GetStaticBox(), wxID_ANY, wxString::FromUTF8(label.data(), label.size()));
+		auto* checkbox = newd wxCheckBox(and_box->GetStaticBox(), wxID_ANY, wxString::FromUTF8(label.data(), label.size()));
+		checkbox->SetFont(Theme::GetFont(9, false));
+		checkbox->SetForegroundColour(Theme::Get(Theme::Role::Text));
 		property_checkboxes_[toIndex(property_filter)] = checkbox;
-		properties_sizer->Add(checkbox, 0, wxLEFT | wxRIGHT | wxBOTTOM, 4);
+		and_grid->Add(checkbox, 0, wxEXPAND);
 	}
-
-	properties_sizer->AddSpacer(6);
-	{
-		auto* line = newd wxStaticLine(properties_sizer->GetStaticBox(), wxID_ANY);
-		properties_sizer->Add(line, 0, wxEXPAND | wxALL, 6);
-	}
-	properties_sizer->Add(makeSectionLabel(properties_sizer->GetStaticBox(), "Interaction"), 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
 	for (const auto& [interaction_filter, label] : kInteractionCheckboxes) {
-		auto* checkbox = newd wxCheckBox(properties_sizer->GetStaticBox(), wxID_ANY, wxString::FromUTF8(label.data(), label.size()));
+		auto* checkbox = newd wxCheckBox(and_box->GetStaticBox(), wxID_ANY, wxString::FromUTF8(label.data(), label.size()));
+		checkbox->SetFont(Theme::GetFont(9, false));
+		checkbox->SetForegroundColour(Theme::Get(Theme::Role::Text));
 		interaction_checkboxes_[toIndex(interaction_filter)] = checkbox;
-		properties_sizer->Add(checkbox, 0, wxLEFT | wxRIGHT | wxBOTTOM, 4);
+		and_grid->Add(checkbox, 0, wxEXPAND);
 	}
-
-	properties_sizer->AddSpacer(6);
-	{
-		auto* line = newd wxStaticLine(properties_sizer->GetStaticBox(), wxID_ANY);
-		properties_sizer->Add(line, 0, wxEXPAND | wxALL, 6);
-	}
-	properties_sizer->Add(makeSectionLabel(properties_sizer->GetStaticBox(), "Visuals/Misc"), 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
 	for (const auto& [visual_filter, label] : kVisualCheckboxes) {
-		auto* checkbox = newd wxCheckBox(properties_sizer->GetStaticBox(), wxID_ANY, wxString::FromUTF8(label.data(), label.size()));
+		auto* checkbox = newd wxCheckBox(and_box->GetStaticBox(), wxID_ANY, wxString::FromUTF8(label.data(), label.size()));
+		checkbox->SetFont(Theme::GetFont(9, false));
+		checkbox->SetForegroundColour(Theme::Get(Theme::Role::Text));
 		visual_checkboxes_[toIndex(visual_filter)] = checkbox;
-		properties_sizer->Add(checkbox, 0, wxLEFT | wxRIGHT | wxBOTTOM, 4);
+		and_grid->Add(checkbox, 0, wxEXPAND);
 	}
-	content_sizer->Add(properties_sizer, 0, wxEXPAND | wxALL, 6);
+	and_box->Add(and_grid, 0, wxEXPAND | wxALL, 8);
+	filter_scroll_sizer->Add(and_box, 0, wxEXPAND | wxALL, 4);
 
-	auto* result_sizer = newd wxStaticBoxSizer(newd wxStaticBox(this, wxID_ANY, "Result (0)"), wxVERTICAL);
-	result_box_ = result_sizer->GetStaticBox();
-	result_list_ = newd AdvancedFinderResultListBox(result_box_, wxID_ANY);
-	result_list_->SetMinSize(FROM_DIP(result_list_, wxSize(380, 620)));
-	result_sizer->Add(result_list_, 1, wxEXPAND | wxALL, 6);
-	content_sizer->Add(result_sizer, 1, wxEXPAND | wxALL, 6);
+	auto* hints_box = createStaticBox(filter_scroll, "Hints");
+	hints_box->Add(createHintText(hints_box->GetStaticBox(), "Double left click item to search the item on the map"), 0, wxLEFT | wxRIGHT | wxTOP, 8);
+	hints_box->Add(createHintText(hints_box->GetStaticBox(), "Double right click to select item in the tileset"), 0, wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, 8);
+	filter_scroll_sizer->Add(hints_box, 0, wxEXPAND | wxALL, 4);
 
-	root_sizer->Add(content_sizer, 1, wxEXPAND | wxALL, 4);
+	filter_scroll->SetSizer(filter_scroll_sizer);
+	filter_scroll->FitInside();
+	left_sizer->Add(filter_scroll, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 12);
 
-	auto* button_sizer = newd wxBoxSizer(wxHORIZONTAL);
+	left_panel->SetSizer(left_sizer);
+	body_sizer->Add(left_panel, 0, wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, 12);
+
+	auto* right_panel = newd wxPanel(this, wxID_ANY);
+	right_panel->SetBackgroundColour(Theme::Get(Theme::Role::Surface));
+	auto* right_sizer = newd wxBoxSizer(wxVERTICAL);
+	auto* results_box = createStaticBox(right_panel, "Results");
+	auto* results_box_sizer = newd wxBoxSizer(wxVERTICAL);
+
+	results_notebook_ = newd wxNotebook(results_box->GetStaticBox(), wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNB_TOP);
+	results_notebook_->SetBackgroundColour(Theme::Get(Theme::Role::Surface));
+
+	list_results_view_ = newd AdvancedFinderResultsView(results_notebook_, wxID_ANY);
+	list_results_view_->SetMode(AdvancedFinderResultViewMode::List);
+	list_results_view_->SetMinSize(FromDIP(wxSize(520, 520)));
+	results_notebook_->AddPage(list_results_view_, "List", false);
+
+	grid_results_view_ = newd AdvancedFinderResultsView(results_notebook_, wxID_ANY);
+	grid_results_view_->SetMode(AdvancedFinderResultViewMode::Grid);
+	grid_results_view_->SetMinSize(FromDIP(wxSize(520, 520)));
+	results_notebook_->AddPage(grid_results_view_, "Grid", true);
+
+	results_box_sizer->Add(results_notebook_, 1, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 8);
+	results_box->Add(results_box_sizer, 1, wxEXPAND);
+	right_sizer->Add(results_box, 1, wxEXPAND | wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, 12);
+	right_panel->SetSizer(right_sizer);
+	body_sizer->Add(right_panel, 1, wxEXPAND | wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, 12);
+	root_sizer->Add(body_sizer, 1, wxEXPAND);
+
+	auto* footer_panel = newd wxPanel(this, wxID_ANY);
+	footer_panel->SetBackgroundColour(Theme::Get(Theme::Role::RaisedSurface));
+	auto* footer_sizer = newd wxBoxSizer(wxVERTICAL);
+	auto* footer_line = newd wxStaticLine(footer_panel, wxID_ANY);
+	footer_sizer->Add(footer_line, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 0);
+	auto* footer_buttons = newd wxBoxSizer(wxHORIZONTAL);
+	footer_buttons->AddStretchSpacer(1);
+	result_count_label_ = newd wxStaticText(footer_panel, wxID_ANY, "Results: 0 |");
+	result_count_label_->SetForegroundColour(Theme::Get(Theme::Role::TextSubtle));
+	result_count_label_->SetFont(Theme::GetFont(9, false));
+	footer_buttons->Add(result_count_label_, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
 	if (action_set_ == ActionSet::SearchAndSelect) {
-		search_map_button_ = newd wxButton(this, wxID_FIND, "Search Map");
-		search_map_button_->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_SEARCH, wxSize(16, 16)));
-		button_sizer->Add(search_map_button_, 0, wxRIGHT, 8);
+		search_map_button_ = newd wxButton(footer_panel, wxID_FIND, "Search Map");
+		footer_buttons->Add(search_map_button_, 0, wxRIGHT, 8);
 
-		select_item_button_ = newd wxButton(this, wxID_OK, "Select Item");
-		select_item_button_->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_CHECK, wxSize(16, 16)));
-		button_sizer->Add(select_item_button_, 0, wxRIGHT, 8);
+		select_item_button_ = newd wxButton(footer_panel, wxID_OK, "Select Item");
+		footer_buttons->Add(select_item_button_, 0, wxRIGHT, 8);
 	} else {
-		ok_button_ = newd wxButton(this, wxID_OK, "OK");
-		ok_button_->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_CHECK, wxSize(16, 16)));
-		button_sizer->Add(ok_button_, 0, wxRIGHT, 8);
+		ok_button_ = newd wxButton(footer_panel, wxID_OK, "OK");
+		footer_buttons->Add(ok_button_, 0, wxRIGHT, 8);
 	}
 
-	cancel_button_ = newd wxButton(this, wxID_CANCEL, "Cancel");
-	cancel_button_->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_XMARK, wxSize(16, 16)));
-	button_sizer->Add(cancel_button_, 0);
-	root_sizer->Add(button_sizer, 0, wxALIGN_CENTER_HORIZONTAL | wxLEFT | wxRIGHT | wxBOTTOM, 10);
+	cancel_button_ = newd wxButton(footer_panel, wxID_CANCEL, "Cancel");
+	footer_buttons->Add(cancel_button_, 0);
+	footer_sizer->Add(footer_buttons, 0, wxEXPAND | wxALL, 10);
+	footer_panel->SetSizer(footer_sizer);
+	root_sizer->Add(footer_panel, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 12);
 
-	SetSizerAndFit(root_sizer);
+	SetSizer(root_sizer);
+	root_sizer->SetSizeHints(this);
 }
 
 void FindItemDialog::bindEvents() {
 	search_field_->Bind(wxEVT_TEXT, &FindItemDialog::OnTextChanged, this);
 	search_field_->Bind(wxEVT_TEXT_ENTER, &FindItemDialog::OnTextEnter, this);
-
-	for (wxRadioButton* button : find_by_buttons_) {
-		button->Bind(wxEVT_RADIOBUTTON, &FindItemDialog::OnFindByChanged, this);
-	}
+	Bind(wxEVT_KEY_DOWN, &FindItemDialog::OnKeyDown, this);
+	Bind(wxEVT_TIMER, &FindItemDialog::OnDeferredSelectTimer, this, deferred_select_timer_.GetId());
 
 	for (wxCheckBox* checkbox : type_checkboxes_) {
 		checkbox->Bind(wxEVT_CHECKBOX, &FindItemDialog::OnFilterChanged, this);
@@ -408,8 +320,19 @@ void FindItemDialog::bindEvents() {
 		checkbox->Bind(wxEVT_CHECKBOX, &FindItemDialog::OnFilterChanged, this);
 	}
 
-	result_list_->Bind(wxEVT_LISTBOX, &FindItemDialog::OnResultSelection, this);
-	result_list_->Bind(wxEVT_LISTBOX_DCLICK, &FindItemDialog::OnResultActivate, this);
+	if (results_notebook_ != nullptr) {
+		results_notebook_->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, &FindItemDialog::OnResultPageChanged, this);
+	}
+	if (list_results_view_ != nullptr) {
+		list_results_view_->Bind(wxEVT_LISTBOX, &FindItemDialog::OnResultSelection, this);
+		list_results_view_->Bind(wxEVT_LISTBOX_DCLICK, &FindItemDialog::OnResultActivate, this);
+		list_results_view_->Bind(EVT_ADVANCED_FINDER_RESULT_RIGHT_ACTIVATE, &FindItemDialog::OnResultRightActivate, this);
+	}
+	if (grid_results_view_ != nullptr) {
+		grid_results_view_->Bind(wxEVT_LISTBOX, &FindItemDialog::OnResultSelection, this);
+		grid_results_view_->Bind(wxEVT_LISTBOX_DCLICK, &FindItemDialog::OnResultActivate, this);
+		grid_results_view_->Bind(EVT_ADVANCED_FINDER_RESULT_RIGHT_ACTIVATE, &FindItemDialog::OnResultRightActivate, this);
+	}
 
 	if (search_map_button_ != nullptr) {
 		search_map_button_->Bind(wxEVT_BUTTON, &FindItemDialog::OnSearchMap, this);
@@ -420,8 +343,10 @@ void FindItemDialog::bindEvents() {
 	if (ok_button_ != nullptr) {
 		ok_button_->Bind(wxEVT_BUTTON, &FindItemDialog::OnSelectItem, this);
 	}
+	if (reset_search_button_ != nullptr) {
+		reset_search_button_->Bind(wxEVT_BUTTON, &FindItemDialog::OnResetSearch, this);
+	}
 	cancel_button_->Bind(wxEVT_BUTTON, &FindItemDialog::OnCancel, this);
-	input_timer_.Bind(wxEVT_TIMER, &FindItemDialog::OnInputTimer, this);
 }
 
 void FindItemDialog::loadInitialState() {
@@ -429,7 +354,20 @@ void FindItemDialog::loadInitialState() {
 	query_ = {};
 	current_selection_ = {};
 
-	if (persist_shared_state_) {
+	if (g_session_finder_state.has_value()) {
+		persisted_state_ = g_session_finder_state->persisted;
+		query_ = persisted_state_.query;
+		current_selection_ = persisted_state_.selection;
+		result_view_mode_ = g_session_finder_state->result_view_mode;
+		if (persisted_state_.size.IsFullySpecified()) {
+			SetSize(persisted_state_.size);
+		}
+		if (persisted_state_.position != wxDefaultPosition) {
+			Move(persisted_state_.position);
+		} else {
+			Centre(wxBOTH);
+		}
+	} else if (persist_shared_state_) {
 		persisted_state_ = LoadAdvancedFinderPersistedState();
 		query_ = persisted_state_.query;
 		current_selection_ = persisted_state_.selection;
@@ -442,7 +380,7 @@ void FindItemDialog::loadInitialState() {
 			Centre(wxBOTH);
 		}
 	} else {
-		SetSize(wxSize(1480, 860));
+		SetSize(wxSize(1500, 900));
 		Centre(wxBOTH);
 	}
 
@@ -451,6 +389,7 @@ void FindItemDialog::loadInitialState() {
 	}
 
 	applyQueryToControls();
+	setResultViewMode(result_view_mode_);
 	refreshResults();
 
 	if (action_set_ == ActionSet::SearchAndSelect) {
@@ -468,10 +407,6 @@ void FindItemDialog::loadInitialState() {
 }
 
 void FindItemDialog::savePersistedState() {
-	if (!persist_shared_state_) {
-		return;
-	}
-
 	auto state = persisted_state_;
 	state.query = query_;
 	state.selection = current_selection_;
@@ -482,15 +417,20 @@ void FindItemDialog::savePersistedState() {
 	}
 	state.position = GetPosition();
 	state.size = GetSize();
+	g_session_finder_state = SessionFinderState {
+		.persisted = state,
+		.result_view_mode = result_view_mode_,
+	};
+
+	if (!persist_shared_state_) {
+		return;
+	}
+
 	SaveAdvancedFinderPersistedState(state);
 }
 
 void FindItemDialog::applyQueryToControls() const {
 	search_field_->ChangeValue(wxstr(query_.text));
-
-	for (const auto& [mode, _] : kFindByButtons) {
-		find_by_buttons_[toIndex(mode)]->SetValue(query_.find_by == mode);
-	}
 
 	for (const auto& [type_filter, _] : kTypeCheckboxes) {
 		type_checkboxes_[toIndex(type_filter)]->SetValue((query_.type_mask & advancedFinderBit(type_filter)) != 0);
@@ -520,13 +460,6 @@ void FindItemDialog::applyQueryToControls() const {
 
 void FindItemDialog::readQueryFromControls() {
 	query_.text = nstr(search_field_->GetValue());
-
-	for (const auto& [mode, _] : kFindByButtons) {
-		if (find_by_buttons_[toIndex(mode)]->GetValue()) {
-			query_.find_by = mode;
-			break;
-		}
-	}
 
 	query_.type_mask = 0;
 	query_.property_mask = 0;
@@ -564,54 +497,42 @@ void FindItemDialog::readQueryFromControls() {
 
 void FindItemDialog::refreshResults() {
 	readQueryFromControls();
-	updateResultTitle(0);
 
-	if (query_.text.empty() && !query_.hasAnyFilter()) {
-		result_list_->SetPrompt("No matching items", "Enter search term or select filters");
-		filtered_indices_.clear();
-		updateCurrentSelection();
-		updateButtons();
-		return;
-	}
-
-	filtered_indices_ = FilterAdvancedFinderCatalog(catalog_, query_);
-	if (filtered_indices_.empty()) {
-		result_list_->SetNoMatches("No matching items", "Adjust the search term or filters");
+	auto filtered_rows = FilterAdvancedFinderCatalog(catalog_, query_);
+	if (filtered_rows.empty()) {
+		list_results_view_->SetNoMatches("No results", "Try a different word or fewer filters.");
+		grid_results_view_->SetNoMatches("No results", "Try a different word or fewer filters.");
+		current_selection_ = {};
 		updateResultTitle(0);
-		updateCurrentSelection();
 		updateButtons();
 		return;
 	}
 
 	std::vector<const AdvancedFinderCatalogRow*> rows;
-	rows.reserve(filtered_indices_.size());
-	for (const size_t filtered_index : filtered_indices_) {
+	rows.reserve(filtered_rows.size());
+	for (const size_t filtered_index : filtered_rows) {
 		rows.push_back(&catalog_[filtered_index]);
 	}
 
-	int selection_index = -1;
-	for (size_t index = 0; index < rows.size(); ++index) {
-		if (AdvancedFinderSelectionMatches(*rows[index], current_selection_)) {
-			selection_index = static_cast<int>(index);
-			break;
+	list_results_view_->SetRows(rows, current_selection_);
+	grid_results_view_->SetRows(rows, current_selection_);
+
+	if (auto* view = activeResultsView()) {
+		if (const auto* row = view->GetSelectedRow()) {
+			current_selection_ = MakeAdvancedFinderSelectionKey(*row);
+		} else {
+			current_selection_ = {};
 		}
+	} else {
+		current_selection_ = {};
 	}
 
-	result_list_->SetRows(std::move(rows));
-	updateResultTitle(filtered_indices_.size());
-
-	if (selection_index < 0) {
-		selection_index = 0;
-	}
-
-	result_list_->SetSelection(selection_index);
-	result_list_->EnsureVisible(selection_index);
-	updateCurrentSelection();
+	updateResultTitle(filtered_rows.size());
 	updateButtons();
 }
 
 void FindItemDialog::updateButtons() {
-	const bool has_selection = result_list_->GetSelectedRow() != nullptr;
+	const bool has_selection = activeResultsView() != nullptr && activeResultsView()->GetSelectedRow() != nullptr;
 
 	if (search_map_button_ != nullptr) {
 		search_map_button_->Enable(has_selection);
@@ -625,13 +546,19 @@ void FindItemDialog::updateButtons() {
 }
 
 void FindItemDialog::updateResultTitle(size_t count) const {
-	if (result_box_ != nullptr) {
-		result_box_->SetLabel(wxString::Format("Result (%zu)", count));
+	if (result_count_label_ != nullptr) {
+		result_count_label_->SetLabel(wxString::Format("Results: %zu |", count));
+		result_count_label_->SetMinSize(result_count_label_->GetBestSize());
+		if (wxWindow* parent = result_count_label_->GetParent(); parent != nullptr) {
+			parent->Layout();
+		}
+		const_cast<FindItemDialog*>(this)->Layout();
 	}
 }
 
 void FindItemDialog::updateCurrentSelection() {
-	if (const auto* row = result_list_->GetSelectedRow()) {
+	if (const auto* view = activeResultsView(); view != nullptr && view->GetSelectedRow() != nullptr) {
+		const auto* row = view->GetSelectedRow();
 		current_selection_ = MakeAdvancedFinderSelectionKey(*row);
 	} else {
 		current_selection_ = {};
@@ -647,7 +574,11 @@ void FindItemDialog::triggerDefaultAction() {
 }
 
 void FindItemDialog::handlePositiveAction(ResultAction action) {
-	const AdvancedFinderCatalogRow* selected_row = result_list_->GetSelectedRow();
+	if (deferred_select_timer_.IsRunning()) {
+		deferred_select_timer_.Stop();
+	}
+
+	const AdvancedFinderCatalogRow* selected_row = activeResultsView() != nullptr ? activeResultsView()->GetSelectedRow() : nullptr;
 	if (selected_row == nullptr) {
 		return;
 	}
@@ -663,12 +594,15 @@ void FindItemDialog::handlePositiveAction(ResultAction action) {
 	EndModal(action == ResultAction::SearchMap ? wxID_FIND : wxID_OK);
 }
 
-bool FindItemDialog::shouldApplyLegacyFallback() const {
-	return query_.text.empty() && !query_.hasAnyFilter() && current_selection_.server_id == 0 && current_selection_.creature_name.empty();
+void FindItemDialog::setResultViewMode(AdvancedFinderResultViewMode mode) {
+	result_view_mode_ = mode;
+	if (results_notebook_ != nullptr) {
+		results_notebook_->ChangeSelection(toIndex(mode));
+	}
 }
 
-void FindItemDialog::OnFindByChanged(wxCommandEvent& WXUNUSED(event)) {
-	refreshResults();
+AdvancedFinderResultsView* FindItemDialog::activeResultsView() const {
+	return result_view_mode_ == AdvancedFinderResultViewMode::Grid ? grid_results_view_ : list_results_view_;
 }
 
 void FindItemDialog::OnFilterChanged(wxCommandEvent& WXUNUSED(event)) {
@@ -676,21 +610,67 @@ void FindItemDialog::OnFilterChanged(wxCommandEvent& WXUNUSED(event)) {
 }
 
 void FindItemDialog::OnTextChanged(wxCommandEvent& WXUNUSED(event)) {
-	query_.text = nstr(search_field_->GetValue());
-	input_timer_.Start(250, true);
-}
-
-void FindItemDialog::OnInputTimer(wxTimerEvent& WXUNUSED(event)) {
 	refreshResults();
 }
 
-void FindItemDialog::OnResultSelection(wxCommandEvent& WXUNUSED(event)) {
-	updateCurrentSelection();
+void FindItemDialog::syncResultViews(AdvancedFinderResultsView* source_view) {
+	if (source_view == nullptr) {
+		return;
+	}
+
+	AdvancedFinderResultsView* target_view = source_view == list_results_view_ ? grid_results_view_ : list_results_view_;
+	if (target_view != nullptr) {
+		target_view->SetSelectionIndex(source_view->GetSelectionIndex());
+	}
+
+	if (const auto* row = source_view->GetSelectedRow()) {
+		current_selection_ = MakeAdvancedFinderSelectionKey(*row);
+	} else {
+		current_selection_ = {};
+	}
+
 	updateButtons();
 }
 
+void FindItemDialog::OnResultPageChanged(wxBookCtrlEvent& event) {
+	const auto page = event.GetSelection();
+	if (page == wxNOT_FOUND) {
+		event.Skip();
+		return;
+	}
+
+	result_view_mode_ = page == 0 ? AdvancedFinderResultViewMode::List : AdvancedFinderResultViewMode::Grid;
+	updateCurrentSelection();
+	updateButtons();
+	event.Skip();
+}
+
+void FindItemDialog::OnResultSelection(wxCommandEvent& event) {
+	auto* source_view = dynamic_cast<AdvancedFinderResultsView*>(event.GetEventObject());
+	if (source_view == nullptr) {
+		return;
+	}
+
+	syncResultViews(source_view);
+}
+
 void FindItemDialog::OnResultActivate(wxCommandEvent& WXUNUSED(event)) {
-	triggerDefaultAction();
+	if (action_set_ == ActionSet::SearchAndSelect) {
+		handlePositiveAction(ResultAction::SearchMap);
+		return;
+	}
+	handlePositiveAction(ResultAction::ConfirmSelection);
+}
+
+void FindItemDialog::OnResultRightActivate(wxCommandEvent& WXUNUSED(event)) {
+	if (action_set_ == ActionSet::SearchAndSelect) {
+		if (deferred_select_timer_.IsRunning()) {
+			deferred_select_timer_.Stop();
+		}
+		deferred_select_timer_.StartOnce(300);
+		return;
+	}
+	handlePositiveAction(ResultAction::ConfirmSelection);
 }
 
 void FindItemDialog::OnSearchMap(wxCommandEvent& WXUNUSED(event)) {
@@ -701,6 +681,40 @@ void FindItemDialog::OnSelectItem(wxCommandEvent& WXUNUSED(event)) {
 	handlePositiveAction(action_set_ == ActionSet::SearchAndSelect ? ResultAction::SelectItem : ResultAction::ConfirmSelection);
 }
 
+void FindItemDialog::OnResetSearch(wxCommandEvent& WXUNUSED(event)) {
+	search_field_->Clear();
+
+	for (wxCheckBox* checkbox : type_checkboxes_) {
+		if (checkbox->IsEnabled()) {
+			checkbox->SetValue(false);
+		}
+	}
+	for (wxCheckBox* checkbox : property_checkboxes_) {
+		if (checkbox->IsEnabled()) {
+			checkbox->SetValue(false);
+		}
+	}
+	for (wxCheckBox* checkbox : interaction_checkboxes_) {
+		if (checkbox->IsEnabled()) {
+			checkbox->SetValue(false);
+		}
+	}
+	for (wxCheckBox* checkbox : visual_checkboxes_) {
+		if (checkbox->IsEnabled()) {
+			checkbox->SetValue(false);
+		}
+	}
+
+	refreshResults();
+	search_field_->SetFocus();
+}
+
+void FindItemDialog::OnDeferredSelectTimer(wxTimerEvent& WXUNUSED(event)) {
+	if (IsModal()) {
+		handlePositiveAction(ResultAction::SelectItem);
+	}
+}
+
 void FindItemDialog::OnCancel(wxCommandEvent& WXUNUSED(event)) {
 	result_action_ = ResultAction::None;
 	EndModal(wxID_CANCEL);
@@ -708,4 +722,21 @@ void FindItemDialog::OnCancel(wxCommandEvent& WXUNUSED(event)) {
 
 void FindItemDialog::OnTextEnter(wxCommandEvent& WXUNUSED(event)) {
 	triggerDefaultAction();
+}
+
+void FindItemDialog::OnKeyDown(wxKeyEvent& event) {
+	if (event.GetEventObject() != search_field_) {
+		event.Skip();
+		return;
+	}
+
+	if (auto* view = activeResultsView(); view != nullptr) {
+		wxKeyEvent forwarded(event);
+		forwarded.SetEventObject(view);
+		if (view->GetEventHandler()->ProcessEvent(forwarded)) {
+			return;
+		}
+	}
+
+	event.Skip();
 }

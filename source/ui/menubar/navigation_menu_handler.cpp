@@ -123,7 +123,6 @@ void NavigationMenuHandler::OnJumpToItemBrush(wxCommandEvent& WXUNUSED(event)) {
 
 	// Create the jump to dialog
 	FindItemDialog dialog(frame, "Jump to Item", false, FindItemDialog::ActionSet::SearchAndSelect, AdvancedFinderDefaultAction::SelectItem, true);
-	dialog.setSearchMode((FindItemDialog::SearchMode)g_settings.getInteger(Config::JUMP_TO_ITEM_MODE));
 	const int modal_result = dialog.ShowModal();
 	if (modal_result != wxID_CANCEL) {
 		if (dialog.getResultAction() == FindItemDialog::ResultAction::SearchMap) {
@@ -135,7 +134,6 @@ void NavigationMenuHandler::OnJumpToItemBrush(wxCommandEvent& WXUNUSED(event)) {
 		} else if (dialog.getResultAction() == FindItemDialog::ResultAction::SelectItem) {
 			selectFoundBrush(dialog);
 		}
-		g_settings.setInteger(Config::JUMP_TO_ITEM_MODE, (int)dialog.getSearchMode());
 	}
 }
 
