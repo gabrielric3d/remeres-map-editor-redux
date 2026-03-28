@@ -62,6 +62,9 @@
 #include "rendering/drawers/overlays/marker_drawer.h"
 #include "rendering/drawers/overlays/camera_path_drawer.h"
 #include "rendering/drawers/overlays/spawn_overlay_drawer.h"
+#include "rendering/drawers/overlays/hook_indicator_drawer.h"
+#include "rendering/drawers/overlays/door_indicator_drawer.h"
+#include "rendering/drawers/overlays/lua_overlay_drawer.h"
 #include "rendering/drawers/overlays/preview_drawer.h"
 #include "rendering/drawers/tiles/shade_drawer.h"
 #include "rendering/drawers/tiles/tile_color_calculator.h"
@@ -125,6 +128,7 @@ MapDrawer::MapDrawer(MapCanvas* canvas) :
 	wall_border_drawer = std::make_unique<WallBorderDrawer>();
 	mountain_overlay_drawer = std::make_unique<MountainOverlayDrawer>();
 	stair_direction_drawer = std::make_unique<StairDirectionDrawer>();
+	lua_overlay_drawer = std::make_unique<LuaOverlayDrawer>(this);
 
 	sprite_batch = std::make_unique<SpriteBatch>();
 	primitive_renderer = std::make_unique<PrimitiveRenderer>();
@@ -388,6 +392,9 @@ void MapDrawer::Draw() {
 			selection_drawer->draw(*primitive_renderer, view, canvas, options);
 		}
 	}
+
+	// Draw Lua Overlays (sprites, lines, rects, etc.)
+	lua_overlay_drawer->Draw(view, options);
 
 	// Draw creature names (Overlay) moved to DrawCreatureNames()
 

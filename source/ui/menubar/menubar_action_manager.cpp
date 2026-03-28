@@ -186,6 +186,10 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(GOTO_WEBSITE, wxITEM_NORMAL, OnGotoWebsite);
 	MAKE_ACTION(ABOUT, wxITEM_NORMAL, OnAbout);
 
+	MAKE_ACTION_ICON(SCRIPTS_MANAGER, wxITEM_NORMAL, ICON_CODE, OnScriptsManager);
+	MAKE_ACTION_ICON(SCRIPTS_OPEN_FOLDER, wxITEM_NORMAL, ICON_FOLDER_OPEN, OnScriptsOpenFolder);
+	MAKE_ACTION_ICON(SCRIPTS_RELOAD, wxITEM_NORMAL, ICON_SYNC, OnScriptsReload);
+
 #undef MAKE_ACTION
 #undef MAKE_ACTION_ICON
 #undef MAKE_SET_ACTION
@@ -308,6 +312,10 @@ void MenuBarActionManager::UpdateState(MainMenuBar* mb) {
 	mb->EnableItem(DUNGEON_GENERATOR, has_map);
 	mb->EnableItem(INSTANCE_LAYOUT_GENERATOR, has_map);
 	mb->EnableItem(DEBUG_VIEW_DAT, loaded);
+
+	mb->EnableItem(SCRIPTS_MANAGER, loaded);
+	mb->EnableItem(SCRIPTS_OPEN_FOLDER, loaded);
+	mb->EnableItem(SCRIPTS_RELOAD, loaded);
 
 	mb->UpdateFloorMenu();
 }

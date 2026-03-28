@@ -11,6 +11,8 @@
 #include "game/spawn.h"
 #include "game/complexitem.h"
 #include "game/creature.h"
+#include "editor/editor.h"
+#include "ui/gui.h"
 #include "brushes/ground/ground_brush.h"
 #include "brushes/wall/wall_brush.h"
 #include "app/settings.h"
@@ -70,6 +72,16 @@ namespace TileOperations {
 		}
 
 	} // anonymous namespace
+
+	void markSelectionChanged(Tile* tile) {
+		if (!tile) {
+			return;
+		}
+
+		if (Editor* editor = g_gui.GetCurrentEditor()) {
+			editor->selection.markChanged();
+		}
+	}
 
 	void borderize(Tile* tile, BaseMap* map) {
 		GroundBrush::doBorders(map, tile);
@@ -397,6 +409,7 @@ namespace TileOperations {
 	}
 
 	void update(Tile* tile) {
+		const bool wasSelected = tile->isSelected();
 		tile->statflags &= TILESTATE_MODIFIED;
 
 		if (tile->spawn && tile->spawn->isSelected()) {
@@ -437,6 +450,10 @@ namespace TileOperations {
 			if (tile->ground == nullptr && tile->items.empty()) {
 				tile->statflags |= TILESTATE_BLOCKING;
 			}
+		}
+
+		if (wasSelected || tile->isSelected()) {
+			markSelectionChanged(tile);
 		}
 	}
 

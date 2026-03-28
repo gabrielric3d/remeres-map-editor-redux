@@ -259,6 +259,14 @@
 		<item name="Show Camera Paths" hotkey="Shift+C" action="SHOW_CAMERA_PATHS" help="Show camera paths on the map."/>
 		<item name="Camera Path Palette" hotkey="" action="SELECT_CAMERA_PATH" help="Select the Camera Path palette."/>
 	</menu>
+	<menu name="Scripts" special="SCRIPTS">
+		<item name="Script Manager..." action="SCRIPTS_MANAGER" help="Show/hide the Script Manager window."/>
+		<separator/>
+		<item name="Open Scripts Folder" action="SCRIPTS_OPEN_FOLDER" help="Open the scripts folder in file explorer."/>
+		<item name="Reload Scripts" hotkey="Ctrl+Shift+F5" action="SCRIPTS_RELOAD" help="Reload all scripts from disk."/>
+		<separator/>
+		<!-- Scripts are loaded dynamically below this point -->
+	</menu>
 	<menu name="About">
 		<item name="Extensions..." hotkey="F2" action="EXTENSIONS" help="Manage extensions."/>
 		<item name="Goto Website" hotkey="F3" action="GOTO_WEBSITE" help="Visit the official website."/>

@@ -66,6 +66,7 @@
 #include "rendering/ui/map_menu_handler.h"
 #include "rendering/ui/radial_wheel.h"
 #include "rendering/ui/toast_renderer.h"
+#include "rendering/drawers/overlays/lua_overlay_drawer.h"
 
 #include "brushes/doodad/doodad_brush.h"
 #include "brushes/house/house_exit_brush.h"
@@ -94,7 +95,7 @@ static wxGLAttributes& GetCoreProfileAttributes() {
 	return vAttrs;
 }
 
-MapCanvas::MapCanvas(MapWindow* parent, Editor& editor, int* attriblist) :
+MapCanvas::MapCanvas(wxWindow* parent, Editor& editor, int* attriblist) :
 	wxGLCanvas(parent, GetCoreProfileAttributes(), wxID_ANY, wxDefaultPosition, wxDefaultSize, wxWANTS_CHARS),
 	editor(editor),
 	floor(GROUND_LAYER),
@@ -117,6 +118,7 @@ MapCanvas::MapCanvas(MapWindow* parent, Editor& editor, int* attriblist) :
 	last_click_abs_y(-1),
 	last_click_x(-1),
 	last_click_y(-1),
+	last_mmb_click_x(-1),
 	last_mmb_click_y(-1),
 	m_last_gc_time(0) {
 	// Context creation must happen on the main/UI thread
@@ -192,12 +194,19 @@ void MapCanvas::SetZoom(double value) {
 }
 
 void MapCanvas::GetViewBox(int* view_scroll_x, int* view_scroll_y, int* screensize_x, int* screensize_y) const {
-	GetMapWindow()->GetViewSize(screensize_x, screensize_y);
-	GetMapWindow()->GetViewStart(view_scroll_x, view_scroll_y);
+	if (auto mw = GetMapWindow()) {
+		mw->GetViewSize(screensize_x, screensize_y);
+		mw->GetViewStart(view_scroll_x, view_scroll_y);
+	} else {
+		if (screensize_x) *screensize_x = GetSize().x;
+		if (screensize_y) *screensize_y = GetSize().y;
+		if (view_scroll_x) *view_scroll_x = 0;
+		if (view_scroll_y) *view_scroll_y = 0;
+	}
 }
 
 MapWindow* MapCanvas::GetMapWindow() const {
-	return static_cast<MapWindow*>(GetParent());
+	return wxDynamicCast(GetParent(), MapWindow);
 }
 
 void MapCanvas::EnsureNanoVG() {
@@ -252,6 +261,9 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 	}
 	if (options.show_spawns) {
 		drawer->DrawSpawnOverlays(vg);
+	}
+	if (drawer->getLuaOverlayDrawer()) {
+		drawer->getLuaOverlayDrawer()->DrawUI(vg, drawer->getView(), options);
 	}
 
 	// Draw toast notifications
@@ -353,8 +365,10 @@ void MapCanvas::TakeScreenshot(wxFileName path, wxString format) {
 }
 
 void MapCanvas::ScreenToMap(int screen_x, int screen_y, int* map_x, int* map_y) {
-	int start_x, start_y;
-	GetMapWindow()->GetViewStart(&start_x, &start_y);
+	int start_x = 0, start_y = 0;
+	if (auto mw = GetMapWindow()) {
+		mw->GetViewStart(&start_x, &start_y);
+	}
 
 	CoordinateMapper::ScreenToMap(screen_x, screen_y, start_x, start_y, zoom, floor, GetContentScaleFactor(), map_x, map_y);
 }
@@ -374,8 +388,10 @@ if (floor <= GROUND_LAYER) {
 
 #endif
 void MapCanvas::GetScreenCenter(int* map_x, int* map_y) {
-	int width, height;
-	GetMapWindow()->GetViewSize(&width, &height);
+	int width = GetSize().x, height = GetSize().y;
+	if (auto mw = GetMapWindow()) {
+		mw->GetViewSize(&width, &height);
+	}
 	ScreenToMap(width / 2, height / 2, map_x, map_y);
 }
 
@@ -450,7 +466,9 @@ void MapCanvas::OnMouseLeftClick(wxMouseEvent& event) {
 void MapCanvas::OnMouseLeftDoubleClick(wxMouseEvent& event) {
 	int mouse_map_x, mouse_map_y;
 	ScreenToMap(event.GetX(), event.GetY(), &mouse_map_x, &mouse_map_y);
-	selection_controller->HandleDoubleClick(Position(mouse_map_x, mouse_map_y, floor));
+	if (selection_controller) {
+		selection_controller->HandleDoubleClick(Position(mouse_map_x, mouse_map_y, floor));
+	}
 }
 
 void MapCanvas::OnMouseCenterClick(wxMouseEvent& event) {
@@ -541,15 +559,23 @@ void MapCanvas::OnMouseActionClick(wxMouseEvent& event) {
 		Tile* tile = editor.map.getTile(mouse_map_x, mouse_map_y, floor);
 		BrushSelector::SelectSmartBrush(editor, tile);
 	} else if (g_gui.IsSelectionMode()) {
-		selection_controller->HandleClick(Position(mouse_map_x, mouse_map_y, floor), event.ShiftDown(), event.ControlDown(), event.AltDown());
+		if (selection_controller) {
+			selection_controller->HandleClick(Position(mouse_map_x, mouse_map_y, floor), event.ShiftDown(), event.ControlDown(), event.AltDown());
+		}
 	} else if (g_gui.GetCurrentBrush()) { // Drawing mode
-		drawing_controller->HandleClick(Position(mouse_map_x, mouse_map_y, floor), event.ShiftDown(), event.ControlDown(), event.AltDown());
+		if (drawing_controller) {
+			drawing_controller->HandleClick(Position(mouse_map_x, mouse_map_y, floor), event.ShiftDown(), event.ControlDown(), event.AltDown());
+		}
 	}
 	last_click_x = int(event.GetX() * zoom);
 	last_click_y = int(event.GetY() * zoom);
 
 	int start_x, start_y;
-	static_cast<MapWindow*>(GetParent())->GetViewStart(&start_x, &start_y);
+	if (auto mw = GetMapWindow()) {
+		mw->GetViewStart(&start_x, &start_y);
+	} else {
+		start_x = 0; start_y = 0;
+	}
 	last_click_abs_x = last_click_x + start_x;
 	last_click_abs_y = last_click_y + start_y;
 
@@ -569,9 +595,13 @@ void MapCanvas::OnMouseActionRelease(wxMouseEvent& event) {
 	int move_z = last_click_map_z - floor;
 
 	if (g_gui.IsSelectionMode()) {
-		selection_controller->HandleRelease(Position(mouse_map_x, mouse_map_y, floor), event.ShiftDown(), event.ControlDown(), event.AltDown());
+		if (selection_controller) {
+			selection_controller->HandleRelease(Position(mouse_map_x, mouse_map_y, floor), event.ShiftDown(), event.ControlDown(), event.AltDown());
+		}
 	} else if (g_gui.GetCurrentBrush()) { // Drawing mode
-		drawing_controller->HandleRelease(Position(mouse_map_x, mouse_map_y, floor), event.ShiftDown(), event.ControlDown(), event.AltDown());
+		if (drawing_controller) {
+			drawing_controller->HandleRelease(Position(mouse_map_x, mouse_map_y, floor), event.ShiftDown(), event.ControlDown(), event.AltDown());
+		}
 	}
 	g_gui.RefreshView();
 	g_gui.UpdateMinimap();
@@ -604,11 +634,14 @@ void MapCanvas::OnMousePropertiesClick(wxMouseEvent& event) {
 		g_gui.SetSelectionMode();
 	}
 
-	selection_controller->HandlePropertiesClick(Position(mouse_map_x, mouse_map_y, floor), event.ShiftDown(), event.ControlDown(), event.AltDown());
+	last_click_x = int(event.GetX() * zoom);
 	last_click_y = int(event.GetY() * zoom);
+	selection_controller->HandlePropertiesClick(Position(mouse_map_x, mouse_map_y, floor), event.ShiftDown(), event.ControlDown(), event.AltDown());
 
-	int start_x, start_y;
-	static_cast<MapWindow*>(GetParent())->GetViewStart(&start_x, &start_y);
+	int start_x = 0, start_y = 0;
+	if (auto mw = GetMapWindow()) {
+		mw->GetViewStart(&start_x, &start_y);
+	}
 	last_click_abs_x = last_click_x + start_x;
 	last_click_abs_y = last_click_y + start_y;
 

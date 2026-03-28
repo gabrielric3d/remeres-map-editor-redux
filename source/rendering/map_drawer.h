@@ -64,6 +64,7 @@ class DoorIndicatorDrawer;
 class WallBorderDrawer;
 class MountainOverlayDrawer;
 class StairDirectionDrawer;
+class LuaOverlayDrawer;
 
 class MapDrawer {
 	MapCanvas* canvas;
@@ -96,6 +97,7 @@ class MapDrawer {
 	std::unique_ptr<WallBorderDrawer> wall_border_drawer;
 	std::unique_ptr<MountainOverlayDrawer> mountain_overlay_drawer;
 	std::unique_ptr<StairDirectionDrawer> stair_direction_drawer;
+	std::unique_ptr<LuaOverlayDrawer> lua_overlay_drawer;
 	std::unique_ptr<SpriteBatch> sprite_batch;
 	std::unique_ptr<PrimitiveRenderer> primitive_renderer;
 
@@ -164,6 +166,12 @@ public:
 	}
 	DoorIndicatorDrawer* getDoorIndicatorDrawer() {
 		return door_indicator_drawer.get();
+	}
+	LuaOverlayDrawer* getLuaOverlayDrawer() {
+		return lua_overlay_drawer.get();
+	}
+	const RenderView& getView() const {
+		return view;
 	}
 
 private:

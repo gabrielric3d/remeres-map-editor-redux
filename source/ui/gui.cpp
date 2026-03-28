@@ -38,6 +38,7 @@
 #include "game/sprites.h"
 #include "game/materials.h"
 #include "brushes/doodad/doodad_brush.h"
+#include "lua/lua_script_manager.h"
 #include "brushes/spawn/spawn_brush.h"
 
 #include "ui/controls/item_buttons.h"
@@ -67,6 +68,24 @@ wxDEFINE_EVENT(EVT_UPDATE_MENUS, wxCommandEvent);
 
 // Global GUI instance
 GUI g_gui;
+
+namespace {
+void emitBrushChangeIfNeeded(GUI& gui) {
+	static const Brush* lastBrush = nullptr;
+	static std::string lastBrushName;
+
+	Brush* currentBrush = gui.GetCurrentBrush();
+	const bool hasBrush = currentBrush != nullptr;
+	const std::string currentName = hasBrush ? currentBrush->getName() : std::string();
+	if (currentBrush != lastBrush || currentName != lastBrushName) {
+		lastBrush = currentBrush;
+		lastBrushName = currentName;
+		if (g_luaScripts.isInitialized()) {
+			g_luaScripts.emit("brushChange", currentName);
+		}
+	}
+}
+}
 
 // GUI class implementation
 GUI::GUI() :
@@ -300,15 +319,20 @@ void GUI::FillDoodadPreviewBuffer() {
 
 void GUI::SelectBrush() {
 	g_brush_manager.SelectBrush();
+	emitBrushChangeIfNeeded(*this);
 }
 bool GUI::SelectBrush(const Brush* brush, PaletteType pt) {
-	return g_brush_manager.SelectBrush(brush, pt);
+	const bool changed = g_brush_manager.SelectBrush(brush, pt);
+	emitBrushChangeIfNeeded(*this);
+	return changed;
 }
 void GUI::SelectPreviousBrush() {
 	g_brush_manager.SelectPreviousBrush();
+	emitBrushChangeIfNeeded(*this);
 }
 void GUI::SelectBrushInternal(Brush* brush) {
 	g_brush_manager.SelectBrushInternal(brush);
+	emitBrushChangeIfNeeded(*this);
 }
 Brush* GUI::GetCurrentBrush() const {
 	return g_brush_manager.GetCurrentBrush();

@@ -65,6 +65,8 @@ using BrushMap = std::multimap<std::string, std::unique_ptr<Brush>, std::less<>>
 
 class Brushes {
 public:
+	using BorderMap = std::unordered_map<uint32_t, std::unique_ptr<AutoBorder>>;
+
 	Brushes();
 	~Brushes();
 
@@ -91,8 +93,11 @@ public:
 
 	const AutoBorder* findAutoBorderByBorderItem(uint16_t itemId, BorderType alignmentHint = BORDER_NONE) const;
 
+	const BorderMap& getBorders() const {
+		return borders;
+	}
+
 protected:
-	using BorderMap = std::unordered_map<uint32_t, std::unique_ptr<AutoBorder>>;
 	BrushMap brushes;
 	BorderMap borders;
 

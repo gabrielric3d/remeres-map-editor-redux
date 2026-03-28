@@ -169,6 +169,11 @@ namespace MenuBar {
 		ABOUT,
 
 		SHOW_CREATURE_NAMES,
+
+		SCRIPTS_MANAGER,
+		SCRIPTS_OPEN_FOLDER,
+		SCRIPTS_RELOAD,
+
 		EXPERIMENTAL_FOG,
 		AREA_DECORATION,
 		DUNGEON_GENERATOR,
@@ -199,6 +204,7 @@ class MapActionsHandler;
 class FileMenuHandler;
 class NavigationMenuHandler;
 class PaletteMenuHandler;
+class ScriptMenuHandler;
 
 class MainMenuBar : public wxEvtHandler {
 	friend class MenuBarLoader;
@@ -333,6 +339,10 @@ public:
 	void OnSelectCameraPathPalette(wxCommandEvent& event);
 	void OnSelectRawPalette(wxCommandEvent& event);
 
+	void OnScriptsOpenFolder(wxCommandEvent& event);
+	void OnScriptsReload(wxCommandEvent& event);
+	void OnScriptsManager(wxCommandEvent& event);
+
 	void OnDebugViewDat(wxCommandEvent& event);
 	void OnAreaDecoration(wxCommandEvent& event);
 	void OnDungeonGenerator(wxCommandEvent& event);
@@ -375,6 +385,12 @@ protected:
 	FileMenuHandler* fileMenuHandler;
 	NavigationMenuHandler* navigationMenuHandler;
 	PaletteMenuHandler* paletteMenuHandler;
+
+public:
+	ScriptMenuHandler* scriptMenuHandler;
+
+	void LoadScriptsMenu() const;
+	void RefreshScriptsMenu() const;
 };
 
 namespace MenuBar {

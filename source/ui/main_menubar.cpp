@@ -26,7 +26,6 @@
 
 #include "map/map_statistics.h"
 #include "map/map_search.h"
-#include "map/map_search.h"
 #include "ui/managers/recent_files_manager.h"
 #include "ui/map/towns_window.h"
 #include "ui/map/map_properties_window.h"
@@ -41,6 +40,7 @@
 #include "ui/find_item_window.h"
 #include "app/preferences.h"
 #include "ui/result_window.h"
+#include "ui/menubar/script_menu_handler.h"
 
 #include "ui/menubar/search_handler.h"
 #include "ui/menubar/view_settings_handler.h"
@@ -79,6 +79,7 @@ MainMenuBar::MainMenuBar(MainFrame* frame) :
 	fileMenuHandler = new FileMenuHandler(frame, this);
 	navigationMenuHandler = new NavigationMenuHandler(frame, this);
 	paletteMenuHandler = new PaletteMenuHandler(frame, this);
+	scriptMenuHandler = newd ScriptMenuHandler(frame);
 
 	MenuBarActionManager::RegisterActions(this, actions);
 
@@ -113,6 +114,7 @@ MainMenuBar::~MainMenuBar() {
 	delete fileMenuHandler;
 	delete navigationMenuHandler;
 	delete paletteMenuHandler;
+	delete scriptMenuHandler;
 }
 
 void MainMenuBar::EnableItem(MenuBar::ActionID id, bool enable) {
@@ -185,7 +187,7 @@ void MainMenuBar::UpdateFloorMenu() {
 }
 
 bool MainMenuBar::Load(const FileName& path, std::vector<std::string>& warnings, wxString& error) {
-	if (MenuBarLoader::Load(path, menubar, items, actions, recentFilesManager, warnings, error)) {
+	if (MenuBarLoader::Load(path, menubar, this, items, actions, recentFilesManager, warnings, error)) {
 		// Build hotkey entries from loaded menu items
 		menu_hotkeys.clear();
 		base_menu_labels.clear();
@@ -324,6 +326,26 @@ void MainMenuBar::OnImportMonsterData(wxCommandEvent& event) {
 
 void MainMenuBar::OnImportMonsterJSON(wxCommandEvent& event) {
 	fileMenuHandler->OnImportMonsterJSON(event);
+}
+
+void MainMenuBar::LoadScriptsMenu() const {
+	if (scriptMenuHandler) {
+		wxMenu* parentMenu = nullptr;
+		int menuIndex = menubar->FindMenu("Scripts");
+		if (menuIndex != wxNOT_FOUND) {
+			parentMenu = menubar->GetMenu(menuIndex);
+		}
+
+		if (parentMenu) {
+			scriptMenuHandler->LoadScriptsMenu(parentMenu);
+		}
+	}
+}
+
+void MainMenuBar::RefreshScriptsMenu() const {
+	if (scriptMenuHandler) {
+		LoadScriptsMenu();
+	}
 }
 
 void MainMenuBar::OnImportMinimap(wxCommandEvent& event) {
@@ -665,6 +687,19 @@ void MainMenuBar::OnSelectCameraPathPalette(wxCommandEvent& event) {
 void MainMenuBar::OnSelectRawPalette(wxCommandEvent& event) {
 	paletteMenuHandler->OnSelectRawPalette(event);
 }
+
+void MainMenuBar::OnScriptsOpenFolder(wxCommandEvent& event) {
+	if (scriptMenuHandler) scriptMenuHandler->OnScriptsOpenFolder(event);
+}
+
+void MainMenuBar::OnScriptsReload(wxCommandEvent& event) {
+	if (scriptMenuHandler) scriptMenuHandler->OnScriptsReload(event);
+}
+
+void MainMenuBar::OnScriptsManager(wxCommandEvent& event) {
+	if (scriptMenuHandler) scriptMenuHandler->OnScriptsManager(event);
+}
+
 
 void MainMenuBar::OnStartLive(wxCommandEvent& event) {
 	LiveDialogs::ShowHostDialog(frame, g_gui.GetCurrentEditor());

@@ -24,6 +24,7 @@
 #include "ui/tile_properties/tile_properties_panel.h"
 #include "ui/dialogs/area_decoration_rule_from_selection_dialog.h"
 #include "ui/dialogs/area_decoration_dialog.h"
+#include "lua/lua_script_manager.h"
 
 MapMenuHandler::MapMenuHandler(MapCanvas* canvas, Editor& editor) :
 	canvas(canvas),
@@ -62,6 +63,9 @@ void MapMenuHandler::BindEvents() {
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnBrowseTile, this, MAP_POPUP_MENU_BROWSE_TILE);
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnTileProperties, this, MAP_POPUP_MENU_TILE_PROPERTIES);
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnAddAreaDecorationRule, this, MAP_POPUP_MENU_ADD_AREA_DECORATION_RULE);
+	for (int i = MAP_POPUP_MENU_SCRIPT_FIRST; i <= MAP_POPUP_MENU_SCRIPT_LAST; ++i) {
+		canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnScriptMenu, this, i);
+	}
 }
 
 void MapMenuHandler::OnCopy(wxCommandEvent& WXUNUSED(event)) {
@@ -106,6 +110,27 @@ void MapMenuHandler::OnTileProperties(wxCommandEvent& WXUNUSED(event)) {
 		info.Show();
 		g_gui.tile_properties_panel->UpdateFromEditor(&editor);
 		g_gui.aui_manager->Update();
+	}
+}
+
+void MapMenuHandler::OnScriptMenu(wxCommandEvent& event) {
+	int index = event.GetId() - MAP_POPUP_MENU_SCRIPT_FIRST;
+	const auto& menuItems = g_luaScripts.getContextMenuItems();
+
+	if (index >= 0 && index < static_cast<int>(menuItems.size())) {
+		try {
+			const auto& item = menuItems[index];
+			if (item.callback.valid()) {
+				Tile* tile = editor.map.getTile(canvas->last_click_map_x, canvas->last_click_map_y, canvas->GetFloor());
+				if (tile) {
+					item.callback(tile);
+				} else {
+					item.callback(Position(canvas->last_click_map_x, canvas->last_click_map_y, canvas->GetFloor()));
+				}
+			}
+		} catch (const sol::error& e) {
+			wxMessageBox(wxString("Script execution error: ") + e.what(), "Lua Error", wxOK | wxICON_ERROR);
+		}
 	}
 }
 
