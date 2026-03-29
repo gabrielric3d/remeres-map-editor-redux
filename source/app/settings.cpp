@@ -300,7 +300,7 @@ void Settings::IO(IOMode mode) {
 	Bool(SHOW_ONLY_TILEFLAGS, false);
 	Bool(SHOW_ONLY_MODIFIED_TILES, false);
 	Bool(SHOW_PREVIEW, true);
-	Bool(SHOW_AUTOBORDER_PREVIEW, true);
+	Bool(SHOW_AUTOBORDER_PREVIEW, false);
 	Bool(SHOW_WALL_HOOKS, false);
 	Bool(SHOW_TOWNS, false);
 	Bool(ALWAYS_SHOW_ZONES, true);

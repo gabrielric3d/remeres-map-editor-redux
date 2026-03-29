@@ -483,22 +483,30 @@ void ToolOptionsSurface::OnSize(wxSizeEvent& evt) {
 }
 
 void ToolOptionsSurface::SetPaletteType(PaletteType type) {
-	if (current_type == type) {
-		return;
-	}
 	current_type = type;
+	active_brush = g_gui.GetCurrentBrush();
 	RebuildLayout();
 	Refresh();
 }
 
+void ToolOptionsSurface::SetActiveBrush(Brush* brush) {
+	if (active_brush != brush) {
+		active_brush = brush;
+		Refresh();
+	}
+}
+
 void ToolOptionsSurface::UpdateBrushSize(BrushShape shape, int size) {
-	if (current_size != size) {
-		current_size = size;
+	const int clamped_size = std::clamp(size, MIN_BRUSH_SIZE, MAX_BRUSH_SIZE);
+	if (current_size != clamped_size) {
+		current_size = clamped_size;
 		Refresh();
 	}
 }
 
 void ToolOptionsSurface::ReloadSettings() {
+	active_brush = g_gui.GetCurrentBrush();
+	current_size = std::clamp(g_gui.GetBrushSize(), MIN_BRUSH_SIZE, MAX_BRUSH_SIZE);
 	show_preview = g_settings.getInteger(Config::SHOW_AUTOBORDER_PREVIEW);
 	lock_doors = g_settings.getInteger(Config::DRAW_LOCKED_DOOR);
 	RebuildLayout();
@@ -529,6 +537,7 @@ void ToolOptionsSurface::Clear() {
 	current_type = TILESET_UNKNOWN;
 	active_brush = nullptr;
 	hover_brush = nullptr;
+	current_size = MIN_BRUSH_SIZE;
 	tool_rects.clear();
 	interactables.size_slider_rect = wxRect();
 	interactables.thickness_slider_rect = wxRect();
