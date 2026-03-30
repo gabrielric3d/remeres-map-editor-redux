@@ -319,19 +319,31 @@ void GUI::FillDoodadPreviewBuffer() {
 
 void GUI::SelectBrush() {
 	g_brush_manager.SelectBrush();
+	if (tool_options) {
+		tool_options->SetActiveBrush(GetCurrentBrush());
+	}
 	emitBrushChangeIfNeeded(*this);
 }
 bool GUI::SelectBrush(const Brush* brush, PaletteType pt) {
 	const bool changed = g_brush_manager.SelectBrush(brush, pt);
+	if (tool_options) {
+		tool_options->SetActiveBrush(GetCurrentBrush());
+	}
 	emitBrushChangeIfNeeded(*this);
 	return changed;
 }
 void GUI::SelectPreviousBrush() {
 	g_brush_manager.SelectPreviousBrush();
+	if (tool_options) {
+		tool_options->SetActiveBrush(GetCurrentBrush());
+	}
 	emitBrushChangeIfNeeded(*this);
 }
 void GUI::SelectBrushInternal(Brush* brush) {
 	g_brush_manager.SelectBrushInternal(brush);
+	if (tool_options) {
+		tool_options->SetActiveBrush(GetCurrentBrush());
+	}
 	emitBrushChangeIfNeeded(*this);
 }
 Brush* GUI::GetCurrentBrush() const {
@@ -491,6 +503,7 @@ void GUI::ActivatePalette(PaletteWindow* p) {
 	g_palettes.ActivatePalette(p);
 	if (p && tool_options) {
 		tool_options->SetPaletteType(p->GetSelectedPage());
+		tool_options->SetActiveBrush(GetCurrentBrush());
 	}
 }
 void GUI::RebuildPalettes() {

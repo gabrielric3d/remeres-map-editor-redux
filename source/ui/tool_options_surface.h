@@ -30,13 +30,14 @@ public:
 
 	// Interface
 	void SetPaletteType(PaletteType type);
+	void SetActiveBrush(Brush* brush);
 	void UpdateBrushSize(BrushShape shape, int size); // Called when size changes externally (e.g. shortcuts)
 	void ReloadSettings();
 	void Clear();
 
 private:
 	// -- Logic --
-	PaletteType current_type = TILESET_TERRAIN;
+	PaletteType current_type = TILESET_UNKNOWN;
 
 	// Tool State
 	Brush* hover_brush = nullptr;

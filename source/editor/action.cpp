@@ -201,10 +201,10 @@ void Action::commit(DirtyList* dirty_list) {
 					if (displaced->isSelected()) {
 						editor.selection.removeInternal(displaced);
 					}
+					TileOperations::update(insertedTile);
 					if (insertedTile->isSelected()) {
 						editor.selection.addInternal(insertedTile);
 					}
-					TileOperations::update(insertedTile);
 					insertedTile->modify();
 				} else if (insertedTile) {
 					TileOperations::update(insertedTile);
@@ -340,11 +340,6 @@ void Action::undo(DirtyList* dirty_list) {
 						dirty_list->AddPosition(pos.x, pos.y, pos.z);
 					}
 
-					if (oldtile) {
-						if (oldtile->isSelected()) {
-							editor.selection.addInternal(oldtile);
-						}
-					}
 					if (newtile) {
 						if (newtile->isSelected()) {
 							editor.selection.removeInternal(newtile);
@@ -381,6 +376,11 @@ void Action::undo(DirtyList* dirty_list) {
 							editor.map.removeSpawn(newtile);
 						}
 
+						TileOperations::update(oldtile);
+						if (oldtile->isSelected()) {
+							editor.selection.addInternal(oldtile);
+						}
+
 						uptr = std::move(newtile_uptr);
 					} else if (oldtile) {
 						if (oldtile->getHouseID() != 0) {
@@ -391,6 +391,10 @@ void Action::undo(DirtyList* dirty_list) {
 						}
 						if (oldtile->spawn) {
 							editor.map.addSpawn(oldtile);
+						}
+						TileOperations::update(oldtile);
+						if (oldtile->isSelected()) {
+							editor.selection.addInternal(oldtile);
 						}
 						uptr = std::move(newtile_uptr);
 					} else {
