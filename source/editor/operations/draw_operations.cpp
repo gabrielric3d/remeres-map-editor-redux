@@ -52,6 +52,17 @@ namespace {
 			auto* location = editor.map.createTileL(pos);
 			auto* tile = location->get();
 
+			// Ground replace mode: only place doodad on tiles with matching ground
+			if (alt && editor.replace_brush && dodraw) {
+				if (!tile) {
+					continue;
+				}
+				GroundBrush* tile_ground = tile->getGroundBrush();
+				if (tile_ground != editor.replace_brush) {
+					continue;
+				}
+			}
+
 			if (!dodraw) {
 				if (tile) {
 					std::unique_ptr<Tile> new_tile = TileOperations::deepCopy(tile, editor.map);

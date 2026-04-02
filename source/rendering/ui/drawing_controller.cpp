@@ -113,6 +113,16 @@ void DrawingController::HandleClick(const Position& mouse_map_pos, bool shift_do
 					editor.draw(tilestodraw, tilestoborder, alt_down);
 				}
 			} else if (brush->is<DoodadBrush>() || brush->is<SpawnBrush>() || brush->is<CreatureBrush>()) {
+				bool doodad_ground_replace = brush->is<DoodadBrush>() && IsGroundReplaceModifier(shift_down, ctrl_down, alt_down);
+				if (doodad_ground_replace) {
+					replace_dragging = true;
+					Tile* draw_tile = editor.map.getTile(mouse_map_pos);
+					if (draw_tile) {
+						editor.replace_brush = draw_tile->getGroundBrush();
+					} else {
+						editor.replace_brush = nullptr;
+					}
+				}
 				if (ctrl_down) {
 					if (brush->is<DoodadBrush>()) {
 						PositionVector tilestodraw;
@@ -132,7 +142,7 @@ void DrawingController::HandleClick(const Position& mouse_map_pos, bool shift_do
 						}
 					}
 
-					editor.draw(mouse_map_pos, shift_down || alt_down);
+					editor.draw(mouse_map_pos, doodad_ground_replace || (shift_down || alt_down));
 
 					if (will_show_spawn) {
 						Tile* tile = editor.map.getTile(mouse_map_pos);
@@ -206,12 +216,13 @@ void DrawingController::HandleDrag(const Position& mouse_map_pos, bool shift_dow
 	Brush* brush = g_gui.GetCurrentBrush();
 	if (drawing && brush) {
 		if (brush->is<DoodadBrush>()) {
+			bool doodad_ground_replace_drag = IsGroundReplaceModifier(shift_down, ctrl_down, alt_down);
 			if (ctrl_down) {
 				PositionVector tilestodraw;
 				BrushUtility::GetTilesToDraw(mouse_map_pos.x, mouse_map_pos.y, mouse_map_pos.z, &tilestodraw, nullptr);
 				editor.undraw(tilestodraw, shift_down || alt_down);
 			} else {
-				editor.draw(mouse_map_pos, shift_down || alt_down);
+				editor.draw(mouse_map_pos, doodad_ground_replace_drag || (shift_down || alt_down));
 			}
 		} else if (brush->is<DoorBrush>()) {
 			if (!brush->canDraw(&editor.map, mouse_map_pos)) {
