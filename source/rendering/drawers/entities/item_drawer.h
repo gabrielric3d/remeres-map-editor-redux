@@ -16,6 +16,7 @@ class Tile;
 class Item;
 class HookIndicatorDrawer;
 class DoorIndicatorDrawer;
+class LightIndicatorDrawer;
 
 struct DrawingOptions;
 class SpriteBatch;
@@ -48,6 +49,7 @@ public:
 	void DrawRawBrush(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer, int screenx, int screeny, ServerItemId item_id, uint8_t r, uint8_t g, uint8_t b, uint8_t alpha);
 	void DrawHookIndicator(const ItemDefinitionView& definition, const Position& pos);
 	void DrawDoorIndicator(bool locked, const Position& pos, bool south, bool east);
+	void DrawLightIndicator(const Position& pos, uint16_t clientId);
 
 	void SetHookIndicatorDrawer(HookIndicatorDrawer* drawer) {
 		hook_indicator_drawer = drawer;
@@ -55,10 +57,14 @@ public:
 	void SetDoorIndicatorDrawer(DoorIndicatorDrawer* drawer) {
 		door_indicator_drawer = drawer;
 	}
+	void SetLightIndicatorDrawer(LightIndicatorDrawer* drawer) {
+		light_indicator_drawer = drawer;
+	}
 
 private:
 	HookIndicatorDrawer* hook_indicator_drawer = nullptr;
 	DoorIndicatorDrawer* door_indicator_drawer = nullptr;
+	LightIndicatorDrawer* light_indicator_drawer = nullptr;
 };
 
 #endif

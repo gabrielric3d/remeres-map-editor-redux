@@ -11,6 +11,8 @@
 #include "rendering/drawers/entities/item_drawer.h"
 #include "rendering/drawers/overlays/hook_indicator_drawer.h"
 #include "rendering/drawers/overlays/door_indicator_drawer.h"
+#include "rendering/drawers/overlays/light_indicator_drawer.h"
+#include "rendering/core/light_source_manager.h"
 #include "rendering/core/graphics.h"
 #include "rendering/core/sprite_batch.h"
 #include "rendering/drawers/entities/sprite_drawer.h"
@@ -127,6 +129,15 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 			spr = resolveSprite(SPRITE_LIGHTSOURCE);
 			red = 0;
 			alpha = 180;
+		}
+
+		// configurable light sources
+		if (LightSourceManager::instance().isLightSource(it.clientId())) {
+			DrawLightIndicator(pos, it.clientId());
+			if (!spr) {
+				spr = resolveSprite(SPRITE_LIGHTSOURCE);
+				alpha = 180;
+			}
 		}
 	}
 
@@ -302,6 +313,12 @@ void ItemDrawer::DrawRawBrush(SpriteBatch& sprite_batch, SpriteDrawer* sprite_dr
 		alpha = (alpha * 171) >> 8;
 	}
 
+	// configurable light sources
+	if (!spr && LightSourceManager::instance().isLightSource(cid)) {
+		spr = resolveSprite(SPRITE_LIGHTSOURCE);
+		alpha = (alpha * 171) >> 8;
+	}
+
 	if (spr) {
 		sprite_drawer->BlitSprite(sprite_batch, screenx, screeny, spr, DrawColor(r, g, b, alpha));
 	}
@@ -316,5 +333,11 @@ void ItemDrawer::DrawHookIndicator(const ItemDefinitionView& definition, const P
 void ItemDrawer::DrawDoorIndicator(bool locked, const Position& pos, bool south, bool east) {
 	if (door_indicator_drawer) {
 		door_indicator_drawer->addDoor(pos, locked, south, east);
+	}
+}
+
+void ItemDrawer::DrawLightIndicator(const Position& pos, uint16_t clientId) {
+	if (light_indicator_drawer) {
+		light_indicator_drawer->addLight(pos, clientId);
 	}
 }

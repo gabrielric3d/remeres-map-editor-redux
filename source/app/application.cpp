@@ -22,6 +22,7 @@
 #include "app/application.h"
 #include "util/file_system.h"
 #include "editor/hotkey_manager.h"
+#include "rendering/core/light_source_manager.h"
 
 #include "game/sprites.h"
 #include "editor/editor.h"
@@ -169,6 +170,7 @@ bool Application::OnInit() {
 	// g_settings.load(); - Already loaded above
 	FixVersionDiscrapencies();
 	g_hotkeys.LoadHotkeys();
+	LightSourceManager::instance().load();
 	ClientVersion::loadVersions();
 
 #ifdef _USE_PROCESS_COM

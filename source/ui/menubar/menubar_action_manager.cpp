@@ -177,6 +177,7 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(FLOOR_15, wxITEM_RADIO, OnChangeFloor);
 
 	MAKE_ACTION(AREA_DECORATION, wxITEM_NORMAL, OnAreaDecoration);
+	MAKE_ACTION(LIGHT_SOURCES, wxITEM_NORMAL, OnLightSources);
 	MAKE_ACTION(DUNGEON_GENERATOR, wxITEM_NORMAL, OnDungeonGenerator);
 	MAKE_ACTION(STRUCTURE_MANAGER, wxITEM_NORMAL, OnStructureManager);
 	MAKE_ACTION(INSTANCE_LAYOUT_GENERATOR, wxITEM_NORMAL, OnInstanceLayoutGenerator);

@@ -181,6 +181,7 @@ namespace MenuBar {
 		STRUCTURE_MANAGER,
 		INSTANCE_LAYOUT_GENERATOR,
 		RADIAL_WHEEL,
+		LIGHT_SOURCES,
 		SHOW_WALL_BORDERS,
 		SHOW_MOUNTAIN_OVERLAY,
 		SHOW_STAIR_DIRECTION,
@@ -345,6 +346,7 @@ public:
 
 	void OnDebugViewDat(wxCommandEvent& event);
 	void OnAreaDecoration(wxCommandEvent& event);
+	void OnLightSources(wxCommandEvent& event);
 	void OnDungeonGenerator(wxCommandEvent& event);
 	void OnStructureManager(wxCommandEvent& event);
 	void OnInstanceLayoutGenerator(wxCommandEvent& event);

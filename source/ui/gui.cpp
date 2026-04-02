@@ -51,6 +51,7 @@
 #include "ui/welcome_dialog.h"
 #include "ui/tool_options_window.h"
 #include "ui/dialogs/area_decoration_dialog.h"
+#include "ui/dialogs/light_source_dialog.h"
 #include "ui/dialogs/dungeon_generator_dialog.h"
 #include "ui/dialogs/structure_manager_window.h"
 #include "ui/dialogs/instance_layout_dialog.h"
@@ -560,6 +561,11 @@ void GUI::DestroyAreaDecorationDialog() {
 		area_decoration_dialog->Destroy();
 		area_decoration_dialog = nullptr;
 	}
+}
+
+void GUI::ShowLightSourceDialog() {
+	LightSourceDialog dlg(root);
+	dlg.ShowModal();
 }
 
 //=============================================================================

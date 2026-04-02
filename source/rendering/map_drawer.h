@@ -24,6 +24,7 @@ struct NVGcontext;
 class TooltipDrawer;
 class HookIndicatorDrawer;
 class DoorIndicatorDrawer;
+class LightIndicatorDrawer;
 
 // Storage during drawing, for option caching
 #include "rendering/core/drawing_options.h"
@@ -61,6 +62,7 @@ class TileRenderer;
 class CreatureNameDrawer;
 class HookIndicatorDrawer;
 class DoorIndicatorDrawer;
+class LightIndicatorDrawer;
 class WallBorderDrawer;
 class MountainOverlayDrawer;
 class StairDirectionDrawer;
@@ -94,6 +96,7 @@ class MapDrawer {
 	std::unique_ptr<CreatureNameDrawer> creature_name_drawer;
 	std::unique_ptr<HookIndicatorDrawer> hook_indicator_drawer;
 	std::unique_ptr<DoorIndicatorDrawer> door_indicator_drawer;
+	std::unique_ptr<LightIndicatorDrawer> light_indicator_drawer;
 	std::unique_ptr<WallBorderDrawer> wall_border_drawer;
 	std::unique_ptr<MountainOverlayDrawer> mountain_overlay_drawer;
 	std::unique_ptr<StairDirectionDrawer> stair_direction_drawer;
@@ -140,6 +143,7 @@ public:
 	void DrawTooltips(NVGcontext* vg);
 	void DrawHookIndicators(NVGcontext* vg);
 	void DrawDoorIndicators(NVGcontext* vg);
+	void DrawLightIndicators(NVGcontext* vg);
 	void DrawWallBorders(NVGcontext* vg);
 	void DrawMountainOverlay(NVGcontext* vg);
 	void DrawStairDirections(NVGcontext* vg);

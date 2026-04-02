@@ -113,6 +113,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/editor/area_decoration.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/dungeon_generator.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/light_source_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_editor_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_generator_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_preset_editor_dialog.h
@@ -187,6 +188,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/template_image.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/sprite_preloader.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/light_buffer.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/light_source_manager.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/minimap_colors.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/multi_draw_indirect_renderer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/outfit_colorizer.h
@@ -222,12 +224,14 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/spawn_overlay_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/hook_indicator_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/door_indicator_drawer.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/light_indicator_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/lua_overlay_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/marker_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/preview_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/selection_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/door_indicator_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/hook_indicator_drawer.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/light_indicator_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/wall_border_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/mountain_overlay_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/stair_direction_drawer.h
@@ -517,6 +521,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/editor/dungeon_generator.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/dungeon_generator_preset.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/light_source_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_editor_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_generator_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_preset_editor_dialog.cpp
@@ -587,6 +592,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/template_image.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/sprite_preloader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/light_buffer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/light_source_manager.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/multi_draw_indirect_renderer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/outfit_colorizer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/outfit_colors.cpp
@@ -618,12 +624,14 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/spawn_overlay_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/hook_indicator_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/door_indicator_drawer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/light_indicator_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/lua_overlay_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/marker_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/preview_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/selection_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/door_indicator_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/hook_indicator_drawer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/light_indicator_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/wall_border_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/mountain_overlay_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/stair_direction_drawer.cpp

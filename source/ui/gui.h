@@ -358,6 +358,7 @@ public:
 
 	void ShowAreaDecorationDialog();
 	void DestroyAreaDecorationDialog();
+	void ShowLightSourceDialog();
 	void ShowDungeonGeneratorDialog();
 	void DestroyDungeonGeneratorDialog();
 	void ShowStructureManagerDialog();

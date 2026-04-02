@@ -366,8 +366,6 @@ void Settings::IO(IOMode mode) {
 	Int(COPY_POSITION_FORMAT, 0);
 	String(RECENT_EDITED_MAP_PATH, "");
 	String(RECENT_EDITED_MAP_POSITION, "");
-	Int(FIND_ITEM_MODE, 0);
-	Int(JUMP_TO_ITEM_MODE, 0);
 	String(GROUND_REPLACE_MODIFIER, "Alt");
 	Bool(MAP_PROPERTIES_REMEMBER_SAVE_LOCATION, false);
 	String(MAP_PROPERTIES_DEFAULT_SAVE_LOCATION, "");
@@ -411,6 +409,21 @@ void Settings::IO(IOMode mode) {
 	Bool(SHOW_MOUNTAIN_OVERLAY, false);
 	Bool(SHOW_STAIR_DIRECTION, false);
 	Int(PALETTE_GRID_ICON_SIZE, 36);
+
+	String(LIGHT_SOURCES_DATA,
+		"29712,Horror Flicker,255,255,255;"
+		"29713,Sutil Flicker,220,220,220;"
+		"29714,Fraco Flicker,200,200,200;"
+		"29715,Emergencia,255,50,50;"
+		"29716,Pulso Lento,200,40,40;"
+		"29717,Frio,100,160,255;"
+		"29718,Tocha,255,160,40;"
+		"29719,Vela,255,130,30;"
+		"29720,Toxico,50,220,80;"
+		"29721,Lampada Velha,255,210,50;"
+		"29722,Mistico,180,80,220;"
+		"29723,Estavel,150,60,200"
+	);
 
 	Int(CURSOR_RED, 0);
 	Int(CURSOR_GREEN, 166);

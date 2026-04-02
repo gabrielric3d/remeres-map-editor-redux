@@ -247,6 +247,9 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 	if (options.show_hooks) {
 		drawer->DrawHookIndicators(vg);
 	}
+	if (options.show_tech_items) {
+		drawer->DrawLightIndicators(vg);
+	}
 	if (options.highlight_locked_doors) {
 		drawer->DrawDoorIndicators(vg);
 	}
