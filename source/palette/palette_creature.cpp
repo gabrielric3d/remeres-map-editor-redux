@@ -23,59 +23,23 @@
 #include "app/settings.h"
 #include "brushes/brush.h"
 #include "ui/gui.h"
-#include "brushes/managers/brush_manager.h"
 #include "brushes/spawn/spawn_brush.h"
 #include "game/materials.h"
-#include "util/image_manager.h"
 
 // ============================================================================
 // Creature palette
 
 CreaturePalettePanel::CreaturePalettePanel(wxWindow* parent, wxWindowID id) :
-	PalettePanel(parent, id),
-	handling_event(false) {
+	PalettePanel(parent, id) {
 	wxSizer* topsizer = newd wxBoxSizer(wxVERTICAL);
 
 	choicebook = newd wxChoicebook(this, wxID_ANY);
 	topsizer->Add(choicebook, 1, wxEXPAND);
 
-	// Footer for brushes and settings
-	wxSizer* sidesizer = newd wxStaticBoxSizer(wxVERTICAL, this, "Brushes");
-
-	wxFlexGridSizer* grid = newd wxFlexGridSizer(3, 10, 10);
-	grid->AddGrowableCol(1);
-
-	grid->Add(newd wxStaticText(static_cast<wxStaticBoxSizer*>(sidesizer)->GetStaticBox(), wxID_ANY, "Spawntime"));
-	creature_spawntime_spin = newd wxSpinCtrl(static_cast<wxStaticBoxSizer*>(sidesizer)->GetStaticBox(), PALETTE_CREATURE_SPAWN_TIME, i2ws(g_settings.getInteger(Config::DEFAULT_SPAWNTIME)), wxDefaultPosition, FROM_DIP(this, wxSize(64, 20)), wxSP_ARROW_KEYS, 0, 86400, g_settings.getInteger(Config::DEFAULT_SPAWNTIME));
-	creature_spawntime_spin->SetToolTip("Spawn time (seconds)");
-	grid->Add(creature_spawntime_spin, 0, wxEXPAND);
-	creature_brush_button = newd wxToggleButton(static_cast<wxStaticBoxSizer*>(sidesizer)->GetStaticBox(), PALETTE_CREATURE_BRUSH_BUTTON, "Place Creature");
-	creature_brush_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_DRAGON, wxSize(16, 16)));
-	creature_brush_button->SetToolTip("Place Creature");
-	grid->Add(creature_brush_button, 0, wxEXPAND);
-
-	grid->Add(newd wxStaticText(static_cast<wxStaticBoxSizer*>(sidesizer)->GetStaticBox(), wxID_ANY, "Spawn size"));
-	spawn_size_spin = newd wxSpinCtrl(static_cast<wxStaticBoxSizer*>(sidesizer)->GetStaticBox(), PALETTE_CREATURE_SPAWN_SIZE, i2ws(5), wxDefaultPosition, FROM_DIP(this, wxSize(64, 20)), wxSP_ARROW_KEYS, 1, g_settings.getInteger(Config::MAX_SPAWN_RADIUS), g_settings.getInteger(Config::CURRENT_SPAWN_RADIUS));
-	spawn_size_spin->SetToolTip("Spawn radius");
-	grid->Add(spawn_size_spin, 0, wxEXPAND);
-	spawn_brush_button = newd wxToggleButton(static_cast<wxStaticBoxSizer*>(sidesizer)->GetStaticBox(), PALETTE_SPAWN_BRUSH_BUTTON, "Place Spawn");
-	spawn_brush_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_FIRE, wxSize(16, 16)));
-	spawn_brush_button->SetToolTip("Place Spawn");
-	grid->Add(spawn_brush_button, 0, wxEXPAND);
-
-	sidesizer->Add(grid, 0, wxEXPAND);
-	topsizer->Add(sidesizer, 0, wxEXPAND);
-
 	SetSizerAndFit(topsizer);
 
 	Bind(wxEVT_CHOICEBOOK_PAGE_CHANGING, &CreaturePalettePanel::OnSwitchingPage, this);
 	Bind(wxEVT_CHOICEBOOK_PAGE_CHANGED, &CreaturePalettePanel::OnPageChanged, this);
-
-	Bind(wxEVT_TOGGLEBUTTON, &CreaturePalettePanel::OnClickCreatureBrushButton, this, PALETTE_CREATURE_BRUSH_BUTTON);
-	Bind(wxEVT_TOGGLEBUTTON, &CreaturePalettePanel::OnClickSpawnBrushButton, this, PALETTE_SPAWN_BRUSH_BUTTON);
-
-	Bind(wxEVT_SPINCTRL, &CreaturePalettePanel::OnChangeSpawnTime, this, PALETTE_CREATURE_SPAWN_TIME);
-	Bind(wxEVT_SPINCTRL, &CreaturePalettePanel::OnChangeSpawnSize, this, PALETTE_CREATURE_SPAWN_SIZE);
 
 	OnUpdate();
 }
@@ -85,26 +49,31 @@ PaletteType CreaturePalettePanel::GetType() const {
 }
 
 void CreaturePalettePanel::SelectFirstBrush() {
-	SelectCreatureBrush();
+	if (choicebook->GetPageCount() == 0) {
+		return;
+	}
+
+	if (auto* panel = dynamic_cast<BrushPanel*>(choicebook->GetCurrentPage())) {
+		panel->SelectFirstBrush();
+	}
 }
 
 Brush* CreaturePalettePanel::GetSelectedBrush() const {
-	if (creature_brush_button->GetValue()) {
-		if (choicebook->GetPageCount() == 0) {
-			return nullptr;
-		}
-		BrushPanel* bp = reinterpret_cast<BrushPanel*>(choicebook->GetCurrentPage());
-		Brush* brush = bp->GetSelectedBrush();
-		if (brush && brush->is<CreatureBrush>()) {
-			g_brush_manager.SetSpawnTime(creature_spawntime_spin->GetValue());
-			return brush;
-		}
-	} else if (spawn_brush_button->GetValue()) {
-		g_settings.setInteger(Config::CURRENT_SPAWN_RADIUS, spawn_size_spin->GetValue());
-		g_settings.setInteger(Config::DEFAULT_SPAWNTIME, creature_spawntime_spin->GetValue());
-		return g_brush_manager.spawn_brush;
+	return GetSelectedCreatureBrush();
+}
+
+Brush* CreaturePalettePanel::GetSelectedCreatureBrush() const {
+	if (choicebook->GetPageCount() == 0) {
+		return nullptr;
 	}
-	return nullptr;
+
+	auto* panel = dynamic_cast<BrushPanel*>(choicebook->GetCurrentPage());
+	if (!panel) {
+		return nullptr;
+	}
+
+	Brush* brush = panel->GetSelectedBrush();
+	return brush && brush->is<CreatureBrush>() ? brush : nullptr;
 }
 
 bool CreaturePalettePanel::SelectBrush(const Brush* whatbrush) {
@@ -119,19 +88,17 @@ bool CreaturePalettePanel::SelectBrush(const Brush* whatbrush) {
 				if (choicebook->GetSelection() != i) {
 					choicebook->SetSelection(i);
 				}
-				SelectCreatureBrush();
 				return true;
 			}
 		}
 	} else if (whatbrush->is<SpawnBrush>()) {
-		SelectSpawnBrush();
 		return true;
 	}
 	return false;
 }
 
 int CreaturePalettePanel::GetSelectedBrushSize() const {
-	return spawn_size_spin->GetValue();
+	return g_settings.getInteger(Config::CURRENT_SPAWN_RADIUS);
 }
 
 void CreaturePalettePanel::OnUpdate() {
@@ -156,12 +123,14 @@ void CreaturePalettePanel::OnUpdate() {
 }
 
 void CreaturePalettePanel::OnUpdateBrushSize(BrushShape shape, int size) {
-	return spawn_size_spin->SetValue(size);
+	(void)shape;
+	(void)size;
 }
 
 void CreaturePalettePanel::OnSwitchIn() {
 	g_gui.ActivatePalette(GetParentPalette());
-	g_gui.SetBrushSize(spawn_size_spin->GetValue());
+	g_gui.SetSpawnTime(g_settings.getInteger(Config::DEFAULT_SPAWNTIME));
+	g_gui.SetBrushSize(g_settings.getInteger(Config::CURRENT_SPAWN_RADIUS));
 }
 
 void CreaturePalettePanel::SelectTileset(size_t index) {
@@ -195,7 +164,6 @@ void CreaturePalettePanel::SelectCreature(size_t index) {
 		// but since this is usually used for "SelectFirstBrush" (index 0),
 		// we can just select the first brush if bp is valid.
 		bp->SelectFirstBrush();
-		SelectCreatureBrush();
 	}
 }
 
@@ -209,55 +177,11 @@ void CreaturePalettePanel::SelectCreature(std::string name) {
 	}
 }
 
-void CreaturePalettePanel::SelectCreatureBrush() {
-	if (choicebook->GetPageCount() > 0) {
-		creature_brush_button->Enable(true);
-		creature_brush_button->SetValue(true);
-		spawn_brush_button->SetValue(false);
-	} else {
-		creature_brush_button->Enable(false);
-		SelectSpawnBrush();
-	}
-}
-
-void CreaturePalettePanel::SelectSpawnBrush() {
-	// g_gui.house_exit_brush->setHouse(house);
-	creature_brush_button->SetValue(false);
-	spawn_brush_button->SetValue(true);
-}
-
 void CreaturePalettePanel::OnSwitchingPage(wxChoicebookEvent& event) {
 	// Do nothing
 }
 
 void CreaturePalettePanel::OnPageChanged(wxChoicebookEvent& event) {
-	SelectCreatureBrush();
 	g_gui.ActivatePalette(GetParentPalette());
 	g_gui.SelectBrush();
-}
-
-void CreaturePalettePanel::OnClickCreatureBrushButton(wxCommandEvent& event) {
-	SelectCreatureBrush();
-	g_gui.ActivatePalette(GetParentPalette());
-	g_gui.SelectBrush();
-}
-
-void CreaturePalettePanel::OnClickSpawnBrushButton(wxCommandEvent& event) {
-	SelectSpawnBrush();
-	g_gui.ActivatePalette(GetParentPalette());
-	g_gui.SelectBrush();
-}
-
-void CreaturePalettePanel::OnChangeSpawnTime(wxSpinEvent& event) {
-	g_gui.ActivatePalette(GetParentPalette());
-	g_gui.SetSpawnTime(event.GetPosition());
-}
-
-void CreaturePalettePanel::OnChangeSpawnSize(wxSpinEvent& event) {
-	if (!handling_event) {
-		handling_event = true;
-		g_gui.ActivatePalette(GetParentPalette());
-		g_gui.SetBrushSize(event.GetPosition());
-		handling_event = false;
-	}
 }

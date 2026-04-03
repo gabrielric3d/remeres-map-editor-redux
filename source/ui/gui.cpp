@@ -39,6 +39,7 @@
 #include "game/materials.h"
 #include "brushes/doodad/doodad_brush.h"
 #include "lua/lua_script_manager.h"
+#include "brushes/creature/creature_brush.h"
 #include "brushes/spawn/spawn_brush.h"
 
 #include "ui/controls/item_buttons.h"
@@ -79,6 +80,18 @@ void emitBrushChangeIfNeeded(GUI& gui) {
 			g_luaScripts.emit("brushChange", currentName);
 		}
 	}
+}
+
+[[nodiscard]] bool isCreatureToolBrush(const Brush* brush) {
+	return brush && (brush->is<CreatureBrush>() || brush->is<SpawnBrush>());
+}
+
+void syncCreatureToolBrushSizeSetting(const GUI& gui) {
+	if (!isCreatureToolBrush(gui.GetCurrentBrush())) {
+		return;
+	}
+
+	g_settings.setInteger(Config::CURRENT_SPAWN_RADIUS, std::max(1, gui.GetBrushSize()));
 }
 }
 
@@ -360,6 +373,10 @@ int GUI::GetSpawnTime() const {
 }
 void GUI::SetSpawnTime(int time) {
 	g_brush_manager.SetSpawnTime(time);
+	g_settings.setInteger(Config::DEFAULT_SPAWNTIME, time);
+	if (tool_options) {
+		tool_options->ReloadSettings();
+	}
 }
 void GUI::SetLightIntensity(float v) {
 	g_brush_manager.SetLightIntensity(v);
@@ -375,48 +392,56 @@ float GUI::GetAmbientLightLevel() const {
 }
 void GUI::SetBrushSize(int nz) {
 	g_brush_manager.SetBrushSize(nz);
+	syncCreatureToolBrushSizeSetting(*this);
 	if (tool_options) {
 		tool_options->UpdateBrushSize(GetBrushShape(), nz);
 	}
 }
 void GUI::SetBrushSizeInternal(int nz) {
 	g_brush_manager.SetBrushSizeInternal(nz);
+	syncCreatureToolBrushSizeSetting(*this);
 	if (tool_options) {
 		tool_options->UpdateBrushSize(GetBrushShape(), nz);
 	}
 }
 void GUI::SetBrushSizeX(int nz) {
 	g_brush_manager.SetBrushSizeX(nz);
+	syncCreatureToolBrushSizeSetting(*this);
 	if (tool_options) {
 		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
 	}
 }
 void GUI::SetBrushSizeY(int nz) {
 	g_brush_manager.SetBrushSizeY(nz);
+	syncCreatureToolBrushSizeSetting(*this);
 	if (tool_options) {
 		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
 	}
 }
 void GUI::SetBrushSizeAxes(int x, int y) {
 	g_brush_manager.SetBrushSizeAxes(x, y);
+	syncCreatureToolBrushSizeSetting(*this);
 	if (tool_options) {
 		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
 	}
 }
 void GUI::SetExactBrushSize(bool exact) {
 	g_brush_manager.SetExactBrushSize(exact);
+	syncCreatureToolBrushSizeSetting(*this);
 	if (tool_options) {
 		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
 	}
 }
 void GUI::SetBrushAspectRatioLocked(bool locked) {
 	g_brush_manager.SetBrushAspectRatioLocked(locked);
+	syncCreatureToolBrushSizeSetting(*this);
 	if (tool_options) {
 		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
 	}
 }
 void GUI::RestoreBrushSizeState(const BrushSizeState& state) {
 	g_brush_manager.RestoreBrushSizeState(state);
+	syncCreatureToolBrushSizeSetting(*this);
 	if (tool_options) {
 		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
 	}
@@ -438,12 +463,14 @@ void GUI::SetBrushThickness(bool on, int low, int ceil) {
 }
 void GUI::DecreaseBrushSize(bool wrap) {
 	g_brush_manager.DecreaseBrushSize(wrap);
+	syncCreatureToolBrushSizeSetting(*this);
 	if (tool_options) {
 		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
 	}
 }
 void GUI::IncreaseBrushSize(bool wrap) {
 	g_brush_manager.IncreaseBrushSize(wrap);
+	syncCreatureToolBrushSizeSetting(*this);
 	if (tool_options) {
 		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
 	}

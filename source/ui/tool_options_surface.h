@@ -4,6 +4,7 @@
 #include "app/main.h"
 #include "palette/palette_common.h"
 
+#include <string_view>
 #include <vector>
 #include <wx/wx.h>
 
@@ -11,6 +12,7 @@ class Brush;
 class wxBitmapToggleButton;
 class wxSlider;
 class wxGridSizer;
+class wxSpinCtrl;
 
 class ToolOptionsSurface : public wxPanel {
 public:
@@ -24,12 +26,21 @@ public:
 	void Clear();
 
 private:
+	enum class ToolButtonAction {
+		SelectBrush,
+		SelectCreature,
+		SelectSpawn,
+	};
+
 	struct ToolButtonEntry {
+		ToolButtonAction action = ToolButtonAction::SelectBrush;
 		Brush* brush = nullptr;
 		wxBitmapToggleButton* button = nullptr;
+		std::string_view asset_path;
 	};
 
 	void BuildUi();
+	void EnsureToolButtons();
 	void RebuildToolButtons();
 	void RefreshFromState();
 	void UpdateSectionVisibility();
@@ -38,7 +49,15 @@ private:
 	void SyncToolSelection();
 	void SetMutatingUi(bool value);
 	[[nodiscard]] bool IsMutatingUi() const;
-	[[nodiscard]] std::vector<Brush*> GetToolsForCurrentPalette() const;
+	[[nodiscard]] bool IsCreatureToolMode() const;
+	[[nodiscard]] bool HasBrushSizeControls() const;
+	[[nodiscard]] bool HasThicknessControl() const;
+	[[nodiscard]] bool HasPreviewBorderControl() const;
+	[[nodiscard]] bool HasLockDoorsControl() const;
+	[[nodiscard]] bool HasSpawnControls() const;
+	[[nodiscard]] Brush* GetSelectedCreatureBrush() const;
+	[[nodiscard]] std::vector<Brush*> GetDefaultTools() const;
+	[[nodiscard]] wxBitmap CreateToolBitmap(const ToolButtonEntry& entry) const;
 	[[nodiscard]] wxBitmap CreateBrushBitmap(Brush* brush) const;
 	[[nodiscard]] wxBitmap CreateModeBitmap(std::string_view assetPath, const wxColour& tint) const;
 
@@ -50,9 +69,9 @@ private:
 	void OnPreviewBorderToggled(wxCommandEvent& event);
 	void OnLockDoorsToggled(wxCommandEvent& event);
 	void OnThicknessChanged(wxCommandEvent& event);
+	void OnSpawnTimeChanged(wxSpinEvent& event);
+	void OnSpawnSizeChanged(wxSpinEvent& event);
 
-private:
-	PaletteType current_type = TILESET_UNKNOWN;
 	Brush* active_brush = nullptr;
 	bool mutating_ui = false;
 
@@ -61,6 +80,9 @@ private:
 	wxGridSizer* main_tools_grid = nullptr;
 	wxStaticBoxSizer* size_sizer = nullptr;
 	wxStaticBoxSizer* other_sizer = nullptr;
+	wxPanel* thickness_panel = nullptr;
+	wxPanel* spawn_time_panel = nullptr;
+	wxPanel* spawn_size_panel = nullptr;
 
 	wxSlider* size_x_slider = nullptr;
 	wxSlider* size_y_slider = nullptr;
@@ -70,8 +92,13 @@ private:
 	wxBitmapToggleButton* aspect_button = nullptr;
 	wxCheckBox* preview_border_checkbox = nullptr;
 	wxCheckBox* lock_doors_checkbox = nullptr;
+	wxStaticText* thickness_label = nullptr;
 	wxSlider* thickness_slider = nullptr;
 	wxStaticText* thickness_value = nullptr;
+	wxStaticText* spawn_time_label = nullptr;
+	wxSpinCtrl* spawn_time_spin = nullptr;
+	wxStaticText* spawn_size_label = nullptr;
+	wxSpinCtrl* spawn_size_spin = nullptr;
 
 	std::vector<ToolButtonEntry> tool_buttons;
 };
