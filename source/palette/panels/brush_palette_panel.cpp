@@ -215,8 +215,11 @@ void BrushPalettePanel::OnPageChanged(wxChoicebookEvent& event) {
 
 void BrushPalettePanel::OnSwitchIn() {
 	LoadCurrentContents();
-	g_gui.SetBrushSizeInternal(last_brush_size);
-	OnUpdateBrushSize(g_gui.GetBrushShape(), last_brush_size);
+	g_gui.SetExactBrushSize(last_brush_size_state.exact);
+	g_gui.SetBrushAspectRatioLocked(last_brush_size_state.aspect_locked);
+	g_gui.SetBrushSizeAxes(last_brush_size_state.size_x, last_brush_size_state.size_y);
+	g_gui.SetBrushShape(last_brush_size_state.shape);
+	OnUpdateBrushSize(g_gui.GetBrushShape(), g_gui.GetBrushSize());
 }
 
 void BrushPalettePanel::OnClickAddTileset(wxCommandEvent& WXUNUSED(event)) {

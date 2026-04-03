@@ -7,6 +7,7 @@
 
 #include "app/main.h"
 #include "brushes/brush_enums.h"
+#include "brushes/brush_footprint.h"
 
 class Brush;
 class HouseBrush;
@@ -42,8 +43,23 @@ public:
 	}
 	[[nodiscard]] BrushShape GetBrushShape() const;
 	[[nodiscard]] int GetBrushSize() const {
-		return brush_size;
+		return GetBrushSizeLegacy();
 	}
+	[[nodiscard]] int GetBrushSizeLegacy() const;
+	[[nodiscard]] int GetBrushSizeX() const {
+		return brush_size_x;
+	}
+	[[nodiscard]] int GetBrushSizeY() const {
+		return brush_size_y;
+	}
+	[[nodiscard]] bool IsExactBrushSize() const {
+		return exact_brush_size;
+	}
+	[[nodiscard]] bool IsBrushAspectRatioLocked() const {
+		return aspect_ratio_locked;
+	}
+	[[nodiscard]] BrushSizeState GetBrushSizeState() const;
+	[[nodiscard]] BrushFootprint GetBrushFootprint() const;
 	[[nodiscard]] int GetBrushVariation() const {
 		return brush_variation;
 	}
@@ -72,6 +88,11 @@ public:
 
 	void SetBrushSize(int nz);
 	void SetBrushSizeInternal(int nz);
+	void SetBrushSizeX(int nz);
+	void SetBrushSizeY(int nz);
+	void SetBrushSizeAxes(int x, int y);
+	void SetExactBrushSize(bool exact);
+	void SetBrushAspectRatioLocked(bool locked);
 	void SetBrushShape(BrushShape bs);
 	void SetBrushVariation(int nz);
 	void SetBrushThickness(int low, int ceil);
@@ -119,11 +140,15 @@ private:
 	Brush* current_brush;
 	Brush* previous_brush;
 	BrushShape brush_shape;
-	int brush_size;
+	int brush_size_x;
+	int brush_size_y;
+	bool exact_brush_size;
+	bool aspect_ratio_locked;
 	int brush_variation;
 	int creature_spawntime;
 
 	void UpdateDoodadPreview();
+	void NotifyBrushSizeChanged();
 
 	bool draw_locked_doors;
 	bool use_custom_thickness;

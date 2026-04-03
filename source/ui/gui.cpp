@@ -334,6 +334,24 @@ BrushShape GUI::GetBrushShape() const {
 int GUI::GetBrushSize() const {
 	return g_brush_manager.GetBrushSize();
 }
+int GUI::GetBrushSizeX() const {
+	return g_brush_manager.GetBrushSizeX();
+}
+int GUI::GetBrushSizeY() const {
+	return g_brush_manager.GetBrushSizeY();
+}
+bool GUI::IsExactBrushSize() const {
+	return g_brush_manager.IsExactBrushSize();
+}
+bool GUI::IsBrushAspectRatioLocked() const {
+	return g_brush_manager.IsBrushAspectRatioLocked();
+}
+BrushSizeState GUI::GetBrushSizeState() const {
+	return g_brush_manager.GetBrushSizeState();
+}
+BrushFootprint GUI::GetBrushFootprint() const {
+	return g_brush_manager.GetBrushFootprint();
+}
 int GUI::GetBrushVariation() const {
 	return g_brush_manager.GetBrushVariation();
 }
@@ -357,6 +375,9 @@ float GUI::GetAmbientLightLevel() const {
 }
 void GUI::SetBrushSize(int nz) {
 	g_brush_manager.SetBrushSize(nz);
+	if (tool_options) {
+		tool_options->UpdateBrushSize(GetBrushShape(), nz);
+	}
 }
 void GUI::SetBrushSizeInternal(int nz) {
 	g_brush_manager.SetBrushSizeInternal(nz);
@@ -364,8 +385,41 @@ void GUI::SetBrushSizeInternal(int nz) {
 		tool_options->UpdateBrushSize(GetBrushShape(), nz);
 	}
 }
+void GUI::SetBrushSizeX(int nz) {
+	g_brush_manager.SetBrushSizeX(nz);
+	if (tool_options) {
+		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
+	}
+}
+void GUI::SetBrushSizeY(int nz) {
+	g_brush_manager.SetBrushSizeY(nz);
+	if (tool_options) {
+		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
+	}
+}
+void GUI::SetBrushSizeAxes(int x, int y) {
+	g_brush_manager.SetBrushSizeAxes(x, y);
+	if (tool_options) {
+		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
+	}
+}
+void GUI::SetExactBrushSize(bool exact) {
+	g_brush_manager.SetExactBrushSize(exact);
+	if (tool_options) {
+		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
+	}
+}
+void GUI::SetBrushAspectRatioLocked(bool locked) {
+	g_brush_manager.SetBrushAspectRatioLocked(locked);
+	if (tool_options) {
+		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
+	}
+}
 void GUI::SetBrushShape(BrushShape bs) {
 	g_brush_manager.SetBrushShape(bs);
+	if (tool_options) {
+		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
+	}
 }
 void GUI::SetBrushVariation(int nz) {
 	g_brush_manager.SetBrushVariation(nz);
@@ -378,9 +432,15 @@ void GUI::SetBrushThickness(bool on, int low, int ceil) {
 }
 void GUI::DecreaseBrushSize(bool wrap) {
 	g_brush_manager.DecreaseBrushSize(wrap);
+	if (tool_options) {
+		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
+	}
 }
 void GUI::IncreaseBrushSize(bool wrap) {
 	g_brush_manager.IncreaseBrushSize(wrap);
+	if (tool_options) {
+		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
+	}
 }
 void GUI::SetDoorLocked(bool on) {
 	g_brush_manager.SetDoorLocked(on);
