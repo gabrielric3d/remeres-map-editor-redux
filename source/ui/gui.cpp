@@ -415,6 +415,12 @@ void GUI::SetBrushAspectRatioLocked(bool locked) {
 		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
 	}
 }
+void GUI::RestoreBrushSizeState(const BrushSizeState& state) {
+	g_brush_manager.RestoreBrushSizeState(state);
+	if (tool_options) {
+		tool_options->UpdateBrushSize(GetBrushShape(), GetBrushSize());
+	}
+}
 void GUI::SetBrushShape(BrushShape bs) {
 	g_brush_manager.SetBrushShape(bs);
 	if (tool_options) {

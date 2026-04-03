@@ -60,12 +60,6 @@ void BrushUtility::GetTilesToDraw(int mouse_map_x, int mouse_map_y, int floor, s
 					}
 				}
 
-				const bool near_x = x >= footprint.min_offset_x - 1 && x <= footprint.max_offset_x + 1;
-				const bool near_y = y >= footprint.min_offset_y - 1 && y <= footprint.max_offset_y + 1;
-				if (!near_x || !near_y) {
-					continue;
-				}
-
 				for (int check_y = y - 1; check_y <= y + 1; ++check_y) {
 					for (int check_x = x - 1; check_x <= x + 1; ++check_x) {
 						if (!footprint.containsOffset(check_x, check_y)) {

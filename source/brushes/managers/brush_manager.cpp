@@ -183,7 +183,8 @@ BrushFootprint BrushManager::GetBrushFootprint() const {
 void BrushManager::SetBrushSizeInternal(int nz) {
 	const int normalized_size = NormalizeBrushAxisValue(nz, false);
 	const bool changed = brush_size_x != normalized_size || brush_size_y != normalized_size || exact_brush_size;
-	if (changed && current_brush && current_brush->is<DoodadBrush>() && !current_brush->oneSizeFitsAll()) {
+	const bool needs_resizable_doodad_preview = changed && HasResizableDoodadBrush();
+	if (needs_resizable_doodad_preview) {
 		brush_size_x = normalized_size;
 		brush_size_y = normalized_size;
 		exact_brush_size = false;
@@ -226,7 +227,7 @@ void BrushManager::SetBrushSizeAxes(int x, int y) {
 	brush_size_x = normalized_x;
 	brush_size_y = normalized_y;
 
-	if (current_brush && current_brush->is<DoodadBrush>() && !current_brush->oneSizeFitsAll()) {
+	if (HasResizableDoodadBrush()) {
 		UpdateDoodadPreview();
 	}
 
@@ -242,7 +243,7 @@ void BrushManager::SetExactBrushSize(bool exact) {
 	brush_size_x = NormalizeBrushAxisValue(brush_size_x, exact_brush_size);
 	brush_size_y = NormalizeBrushAxisValue(brush_size_y, exact_brush_size);
 
-	if (current_brush && current_brush->is<DoodadBrush>() && !current_brush->oneSizeFitsAll()) {
+	if (HasResizableDoodadBrush()) {
 		UpdateDoodadPreview();
 	}
 
@@ -275,11 +276,38 @@ void BrushManager::SetBrushVariation(int nz) {
 }
 
 void BrushManager::SetBrushShape(BrushShape bs) {
-	if (bs != brush_shape && current_brush && current_brush->is<DoodadBrush>() && !current_brush->oneSizeFitsAll()) {
+	if (bs != brush_shape && HasResizableDoodadBrush()) {
 		brush_shape = bs;
 		UpdateDoodadPreview();
 	}
 	brush_shape = bs;
+	NotifyBrushSizeChanged();
+}
+
+void BrushManager::RestoreBrushSizeState(const BrushSizeState& state) {
+	const int normalized_x = NormalizeBrushAxisValue(state.size_x, state.exact);
+	const int normalized_y = NormalizeBrushAxisValue(state.size_y, state.exact);
+	const int restored_y = state.aspect_locked ? normalized_x : normalized_y;
+	const bool changed = brush_shape != state.shape ||
+		brush_size_x != normalized_x ||
+		brush_size_y != restored_y ||
+		exact_brush_size != state.exact ||
+		aspect_ratio_locked != state.aspect_locked;
+
+	brush_shape = state.shape;
+	brush_size_x = normalized_x;
+	brush_size_y = restored_y;
+	exact_brush_size = state.exact;
+	aspect_ratio_locked = state.aspect_locked;
+
+	if (!changed) {
+		return;
+	}
+
+	if (HasResizableDoodadBrush()) {
+		UpdateDoodadPreview();
+	}
+
 	NotifyBrushSizeChanged();
 }
 
@@ -343,6 +371,10 @@ void BrushManager::NotifyBrushSizeChanged() {
 	if (g_gui.root && g_gui.root->GetAuiToolBar()) {
 		g_gui.root->GetAuiToolBar()->UpdateBrushSize(brush_shape, GetBrushSizeLegacy());
 	}
+}
+
+bool BrushManager::HasResizableDoodadBrush() const {
+	return current_brush && current_brush->is<DoodadBrush>() && !current_brush->oneSizeFitsAll();
 }
 
 void BrushManager::SetDoorLocked(bool on) {

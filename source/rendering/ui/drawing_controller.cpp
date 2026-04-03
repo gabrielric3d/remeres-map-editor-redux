@@ -283,9 +283,7 @@ void DrawingController::HandleRelease(const Position& mouse_map_pos, bool shift_
 				const BrushSizeState previous_size_state = g_gui.GetBrushSizeState();
 				g_gui.SetBrushSize(width);
 				editor.draw(Position(map_x, map_y, mouse_map_pos.z), alt_down);
-				g_gui.SetExactBrushSize(previous_size_state.exact);
-				g_gui.SetBrushAspectRatioLocked(previous_size_state.aspect_locked);
-				g_gui.SetBrushSizeAxes(previous_size_state.size_x, previous_size_state.size_y);
+				g_gui.RestoreBrushSizeState(previous_size_state);
 			} else {
 				PositionVector tilestodraw;
 				PositionVector tilestoborder;

@@ -243,6 +243,7 @@ public:
 	void SetBrushSizeAxes(int x, int y);
 	void SetExactBrushSize(bool exact);
 	void SetBrushAspectRatioLocked(bool locked);
+	void RestoreBrushSizeState(const BrushSizeState& state);
 	void SetBrushShape(BrushShape bs);
 	void SetBrushVariation(int nz);
 	void SetBrushThickness(int low, int ceil);

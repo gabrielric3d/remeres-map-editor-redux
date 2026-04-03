@@ -97,6 +97,7 @@ public:
 	void SetBrushVariation(int nz);
 	void SetBrushThickness(int low, int ceil);
 	void SetBrushThickness(bool on, int low = -1, int ceil = -1);
+	void RestoreBrushSizeState(const BrushSizeState& state);
 
 	// Helper functions for size
 	void DecreaseBrushSize(bool wrap = false);
@@ -149,6 +150,7 @@ private:
 
 	void UpdateDoodadPreview();
 	void NotifyBrushSizeChanged();
+	[[nodiscard]] bool HasResizableDoodadBrush() const;
 
 	bool draw_locked_doors;
 	bool use_custom_thickness;

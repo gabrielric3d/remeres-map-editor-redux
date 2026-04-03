@@ -145,14 +145,11 @@ void PalettePanel::OnUpdateBrushSize(BrushShape shape, int size) {
 }
 
 void PalettePanel::OnSwitchIn() {
+	g_palettes.ActivatePalette(GetParentPalette());
+	g_gui.RestoreBrushSizeState(last_brush_size_state);
 	for (auto* toolbar : tool_bars) {
 		toolbar->OnSwitchIn();
 	}
-	g_palettes.ActivatePalette(GetParentPalette());
-	g_brush_manager.SetExactBrushSize(last_brush_size_state.exact);
-	g_brush_manager.SetBrushAspectRatioLocked(last_brush_size_state.aspect_locked);
-	g_brush_manager.SetBrushSizeAxes(last_brush_size_state.size_x, last_brush_size_state.size_y);
-	g_brush_manager.SetBrushShape(last_brush_size_state.shape);
 }
 
 void PalettePanel::OnSwitchOut() {

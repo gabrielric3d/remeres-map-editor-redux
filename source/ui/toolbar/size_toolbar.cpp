@@ -66,12 +66,9 @@ void SizeToolBar::Update() {
 }
 
 void SizeToolBar::UpdateBrushSize(BrushShape shape, int size) {
-	(void)size;
-	const bool exact = g_gui.IsExactBrushSize();
-	const int size_x = g_gui.GetBrushSizeX();
-	const int size_y = g_gui.GetBrushSizeY();
-	const bool legacy_compatible = !exact && size_x == size_y;
-	const int legacy_size = legacy_compatible ? size_x : -1;
+	const BrushFootprint footprint = g_gui.GetBrushFootprint();
+	const bool legacy_compatible = footprint.size_x == footprint.size_y && (!footprint.exact || footprint.isSingleTile());
+	const int legacy_size = legacy_compatible ? size : -1;
 
 	if (shape == BRUSHSHAPE_CIRCLE) {
 		toolbar->ToggleTool(TOOLBAR_SIZES_CIRCULAR, true);
