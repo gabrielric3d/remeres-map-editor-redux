@@ -21,6 +21,7 @@ set(rme_H
 
     ${CMAKE_CURRENT_LIST_DIR}/brushes/brush.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/brush_enums.h
+    ${CMAKE_CURRENT_LIST_DIR}/brushes/brush_footprint.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/brush_utility.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/door/door_brush.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/flag/flag_brush.h
@@ -404,6 +405,7 @@ set(rme_SRC
 
     ${CMAKE_CURRENT_LIST_DIR}/editor/hotkey_manager.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/brush.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/brushes/brush_footprint.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/brush_utility.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/door/door_brush.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/flag/flag_brush.cpp

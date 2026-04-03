@@ -29,6 +29,7 @@ public:
 	~CreaturePalettePanel() override = default;
 
 	PaletteType GetType() const override;
+	[[nodiscard]] Brush* GetSelectedCreatureBrush() const;
 
 	// Select the first brush
 	void SelectFirstBrush() override;
@@ -57,25 +58,10 @@ protected:
 
 public:
 	// Event handling
-	void OnChangeSpawnTime(wxSpinEvent& event);
-	void OnChangeSpawnSize(wxSpinEvent& event);
-
 	void OnSwitchingPage(wxChoicebookEvent& event);
 	void OnPageChanged(wxChoicebookEvent& event);
-	void OnClickCreatureBrushButton(wxCommandEvent& event);
-	void OnClickSpawnBrushButton(wxCommandEvent& event);
-
-protected:
-	void SelectCreatureBrush();
-	void SelectSpawnBrush();
 
 	wxChoicebook* choicebook;
-	wxToggleButton* creature_brush_button;
-	wxToggleButton* spawn_brush_button;
-	wxSpinCtrl* creature_spawntime_spin;
-	wxSpinCtrl* spawn_size_spin;
-
-	bool handling_event;
 };
 
 #endif
