@@ -23,10 +23,8 @@
 #include "app/settings.h"
 #include "brushes/brush.h"
 #include "ui/gui.h"
-#include "brushes/managers/brush_manager.h"
 #include "brushes/spawn/spawn_brush.h"
 #include "game/materials.h"
-#include "util/image_manager.h"
 
 #include <algorithm>
 #include <sstream>
@@ -116,6 +114,7 @@ CreaturePalettePanel::CreaturePalettePanel(wxWindow* parent, wxWindowID id) :
 	sidesizer->Add(grid, 0, wxEXPAND);
 	topsizer->Add(sidesizer, 0, wxEXPAND);
 
+
 	SetSizerAndFit(topsizer);
 
 	Bind(wxEVT_CHOICEBOOK_PAGE_CHANGING, &CreaturePalettePanel::OnSwitchingPage, this);
@@ -145,6 +144,7 @@ CreaturePalettePanel::CreaturePalettePanel(wxWindow* parent, wxWindowID id) :
 	Bind(wxEVT_BUTTON, &CreaturePalettePanel::OnClickGroupRemove, this, PALETTE_CREATURE_GROUP_REMOVE);
 	Bind(wxEVT_BUTTON, &CreaturePalettePanel::OnClickGroupClear, this, PALETTE_CREATURE_GROUP_CLEAR);
 
+
 	OnUpdate();
 
 	// Restore spawn group from brush manager
@@ -166,26 +166,31 @@ PaletteType CreaturePalettePanel::GetType() const {
 }
 
 void CreaturePalettePanel::SelectFirstBrush() {
-	SelectCreatureBrush();
+	if (choicebook->GetPageCount() == 0) {
+		return;
+	}
+
+	if (auto* panel = dynamic_cast<BrushPanel*>(choicebook->GetCurrentPage())) {
+		panel->SelectFirstBrush();
+	}
 }
 
 Brush* CreaturePalettePanel::GetSelectedBrush() const {
-	if (creature_brush_button->GetValue()) {
-		if (choicebook->GetPageCount() == 0) {
-			return nullptr;
-		}
-		BrushPanel* bp = reinterpret_cast<BrushPanel*>(choicebook->GetCurrentPage());
-		Brush* brush = bp->GetSelectedBrush();
-		if (brush && brush->is<CreatureBrush>()) {
-			g_brush_manager.SetSpawnTime(creature_spawntime_spin->GetValue());
-			return brush;
-		}
-	} else if (spawn_brush_button->GetValue()) {
-		g_settings.setInteger(Config::CURRENT_SPAWN_RADIUS, spawn_size_spin->GetValue());
-		g_settings.setInteger(Config::DEFAULT_SPAWNTIME, creature_spawntime_spin->GetValue());
-		return g_brush_manager.spawn_brush;
+	return GetSelectedCreatureBrush();
+}
+
+Brush* CreaturePalettePanel::GetSelectedCreatureBrush() const {
+	if (choicebook->GetPageCount() == 0) {
+		return nullptr;
 	}
-	return nullptr;
+
+	auto* panel = dynamic_cast<BrushPanel*>(choicebook->GetCurrentPage());
+	if (!panel) {
+		return nullptr;
+	}
+
+	Brush* brush = panel->GetSelectedBrush();
+	return brush && brush->is<CreatureBrush>() ? brush : nullptr;
 }
 
 bool CreaturePalettePanel::SelectBrush(const Brush* whatbrush) {
@@ -200,19 +205,17 @@ bool CreaturePalettePanel::SelectBrush(const Brush* whatbrush) {
 				if (choicebook->GetSelection() != i) {
 					choicebook->SetSelection(i);
 				}
-				SelectCreatureBrush();
 				return true;
 			}
 		}
 	} else if (whatbrush->is<SpawnBrush>()) {
-		SelectSpawnBrush();
 		return true;
 	}
 	return false;
 }
 
 int CreaturePalettePanel::GetSelectedBrushSize() const {
-	return spawn_size_spin->GetValue();
+	return g_settings.getInteger(Config::CURRENT_SPAWN_RADIUS);
 }
 
 void CreaturePalettePanel::OnUpdate() {
@@ -237,12 +240,14 @@ void CreaturePalettePanel::OnUpdate() {
 }
 
 void CreaturePalettePanel::OnUpdateBrushSize(BrushShape shape, int size) {
-	return spawn_size_spin->SetValue(size);
+	(void)shape;
+	(void)size;
 }
 
 void CreaturePalettePanel::OnSwitchIn() {
 	g_gui.ActivatePalette(GetParentPalette());
-	g_gui.SetBrushSize(spawn_size_spin->GetValue());
+	g_gui.SetSpawnTime(g_settings.getInteger(Config::DEFAULT_SPAWNTIME));
+	g_gui.SetBrushSize(g_settings.getInteger(Config::CURRENT_SPAWN_RADIUS));
 }
 
 void CreaturePalettePanel::SelectTileset(size_t index) {
@@ -273,7 +278,6 @@ void CreaturePalettePanel::SelectCreature(size_t index) {
 	if (choicebook->GetPageCount() > 0) {
 		BrushPanel* bp = reinterpret_cast<BrushPanel*>(choicebook->GetPage(choicebook->GetSelection()));
 		bp->SelectFirstBrush();
-		SelectCreatureBrush();
 	}
 }
 
@@ -301,12 +305,12 @@ void CreaturePalettePanel::SelectSpawnBrush() {
 	spawn_brush_button->SetValue(true);
 }
 
+
 void CreaturePalettePanel::OnSwitchingPage(wxChoicebookEvent& event) {
 	// Do nothing
 }
 
 void CreaturePalettePanel::OnPageChanged(wxChoicebookEvent& event) {
-	SelectCreatureBrush();
 	g_gui.ActivatePalette(GetParentPalette());
 	g_gui.SelectBrush();
 }

@@ -301,6 +301,9 @@ void BrushPalettePanel::OnPageChanged(wxChoicebookEvent& event) {
 }
 
 void BrushPalettePanel::OnSwitchIn() {
+	g_palettes.ActivatePalette(GetParentPalette());
+	g_gui.RestoreBrushSizeState(last_brush_size_state);
+
 	// Sync display option controls with current settings
 	if (icon_bg_choice) {
 		int bgVal = g_settings.getInteger(Config::ICON_BACKGROUND);
@@ -323,8 +326,6 @@ void BrushPalettePanel::OnSwitchIn() {
 	}
 
 	LoadCurrentContents();
-	g_gui.SetBrushSizeInternal(last_brush_size);
-	OnUpdateBrushSize(g_gui.GetBrushShape(), last_brush_size);
 }
 
 void BrushPalettePanel::OnClickAddTileset(wxCommandEvent& WXUNUSED(event)) {
