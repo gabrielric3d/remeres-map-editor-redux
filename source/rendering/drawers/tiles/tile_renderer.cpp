@@ -31,6 +31,24 @@ TileRenderer::TileRenderer(ItemDrawer* id, SpriteDrawer* sd, CreatureDrawer* cd,
 	item_drawer(id), sprite_drawer(sd), creature_drawer(cd), floor_drawer(fd), marker_drawer(md), tooltip_drawer(td), creature_name_drawer(cnd), editor(ed) {
 }
 
+static DrawColor invalidTileOverlayColor(InvalidOTBMItemMarkerColor markerColor, bool selected) {
+	uint8_t red = 255;
+	uint8_t green = 0;
+	uint8_t blue = 0;
+
+	if (markerColor == InvalidOTBMItemMarkerColor::Orange) {
+		green = 165;
+	}
+
+	if (selected) {
+		red = static_cast<uint8_t>(red / 2);
+		green = static_cast<uint8_t>(green / 2);
+		blue = static_cast<uint8_t>(blue / 2);
+	}
+
+	return DrawColor(red, green, blue, 171);
+}
+
 // Helper function to populate tooltip data from an item (in-place)
 static bool FillItemTooltipData(TooltipData& data, Item* item, const ItemDefinitionView& it, const Position& pos, bool isHouseTile, float zoom) {
 	if (!item) {
@@ -216,6 +234,13 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 	if (tile->ground) {
 		ground_it = tile->ground->getDefinition();
 	}
+	InvalidOTBMItemMarkerColor invalid_tile_marker_color = InvalidOTBMItemMarkerColor::None;
+	bool has_selected_invalid_item = false;
+
+	if (tile->ground && tile->ground->isInvalidOTBMItem()) {
+		invalid_tile_marker_color = tile->ground->invalidOTBMMarkerColor();
+		has_selected_invalid_item = tile->ground->isSelected();
+	}
 
 	if (only_colors) {
 		if (as_minimap) {
@@ -308,6 +333,13 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 					light_buffer->AddLight(position.x, position.y, position.z, item->getLight());
 				}
 
+				if (item->isInvalidOTBMItem()) {
+					if (invalid_tile_marker_color != InvalidOTBMItemMarkerColor::Red) {
+						invalid_tile_marker_color = item->invalidOTBMMarkerColor();
+					}
+					has_selected_invalid_item = has_selected_invalid_item || item->isSelected();
+				}
+
 				const ItemDefinitionView it = item->getDefinition();
 
 				// item tooltip (one per item)
@@ -361,10 +393,7 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 						item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, params);
 					}
 				} else if (item->isInvalidOTBMItem()) {
-					BlitItemParams params(position, item.get(), options);
-					params.tile = tile;
-					params.item_definition = it;
-					item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, params);
+					// Missing-definition placeholders are represented by the tile-level invalid overlay.
 				}
 			}
 			// monster/npc on tile
@@ -374,6 +403,12 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 					creature_name_drawer->addLabel(position, tile->creature->getName(), tile->creature.get());
 				}
 			}
+		}
+
+		if (options.show_invalid_tiles && !as_minimap && invalid_tile_marker_color != InvalidOTBMItemMarkerColor::None) {
+			const DrawColor overlay = invalidTileOverlayColor(invalid_tile_marker_color, has_selected_invalid_item);
+			sprite_drawer->glBlitSquare(sprite_batch, tile_draw_x, tile_draw_y, overlay);
+			sprite_drawer->glDrawBox(sprite_batch, tile_draw_x, tile_draw_y, TILE_SIZE, TILE_SIZE, overlay);
 		}
 
 		if (options.show_invalid_zones && !as_minimap && tile->hasInvalidZones()) {
