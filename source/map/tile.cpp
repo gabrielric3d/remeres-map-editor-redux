@@ -32,6 +32,28 @@
 #include <memory>
 
 namespace {
+	bool itemsMatch(const Item* lhs, const Item* rhs) {
+		if (lhs == rhs) {
+			return true;
+		}
+		if (!lhs || !rhs) {
+			return false;
+		}
+		if (lhs->getID() != rhs->getID() || lhs->getSubtype() != rhs->getSubtype()) {
+			return false;
+		}
+
+		const InvalidOTBMItemData* lhsInvalid = lhs->getInvalidOTBMData();
+		const InvalidOTBMItemData* rhsInvalid = rhs->getInvalidOTBMData();
+		if (static_cast<bool>(lhsInvalid) != static_cast<bool>(rhsInvalid)) {
+			return false;
+		}
+		if (lhsInvalid && rhsInvalid && *lhsInvalid != *rhsInvalid) {
+			return false;
+		}
+		return true;
+	}
+
 	uint32_t preservedNodeHeapSize(const PreservedOTBMNode& node) {
 		uint32_t bytes = static_cast<uint32_t>(node.rawPayload.capacity());
 		bytes += static_cast<uint32_t>(node.children.capacity() * sizeof(PreservedOTBMNode));
@@ -442,16 +464,12 @@ bool Tile::isContentEqual(const Tile* other) const {
 	}
 
 	// Compare ground
-	if (ground != nullptr && other->ground != nullptr) {
-		if (ground->getID() != other->ground->getID() || ground->getSubtype() != other->ground->getSubtype()) {
-			return false;
-		}
-	} else if (ground != other->ground) {
+	if (!itemsMatch(ground.get(), other->ground.get())) {
 		return false;
 	}
 
 	// Compare items
 	return std::ranges::equal(items, other->items, [](const std::unique_ptr<Item>& it1, const std::unique_ptr<Item>& it2) {
-		return it1->getID() == it2->getID() && it1->getSubtype() == it2->getSubtype();
+		return itemsMatch(it1.get(), it2.get());
 	});
 }

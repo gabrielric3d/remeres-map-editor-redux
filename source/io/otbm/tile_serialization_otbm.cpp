@@ -60,17 +60,6 @@ namespace {
 		return preserved;
 	}
 
-	PreservedOTBMNode capturePreservedNodePayload(BinaryNode* node) {
-		PreservedOTBMNode preserved;
-		if (!node) {
-			return preserved;
-		}
-
-		const std::string_view rawPayload = node->rawData();
-		preserved.rawPayload.assign(rawPayload.begin(), rawPayload.end());
-		return preserved;
-	}
-
 	void writePreservedNode(NodeFileWriteHandle& writer, const PreservedOTBMNode& node) {
 		if (node.rawPayload.empty()) {
 			return;
@@ -186,6 +175,10 @@ void TileSerializationOTBM::readTileArea(IOMapOTBM& iomap, Map& map, BinaryNode*
 								.rawInlineBytes = rawItemBytes,
 							});
 							tile->addItem(std::move(item));
+						} else if (!rawItemBytes.empty()) {
+							tile->addOpaqueTileAttribute(OpaqueTileAttributeRecord {
+								.rawBytes = rawItemBytes,
+							});
 						}
 					}
 					break;
@@ -221,6 +214,8 @@ void TileSerializationOTBM::readTileArea(IOMapOTBM& iomap, Map& map, BinaryNode*
 							.rawNode = std::move(rawNode),
 						});
 						tile->addItem(std::move(item));
+					} else if (!rawNode.empty()) {
+						tile->addOpaqueChildNode(std::move(rawNode));
 					}
 					continue;
 				}
@@ -229,7 +224,7 @@ void TileSerializationOTBM::readTileArea(IOMapOTBM& iomap, Map& map, BinaryNode*
 					if (!ItemSerializationOTBM::unserializeItemNode(iomap, itemNode, *item)) {
 						item->setInvalidOTBMData(InvalidOTBMItemData {
 							.kind = InvalidOTBMItemKind::MissingItem,
-							.rawNode = capturePreservedNodePayload(itemNode),
+							.rawNode = capturePreservedNode(itemNode),
 						});
 						tile->addItem(std::move(item));
 					} else {
@@ -361,9 +356,6 @@ void TileSerializationOTBM::serializeTile(const IOMapOTBM& iomap, const Tile* sa
 		for (const auto& opaqueAttribute : invalidZones->opaqueTileAttributes) {
 			writeRawInlineBytes(f, opaqueAttribute.rawBytes);
 		}
-	}
-
-	if (const InvalidZoneState* invalidZones = save_tile->getInvalidZones()) {
 		for (const auto& opaqueChildNode : invalidZones->opaqueChildNodes) {
 			writePreservedNode(f, opaqueChildNode);
 		}

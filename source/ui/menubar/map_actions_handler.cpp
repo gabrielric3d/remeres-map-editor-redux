@@ -198,6 +198,10 @@ void MapActionsHandler::OnRandomizeMap(wxCommandEvent& WXUNUSED(event)) {
 }
 
 void MapActionsHandler::OnMapCleanup(wxCommandEvent& WXUNUSED(event)) {
+	if (!g_gui.IsEditorOpen()) {
+		return;
+	}
+
 	int ok = DialogUtil::PopupDialog("Cleanup invalid tiles", "Do you want to remove all invalid or unresolved items from the map?", wxYES | wxNO);
 
 	if (ok == wxID_YES) {

@@ -314,7 +314,8 @@ inline bool Tile::hasInvalidZones() const {
 }
 
 inline void Tile::setMapFlags(uint32_t _flags) {
-	mapflags = _flags | mapflags;
+	const uint32_t preservedUnknownBits = invalidZones ? invalidZones->unknownMapFlagBits : 0;
+	mapflags = _flags | preservedUnknownBits;
 }
 
 inline void Tile::unsetMapFlags(uint32_t _flags) {
