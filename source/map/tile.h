@@ -153,6 +153,7 @@ public: // Functions
 	int getIndexOf(Item* item) const;
 	Item* getTopItem() const; // Returns the topmost item, or nullptr if the tile is empty
 	Item* getItemAt(int index) const;
+	void setGround(std::unique_ptr<Item> item);
 	void addItem(std::unique_ptr<Item> item);
 
 	bool isSelected() const {
