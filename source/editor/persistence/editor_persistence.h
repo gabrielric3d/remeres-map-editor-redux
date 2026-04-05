@@ -12,7 +12,6 @@
 class Editor;
 class Map;
 class Spawn;
-struct Position;
 
 class EditorPersistence {
 public:

@@ -47,6 +47,7 @@ private:
 	void OnHelpLeave(wxMouseEvent& event);
 	void OnHelpClick(wxCommandEvent& event);
 	void UpdateHelpVisibility();
+	void PositionHelpPanel();
 
 	MinimapCanvas* canvas_ = nullptr;
 	wxButton* zoom_out_button_ = nullptr;

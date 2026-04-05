@@ -1,5 +1,6 @@
 #include "app/main.h"
 
+#include <format>
 #include <spdlog/spdlog.h>
 #include <wx/button.h>
 #include <wx/sizer.h>
@@ -26,18 +27,28 @@ wxGLAttributes& GetCoreProfileAttributes() {
 	return attributes;
 }
 
+wxSize dipSize(wxWindow* window, const wxSize& size) {
+	return window->FromDIP(size);
+}
+
+int dip(wxWindow* window, int value) {
+	return window->FromDIP(value);
+}
+
 wxButton* createHeaderButton(wxWindow* parent, const wxBitmap& bitmap, const wxString& label = wxString()) {
-	auto* button = new wxButton(parent, wxID_ANY, label, wxDefaultPosition, wxSize(24, 22), wxBU_EXACTFIT);
+	const wxSize button_size = dipSize(parent, wxSize(24, 22));
+	auto* button = new wxButton(parent, wxID_ANY, label, wxDefaultPosition, button_size, wxBU_EXACTFIT);
 	if (bitmap.IsOk()) {
 		button->SetBitmap(bitmap);
 	}
-	button->SetMinSize(wxSize(24, 22));
+	button->SetMinSize(button_size);
 	return button;
 }
 
 wxPanel* createSeparator(wxWindow* parent) {
-	auto* separator = new wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(1, 18));
-	separator->SetMinSize(wxSize(1, 18));
+	const wxSize separator_size = dipSize(parent, wxSize(1, 18));
+	auto* separator = new wxPanel(parent, wxID_ANY, wxDefaultPosition, separator_size);
+	separator->SetMinSize(separator_size);
 	separator->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNSHADOW));
 	return separator;
 }
@@ -45,45 +56,49 @@ wxPanel* createSeparator(wxWindow* parent) {
 } // namespace
 
 MinimapWindow::MinimapWindow(wxWindow* parent) :
-	wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(260, 200)) {
+	wxPanel(parent, wxID_ANY, wxDefaultPosition, dipSize(parent, wxSize(260, 200))) {
 	auto* root_sizer = new wxBoxSizer(wxVERTICAL);
 	auto* header_sizer = new wxBoxSizer(wxHORIZONTAL);
+	const int pad_2 = dip(this, 2);
+	const int pad_4 = dip(this, 4);
+	const int pad_6 = dip(this, 6);
 
-	zoom_out_button_ = createHeaderButton(this, IMAGE_MANAGER.GetBitmap(ICON_MINUS, wxSize(14, 14)));
-	zoom_in_button_ = createHeaderButton(this, IMAGE_MANAGER.GetBitmap(ICON_PLUS, wxSize(14, 14)));
-	floor_up_button_ = createHeaderButton(this, IMAGE_MANAGER.GetBitmap(ICON_ARROW_UP, wxSize(14, 14)));
-	floor_down_button_ = createHeaderButton(this, IMAGE_MANAGER.GetBitmap(ICON_ARROW_DOWN, wxSize(14, 14)));
-	help_button_ = createHeaderButton(this, IMAGE_MANAGER.GetBitmap(ICON_QUESTION_CIRCLE, wxSize(14, 14)));
+	const wxSize icon_size = dipSize(this, wxSize(14, 14));
+	zoom_out_button_ = createHeaderButton(this, IMAGE_MANAGER.GetBitmap(ICON_MINUS, icon_size));
+	zoom_in_button_ = createHeaderButton(this, IMAGE_MANAGER.GetBitmap(ICON_PLUS, icon_size));
+	floor_up_button_ = createHeaderButton(this, IMAGE_MANAGER.GetBitmap(ICON_ARROW_UP, icon_size));
+	floor_down_button_ = createHeaderButton(this, IMAGE_MANAGER.GetBitmap(ICON_ARROW_DOWN, icon_size));
+	help_button_ = createHeaderButton(this, IMAGE_MANAGER.GetBitmap(ICON_QUESTION_CIRCLE, icon_size));
 	zoom_label_ = new wxStaticText(this, wxID_ANY, "1:1");
 	floor_label_ = new wxStaticText(this, wxID_ANY, "F: 7");
 
-	header_sizer->Add(zoom_out_button_, 0, wxALL | wxALIGN_CENTER_VERTICAL, 2);
-	header_sizer->Add(zoom_label_, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, 4);
-	header_sizer->Add(zoom_in_button_, 0, wxALL | wxALIGN_CENTER_VERTICAL, 2);
-	header_sizer->Add(createSeparator(this), 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, 6);
-	header_sizer->Add(floor_label_, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, 4);
-	header_sizer->Add(floor_up_button_, 0, wxALL | wxALIGN_CENTER_VERTICAL, 2);
-	header_sizer->Add(floor_down_button_, 0, wxALL | wxALIGN_CENTER_VERTICAL, 2);
-	header_sizer->Add(createSeparator(this), 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, 6);
-	header_sizer->Add(help_button_, 0, wxALL | wxALIGN_CENTER_VERTICAL, 2);
+	header_sizer->Add(zoom_out_button_, 0, wxALL | wxALIGN_CENTER_VERTICAL, pad_2);
+	header_sizer->Add(zoom_label_, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, pad_4);
+	header_sizer->Add(zoom_in_button_, 0, wxALL | wxALIGN_CENTER_VERTICAL, pad_2);
+	header_sizer->Add(createSeparator(this), 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, pad_6);
+	header_sizer->Add(floor_label_, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, pad_4);
+	header_sizer->Add(floor_up_button_, 0, wxALL | wxALIGN_CENTER_VERTICAL, pad_2);
+	header_sizer->Add(floor_down_button_, 0, wxALL | wxALIGN_CENTER_VERTICAL, pad_2);
+	header_sizer->Add(createSeparator(this), 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, pad_6);
+	header_sizer->Add(help_button_, 0, wxALL | wxALIGN_CENTER_VERTICAL, pad_2);
 	header_sizer->AddStretchSpacer(1);
-
-	help_panel_ = new wxPanel(this, wxID_ANY);
-	auto* help_sizer = new wxBoxSizer(wxVERTICAL);
-	help_text_ = new wxStaticText(help_panel_, wxID_ANY,
-		"Left drag: pan minimap\n"
-		"Ctrl+Left Click: move editor camera\n"
-		"Wheel: zoom minimap\n"
-		"Ctrl+Wheel: change minimap floor");
-	help_sizer->Add(help_text_, 0, wxALL | wxEXPAND, 6);
-	help_panel_->SetSizer(help_sizer);
-	help_panel_->Hide();
 
 	canvas_ = new MinimapCanvas(this);
 
-	root_sizer->Add(header_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 2);
-	root_sizer->Add(help_panel_, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 2);
-	root_sizer->Add(canvas_, 1, wxEXPAND | wxALL, 2);
+	help_panel_ = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_SIMPLE);
+	help_panel_->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_INFOBK));
+	auto* help_sizer = new wxBoxSizer(wxVERTICAL);
+	help_text_ = new wxStaticText(help_panel_, wxID_ANY,
+		"Left drag: pan\n"
+		"Ctrl+Left Click: move camera\n"
+		"Wheel: zoom\n"
+		"Ctrl+Wheel: change floor");
+	help_sizer->Add(help_text_, 0, wxALL | wxEXPAND, pad_6);
+	help_panel_->SetSizer(help_sizer);
+	help_panel_->Hide();
+
+	root_sizer->Add(header_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, pad_2);
+	root_sizer->Add(canvas_, 1, wxEXPAND | wxALL, pad_2);
 	SetSizer(root_sizer);
 
 	Bind(wxEVT_CLOSE_WINDOW, &MinimapWindow::OnClose, this);
@@ -97,6 +112,7 @@ MinimapWindow::MinimapWindow(wxWindow* parent) :
 	help_button_->Bind(wxEVT_LEAVE_WINDOW, &MinimapWindow::OnHelpLeave, this);
 
 	SyncHeaderState();
+	PositionHelpPanel();
 }
 
 MinimapWindow::~MinimapWindow() {
@@ -121,10 +137,6 @@ void MinimapWindow::RefreshMinimap(bool immediate) {
 }
 
 void MinimapWindow::SyncHeaderState() {
-	if (help_text_) {
-		help_text_->Wrap(std::max(120, GetClientSize().GetWidth() - 20));
-	}
-
 	if (g_gui.IsLoading()) {
 		zoom_label_->SetLabel("1:1");
 		floor_label_->SetLabel("F: -");
@@ -134,7 +146,8 @@ void MinimapWindow::SyncHeaderState() {
 		floor_down_button_->Enable(false);
 	} else if (auto* state = GetActiveViewportState()) {
 		zoom_label_->SetLabel(wxString::FromUTF8(MinimapViewport::GetZoomLabel(state->zoom_step).data()));
-		floor_label_->SetLabel(wxString::Format("F: %d", state->floor));
+		const std::string floor_label = std::format("F: {}", state->floor);
+		floor_label_->SetLabel(wxString::FromUTF8(floor_label.c_str()));
 		zoom_out_button_->Enable(state->zoom_step > 0);
 		zoom_in_button_->Enable(state->zoom_step < static_cast<int>(MinimapViewport::ZoomFactors.size()) - 1);
 		floor_up_button_->Enable(state->floor > 0);
@@ -239,6 +252,7 @@ void MinimapWindow::OnClose(wxCloseEvent& event) {
 
 void MinimapWindow::OnSize(wxSizeEvent& event) {
 	SyncHeaderState();
+	PositionHelpPanel();
 	event.Skip();
 }
 
@@ -282,8 +296,33 @@ void MinimapWindow::OnHelpClick(wxCommandEvent& event) {
 
 void MinimapWindow::UpdateHelpVisibility() {
 	const bool show_help = help_hovered_ || help_pinned_;
+	PositionHelpPanel();
 	help_panel_->Show(show_help);
-	Layout();
+	if (show_help) {
+		help_panel_->Raise();
+	}
+}
+
+void MinimapWindow::PositionHelpPanel() {
+	if (!help_panel_ || !canvas_) {
+		return;
+	}
+
+	const wxPoint canvas_position = canvas_->GetPosition();
+	const wxSize canvas_size = canvas_->GetSize();
+	const int panel_margin = dip(this, 8);
+	const wxSize best_size = help_panel_->GetBestSize();
+	const int panel_width = std::min(best_size.GetWidth(), std::max(dip(this, 180), canvas_size.GetWidth() - panel_margin * 2));
+	help_panel_->SetInitialSize(wxSize(panel_width, wxDefaultCoord));
+	help_panel_->Layout();
+	help_panel_->Fit();
+
+	const wxSize panel_size = help_panel_->GetBestSize();
+	help_panel_->SetSize(
+		canvas_position.x + panel_margin,
+		canvas_position.y + panel_margin,
+		panel_width,
+		panel_size.GetHeight());
 }
 
 MinimapCanvas::MinimapCanvas(MinimapWindow* parent) :
@@ -376,7 +415,7 @@ void MinimapCanvas::OnPaint(wxPaintEvent& event) {
 	}
 
 	ClampViewportState(*state);
-	drawer->Draw(dc, GetClientSize(), *editor, active_canvas, *state);
+	drawer->Draw(dc, GetClientSize(), *editor, *active_canvas, *state);
 	SwapBuffers();
 }
 
@@ -465,7 +504,42 @@ void MinimapCanvas::OnMouseWheel(wxMouseEvent& event) {
 	if (event.ControlDown()) {
 		owner_->StepFloor(event.GetWheelRotation() > 0 ? -1 : 1);
 	} else {
-		owner_->StepZoom(event.GetWheelRotation() > 0 ? 1 : -1);
+		auto* state = owner_->GetActiveViewportState();
+		Editor* editor = owner_->GetActiveEditor();
+		if (!state || !editor) {
+			return;
+		}
+
+		const int next_step = MinimapViewport::ClampZoomStep(state->zoom_step + (event.GetWheelRotation() > 0 ? 1 : -1));
+		if (next_step == state->zoom_step) {
+			return;
+		}
+
+		const wxSize size = GetClientSize();
+		const int safe_width = std::max(1, size.GetWidth());
+		const int safe_height = std::max(1, size.GetHeight());
+		const double normalized_x = std::clamp(event.GetX() / static_cast<double>(safe_width), 0.0, 1.0);
+		const double normalized_y = std::clamp(event.GetY() / static_cast<double>(safe_height), 0.0, 1.0);
+
+		const double old_zoom_factor = MinimapViewport::GetZoomFactor(state->zoom_step);
+		const double old_visible_width = std::max(1.0, safe_width * old_zoom_factor);
+		const double old_visible_height = std::max(1.0, safe_height * old_zoom_factor);
+		const double old_start_x = state->center_x - old_visible_width / 2.0;
+		const double old_start_y = state->center_y - old_visible_height / 2.0;
+		const double anchor_x = old_start_x + normalized_x * old_visible_width;
+		const double anchor_y = old_start_y + normalized_y * old_visible_height;
+
+		state->zoom_step = next_step;
+
+		const double new_zoom_factor = MinimapViewport::GetZoomFactor(state->zoom_step);
+		const double new_visible_width = std::max(1.0, safe_width * new_zoom_factor);
+		const double new_visible_height = std::max(1.0, safe_height * new_zoom_factor);
+		state->center_x = anchor_x + (0.5 - normalized_x) * new_visible_width;
+		state->center_y = anchor_y + (0.5 - normalized_y) * new_visible_height;
+
+		ClampViewportState(*state);
+		owner_->SyncHeaderState();
+		Refresh();
 	}
 }
 
@@ -481,41 +555,14 @@ void MinimapCanvas::OnMouseLeave(wxMouseEvent& event) {
 }
 
 void MinimapCanvas::OnKey(wxKeyEvent& event) {
-	if (g_gui.GetCurrentTab() != nullptr) {
-		g_gui.GetCurrentMapTab()->GetEventHandler()->AddPendingEvent(event);
+	if (MapTab* map_tab = g_gui.GetCurrentMapTab()) {
+		map_tab->GetEventHandler()->AddPendingEvent(event);
+	} else {
+		event.Skip();
 	}
 }
 
 void MinimapCanvas::ClampViewportState(MinimapViewportState& state) const {
-	Editor* editor = owner_->GetActiveEditor();
-	if (!editor) {
-		return;
-	}
-
-	const wxSize size = GetClientSize();
-	const int map_width = editor->map.getWidth();
-	const int map_height = editor->map.getHeight();
-	const double visible_width = std::min(static_cast<double>(map_width), std::max(1.0, size.GetWidth() * MinimapViewport::GetZoomFactor(state.zoom_step)));
-	const double visible_height = std::min(static_cast<double>(map_height), std::max(1.0, size.GetHeight() * MinimapViewport::GetZoomFactor(state.zoom_step)));
-
-	if (map_width > 0) {
-		if (visible_width >= map_width) {
-			state.center_x = map_width / 2.0;
-		} else {
-			const double half_width = visible_width / 2.0;
-			state.center_x = std::clamp(state.center_x, half_width, map_width - half_width);
-		}
-	}
-
-	if (map_height > 0) {
-		if (visible_height >= map_height) {
-			state.center_y = map_height / 2.0;
-		} else {
-			const double half_height = visible_height / 2.0;
-			state.center_y = std::clamp(state.center_y, half_height, map_height - half_height);
-		}
-	}
-
 	state.floor = MinimapViewport::ClampFloor(state.floor);
 }
 

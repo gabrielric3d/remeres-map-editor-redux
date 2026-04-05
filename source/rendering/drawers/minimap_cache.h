@@ -7,8 +7,8 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <unordered_map>
-#include <vector>
 
 class Map;
 
@@ -23,7 +23,7 @@ struct FloorCachePage {
 	int page_x = 0;
 	int page_y = 0;
 	std::unique_ptr<GLTextureResource> texture;
-	std::vector<MinimapDirtyRect> dirty_rects;
+	std::optional<MinimapDirtyRect> dirty_rect;
 };
 
 class MinimapCache {
@@ -58,7 +58,7 @@ private:
 
 	static uint64_t makePageKey(int page_x, int page_y);
 	static MinimapDirtyRect clampRect(const MinimapDirtyRect& rect, int width, int height);
-	static MinimapDirtyRect mergeRects(const std::vector<MinimapDirtyRect>& rects);
+	static MinimapDirtyRect unionRects(const MinimapDirtyRect& lhs, const MinimapDirtyRect& rhs);
 
 	FloorCachePage& getOrCreatePage(int floor, int page_x, int page_y);
 	void ensurePageTexture(FloorCachePage& page);

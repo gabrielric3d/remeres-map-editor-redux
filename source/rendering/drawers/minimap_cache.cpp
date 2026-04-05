@@ -3,10 +3,10 @@
 #include "rendering/drawers/minimap_cache.h"
 
 #include "map/map.h"
+#include "map/map_region.h"
 #include "map/tile.h"
 
 #include <algorithm>
-#include <ranges>
 
 namespace {
 
@@ -34,23 +34,18 @@ MinimapDirtyRect MinimapCache::clampRect(const MinimapDirtyRect& rect, int width
 	};
 }
 
-MinimapDirtyRect MinimapCache::mergeRects(const std::vector<MinimapDirtyRect>& rects) {
-	if (rects.empty()) {
-		return {};
+MinimapDirtyRect MinimapCache::unionRects(const MinimapDirtyRect& lhs, const MinimapDirtyRect& rhs) {
+	if (!isValidRect(lhs)) {
+		return rhs;
+	}
+	if (!isValidRect(rhs)) {
+		return lhs;
 	}
 
-	int min_x = rects.front().x;
-	int min_y = rects.front().y;
-	int max_x = rects.front().x + rects.front().width;
-	int max_y = rects.front().y + rects.front().height;
-
-	for (const auto& rect : rects | std::views::drop(1)) {
-		min_x = std::min(min_x, rect.x);
-		min_y = std::min(min_y, rect.y);
-		max_x = std::max(max_x, rect.x + rect.width);
-		max_y = std::max(max_y, rect.y + rect.height);
-	}
-
+	const int min_x = std::min(lhs.x, rhs.x);
+	const int min_y = std::min(lhs.y, rhs.y);
+	const int max_x = std::max(lhs.x + lhs.width, rhs.x + rhs.width);
+	const int max_y = std::max(lhs.y + lhs.height, rhs.y + rhs.height);
 	return {
 		.x = min_x,
 		.y = min_y,
@@ -94,6 +89,8 @@ void MinimapCache::markDirty(int floor, const MinimapDirtyRect& rect) {
 			auto& pages = floors_[floor].pages;
 			auto it = pages.find(makePageKey(page_x, page_y));
 			if (it == pages.end()) {
+				// Unbuilt pages are initialized as fully dirty once they first become visible,
+				// so there is no need to retain off-screen sub-rect dirtiness here.
 				continue;
 			}
 
@@ -107,7 +104,8 @@ void MinimapCache::markDirty(int floor, const MinimapDirtyRect& rect) {
 			};
 
 			if (isValidRect(local_rect)) {
-				it->second.dirty_rects.push_back(local_rect);
+				auto& dirty_rect = it->second.dirty_rect;
+				dirty_rect = dirty_rect ? unionRects(*dirty_rect, local_rect) : local_rect;
 			}
 		}
 	}
@@ -120,12 +118,12 @@ FloorCachePage& MinimapCache::getOrCreatePage(int floor, int page_x, int page_y)
 	if (inserted) {
 		it->second.page_x = page_x;
 		it->second.page_y = page_y;
-		it->second.dirty_rects.push_back({
+		it->second.dirty_rect = MinimapDirtyRect {
 			.x = 0,
 			.y = 0,
 			.width = PageSize,
 			.height = PageSize,
-		});
+		};
 	}
 
 	return it->second;
@@ -153,25 +151,44 @@ void MinimapCache::uploadRect(const Map& map, int floor, FloorCachePage& page, c
 	}
 
 	const size_t buffer_size = static_cast<size_t>(clamped_rect.width) * clamped_rect.height;
-	upload_buffer_.assign(buffer_size, 0);
+	upload_buffer_.resize(buffer_size);
+	std::fill(upload_buffer_.begin(), upload_buffer_.end(), 0);
 
 	const int origin_x = page.page_x * PageSize + clamped_rect.x;
 	const int origin_y = page.page_y * PageSize + clamped_rect.y;
+	const int rect_end_x = origin_x + clamped_rect.width - 1;
+	const int rect_end_y = origin_y + clamped_rect.height - 1;
+	const_cast<Map&>(map).visitLeaves(origin_x, origin_y, rect_end_x, rect_end_y, [&](MapNode* node, int node_map_x, int node_map_y) {
+		const Floor* node_floor = node->getFloor(floor);
+		if (!node_floor) {
+			return;
+		}
 
-	size_t write_index = 0;
-	for (int y = 0; y < clamped_rect.height; ++y) {
-		for (int x = 0; x < clamped_rect.width; ++x) {
-			const int map_x = origin_x + x;
-			const int map_y = origin_y + y;
+		for (int local_node_x = 0; local_node_x < 4; ++local_node_x) {
+			const int map_x = node_map_x + local_node_x;
+			if (map_x < origin_x || map_x > rect_end_x) {
+				continue;
+			}
 
-			if (map_x < width_ && map_y < height_) {
-				const Tile* tile = map.getTile(map_x, map_y, floor);
-				upload_buffer_[write_index++] = tile ? tile->getMiniMapColor() : 0;
-			} else {
-				upload_buffer_[write_index++] = 0;
+			for (int local_node_y = 0; local_node_y < 4; ++local_node_y) {
+				const int map_y = node_map_y + local_node_y;
+				if (map_y < origin_y || map_y > rect_end_y) {
+					continue;
+				}
+
+				const int floor_index = local_node_x * 4 + local_node_y;
+				const TileLocation& location = node_floor->locs[static_cast<size_t>(floor_index)];
+				const Tile* tile = location.get();
+				if (!tile) {
+					continue;
+				}
+
+				const int buffer_x = map_x - origin_x;
+				const int buffer_y = map_y - origin_y;
+				upload_buffer_[static_cast<size_t>(buffer_y) * clamped_rect.width + buffer_x] = tile->getMiniMapColor();
 			}
 		}
-	}
+	});
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTextureSubImage2D(
@@ -205,13 +222,12 @@ void MinimapCache::flushVisible(const Map& map, int floor, const MinimapDirtyRec
 	for (int page_y = start_page_y; page_y <= end_page_y; ++page_y) {
 		for (int page_x = start_page_x; page_x <= end_page_x; ++page_x) {
 			auto& page = getOrCreatePage(floor, page_x, page_y);
-			if (page.dirty_rects.empty()) {
+			if (!page.dirty_rect.has_value()) {
 				continue;
 			}
 
-			const MinimapDirtyRect merged_rect = mergeRects(page.dirty_rects);
-			uploadRect(map, floor, page, merged_rect);
-			page.dirty_rects.clear();
+			uploadRect(map, floor, page, *page.dirty_rect);
+			page.dirty_rect.reset();
 		}
 	}
 }

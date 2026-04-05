@@ -21,6 +21,8 @@ MainMapVisibleRect MainMapViewMath::GetVisibleRect(const MainMapViewport& viewpo
 	const double tile_size = static_cast<double>(TILE_SIZE) / std::max(0.0001, viewport.zoom);
 	const double start_x = static_cast<double>(viewport.view_scroll_x) / TILE_SIZE + GetFloorTileOffset(viewport.floor);
 	const double start_y = static_cast<double>(viewport.view_scroll_y) / TILE_SIZE + GetFloorTileOffset(viewport.floor);
+	// Keep one extra tile of padding so partially visible edge tiles remain included
+	// and camera-box projection does not clip at exact tile boundaries.
 	const double width = viewport.pixel_width / tile_size + 1.0;
 	const double height = viewport.pixel_height / tile_size + 1.0;
 

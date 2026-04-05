@@ -15,16 +15,6 @@
 
 namespace {
 
-[[nodiscard]] double clampViewportStart(double start, double visible_span, int limit) {
-	if (limit <= 0) {
-		return 0.0;
-	}
-
-	const double span = std::min(visible_span, static_cast<double>(limit));
-	const double max_start = std::max(0.0, static_cast<double>(limit) - span);
-	return std::clamp(start, 0.0, max_start);
-}
-
 [[nodiscard]] double clampMapCoordinate(double value, int limit) {
 	if (limit <= 0) {
 		return 0.0;
@@ -53,14 +43,12 @@ void MinimapDrawer::ReleaseGL() {
 
 MinimapDrawer::VisibleWorldRect MinimapDrawer::BuildVisibleWorldRect(const wxSize& size, Editor& editor, const MinimapViewportState& viewport_state) {
 	const double zoom_factor = MinimapViewport::GetZoomFactor(viewport_state.zoom_step);
-	const double visible_map_width = std::min(static_cast<double>(editor.map.getWidth()), std::max(1.0, size.GetWidth() * zoom_factor));
-	const double visible_map_height = std::min(static_cast<double>(editor.map.getHeight()), std::max(1.0, size.GetHeight() * zoom_factor));
-	const double unclamped_start_x = viewport_state.center_x - visible_map_width / 2.0;
-	const double unclamped_start_y = viewport_state.center_y - visible_map_height / 2.0;
+	const double visible_map_width = std::max(1.0, size.GetWidth() * zoom_factor);
+	const double visible_map_height = std::max(1.0, size.GetHeight() * zoom_factor);
 
 	return {
-		.start_x = clampViewportStart(unclamped_start_x, visible_map_width, editor.map.getWidth()),
-		.start_y = clampViewportStart(unclamped_start_y, visible_map_height, editor.map.getHeight()),
+		.start_x = viewport_state.center_x - visible_map_width / 2.0,
+		.start_y = viewport_state.center_y - visible_map_height / 2.0,
 		.width = visible_map_width,
 		.height = visible_map_height,
 	};
@@ -103,7 +91,7 @@ void MinimapDrawer::DrawMainCameraBox(const glm::mat4& projection, const wxSize&
 	primitive_renderer->flush();
 }
 
-void MinimapDrawer::Draw(wxDC& pdc, const wxSize& size, Editor& editor, MapCanvas* canvas, const MinimapViewportState& viewport_state) {
+void MinimapDrawer::Draw(wxDC& pdc, const wxSize& size, Editor& editor, MapCanvas& canvas, const MinimapViewportState& viewport_state) {
 	wxUnusedVar(pdc);
 
 	const int window_width = size.GetWidth();
@@ -154,8 +142,8 @@ void MinimapDrawer::Draw(wxDC& pdc, const wxSize& size, Editor& editor, MapCanva
 		renderer->invalidateAll();
 	}
 	for (int floor = 0; floor < MAP_LAYERS; ++floor) {
-		for (const auto& rect : pending.floor_rects[floor]) {
-			renderer->markDirty(floor, rect);
+		if (pending.floor_rects[floor].has_value()) {
+			renderer->markDirty(floor, *pending.floor_rects[floor]);
 		}
 	}
 
@@ -173,7 +161,7 @@ void MinimapDrawer::Draw(wxDC& pdc, const wxSize& size, Editor& editor, MapCanva
 
 	renderer->flushVisible(editor.map, floor, visible_rect_pixels);
 	renderer->renderVisible(projection, 0, 0, window_width, window_height, floor, visible_rect_pixels);
-	DrawMainCameraBox(projection, size, *canvas, visible_rect);
+	DrawMainCameraBox(projection, size, canvas, visible_rect);
 }
 
 void MinimapDrawer::ScreenToMap(int screen_x, int screen_y, int& map_x, int& map_y) {

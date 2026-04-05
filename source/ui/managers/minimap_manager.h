@@ -9,16 +9,16 @@
 #include "rendering/drawers/minimap_cache.h"
 
 #include <array>
+#include <optional>
 #include <unordered_map>
-#include <vector>
 
 class MinimapWindow;
 class Map;
-struct Position;
+class Position;
 
 struct PendingMinimapInvalidation {
 	bool invalidate_all = false;
-	std::array<std::vector<MinimapDirtyRect>, MAP_LAYERS> floor_rects;
+	std::array<std::optional<MinimapDirtyRect>, MAP_LAYERS> floor_rects;
 };
 
 class MinimapManager {
