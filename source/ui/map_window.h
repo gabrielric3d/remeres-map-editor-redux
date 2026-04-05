@@ -65,7 +65,7 @@ public:
 	void Scroll(int x, int y, bool center = false);
 
 	// Scroll this many pixels in X/Y, relative to current position
-	void ScrollRelative(int x, int y);
+	void ScrollRelative(int x, int y, bool immediate_minimap_update = false);
 
 	// Resize scrollbars to fit to the map dimensions
 	// This needs to be called after updating map height/width

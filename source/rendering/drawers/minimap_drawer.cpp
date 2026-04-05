@@ -126,9 +126,7 @@ void MinimapDrawer::DrawFloorShade(const glm::mat4& projection, const wxSize& si
 	primitive_renderer->flush();
 }
 
-void MinimapDrawer::Draw(wxDC& pdc, const wxSize& size, Editor& editor, MapCanvas& canvas, const MinimapViewportState& viewport_state) {
-	wxUnusedVar(pdc);
-
+void MinimapDrawer::Draw(const wxSize& size, Editor& editor, MapCanvas& canvas, const MinimapViewportState& viewport_state) {
 	const int window_width = size.GetWidth();
 	const int window_height = size.GetHeight();
 	if (window_width <= 0 || window_height <= 0) {

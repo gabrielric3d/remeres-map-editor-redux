@@ -3,6 +3,7 @@
 
 #include "app/definitions.h"
 #include "rendering/core/gl_resources.h"
+#include "rendering/drawers/minimap_rect.h"
 
 #include <array>
 #include <cstdint>
@@ -11,13 +12,6 @@
 #include <unordered_map>
 
 class Map;
-
-struct MinimapDirtyRect {
-	int x = 0;
-	int y = 0;
-	int width = 0;
-	int height = 0;
-};
 
 struct FloorCachePage {
 	int page_x = 0;
@@ -58,7 +52,6 @@ private:
 
 	static uint64_t makePageKey(int page_x, int page_y);
 	static MinimapDirtyRect clampRect(const MinimapDirtyRect& rect, int width, int height);
-	static MinimapDirtyRect unionRects(const MinimapDirtyRect& lhs, const MinimapDirtyRect& rhs);
 
 	FloorCachePage& getOrCreatePage(int floor, int page_x, int page_y);
 	void ensurePageTexture(FloorCachePage& page);

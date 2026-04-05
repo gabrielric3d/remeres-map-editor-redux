@@ -8,14 +8,6 @@
 
 #include <algorithm>
 
-namespace {
-
-bool isValidRect(const MinimapDirtyRect& rect) {
-	return rect.width > 0 && rect.height > 0;
-}
-
-}
-
 uint64_t MinimapCache::makePageKey(int page_x, int page_y) {
 	return (static_cast<uint64_t>(page_y) << 32) | static_cast<uint32_t>(page_x);
 }
@@ -31,26 +23,6 @@ MinimapDirtyRect MinimapCache::clampRect(const MinimapDirtyRect& rect, int width
 		.y = y0,
 		.width = std::max(0, x1 - x0),
 		.height = std::max(0, y1 - y0),
-	};
-}
-
-MinimapDirtyRect MinimapCache::unionRects(const MinimapDirtyRect& lhs, const MinimapDirtyRect& rhs) {
-	if (!isValidRect(lhs)) {
-		return rhs;
-	}
-	if (!isValidRect(rhs)) {
-		return lhs;
-	}
-
-	const int min_x = std::min(lhs.x, rhs.x);
-	const int min_y = std::min(lhs.y, rhs.y);
-	const int max_x = std::max(lhs.x + lhs.width, rhs.x + rhs.width);
-	const int max_y = std::max(lhs.y + lhs.height, rhs.y + rhs.height);
-	return {
-		.x = min_x,
-		.y = min_y,
-		.width = std::max(0, max_x - min_x),
-		.height = std::max(0, max_y - min_y),
 	};
 }
 
@@ -75,7 +47,7 @@ void MinimapCache::markDirty(int floor, const MinimapDirtyRect& rect) {
 	}
 
 	const MinimapDirtyRect clamped = clampRect(rect, width_, height_);
-	if (!isValidRect(clamped)) {
+	if (!IsValidMinimapRect(clamped)) {
 		return;
 	}
 
@@ -103,9 +75,9 @@ void MinimapCache::markDirty(int floor, const MinimapDirtyRect& rect) {
 				.height = std::min(PageSize, clamped.y + clamped.height - origin_y) - std::max(0, clamped.y - origin_y),
 			};
 
-			if (isValidRect(local_rect)) {
+			if (IsValidMinimapRect(local_rect)) {
 				auto& dirty_rect = it->second.dirty_rect;
-				dirty_rect = dirty_rect ? unionRects(*dirty_rect, local_rect) : local_rect;
+				dirty_rect = dirty_rect ? UnionMinimapRects(*dirty_rect, local_rect) : local_rect;
 			}
 		}
 	}
@@ -146,7 +118,7 @@ void MinimapCache::uploadRect(const Map& map, int floor, FloorCachePage& page, c
 	ensurePageTexture(page);
 
 	const MinimapDirtyRect clamped_rect = clampRect(rect, PageSize, PageSize);
-	if (!isValidRect(clamped_rect)) {
+	if (!IsValidMinimapRect(clamped_rect)) {
 		return;
 	}
 
@@ -158,7 +130,7 @@ void MinimapCache::uploadRect(const Map& map, int floor, FloorCachePage& page, c
 	const int origin_y = page.page_y * PageSize + clamped_rect.y;
 	const int rect_end_x = origin_x + clamped_rect.width - 1;
 	const int rect_end_y = origin_y + clamped_rect.height - 1;
-	const_cast<Map&>(map).visitLeaves(origin_x, origin_y, rect_end_x, rect_end_y, [&](MapNode* node, int node_map_x, int node_map_y) {
+	map.visitLeaves(origin_x, origin_y, rect_end_x, rect_end_y, [&](const MapNode* node, int node_map_x, int node_map_y) {
 		const Floor* node_floor = node->getFloor(floor);
 		if (!node_floor) {
 			return;
@@ -210,7 +182,7 @@ void MinimapCache::flushVisible(const Map& map, int floor, const MinimapDirtyRec
 	}
 
 	const MinimapDirtyRect clamped_visible = clampRect(visible_rect, width_, height_);
-	if (!isValidRect(clamped_visible)) {
+	if (!IsValidMinimapRect(clamped_visible)) {
 		return;
 	}
 
@@ -239,7 +211,7 @@ std::vector<MinimapCache::VisiblePage> MinimapCache::collectVisiblePages(int flo
 	}
 
 	const MinimapDirtyRect clamped_visible = clampRect(visible_rect, width_, height_);
-	if (!isValidRect(clamped_visible)) {
+	if (!IsValidMinimapRect(clamped_visible)) {
 		return visible_pages;
 	}
 

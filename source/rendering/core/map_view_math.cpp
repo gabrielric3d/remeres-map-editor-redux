@@ -38,6 +38,9 @@ void MainMapViewMath::ScreenToMap(int screen_x, int screen_y, const MainMapViewp
 	const int scaled_x = static_cast<int>(screen_x * viewport.scale_factor);
 	const int scaled_y = static_cast<int>(screen_y * viewport.scale_factor);
 
+	// Negative screen coordinates can appear when callers project or test positions just outside the
+	// visible viewport. Keep the negative branch paired with MapToScreen() so both conversions stay
+	// symmetric across zero instead of applying zoom on one side of the boundary but not the other.
 	if (scaled_x < 0) {
 		*map_x = (viewport.view_scroll_x + scaled_x) / TILE_SIZE;
 	} else {
@@ -61,6 +64,9 @@ void MainMapViewMath::MapToScreen(int map_x, int map_y, int map_z, const MainMap
 	const double raw_x = static_cast<double>(map_x * TILE_SIZE - viewport.view_scroll_x);
 	const double raw_y = static_cast<double>(map_y * TILE_SIZE - viewport.view_scroll_y);
 
+	// Mirror ScreenToMap() across the sign boundary. Negative deltas stay in scaled-pixel space,
+	// while non-negative deltas divide by zoom * scale_factor, which keeps the round-trip stable
+	// when floor offsets push a tile just outside the viewport.
 	if (raw_x < 0.0) {
 		*screen_x = static_cast<int>(std::ceil(raw_x / viewport.scale_factor));
 	} else {

@@ -7,34 +7,9 @@
 #include "app/managers/version_manager.h"
 #include "map/map.h"
 #include "map/position.h"
-#include "rendering/drawers/minimap_cache.h"
 #include "ui/gui.h"
 #include "rendering/ui/minimap_window.h"
 #include <wx/aui/aui.h>
-
-namespace {
-
-[[nodiscard]] MinimapDirtyRect unionRects(const MinimapDirtyRect& lhs, const MinimapDirtyRect& rhs) {
-	if (lhs.width <= 0 || lhs.height <= 0) {
-		return rhs;
-	}
-	if (rhs.width <= 0 || rhs.height <= 0) {
-		return lhs;
-	}
-
-	const int min_x = std::min(lhs.x, rhs.x);
-	const int min_y = std::min(lhs.y, rhs.y);
-	const int max_x = std::max(lhs.x + lhs.width, rhs.x + rhs.width);
-	const int max_y = std::max(lhs.y + lhs.height, rhs.y + rhs.height);
-	return {
-		.x = min_x,
-		.y = min_y,
-		.width = max_x - min_x,
-		.height = max_y - min_y,
-	};
-}
-
-} // namespace
 
 MinimapManager g_minimap;
 
@@ -148,7 +123,7 @@ void MinimapManager::MarkTileDirty(const Map& map, const Position& position) {
 	};
 
 	auto& floor_rect = pending.floor_rects[position.z];
-	floor_rect = floor_rect ? unionRects(*floor_rect, tile_rect) : tile_rect;
+	floor_rect = floor_rect ? UnionMinimapRects(*floor_rect, tile_rect) : tile_rect;
 }
 
 PendingMinimapInvalidation MinimapManager::TakePendingInvalidation(const Map& map) {

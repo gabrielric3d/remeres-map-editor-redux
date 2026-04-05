@@ -241,11 +241,11 @@ void MapWindow::Scroll(int x, int y, bool center) {
 	g_gui.UpdateMinimap();
 }
 
-void MapWindow::ScrollRelative(int x, int y) {
+void MapWindow::ScrollRelative(int x, int y, bool immediate_minimap_update) {
 	hScroll->SetThumbPosition(hScroll->GetThumbPosition() + x);
 	vScroll->SetThumbPosition(vScroll->GetThumbPosition() + y);
 	SyncTrackedMinimapViewportToCurrentView();
-	g_gui.UpdateMinimap();
+	g_gui.UpdateMinimap(immediate_minimap_update);
 }
 
 void MapWindow::OnGem(wxCommandEvent& WXUNUSED(event)) {

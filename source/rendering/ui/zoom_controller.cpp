@@ -62,9 +62,7 @@ void ZoomController::ApplyRelativeZoom(MapCanvas* canvas, double diff) {
 	int scroll_y = static_cast<int>(screensize_y * diff * (std::max(canvas->cursor_y, 1) / double(screensize_y))) * canvas->GetContentScaleFactor();
 
 	static_cast<MapWindow*>(canvas->GetParent())->ResumeMinimapTrackingToCurrentView();
-	static_cast<MapWindow*>(canvas->GetParent())->ScrollRelative(-scroll_x, -scroll_y);
-
-	g_gui.UpdateMinimap(true);
+	static_cast<MapWindow*>(canvas->GetParent())->ScrollRelative(-scroll_x, -scroll_y, true);
 	canvas->Refresh();
 }
 

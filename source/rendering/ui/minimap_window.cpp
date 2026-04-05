@@ -449,7 +449,7 @@ void MinimapCanvas::OnPaint(wxPaintEvent& event) {
 	}
 
 	ClampViewportState(*state);
-	drawer->Draw(dc, GetClientSize(), *editor, *active_canvas, *state);
+	drawer->Draw(GetClientSize(), *editor, *active_canvas, *state);
 	SwapBuffers();
 }
 

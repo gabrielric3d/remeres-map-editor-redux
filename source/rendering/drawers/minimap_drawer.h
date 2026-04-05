@@ -19,7 +19,7 @@ public:
 	MinimapDrawer();
 	~MinimapDrawer();
 
-	void Draw(wxDC& dc, const wxSize& size, Editor& editor, MapCanvas& canvas, const MinimapViewportState& viewport_state);
+	void Draw(const wxSize& size, Editor& editor, MapCanvas& canvas, const MinimapViewportState& viewport_state);
 	void ReleaseGL();
 
 	void ScreenToMap(int screen_x, int screen_y, int& map_x, int& map_y);
