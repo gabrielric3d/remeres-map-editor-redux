@@ -19,8 +19,11 @@
 
 #include "brushes/brush.h"
 
+#include "editor/editor.h"
 #include "map/tile.h"
 #include "map/tile_operations.h"
+#include "ui/gui.h"
+#include "ui/managers/minimap_manager.h"
 #include "game/creature.h"
 #include "game/house.h"
 #include "map/basemap.h"
@@ -38,6 +41,39 @@
 #include <algorithm>
 #include <iterator>
 #include <memory>
+
+namespace {
+	bool itemsMatch(const Item* lhs, const Item* rhs) {
+		if (lhs == rhs) {
+			return true;
+		}
+		if (!lhs || !rhs) {
+			return false;
+		}
+		if (lhs->getID() != rhs->getID() || lhs->getSubtype() != rhs->getSubtype()) {
+			return false;
+		}
+
+		const InvalidOTBMItemData* lhsInvalid = lhs->getInvalidOTBMData();
+		const InvalidOTBMItemData* rhsInvalid = rhs->getInvalidOTBMData();
+		if (static_cast<bool>(lhsInvalid) != static_cast<bool>(rhsInvalid)) {
+			return false;
+		}
+		if (lhsInvalid && rhsInvalid && *lhsInvalid != *rhsInvalid) {
+			return false;
+		}
+		return true;
+	}
+
+	uint32_t preservedNodeHeapSize(const PreservedOTBMNode& node) {
+		uint32_t bytes = static_cast<uint32_t>(node.rawPayload.capacity());
+		bytes += static_cast<uint32_t>(node.children.capacity() * sizeof(PreservedOTBMNode));
+		for (const auto& child : node.children) {
+			bytes += preservedNodeHeapSize(child);
+		}
+		return bytes;
+	}
+}
 
 Tile::Tile(int x, int y, int z) :
 	location(nullptr),
@@ -152,6 +188,9 @@ std::unique_ptr<Tile> Tile::deepCopy() const {
 	copy->mapflags = mapflags;
 	copy->statflags = statflags;
 	copy->minimapColor = minimapColor;
+	if (invalidZones) {
+		copy->invalidZones = std::make_unique<InvalidZoneState>(*invalidZones);
+	}
 	return copy;
 }
 
@@ -169,6 +208,17 @@ uint32_t Tile::memsize() const {
 	}
 
 	mem += sizeof(std::unique_ptr<Item>) * items.capacity();
+	if (invalidZones) {
+		mem += sizeof(InvalidZoneState);
+		mem += static_cast<uint32_t>(invalidZones->opaqueTileAttributes.capacity() * sizeof(OpaqueTileAttributeRecord));
+		for (const auto& attribute : invalidZones->opaqueTileAttributes) {
+			mem += static_cast<uint32_t>(attribute.rawBytes.capacity());
+		}
+		mem += static_cast<uint32_t>(invalidZones->opaqueChildNodes.capacity() * sizeof(PreservedOTBMNode));
+		for (const auto& node : invalidZones->opaqueChildNodes) {
+			mem += preservedNodeHeapSize(node);
+		}
+	}
 
 	return mem;
 }
@@ -189,6 +239,9 @@ int Tile::size() const {
 		++sz;
 	}
 	if (mapflags) {
+		++sz;
+	}
+	if (hasInvalidZones()) {
 		++sz;
 	}
 	const TileLocation* loc = location ? location : ownedLocation;
@@ -337,6 +390,24 @@ uint8_t Tile::getMiniMapColor() const {
 	return 0;
 }
 
+void Tile::modify() {
+	statflags |= TILESTATE_MODIFIED;
+	minimapColor = INVALID_MINIMAP_COLOR;
+
+	if (!ownedLocation) {
+		if (Editor* editor = g_gui.GetCurrentEditor()) {
+			const Position position = getPosition();
+			if (editor->map.getTile(position) == this) {
+				g_minimap.MarkTileDirty(editor->map, position);
+			}
+		}
+	}
+
+	if (isSelected()) {
+		TileOperations::markSelectionChanged(this);
+	}
+}
+
 bool tilePositionLessThan(const Tile* a, const Tile* b) {
 	return a->getPosition() < b->getPosition();
 }
@@ -414,17 +485,20 @@ bool Tile::isContentEqual(const Tile* other) const {
 		return false;
 	}
 
+	if (static_cast<bool>(invalidZones) != static_cast<bool>(other->invalidZones)) {
+		return false;
+	}
+	if (invalidZones && other->invalidZones && *invalidZones != *other->invalidZones) {
+		return false;
+	}
+
 	// Compare ground
-	if (ground != nullptr && other->ground != nullptr) {
-		if (ground->getID() != other->ground->getID() || ground->getSubtype() != other->ground->getSubtype()) {
-			return false;
-		}
-	} else if (ground != other->ground) {
+	if (!itemsMatch(ground.get(), other->ground.get())) {
 		return false;
 	}
 
 	// Compare items
 	return std::ranges::equal(items, other->items, [](const std::unique_ptr<Item>& it1, const std::unique_ptr<Item>& it2) {
-		return it1->getID() == it2->getID() && it1->getSubtype() == it2->getSubtype();
+		return itemsMatch(it1.get(), it2.get());
 	});
 }

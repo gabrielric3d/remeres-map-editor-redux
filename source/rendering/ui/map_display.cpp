@@ -391,11 +391,8 @@ if (floor <= GROUND_LAYER) {
 
 #endif
 void MapCanvas::GetScreenCenter(int* map_x, int* map_y) {
-	int width = GetSize().x, height = GetSize().y;
-	if (auto mw = GetMapWindow()) {
-		mw->GetViewSize(&width, &height);
-	}
-	ScreenToMap(width / 2, height / 2, map_x, map_y);
+	const wxSize logical_size = GetSize();
+	ScreenToMap(logical_size.x / 2, logical_size.y / 2, map_x, map_y);
 }
 
 Position MapCanvas::GetCursorPosition() const {
@@ -418,6 +415,24 @@ void MapCanvas::UpdatePositionStatus(int x, int y) {
 
 void MapCanvas::UpdateZoomStatus() {
 	ZoomController::UpdateStatus(this);
+}
+
+void MapCanvas::SyncCursorHoverState() {
+	int mouse_map_x, mouse_map_y;
+	MouseToMap(&mouse_map_x, &mouse_map_y);
+
+	const bool map_update = last_cursor_map_x != mouse_map_x || last_cursor_map_y != mouse_map_y || last_cursor_map_z != floor;
+	last_cursor_map_x = mouse_map_x;
+	last_cursor_map_y = mouse_map_y;
+	last_cursor_map_z = floor;
+
+	g_gui.UpdateAutoborderPreview(Position(mouse_map_x, mouse_map_y, floor));
+	UpdatePositionStatus(cursor_x, cursor_y);
+	UpdateZoomStatus();
+
+	if (map_update) {
+		Refresh();
+	}
 }
 
 void MapCanvas::OnMouseMove(wxMouseEvent& event) {
@@ -443,6 +458,10 @@ void MapCanvas::OnMouseMove(wxMouseEvent& event) {
 	last_cursor_map_x = mouse_map_x;
 	last_cursor_map_y = mouse_map_y;
 	last_cursor_map_z = floor;
+
+	if (screendragging) {
+		return;
+	}
 
 	if (map_update) {
 		g_gui.UpdateAutoborderPreview(Position(mouse_map_x, mouse_map_y, floor));
@@ -508,6 +527,9 @@ void MapCanvas::OnMouseRightRelease(wxMouseEvent& event) {
 
 void MapCanvas::OnMouseActionClick(wxMouseEvent& event) {
 	SetFocus();
+	if (auto* map_window = GetMapWindow()) {
+		map_window->ResumeMinimapTrackingToCurrentView();
+	}
 
 	// If radial wheel is open, confirm selection on click
 	if (radial_wheel && radial_wheel->IsOpen()) {
@@ -612,6 +634,9 @@ void MapCanvas::OnMouseActionRelease(wxMouseEvent& event) {
 
 void MapCanvas::OnMouseCameraClick(wxMouseEvent& event) {
 	SetFocus();
+	if (auto* map_window = GetMapWindow()) {
+		map_window->ResumeMinimapTrackingToCurrentView();
+	}
 
 	last_mmb_click_x = event.GetX();
 	last_mmb_click_y = event.GetY();
@@ -628,6 +653,9 @@ void MapCanvas::OnMouseCameraRelease(wxMouseEvent& event) {
 
 void MapCanvas::OnMousePropertiesClick(wxMouseEvent& event) {
 	SetFocus();
+	if (auto* map_window = GetMapWindow()) {
+		map_window->ResumeMinimapTrackingToCurrentView();
+	}
 
 	int mouse_map_x, mouse_map_y;
 	ScreenToMap(event.GetX(), event.GetY(), &mouse_map_x, &mouse_map_y);

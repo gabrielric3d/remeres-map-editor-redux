@@ -18,8 +18,9 @@
 #ifndef RME_MAP_WINDOW_H_
 #define RME_MAP_WINDOW_H_
 
-#include "map/position.h"
 #include "app/rme_forward_declarations.h"
+#include "map/position.h"
+#include "rendering/ui/minimap_viewport.h"
 class ReplaceToolWindow;
 #include <memory>
 
@@ -64,7 +65,7 @@ public:
 	void Scroll(int x, int y, bool center = false);
 
 	// Scroll this many pixels in X/Y, relative to current position
-	void ScrollRelative(int x, int y);
+	void ScrollRelative(int x, int y, bool immediate_minimap_update = false);
 
 	// Resize scrollbars to fit to the map dimensions
 	// This needs to be called after updating map height/width
@@ -75,6 +76,16 @@ public:
 	void SetScreenCenterPosition(const Position& position);
 	void SetScreenCenterPosition(double x, double y, int z);
 	void GoToPreviousCenterPosition();
+	void EnsureMinimapViewportInitialized();
+	void ResetMinimapViewportToCurrentView();
+	void ResumeMinimapTrackingToCurrentView(bool reset_zoom = false);
+	void SyncTrackedMinimapViewportToCurrentView(bool reset_zoom = false);
+	MinimapViewportState& GetMinimapViewportState() {
+		return minimap_viewport_state;
+	}
+	const MinimapViewportState& GetMinimapViewportState() const {
+		return minimap_viewport_state;
+	}
 
 	// Return the containing canvas
 	MapCanvas* GetCanvas() const {
@@ -108,6 +119,7 @@ protected:
 
 private:
 	std::unique_ptr<ReplaceToolWindow, ReplaceToolWindowDeleter> replaceItemsDialog;
+	MinimapViewportState minimap_viewport_state;
 	Position previous_position;
 
 	friend class MainFrame;
