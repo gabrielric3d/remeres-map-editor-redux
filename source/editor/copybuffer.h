@@ -38,6 +38,7 @@ public:
 	bool canPaste() const;
 	// Returns the upper-left corner of the copybuffer
 	Position getPosition() const;
+	void setPosition(const Position& pos);
 
 	// Rotate the copybuffer (clockwise), expressed in 90-degree steps.
 	// quarterTurns: 1 = 90 CW, 2 = 180, 3 = 90 CCW (-1), etc.

@@ -106,18 +106,17 @@ namespace {
 	};
 
 	wxString GetStructuresDirectory() {
-		wxString dataDir = FileSystem::GetDataDirectory();
-		wxString presetsDir = dataDir + "/presets";
-		wxString structuresDir = presetsDir + "/structures";
-
-		if (!wxDirExists(presetsDir)) {
-			wxMkdir(presetsDir);
+		wxFileName dir;
+		dir.AssignDir(FileSystem::GetDataDirectory());
+		dir.AppendDir("presets");
+		if (!dir.DirExists()) {
+			dir.Mkdir(wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
 		}
-		if (!wxDirExists(structuresDir)) {
-			wxMkdir(structuresDir);
+		dir.AppendDir("structures");
+		if (!dir.DirExists()) {
+			dir.Mkdir(wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
 		}
-
-		return structuresDir;
+		return dir.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
 	}
 
 	std::string SanitizeFilename(const std::string& name) {
@@ -332,7 +331,8 @@ namespace {
 	}
 
 	wxString BuildCategoryDirectory(const wxString& baseDir, const wxString& categoryPath) {
-		wxFileName dirName(baseDir, "");
+		wxFileName dirName;
+		dirName.AssignDir(baseDir);
 		if (!categoryPath.empty()) {
 			wxStringTokenizer tokenizer(categoryPath, "/");
 			while (tokenizer.HasMoreTokens()) {
@@ -342,7 +342,7 @@ namespace {
 				}
 			}
 		}
-		return dirName.GetFullPath();
+		return dirName.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
 	}
 
 	bool CategoryNameExists(const std::vector<wxString>& paths, const wxString& name, const wxString& excludePath = wxString()) {
@@ -1052,7 +1052,7 @@ void StructureManagerDialog::LoadStructures() {
 		wxString dirname;
 		bool contDirs = dir.GetFirst(&dirname, "", wxDIR_DIRS);
 		while (contDirs) {
-			wxString childFull = wxFileName(fullPath, dirname).GetFullPath();
+			wxString childFull = BuildCategoryDirectory(fullPath, dirname);
 			wxString childRel = relativePath.empty() ? dirname : (relativePath + "/" + dirname);
 			m_categoryPaths.push_back(childRel);
 			scanDir(childFull, childRel);
@@ -1296,10 +1296,7 @@ bool StructureManagerDialog::CanReorderCurrentList() const {
 }
 
 wxString StructureManagerDialog::GetOrderFilePath(const wxString& category) const {
-	wxString dir = m_baseDir;
-	if (!category.empty()) {
-		dir = wxFileName(m_baseDir, category).GetFullPath();
-	}
+	wxString dir = BuildCategoryDirectory(m_baseDir, category);
 	return wxFileName(dir, ".order.txt").GetFullPath();
 }
 
@@ -1671,6 +1668,7 @@ void StructureManagerDialog::StartPasteFromEntry(const StructureEntry& entry) {
 		return;
 	}
 
+	editor->copybuffer.setPosition(copyPos);
 	m_currentPasteRotationTurns = 0;
 	g_gui.PreparePaste();
 	wxString status = "Paste: Click map to place '" + entry.name + "'. Right-click cancel.";
@@ -1699,10 +1697,7 @@ void StructureManagerDialog::RenameSelectedStructure() {
 
 	std::string sanitized = SanitizeFilename(nstr(name));
 	wxString safeName = wxstr(sanitized);
-	wxString dir = m_baseDir;
-	if (!entry->category.empty()) {
-		dir = wxFileName(m_baseDir, entry->category).GetFullPath();
-	}
+	wxString dir = BuildCategoryDirectory(m_baseDir, entry->category);
 	wxString newPath = wxFileName(dir, safeName + ".otbm").GetFullPath();
 	if (wxFileExists(newPath)) {
 		int ret = wxMessageBox("A structure with this name already exists. Overwrite?", "Structure Manager",
@@ -1785,8 +1780,8 @@ void StructureManagerDialog::RenameSelectedCategory() {
 	} else {
 		newRelativePath = safeName;
 	}
-	wxString newDir = wxFileName(baseDir, newRelativePath).GetFullPath();
-	wxString oldDir = wxFileName(baseDir, m_currentCategoryPath).GetFullPath();
+	wxString newDir = BuildCategoryDirectory(baseDir, newRelativePath);
+	wxString oldDir = BuildCategoryDirectory(baseDir, m_currentCategoryPath);
 
 	if (wxDirExists(newDir)) {
 		wxMessageBox("Category already exists.", "Structure Manager", wxOK | wxICON_INFORMATION, this);
@@ -2229,8 +2224,8 @@ void StructureManagerDialog::AddCategory(bool asChild) {
 	}
 
 	wxString newRelativePath = parentPath.empty() ? safeName : (parentPath + "/" + safeName);
-	wxString parentDir = parentPath.empty() ? m_baseDir : wxFileName(m_baseDir, parentPath).GetFullPath();
-	wxString newDir = wxFileName(parentDir, safeName).GetFullPath();
+	wxString parentDir = BuildCategoryDirectory(m_baseDir, parentPath);
+	wxString newDir = BuildCategoryDirectory(parentDir, safeName);
 
 	if (wxDirExists(newDir)) {
 		wxMessageBox("Category already exists.", "Structure Manager", wxOK | wxICON_INFORMATION, this);
@@ -2264,7 +2259,7 @@ void StructureManagerDialog::OnRemoveCategory(wxCommandEvent& WXUNUSED(event)) {
 		return;
 	}
 
-	const wxString fullPath = wxFileName(m_baseDir, m_currentCategoryPath).GetFullPath();
+	const wxString fullPath = BuildCategoryDirectory(m_baseDir, m_currentCategoryPath);
 	if (!wxDirExists(fullPath)) {
 		wxMessageBox("Category folder not found.", "Structure Manager", wxOK | wxICON_ERROR, this);
 		return;
@@ -2291,7 +2286,7 @@ void StructureManagerDialog::OnRemoveSubcategory(wxCommandEvent& WXUNUSED(event)
 		return;
 	}
 
-	const wxString fullPath = wxFileName(m_baseDir, m_currentCategoryPath).GetFullPath();
+	const wxString fullPath = BuildCategoryDirectory(m_baseDir, m_currentCategoryPath);
 	if (!wxDirExists(fullPath)) {
 		wxMessageBox("Subcategory folder not found.", "Structure Manager", wxOK | wxICON_ERROR, this);
 		return;
@@ -2682,7 +2677,7 @@ void StructureManagerDialog::OnClose(wxCloseEvent& WXUNUSED(event)) {
 	if (m_previewPanel) {
 		m_previewPanel->Hide();
 	}
-	Destroy();
+	g_gui.DestroyStructureManagerDialog();
 }
 
 bool StructureManagerDialog::HandleGlobalHotkey(wxKeyEvent& event) {

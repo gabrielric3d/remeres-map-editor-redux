@@ -65,6 +65,8 @@ public:
 	void OnPageChanged(wxChoicebookEvent& event);
 	void OnClickCreatureBrushButton(wxCommandEvent& event);
 	void OnClickSpawnBrushButton(wxCommandEvent& event);
+	void OnChangeSpawnTime(wxSpinEvent& event);
+	void OnChangeSpawnSize(wxSpinEvent& event);
 
 	// Search and preview events
 	void OnFilterTextChange(wxCommandEvent& event);

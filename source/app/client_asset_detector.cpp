@@ -46,14 +46,14 @@ namespace {
 
 		ResolvedClientFile resolved;
 		resolved.filename = sanitizeFileName(configured_name);
-		resolved.path = wxFileName(client_path.GetFullPath(), wxString::FromUTF8(resolved.filename));
+		resolved.path = wxFileName(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), wxString::FromUTF8(resolved.filename));
 		if (resolved.path.FileExists()) {
 			resolved.exists = true;
 			return resolved;
 		}
 
 		resolved.filename = sanitizeFileName(fallback_name);
-		resolved.path = wxFileName(client_path.GetFullPath(), wxString::FromUTF8(resolved.filename));
+		resolved.path = wxFileName(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), wxString::FromUTF8(resolved.filename));
 		resolved.exists = resolved.path.FileExists();
 		return resolved;
 	}

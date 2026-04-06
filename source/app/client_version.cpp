@@ -486,14 +486,14 @@ bool ClientVersion::hasValidPaths() {
 	// OTFI loading removed (deprecated)
 	// Metadata and sprites paths are now set in loadVersionsFromTOML or defaulted.
 	// We just verify they exist here.
-	metadata_path = wxFileName(client_path.GetFullPath(), wxString(metadata_file));
-	sprites_path = wxFileName(client_path.GetFullPath(), wxString(sprites_file));
+	metadata_path = wxFileName(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), wxString(metadata_file));
+	sprites_path = wxFileName(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), wxString(sprites_file));
 
 	if (!metadata_path.FileExists() || !sprites_path.FileExists()) {
 		// Fallback to "Tibia.dat" / "Tibia.spr" if the configured files don't exist
 		// This maintains some backward compatibility if the toml config is slightly off but files are standard
-		metadata_path = wxFileName(client_path.GetFullPath(), wxString(ASSETS_NAME) + ".dat");
-		sprites_path = wxFileName(client_path.GetFullPath(), wxString(ASSETS_NAME) + ".spr");
+		metadata_path = wxFileName(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), wxString(ASSETS_NAME) + ".dat");
+		sprites_path = wxFileName(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), wxString(ASSETS_NAME) + ".spr");
 	}
 
 	if (!metadata_path.FileExists() || !sprites_path.FileExists()) {
@@ -553,7 +553,7 @@ bool ClientVersion::loadValidPaths() {
 			return false;
 		}
 
-		client_path.Assign(file_dlg.GetPath() + FileName::GetPathSeparator());
+		client_path.AssignDir(file_dlg.GetPath());
 	}
 
 	if (!ClientVersion::saveVersions()) {

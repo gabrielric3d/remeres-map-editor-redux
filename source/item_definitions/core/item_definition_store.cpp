@@ -113,14 +113,12 @@ void ItemDefinitionStore::resetBrushData() {
 			flagMask(ItemFlag::IsBrushDoor) |
 			flagMask(ItemFlag::IsTable) |
 			flagMask(ItemFlag::IsCarpet) |
-			flagMask(ItemFlag::HasEquivalent) |
 			flagMask(ItemFlag::WallHateMe) |
 			flagMask(ItemFlag::HasRaw) |
 			flagMask(ItemFlag::InOtherTileset)
 		);
 
 		// Reset brush-related attributes
-		attributes_.ground_equivalents[i] = 0;
 		attributes_.border_groups[i] = 0;
 		attributes_.border_alignments[i] = BORDER_NONE;
 	}

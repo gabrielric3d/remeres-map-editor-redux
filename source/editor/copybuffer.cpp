@@ -51,6 +51,10 @@ Position CopyBuffer::getPosition() const {
 	return copyPos;
 }
 
+void CopyBuffer::setPosition(const Position& pos) {
+	copyPos = pos;
+}
+
 void CopyBuffer::clear() {
 	tiles.reset();
 }

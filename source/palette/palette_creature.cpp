@@ -25,6 +25,7 @@
 #include "ui/gui.h"
 #include "brushes/spawn/spawn_brush.h"
 #include "game/materials.h"
+#include "util/image_manager.h"
 
 #include <algorithm>
 #include <sstream>

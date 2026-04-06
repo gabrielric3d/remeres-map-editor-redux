@@ -59,10 +59,10 @@ public:
 	bool loadFromXML(const wxFileName& filename, bool standard, wxString& error, std::vector<std::string>& warnings);
 	bool importXMLFromOT(const wxFileName& filename, wxString& error, std::vector<std::string>& warnings);
 
-	bool saveToXML(const FileName& filename);
+	bool saveToXML(const wxFileName& filename);
 
-	bool loadFromJSON(const FileName& filename, bool standard, wxString& error, std::vector<std::string>& warnings);
-	bool saveToJSON(const FileName& filename);
+	bool loadFromJSON(const wxFileName& filename, bool standard, wxString& error, std::vector<std::string>& warnings);
+	bool saveToJSON(const wxFileName& filename);
 };
 
 class CreatureType {
