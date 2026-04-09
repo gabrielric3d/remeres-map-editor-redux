@@ -331,7 +331,6 @@
 			<brush name="dark grass"/>
 			<brush name="jungle grass"/>
 			<brush name="sky grass"/>
-			<brush name="dead grass"/>
 			<brush name="faun cobblestone"/>
 			<brush name="chocolate ground"/>
 			<brush name="chocolate ground mountain"/>
@@ -357,7 +356,6 @@
 			<brush name="earth ground"/>
 			<brush name="jungle dirt"/>
 			<brush name="dark dirt"/>
-			<brush name="dark dirt 2"/>
 			<brush name="melting ground"/>
 			<brush name="lava"/>
 			<brush name="lava (rock soil & cave ground)"/>
@@ -2814,7 +2812,6 @@
 
 			-- uber skeleton --
 			<item fromid="8388" toid="8415"/>
-			<brush name="big chocolate eggs"/>
 		</doodad>
 		<raw>
 		-- statues --

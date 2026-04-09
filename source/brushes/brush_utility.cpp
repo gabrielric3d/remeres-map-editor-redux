@@ -12,10 +12,14 @@
 #include "map/map.h"
 #include "map/tile.h"
 
-bool BrushUtility::processed[BrushUtility::BLOCK_SIZE * BrushUtility::BLOCK_SIZE] = { false };
-int BrushUtility::countMaxFills = 0;
+#include <stack>
 
-void BrushUtility::GetTilesToDraw(int mouse_map_x, int mouse_map_y, int floor, std::vector<Position>* tilestodraw, std::vector<Position>* tilestoborder, bool fill) {
+std::vector<bool> BrushUtility::processed;
+int BrushUtility::countMaxFills = 0;
+int BrushUtility::fill_width = 100;
+int BrushUtility::fill_height = 100;
+
+void BrushUtility::GetTilesToDraw(int mouse_map_x, int mouse_map_y, int floor, std::vector<Position>* tilestodraw, std::vector<Position>* tilestoborder, bool fill, const FillArea& fill_area) {
 	if (fill) {
 		Brush* brush = g_gui.GetCurrentBrush();
 		if (!brush || !brush->is<GroundBrush>()) {
@@ -46,9 +50,11 @@ void BrushUtility::GetTilesToDraw(int mouse_map_x, int mouse_map_y, int floor, s
 			}
 		}
 
-		std::fill(std::begin(processed), std::end(processed), false);
+		fill_width = fill_area.width;
+		fill_height = fill_area.height;
+		processed.assign(fill_width * fill_height, false);
 		countMaxFills = 0;
-		FloodFill(&g_gui.GetCurrentMap(), position, BLOCK_SIZE / 2, BLOCK_SIZE / 2, oldBrush, tilestodraw);
+		FloodFill(&g_gui.GetCurrentMap(), position, fill_width / 2, fill_height / 2, fill_width, fill_height, oldBrush, tilestodraw);
 
 	} else {
 		const BrushFootprint footprint = g_gui.GetBrushFootprint();
@@ -77,55 +83,57 @@ void BrushUtility::GetTilesToDraw(int mouse_map_x, int mouse_map_y, int floor, s
 	}
 }
 
-bool BrushUtility::FloodFill(Map* map, const Position& center, int x, int y, GroundBrush* brush, std::vector<Position>* positions) {
-	countMaxFills++;
-	if (countMaxFills > (BLOCK_SIZE * 4 * 4)) {
-		countMaxFills = 0;
-		return true;
-	}
+bool BrushUtility::FloodFill(Map* map, const Position& center, int start_x, int start_y, int fw, int fh, GroundBrush* brush, std::vector<Position>* positions) {
+	struct Cell { int x, y; };
+	std::stack<Cell> stack;
+	stack.push({start_x, start_y});
 
-	if (x <= 0 || y <= 0 || x >= BLOCK_SIZE || y >= BLOCK_SIZE) {
-		return false;
-	}
+	int maxFills = fw * fh;
 
-	processed[GetFillIndex(x, y)] = true;
+	while (!stack.empty()) {
+		auto [x, y] = stack.top();
+		stack.pop();
 
-	int px = (center.x + x) - (BLOCK_SIZE / 2);
-	int py = (center.y + y) - (BLOCK_SIZE / 2);
-	if (px <= 0 || py <= 0 || px >= map->getWidth() || py >= map->getHeight()) {
-		return false;
-	}
-
-	Tile* tile = map->getTile(px, py, center.z);
-	if ((tile && tile->ground && !brush) || (!tile && brush)) {
-		return false;
-	}
-
-	if (tile && brush) {
-		GroundBrush* groundBrush = tile->getGroundBrush();
-		if (!groundBrush || groundBrush->getID() != brush->getID()) {
-			return false;
+		if (x <= 0 || y <= 0 || x >= fw || y >= fh) {
+			continue;
 		}
+
+		if (processed[GetFillIndex(x, y)]) {
+			continue;
+		}
+
+		processed[GetFillIndex(x, y)] = true;
+
+		int px = (center.x + x) - (fw / 2);
+		int py = (center.y + y) - (fh / 2);
+		if (px <= 0 || py <= 0 || px >= map->getWidth() || py >= map->getHeight()) {
+			continue;
+		}
+
+		Tile* tile = map->getTile(px, py, center.z);
+		if ((tile && tile->ground && !brush) || (!tile && brush)) {
+			continue;
+		}
+
+		if (tile && brush) {
+			GroundBrush* groundBrush = tile->getGroundBrush();
+			if (!groundBrush || groundBrush->getID() != brush->getID()) {
+				continue;
+			}
+		}
+
+		positions->push_back(Position(px, py, center.z));
+
+		countMaxFills++;
+		if (countMaxFills > maxFills) {
+			return true;
+		}
+
+		stack.push({x - 1, y});
+		stack.push({x, y - 1});
+		stack.push({x + 1, y});
+		stack.push({x, y + 1});
 	}
 
-	positions->push_back(Position(px, py, center.z));
-
-	bool deny = false;
-	if (!processed[GetFillIndex(x - 1, y)]) {
-		deny = FloodFill(map, center, x - 1, y, brush, positions);
-	}
-
-	if (!deny && !processed[GetFillIndex(x, y - 1)]) {
-		deny = FloodFill(map, center, x, y - 1, brush, positions);
-	}
-
-	if (!deny && !processed[GetFillIndex(x + 1, y)]) {
-		deny = FloodFill(map, center, x + 1, y, brush, positions);
-	}
-
-	if (!deny && !processed[GetFillIndex(x, y + 1)]) {
-		deny = FloodFill(map, center, x, y + 1, brush, positions);
-	}
-
-	return deny;
+	return false;
 }

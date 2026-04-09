@@ -10,13 +10,13 @@ set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "Minimum CMake policy version 
 
 project(rme)
 
-# Limit parallel compilation threads per project
+# Limit parallel compilation to 20 threads
 if(MSVC)
-	add_compile_options(/MP4)
+	add_compile_options(/MP20)
 else()
 	set(CMAKE_JOB_POOL_COMPILE compile_pool)
 	set(CMAKE_JOB_POOL_LINK link_pool)
-	set_property(GLOBAL PROPERTY JOB_POOLS compile_pool=4 link_pool=4)
+	set_property(GLOBAL PROPERTY JOB_POOLS compile_pool=20 link_pool=4)
 endif()
 
 set(CMAKE_CXX_STANDARD 23)
@@ -68,9 +68,6 @@ find_package(glad CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
-find_package(Lua REQUIRED)
-find_package(sol2 CONFIG REQUIRED)
-find_package(cpr CONFIG REQUIRED)
 
 # nanovg: try vcpkg/Conan first, fallback to ext/nanovg
 find_package(nanovg CONFIG QUIET)
@@ -89,7 +86,7 @@ include(source/CMakeLists.txt)
 # Removed WIN32 to enable Console subsystem for persistent debugging logs
 add_executable(rme ${rme_H} ${rme_SRC})
 
-set_target_properties(rme PROPERTIES CXX_STANDARD 23)
+set_target_properties(rme PROPERTIES CXX_STANDARD 20)
 set_target_properties(rme PROPERTIES CXX_STANDARD_REQUIRED ON)
 target_compile_definitions(rme PRIVATE WXWIN_COMPATIBILITY_3_3 NANOVG_GL3)
  
@@ -115,8 +112,8 @@ endif()
 target_include_directories(rme PRIVATE
 	${Boost_INCLUDE_DIRS}
 	${OPENGL_INCLUDE_DIR}
+
 	${ZLIB_INCLUDE_DIR}
-	${LUA_INCLUDE_DIR}
 	${CMAKE_CURRENT_SOURCE_DIR}/source
 )
 
@@ -140,9 +137,6 @@ target_link_libraries(rme PRIVATE glm::glm)
 target_link_libraries(rme PRIVATE nanovg::nanovg)
 target_link_libraries(rme PRIVATE spdlog::spdlog)
 target_link_libraries(rme PRIVATE tomlplusplus::tomlplusplus)
-target_link_libraries(rme PRIVATE sol2::sol2)
-target_link_libraries(rme PRIVATE cpr::cpr)
-target_link_libraries(rme PRIVATE ${LUA_LIBRARIES})
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT "rme")
 

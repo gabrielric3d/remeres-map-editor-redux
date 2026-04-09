@@ -171,7 +171,16 @@ void DrawingController::HandleClick(const Position& mouse_map_pos, bool shift_do
 					PositionVector tilestoborder;
 
 					bool fill = canvas->keyCode == WXK_CONTROL_D && ctrl_down && brush->is<GroundBrush>();
-					BrushUtility::GetTilesToDraw(mouse_map_pos.x, mouse_map_pos.y, mouse_map_pos.z, &tilestodraw, &tilestoborder, fill);
+					FillArea fill_area;
+					if (fill) {
+						int vsx, vsy, sw, sh;
+						canvas->GetViewBox(&vsx, &vsy, &sw, &sh);
+						int tiles_w = static_cast<int>(sw * canvas->zoom / TILE_SIZE) + 2;
+						int tiles_h = static_cast<int>(sh * canvas->zoom / TILE_SIZE) + 2;
+						fill_area.width = std::max(tiles_w, 10);
+						fill_area.height = std::max(tiles_h, 10);
+					}
+					BrushUtility::GetTilesToDraw(mouse_map_pos.x, mouse_map_pos.y, mouse_map_pos.z, &tilestodraw, &tilestoborder, fill, fill_area);
 
 					if (!fill && ctrl_down) {
 						editor.undraw(tilestodraw, tilestoborder, ground_replace);
