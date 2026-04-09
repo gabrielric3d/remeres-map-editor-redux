@@ -244,6 +244,9 @@ namespace Config {
 
 		LIGHT_SOURCES_DATA,
 
+		SHOW_PICKUPABLES,
+		SHOW_MOVEABLES,
+
 		LAST,
 	};
 }

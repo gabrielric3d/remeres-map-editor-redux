@@ -253,6 +253,9 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 	if (options.highlight_locked_doors) {
 		drawer->DrawDoorIndicators(vg);
 	}
+	if (options.show_pickupables || options.show_moveables) {
+		drawer->DrawItemIndicators(vg);
+	}
 	if (options.show_mountain_overlay) {
 		drawer->DrawMountainOverlay(vg);
 	}

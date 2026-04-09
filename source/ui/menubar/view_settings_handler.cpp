@@ -73,6 +73,8 @@ void ViewSettingsHandler::LoadValues() {
 	menuBar->CheckItem(SHOW_TOOLTIPS, g_settings.getBoolean(Config::SHOW_TOOLTIPS));
 	menuBar->CheckItem(SHOW_PREVIEW, g_settings.getBoolean(Config::SHOW_PREVIEW));
 	menuBar->CheckItem(SHOW_WALL_HOOKS, g_settings.getBoolean(Config::SHOW_WALL_HOOKS));
+	menuBar->CheckItem(SHOW_PICKUPABLES, g_settings.getBoolean(Config::SHOW_PICKUPABLES));
+	menuBar->CheckItem(SHOW_MOVEABLES, g_settings.getBoolean(Config::SHOW_MOVEABLES));
 	menuBar->CheckItem(SHOW_WALL_BORDERS, g_settings.getBoolean(Config::SHOW_WALL_BORDERS));
 	menuBar->CheckItem(SHOW_MOUNTAIN_OVERLAY, g_settings.getBoolean(Config::SHOW_MOUNTAIN_OVERLAY));
 	menuBar->CheckItem(SHOW_STAIR_DIRECTION, g_settings.getBoolean(Config::SHOW_STAIR_DIRECTION));
@@ -128,6 +130,8 @@ void ViewSettingsHandler::OnChangeViewSettings(wxCommandEvent& event) {
 	g_settings.setInteger(Config::SHOW_TOOLTIPS, menuBar->IsItemChecked(SHOW_TOOLTIPS));
 	g_settings.setInteger(Config::SHOW_PREVIEW, menuBar->IsItemChecked(SHOW_PREVIEW));
 	g_settings.setInteger(Config::SHOW_WALL_HOOKS, menuBar->IsItemChecked(SHOW_WALL_HOOKS));
+	g_settings.setInteger(Config::SHOW_PICKUPABLES, menuBar->IsItemChecked(SHOW_PICKUPABLES));
+	g_settings.setInteger(Config::SHOW_MOVEABLES, menuBar->IsItemChecked(SHOW_MOVEABLES));
 	g_settings.setInteger(Config::SHOW_WALL_BORDERS, menuBar->IsItemChecked(SHOW_WALL_BORDERS));
 	g_settings.setInteger(Config::SHOW_MOUNTAIN_OVERLAY, menuBar->IsItemChecked(SHOW_MOUNTAIN_OVERLAY));
 	g_settings.setInteger(Config::SHOW_STAIR_DIRECTION, menuBar->IsItemChecked(SHOW_STAIR_DIRECTION));

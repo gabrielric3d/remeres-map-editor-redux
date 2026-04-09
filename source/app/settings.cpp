@@ -306,6 +306,8 @@ void Settings::IO(IOMode mode) {
 	Bool(SHOW_PREVIEW, true);
 	Bool(SHOW_AUTOBORDER_PREVIEW, false);
 	Bool(SHOW_WALL_HOOKS, false);
+	Bool(SHOW_PICKUPABLES, false);
+	Bool(SHOW_MOVEABLES, false);
 	Bool(SHOW_TOWNS, false);
 	Bool(ALWAYS_SHOW_ZONES, true);
 	Bool(EXT_HOUSE_SHADER, true);

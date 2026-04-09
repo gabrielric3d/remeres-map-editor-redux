@@ -65,6 +65,7 @@
 #include "rendering/drawers/overlays/hook_indicator_drawer.h"
 #include "rendering/drawers/overlays/door_indicator_drawer.h"
 #include "rendering/drawers/overlays/light_indicator_drawer.h"
+#include "rendering/drawers/overlays/item_indicator_drawer.h"
 #include "rendering/drawers/overlays/lua_overlay_drawer.h"
 #include "rendering/drawers/overlays/preview_drawer.h"
 #include "rendering/drawers/tiles/shade_drawer.h"
@@ -125,9 +126,11 @@ MapDrawer::MapDrawer(MapCanvas* canvas) :
 	hook_indicator_drawer = std::make_unique<HookIndicatorDrawer>();
 	door_indicator_drawer = std::make_unique<DoorIndicatorDrawer>();
 	light_indicator_drawer = std::make_unique<LightIndicatorDrawer>();
+	item_indicator_drawer = std::make_unique<ItemIndicatorDrawer>();
 	item_drawer->SetHookIndicatorDrawer(hook_indicator_drawer.get());
 	item_drawer->SetDoorIndicatorDrawer(door_indicator_drawer.get());
 	item_drawer->SetLightIndicatorDrawer(light_indicator_drawer.get());
+	item_drawer->SetItemIndicatorDrawer(item_indicator_drawer.get());
 	wall_border_drawer = std::make_unique<WallBorderDrawer>();
 	mountain_overlay_drawer = std::make_unique<MountainOverlayDrawer>();
 	stair_direction_drawer = std::make_unique<StairDirectionDrawer>();
@@ -305,6 +308,7 @@ void MapDrawer::Draw() {
 	light_buffer.Clear();
 	creature_name_drawer->clear();
 	light_indicator_drawer->clear();
+	item_indicator_drawer->clear();
 	hook_indicator_drawer->clear();
 	door_indicator_drawer->clear();
 	options.transient_selection_bounds = std::nullopt;
@@ -486,6 +490,10 @@ void MapDrawer::DrawDoorIndicators(NVGcontext* vg) {
 
 void MapDrawer::DrawLightIndicators(NVGcontext* vg) {
 	light_indicator_drawer->draw(vg, view);
+}
+
+void MapDrawer::DrawItemIndicators(NVGcontext* vg) {
+	item_indicator_drawer->draw(vg, view);
 }
 
 void MapDrawer::DrawWallBorders(NVGcontext* vg) {

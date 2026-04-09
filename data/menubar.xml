@@ -183,6 +183,8 @@
 		<item name="Highlight Items" hotkey="V" action="HIGHLIGHT_ITEMS" help="Highlight tiles with items on them."/>
 		<item name="Highlight Locked Doors" hotkey="U" action="HIGHLIGHT_LOCKED_DOORS" help="Highlight doors that require key to open."/>
 		<item name="Show Wall Hooks" hotkey="K" action="SHOW_WALL_HOOKS" help="Show indicators for wall hooks."/>
+		<item name="Show Pickupables" action="SHOW_PICKUPABLES" help="Show indicators for pickupable items."/>
+		<item name="Show Moveables" action="SHOW_MOVEABLES" help="Show indicators for moveable items."/>
 		<separator/>
 		<item name="Show Wall Borders" hotkey="" action="SHOW_WALL_BORDERS" help="Show dashed border lines around walls and mountains."/>
 		<item name="Show Mountain Overlay" hotkey="" action="SHOW_MOUNTAIN_OVERLAY" help="Show semi-transparent overlay on mountain tiles."/>

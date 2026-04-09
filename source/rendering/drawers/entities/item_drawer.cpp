@@ -12,6 +12,7 @@
 #include "rendering/drawers/overlays/hook_indicator_drawer.h"
 #include "rendering/drawers/overlays/door_indicator_drawer.h"
 #include "rendering/drawers/overlays/light_indicator_drawer.h"
+#include "rendering/drawers/overlays/item_indicator_drawer.h"
 #include "rendering/core/light_source_manager.h"
 #include "rendering/core/graphics.h"
 #include "rendering/core/sprite_batch.h"
@@ -256,6 +257,17 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 		DrawHookIndicator(it, pos);
 	}
 
+	// draw pickupable/moveable indicator
+	if (!options.ingame && (options.show_pickupables || options.show_moveables)) {
+		bool isPickupable = options.show_pickupables && it.hasFlag(ItemFlag::Pickupable);
+		bool isMoveable = options.show_moveables && it.hasFlag(ItemFlag::Moveable);
+		if (isPickupable || isMoveable) {
+			const Tile* tile = params.tile;
+			bool isHouse = tile && tile->isHouseTile();
+			DrawItemIndicator(pos, isPickupable, isMoveable, isHouse);
+		}
+	}
+
 	// draw light color indicator
 	if (!options.ingame && options.show_light_str) {
 		const SpriteLight& light = item->getLight();
@@ -344,5 +356,19 @@ void ItemDrawer::DrawDoorIndicator(bool locked, const Position& pos, bool south,
 void ItemDrawer::DrawLightIndicator(const Position& pos, uint16_t clientId) {
 	if (light_indicator_drawer) {
 		light_indicator_drawer->addLight(pos, clientId);
+	}
+}
+
+void ItemDrawer::DrawItemIndicator(const Position& pos, bool pickupable, bool moveable, bool isHouseTile) {
+	if (item_indicator_drawer) {
+		ItemIndicatorDrawer::IndicatorType type;
+		if (pickupable && moveable) {
+			type = ItemIndicatorDrawer::IndicatorType::PickupableAndMoveable;
+		} else if (pickupable) {
+			type = ItemIndicatorDrawer::IndicatorType::Pickupable;
+		} else {
+			type = ItemIndicatorDrawer::IndicatorType::Moveable;
+		}
+		item_indicator_drawer->addIndicator(pos, type, isHouseTile);
 	}
 }

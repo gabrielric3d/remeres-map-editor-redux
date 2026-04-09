@@ -17,6 +17,7 @@ class Item;
 class HookIndicatorDrawer;
 class DoorIndicatorDrawer;
 class LightIndicatorDrawer;
+class ItemIndicatorDrawer;
 
 struct DrawingOptions;
 class SpriteBatch;
@@ -50,6 +51,7 @@ public:
 	void DrawHookIndicator(const ItemDefinitionView& definition, const Position& pos);
 	void DrawDoorIndicator(bool locked, const Position& pos, bool south, bool east);
 	void DrawLightIndicator(const Position& pos, uint16_t clientId);
+	void DrawItemIndicator(const Position& pos, bool pickupable, bool moveable, bool isHouseTile);
 
 	void SetHookIndicatorDrawer(HookIndicatorDrawer* drawer) {
 		hook_indicator_drawer = drawer;
@@ -60,11 +62,15 @@ public:
 	void SetLightIndicatorDrawer(LightIndicatorDrawer* drawer) {
 		light_indicator_drawer = drawer;
 	}
+	void SetItemIndicatorDrawer(ItemIndicatorDrawer* drawer) {
+		item_indicator_drawer = drawer;
+	}
 
 private:
 	HookIndicatorDrawer* hook_indicator_drawer = nullptr;
 	DoorIndicatorDrawer* door_indicator_drawer = nullptr;
 	LightIndicatorDrawer* light_indicator_drawer = nullptr;
+	ItemIndicatorDrawer* item_indicator_drawer = nullptr;
 };
 
 #endif

@@ -43,6 +43,8 @@ void DrawingOptions::SetDefault() {
 	show_only_grounds = false;
 	show_preview = false;
 	show_hooks = false;
+	show_pickupables = false;
+	show_moveables = false;
 	show_camera_paths = true;
 	show_wall_borders = false;
 	show_mountain_overlay = false;
@@ -93,6 +95,8 @@ void DrawingOptions::SetIngame() {
 	show_only_grounds = false;
 	show_preview = false;
 	show_hooks = false;
+	show_pickupables = false;
+	show_moveables = false;
 	show_camera_paths = false;
 	show_wall_borders = false;
 	show_mountain_overlay = false;
@@ -134,6 +138,8 @@ void DrawingOptions::Update() {
 	show_only_grounds = g_settings.getBoolean(Config::SHOW_ONLY_GROUNDS);
 	show_preview = g_settings.getBoolean(Config::SHOW_PREVIEW);
 	show_hooks = g_settings.getBoolean(Config::SHOW_WALL_HOOKS);
+	show_pickupables = g_settings.getBoolean(Config::SHOW_PICKUPABLES);
+	show_moveables = g_settings.getBoolean(Config::SHOW_MOVEABLES);
 	hide_items_when_zoomed = g_settings.getBoolean(Config::HIDE_ITEMS_WHEN_ZOOMED);
 	show_towns = g_settings.getBoolean(Config::SHOW_TOWNS);
 	always_show_zones = g_settings.getBoolean(Config::ALWAYS_SHOW_ZONES);

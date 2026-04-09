@@ -53,6 +53,8 @@ struct DrawingOptions {
 	bool show_only_grounds;
 	bool show_preview;
 	bool show_hooks;
+	bool show_pickupables;
+	bool show_moveables;
 	bool hide_items_when_zoomed;
 	bool show_towns;
 	bool always_show_zones;
