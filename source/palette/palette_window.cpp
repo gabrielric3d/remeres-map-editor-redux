@@ -237,6 +237,17 @@ void PaletteWindow::SelectPage(PaletteType id) {
 	}
 }
 
+bool PaletteWindow::SelectBrushByOffset(int offset) {
+	if (!choicebook) {
+		return false;
+	}
+	PalettePanel* panel = dynamic_cast<PalettePanel*>(choicebook->GetCurrentPage());
+	if (!panel) {
+		return false;
+	}
+	return panel->SelectBrushByOffset(offset);
+}
+
 Brush* PaletteWindow::GetSelectedBrush() const {
 	if (!choicebook) {
 		return nullptr;

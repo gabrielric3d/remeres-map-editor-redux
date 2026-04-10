@@ -49,6 +49,9 @@ public:
 	// Access the camera path palette panel
 	CameraPathPalettePanel* GetCameraPathPalette() const { return camera_path_palette; }
 
+	// Select a brush relative to the current selection in the active panel
+	bool SelectBrushByOffset(int offset);
+
 	// Custom Event handlers (something has changed?)
 	// Finds the brush pointed to by whatbrush and selects it as the current brush (also changes page)
 	// Returns if the brush was found in this palette

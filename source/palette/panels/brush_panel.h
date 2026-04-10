@@ -28,6 +28,8 @@ public:
 	virtual Brush* GetSelectedBrush() const = 0;
 	// Select the brush in the parameter, this only changes the look of the panel
 	virtual bool SelectBrush(const Brush* brush) = 0;
+	// Select a brush relative to the current selection (offset: -1 = previous, +1 = next)
+	virtual bool SelectBrushByOffset(int offset) { return false; }
 
 protected:
 	const TilesetCategory* const tileset;
@@ -59,6 +61,8 @@ public:
 	Brush* GetSelectedBrush() const;
 	// Select the brush in the parameter, this only changes the look of the panel
 	bool SelectBrush(const Brush* whatbrush);
+	// Select a brush relative to the current selection
+	bool SelectBrushByOffset(int offset);
 
 	// Filter the displayed brushes by name
 	void SetFilter(const std::string& filter);

@@ -32,6 +32,8 @@ public:
 	Brush* GetSelectedBrush() const override;
 	// Select the brush in the parameter, this only changes the look of the panel
 	bool SelectBrush(const Brush* whatbrush) override;
+	// Select a brush relative to the current selection
+	bool SelectBrushByOffset(int offset) override;
 
 	// Called when this page is displayed
 	void OnSwitchIn() override;

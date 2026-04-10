@@ -230,6 +230,17 @@ void BrushPalettePanel::EnsureBrushIndex() {
 	}
 }
 
+bool BrushPalettePanel::SelectBrushByOffset(int offset) {
+	if (!choicebook) {
+		return false;
+	}
+	BrushPanel* panel = dynamic_cast<BrushPanel*>(choicebook->GetCurrentPage());
+	if (!panel) {
+		return false;
+	}
+	return panel->SelectBrushByOffset(offset);
+}
+
 bool BrushPalettePanel::SelectBrush(const Brush* whatbrush) {
 	if (!choicebook) {
 		return false;

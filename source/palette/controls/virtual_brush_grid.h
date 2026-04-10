@@ -33,6 +33,7 @@ public:
 	void SelectFirstBrush() override;
 	Brush* GetSelectedBrush() const override;
 	bool SelectBrush(const Brush* brush) override;
+	bool SelectBrushByOffset(int offset) override;
 
 	enum class DisplayMode {
 		Grid,

@@ -65,6 +65,8 @@ public:
 	virtual int GetSelectedBrushSize() const;
 	// Select the brush in the parameter, this only changes the look of the panel
 	virtual bool SelectBrush(const Brush* whatbrush);
+	// Select a brush relative to the current selection
+	virtual bool SelectBrushByOffset(int offset);
 
 	// Updates the palette window to use the current brush size
 	virtual void OnUpdateBrushSize(BrushShape shape, int size);

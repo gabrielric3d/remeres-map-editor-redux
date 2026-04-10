@@ -66,7 +66,17 @@ void KeyboardHandler::OnKeyDown(MapCanvas* canvas, wxKeyEvent& event) {
 		case WXK_NUMPAD_UP:
 		case WXK_UP:
 		case WXK_NUMPAD_DOWN:
-		case WXK_DOWN:
+		case WXK_DOWN: {
+			if (event.ShiftDown()) {
+				int offset = (event.GetKeyCode() == WXK_UP || event.GetKeyCode() == WXK_NUMPAD_UP) ? -1 : 1;
+				if (g_gui.SelectPaletteBrushByOffset(offset)) {
+					g_gui.RefreshView();
+				}
+			} else {
+				HandleArrowNavigation(canvas, event);
+			}
+			break;
+		}
 		case WXK_NUMPAD_LEFT:
 		case WXK_LEFT:
 		case WXK_NUMPAD_RIGHT:

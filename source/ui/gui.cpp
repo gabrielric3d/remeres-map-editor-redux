@@ -346,6 +346,22 @@ bool GUI::SelectBrush(const Brush* brush, PaletteType pt) {
 	emitBrushChangeIfNeeded(*this);
 	return changed;
 }
+bool GUI::SelectPaletteBrushByOffset(int offset) {
+	PaletteWindow* palette = GetPalette();
+	if (!palette) {
+		return false;
+	}
+	if (!palette->SelectBrushByOffset(offset)) {
+		return false;
+	}
+	// Now select the brush that the palette landed on
+	Brush* brush = palette->GetSelectedBrush();
+	if (brush) {
+		SelectBrush(brush, palette->GetSelectedPage());
+	}
+	return brush != nullptr;
+}
+
 void GUI::SelectPreviousBrush() {
 	g_brush_manager.SelectPreviousBrush();
 	if (tool_options) {

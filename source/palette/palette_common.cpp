@@ -138,6 +138,10 @@ bool PalettePanel::SelectBrush(const Brush* whatbrush) {
 	return false;
 }
 
+bool PalettePanel::SelectBrushByOffset(int offset) {
+	return false;
+}
+
 void PalettePanel::OnUpdateBrushSize(BrushShape shape, int size) {
 	for (auto* toolbar : tool_bars) {
 		toolbar->OnUpdateBrushSize(shape, size);

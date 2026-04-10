@@ -220,6 +220,8 @@ public:
 	bool SelectBrush(const Brush* brush, PaletteType pt = TILESET_UNKNOWN);
 	// Selects the brush selected before the current brush
 	void SelectPreviousBrush();
+	// Select a brush relative to the current selection in the active palette (offset: -1 = previous, +1 = next)
+	bool SelectPaletteBrushByOffset(int offset);
 	// Only selects the brush, doesn't update the palette
 	void SelectBrushInternal(Brush* brush);
 	// Get different brush parameters

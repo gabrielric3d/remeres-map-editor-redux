@@ -147,6 +147,13 @@ bool BrushPanel::SelectBrush(const Brush* whatbrush) {
 	return false;
 }
 
+bool BrushPanel::SelectBrushByOffset(int offset) {
+	if (loaded && brushbox) {
+		return brushbox->SelectBrushByOffset(offset);
+	}
+	return false;
+}
+
 void BrushPanel::SetFilter(const std::string& filter) {
 	if (!loaded || !brushbox) {
 		return;
