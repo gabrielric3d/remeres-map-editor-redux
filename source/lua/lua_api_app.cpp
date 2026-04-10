@@ -30,6 +30,7 @@
 #include "brushes/raw/raw_brush.h"
 #include "brushes/ground/auto_border.h"
 #include "util/file_system.h"
+#include "ui/map_tab.h"
 
 #include <wx/msgdlg.h>
 #include <wx/app.h>
@@ -621,6 +622,15 @@ namespace LuaAPI {
 
 		app["setCameraPosition"] = [](int x, int y, int z) {
 			g_gui.SetScreenCenterPosition(Position(x, y, z));
+		};
+		app["getCameraPosition"] = [](sol::this_state ts) -> sol::object {
+			sol::state_view lua(ts);
+			MapTab* tab = g_gui.GetCurrentMapTab();
+			if (!tab) {
+				return sol::nil;
+			}
+			Position pos = tab->GetScreenCenterPosition();
+			return sol::make_object(lua, pos);
 		};
 		app["storage"] = storageForScript;
 

@@ -65,6 +65,9 @@ namespace LuaAPI {
 		registerNoise(lua);
 		registerAlgo(lua);
 		registerGeo(lua);
+
+		// Register camera path API (must come after registerApp so app table exists)
+		registerCameraPath(lua);
 	}
 
 }

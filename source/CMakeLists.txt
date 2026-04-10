@@ -404,6 +404,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_algo.h
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_app.h
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_brush.h
+    ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_camera_path.h
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_color.h
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_creature.h
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_geo.h
@@ -809,6 +810,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_algo.cpp
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_app.cpp
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_brush.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_camera_path.cpp
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_color.cpp
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_creature.cpp
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_geo.cpp

@@ -52,6 +52,9 @@ namespace LuaAPI {
 	void registerNoise(sol::state& lua);
 	void registerAlgo(sol::state& lua);
 	void registerGeo(sol::state& lua);
+
+	// Camera path API
+	void registerCameraPath(sol::state& lua);
 }
 
 #endif // RME_LUA_API_H
