@@ -89,6 +89,7 @@ private:
 	wxButton* m_clusterFromSelectionBtn;
 	wxSpinCtrl* m_instanceCountSpin;
 	wxSpinCtrl* m_instanceMinDistSpin;
+	wxCheckBox* m_requireGroundCheck;
 	wxStaticText* m_clusterCenterLabel;
 
 	wxListCtrl* m_itemsListCtrl;

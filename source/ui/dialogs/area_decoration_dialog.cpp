@@ -263,6 +263,7 @@ FloorRuleEditDialog::FloorRuleEditDialog(wxWindow* parent, AreaDecoration::Floor
 	, m_clusterFromSelectionBtn(nullptr)
 	, m_instanceCountSpin(nullptr)
 	, m_instanceMinDistSpin(nullptr)
+	, m_requireGroundCheck(nullptr)
 	, m_clusterCenterLabel(nullptr)
 	, m_itemsImageList(nullptr)
 	, m_borderItemSpin(nullptr)
@@ -454,6 +455,11 @@ void FloorRuleEditDialog::CreateControls() {
 	instanceBox->Add(m_clusterCenterLabel, 0, wxLEFT | wxBOTTOM, 5);
 
 	clusterPanelSizer->Add(instanceBox, 0, wxTOP | wxEXPAND, 5);
+
+	m_requireGroundCheck = new wxCheckBox(m_clusterControlsPanel, wxID_ANY, "Require ground on all tiles");
+	m_requireGroundCheck->SetToolTip("Only place cluster instances where ALL covered tiles have a ground tile. Prevents placement over empty/black areas.");
+	m_requireGroundCheck->SetValue(true);
+	clusterPanelSizer->Add(m_requireGroundCheck, 0, wxALL, 5);
 
 	m_clusterControlsPanel->SetSizer(clusterPanelSizer);
 	m_clusterControlsPanel->Hide();  // Hidden by default
@@ -729,6 +735,9 @@ void FloorRuleEditDialog::LoadRuleData() {
 		}
 		if (m_instanceMinDistSpin) {
 			m_instanceMinDistSpin->SetValue(m_rule.instanceMinDistance);
+		}
+		if (m_requireGroundCheck) {
+			m_requireGroundCheck->SetValue(m_rule.requireGround);
 		}
 		// Update center label
 		if (m_clusterCenterLabel) {
@@ -1252,6 +1261,7 @@ bool FloorRuleEditDialog::TransferDataFromWindow() {
 		m_rule.toFloorId = 0;
 		m_rule.instanceCount = m_instanceCountSpin ? m_instanceCountSpin->GetValue() : 1;
 		m_rule.instanceMinDistance = m_instanceMinDistSpin ? m_instanceMinDistSpin->GetValue() : 5;
+		m_rule.requireGround = m_requireGroundCheck ? m_requireGroundCheck->GetValue() : true;
 		if (m_rule.clusterTiles.empty()) {
 			wxMessageBox("Cluster must have at least one tile with items.", "Validation Error",
 			             wxOK | wxICON_ERROR, this);

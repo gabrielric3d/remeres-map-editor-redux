@@ -171,6 +171,7 @@ struct FloorRule {
 	// For centered mode: how many cluster instances to place
 	int instanceCount = 1;
 	int instanceMinDistance = 5;  // Min distance between instances
+	bool requireGround = true;   // Only place cluster where all tiles have ground
 
 	bool matchesFloor(uint16_t groundId) const;
 	bool isRangeRule() const { return ruleMode == RuleMode::FloorRange; }

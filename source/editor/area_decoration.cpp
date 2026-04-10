@@ -1148,6 +1148,14 @@ bool DecorationEngine::buildPlacementItems(const Position& basePos, const ItemEn
 			if (tile.itemIds.empty()) continue;
 			Position pos = origin + tile.offset;
 
+			// Skip tiles without ground when requireGround is active
+			if (rule && rule->requireGround && !m_virtualPreview && m_editor) {
+				Tile* mapTile = m_editor->map.getTile(pos);
+				if (!mapTile || !mapTile->ground) {
+					continue;
+				}
+			}
+
 			uint16_t validateId = 0;
 			for (uint16_t id : tile.itemIds) {
 				if (id > 0) {
@@ -1648,9 +1656,9 @@ void DecorationEngine::generateClusterCentered(const std::vector<std::pair<Posit
 			}
 
 			// Must match the cluster pattern exactly on the map
-			if (map && !ct.itemIds.empty()) {
+			if (map) {
 				Tile* mapTile = map->getTile(absPos);
-				if (!tileMatchesClusterPattern(mapTile, ct)) {
+				if (!ct.itemIds.empty() && !tileMatchesClusterPattern(mapTile, ct)) {
 					allMatch = false;
 					break;
 				}
@@ -1792,9 +1800,9 @@ void DecorationEngine::generateClusterRandom(const std::vector<std::pair<Positio
 			}
 
 			// Must match the cluster pattern exactly on the map
-			if (map && !ct.itemIds.empty()) {
+			if (map) {
 				Tile* mapTile = map->getTile(absPos);
-				if (!tileMatchesClusterPattern(mapTile, ct)) {
+				if (!ct.itemIds.empty() && !tileMatchesClusterPattern(mapTile, ct)) {
 					allMatch = false;
 					break;
 				}
@@ -2133,6 +2141,7 @@ bool DecorationPreset::saveToFile(const std::string& filepath) const {
 			ruleNode.append_attribute("center_z") = rule.centerOffset.z;
 			ruleNode.append_attribute("instance_count") = rule.instanceCount;
 			ruleNode.append_attribute("instance_min_distance") = rule.instanceMinDistance;
+			ruleNode.append_attribute("require_ground") = rule.requireGround;
 		}
 
 		if (rule.isFriendRange()) {
@@ -2296,6 +2305,7 @@ bool DecorationPreset::loadFromFile(const std::string& filepath) {
 				ruleNode.attribute("center_z").as_int(0));
 			rule.instanceCount = ruleNode.attribute("instance_count").as_int(1);
 			rule.instanceMinDistance = ruleNode.attribute("instance_min_distance").as_int(5);
+			rule.requireGround = ruleNode.attribute("require_ground").as_bool(true);
 
 			// Parse cluster_tile nodes
 			for (pugi::xml_node ctNode = ruleNode.child("cluster_tile"); ctNode;
@@ -2454,6 +2464,7 @@ std::string DecorationPreset::toXmlString() const {
 			ruleNode.append_attribute("center_z") = rule.centerOffset.z;
 			ruleNode.append_attribute("instance_count") = rule.instanceCount;
 			ruleNode.append_attribute("instance_min_distance") = rule.instanceMinDistance;
+			ruleNode.append_attribute("require_ground") = rule.requireGround;
 		}
 
 		if (rule.isFriendRange()) {
@@ -2612,6 +2623,7 @@ bool DecorationPreset::fromXmlString(const std::string& xml) {
 				ruleNode.attribute("center_z").as_int(0));
 			rule.instanceCount = ruleNode.attribute("instance_count").as_int(1);
 			rule.instanceMinDistance = ruleNode.attribute("instance_min_distance").as_int(5);
+			rule.requireGround = ruleNode.attribute("require_ground").as_bool(true);
 
 			// Parse cluster_tile nodes
 			for (pugi::xml_node ctNode = ruleNode.child("cluster_tile"); ctNode;
