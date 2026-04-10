@@ -72,8 +72,11 @@ void ReplaceToolWindow::OnClose(wxCloseEvent& event) {
 		wxSize size = GetSize();
 		g_settings.setInteger(Config::REPLACE_TOOL_WINDOW_WIDTH, size.GetWidth());
 		g_settings.setInteger(Config::REPLACE_TOOL_WINDOW_HEIGHT, size.GetHeight());
-		g_settings.save();
 	}
+	// Save checkbox states
+	g_settings.setBoolean(Config::REPLACE_TOOL_AUTO_ADD_RULE, m_autoAddCheck->IsChecked());
+	g_settings.setBoolean(Config::REPLACE_TOOL_AUTO_ASSIGN_PALETTE, m_autoAssignCheck->IsChecked());
+	g_settings.save();
 	event.Skip(); // Allow window to close
 }
 
@@ -221,7 +224,16 @@ void ReplaceToolWindow::InitLayout() {
 	m_autoAddCheck->SetForegroundColour(wxColour(180, 180, 180));
 	m_autoAddCheck->SetFont(Theme::GetFont(9));
 	m_autoAddCheck->SetToolTip("Automatically starts a new rule when both Original and Replacement are set");
+	m_autoAddCheck->SetValue(g_settings.getBoolean(Config::REPLACE_TOOL_AUTO_ADD_RULE));
 	actionsSizer->Add(m_autoAddCheck, wxSizerFlags(0).Expand().Border(wxLEFT | wxRIGHT | wxBOTTOM, padding));
+
+	// Auto-assign palette clicks checkbox
+	m_autoAssignCheck = new wxCheckBox(actionsCard, wxID_ANY, "Auto-assign palette clicks");
+	m_autoAssignCheck->SetForegroundColour(wxColour(180, 180, 180));
+	m_autoAssignCheck->SetFont(Theme::GetFont(9));
+	m_autoAssignCheck->SetToolTip("Left-click on palette items to auto-assign: 1st click = Original (Box 1), 2nd click = Replacement (Box 2), then alternates");
+	m_autoAssignCheck->SetValue(g_settings.getBoolean(Config::REPLACE_TOOL_AUTO_ASSIGN_PALETTE));
+	actionsSizer->Add(m_autoAssignCheck, wxSizerFlags(0).Expand().Border(wxLEFT | wxRIGHT | wxBOTTOM, padding));
 
 	actionsSizer->AddStretchSpacer(1);
 
@@ -553,6 +565,23 @@ void ReplaceToolWindow::UpdateSavedRulesList() {
 void ReplaceToolWindow::OnClearRules() {
 	ruleBuilder->Clear();
 	similarItemsGrid->SetItems({});
+}
+
+bool ReplaceToolWindow::IsAutoAssignEnabled() const {
+	return m_autoAssignCheck && m_autoAssignCheck->IsChecked() && IsShown();
+}
+
+void ReplaceToolWindow::AutoAssignItem(uint16_t itemId) {
+	if (itemId == 0) {
+		return;
+	}
+	if (m_nextSlot == 1) {
+		ApplyItemToOriginal(itemId);
+		m_nextSlot = 2;
+	} else {
+		ApplyItemToReplacement(itemId);
+		m_nextSlot = 1;
+	}
 }
 
 void ReplaceToolWindow::OnItemSelected(ItemGridPanel* source, uint16_t itemId) {

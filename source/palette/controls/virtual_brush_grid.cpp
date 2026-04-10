@@ -23,6 +23,7 @@
 #include <format>
 #include "ui/map_tab.h"
 #include "ui/map_window.h"
+#include "ui/replace_tool/replace_tool_window.h"
 
 namespace {
 	static constexpr float GROW_FACTOR = 2.0f;
@@ -385,6 +386,26 @@ void VirtualBrushGrid::OnMouseDown(wxMouseEvent& event) {
 			Brush* brush = GetEffectiveBrush(static_cast<size_t>(selected_index));
 			if (brush) {
 				g_gui.SelectBrush(brush, tileset->getType());
+
+				// Auto-assign to replace tool slots if enabled
+				MapTab* tab = g_gui.GetCurrentMapTab();
+				if (tab) {
+					ReplaceToolWindow* rtw = tab->GetReplaceToolWindow();
+					if (rtw && rtw->IsAutoAssignEnabled()) {
+						uint16_t serverId = 0;
+						if (brush->is<RAWBrush>()) {
+							serverId = brush->as<RAWBrush>()->getItemID();
+						} else {
+							int lookId = brush->getLookID();
+							if (lookId > 0) {
+								serverId = static_cast<uint16_t>(lookId);
+							}
+						}
+						if (serverId > 0) {
+							rtw->AutoAssignItem(serverId);
+						}
+					}
+				}
 			}
 			Refresh();
 		}
@@ -642,6 +663,34 @@ bool VirtualBrushGrid::SelectBrush(const Brush* brush) {
 	selected_index = -1;
 	Refresh();
 	return false;
+}
+
+bool VirtualBrushGrid::SelectBrushByOffset(int offset) {
+	int count = static_cast<int>(GetEffectiveBrushCount());
+	if (count == 0) {
+		return false;
+	}
+
+	int new_index = selected_index + offset;
+	if (new_index < 0 || new_index >= count) {
+		return false;
+	}
+
+	selected_index = new_index;
+
+	// Ensure visible (same logic as SelectBrush)
+	wxRect rect = GetItemRect(selected_index);
+	int scrollPos = GetScrollPosition();
+	int clientHeight = GetClientSize().y;
+
+	if (rect.y < scrollPos) {
+		SetScrollPosition(rect.y - padding);
+	} else if (rect.y + rect.height > scrollPos + clientHeight) {
+		SetScrollPosition(rect.y + rect.height - clientHeight + padding);
+	}
+
+	Refresh();
+	return true;
 }
 
 // ============================================================================

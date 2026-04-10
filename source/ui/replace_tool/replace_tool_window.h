@@ -44,6 +44,10 @@ public:
 
 	void OnClose(wxCloseEvent& event);
 
+	// Auto-assign palette clicks
+	bool IsAutoAssignEnabled() const;
+	void AutoAssignItem(uint16_t itemId);
+
 private:
 	void InitLayout();
 	void UpdateSavedRulesList();
@@ -66,6 +70,8 @@ private:
 	wxButton* m_addVisibleBtn;
 	wxChoice* m_scopeChoice;
 	wxCheckBox* m_autoAddCheck;
+	wxCheckBox* m_autoAssignCheck;
+	int m_nextSlot = 1; // Alternates between 1 (Original) and 2 (Replacement)
 
 	ReplacementEngine engine;
 

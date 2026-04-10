@@ -89,6 +89,8 @@ MapWindow::~MapWindow() {
 
 void MapWindow::ShowReplaceItemsDialog(bool selectionOnly) {
 	if (replaceItemsDialog) {
+		replaceItemsDialog->Show();
+		replaceItemsDialog->Raise();
 		return;
 	}
 
@@ -100,6 +102,7 @@ void MapWindow::ShowReplaceItemsDialog(bool selectionOnly) {
 void MapWindow::ShowAdvancedReplaceForSelection(const std::vector<uint16_t>& ids) {
 	if (replaceItemsDialog) {
 		replaceItemsDialog->InitializeWithIDs(ids);
+		replaceItemsDialog->Show();
 		replaceItemsDialog->Raise();
 		return;
 	}
@@ -114,6 +117,8 @@ void MapWindow::ApplyItemToReplaceOriginal(uint16_t itemId) {
 	if (!replaceItemsDialog) {
 		replaceItemsDialog.reset(new ReplaceToolWindow(this, &editor));
 		replaceItemsDialog->Bind(wxEVT_CLOSE_WINDOW, &MapWindow::OnReplaceItemsDialogClose, this);
+	}
+	if (!replaceItemsDialog->IsShown()) {
 		replaceItemsDialog->Show();
 	}
 	replaceItemsDialog->ApplyItemToOriginal(itemId);
@@ -123,6 +128,8 @@ void MapWindow::ApplyItemToReplaceReplacement(uint16_t itemId) {
 	if (!replaceItemsDialog) {
 		replaceItemsDialog.reset(new ReplaceToolWindow(this, &editor));
 		replaceItemsDialog->Bind(wxEVT_CLOSE_WINDOW, &MapWindow::OnReplaceItemsDialogClose, this);
+	}
+	if (!replaceItemsDialog->IsShown()) {
 		replaceItemsDialog->Show();
 	}
 	replaceItemsDialog->ApplyItemToReplacement(itemId);
@@ -130,17 +137,17 @@ void MapWindow::ApplyItemToReplaceReplacement(uint16_t itemId) {
 
 void MapWindow::CloseReplaceItemsDialog() {
 	if (replaceItemsDialog) {
-		replaceItemsDialog->Close();
+		replaceItemsDialog->Unbind(wxEVT_CLOSE_WINDOW, &MapWindow::OnReplaceItemsDialogClose, this);
+		replaceItemsDialog.reset(); // Actually destroy via deleter
 	}
 }
 
 void MapWindow::OnReplaceItemsDialogClose(wxCloseEvent& event) {
 	if (replaceItemsDialog) {
-		replaceItemsDialog->Unbind(wxEVT_CLOSE_WINDOW, &MapWindow::OnReplaceItemsDialogClose, this);
-		// unique_ptr will call Destroy() via custom deleter
-		replaceItemsDialog.reset();
+		// Just hide instead of destroying — preserves state until map is closed
+		replaceItemsDialog->Hide();
+		event.Veto(); // Prevent actual destruction
 	}
-	event.Skip();
 }
 
 void MapWindow::SetSize(int x, int y, bool center) {
