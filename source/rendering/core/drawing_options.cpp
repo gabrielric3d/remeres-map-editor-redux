@@ -46,6 +46,10 @@ void DrawingOptions::SetDefault() {
 	show_pickupables = false;
 	show_moveables = false;
 	show_camera_paths = true;
+	show_shadow_occlusion = false;
+	show_custom_item_lights = true;
+	show_forced_light_zones = false;
+	show_zone_boundaries = true;
 	show_wall_borders = false;
 	show_mountain_overlay = false;
 	show_stair_direction = false;
@@ -98,6 +102,10 @@ void DrawingOptions::SetIngame() {
 	show_pickupables = false;
 	show_moveables = false;
 	show_camera_paths = false;
+	show_shadow_occlusion = false;
+	show_custom_item_lights = false;
+	show_forced_light_zones = false;
+	show_zone_boundaries = false;
 	show_wall_borders = false;
 	show_mountain_overlay = false;
 	show_stair_direction = false;
@@ -148,6 +156,10 @@ void DrawingOptions::Update() {
 	ambient_light_level = g_gui.GetAmbientLightLevel();
 
 	show_camera_paths = g_settings.getBoolean(Config::SHOW_CAMERA_PATHS);
+	show_shadow_occlusion = g_settings.getBoolean(Config::SHOW_SHADOW_OCCLUSION);
+	show_custom_item_lights = g_settings.getBoolean(Config::SHOW_CUSTOM_ITEM_LIGHTS);
+	show_forced_light_zones = g_settings.getBoolean(Config::SHOW_FORCED_LIGHT_ZONES);
+	show_zone_boundaries = g_settings.getBoolean(Config::SHOW_ZONE_BOUNDARIES);
 	show_wall_borders = g_settings.getBoolean(Config::SHOW_WALL_BORDERS);
 	show_mountain_overlay = g_settings.getBoolean(Config::SHOW_MOUNTAIN_OVERLAY);
 	show_stair_direction = g_settings.getBoolean(Config::SHOW_STAIR_DIRECTION);
@@ -158,5 +170,5 @@ void DrawingOptions::Update() {
 }
 
 bool DrawingOptions::isDrawLight() const noexcept {
-	return show_lights;
+	return show_lights || show_forced_light_zones;
 }

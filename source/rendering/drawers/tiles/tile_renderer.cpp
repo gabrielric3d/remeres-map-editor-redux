@@ -26,6 +26,24 @@
 #include "rendering/core/light_buffer.h"
 #include "rendering/core/sprite_preloader.h"
 #include "rendering/utilities/pattern_calculator.h"
+#include "rendering/core/custom_item_light.h"
+#include "rendering/core/render_timer.h"
+
+static void tryAddCustomItemLight(LightBuffer* light_buffer, const Position& position, uint16_t clientId, uint32_t elapsed) {
+	const auto* customLight = CustomItemLightManager::instance().find(clientId);
+	if (!customLight) {
+		return;
+	}
+	uint32_t totalDur = customLight->getTotalPatternDuration();
+	uint32_t offset = totalDur > 0 ? (position.x * 7919u + position.y * 7927u + position.z * 7933u) % totalDur : 0;
+	uint8_t currentIntensity = CustomItemLightManager::instance().getCurrentIntensity(*customLight, elapsed, offset);
+	if (currentIntensity > 0) {
+		SpriteLight sl;
+		sl.color = customLight->color;
+		sl.intensity = currentIntensity;
+		light_buffer->AddLight(position.x, position.y, position.z, sl);
+	}
+}
 
 TileRenderer::TileRenderer(ItemDrawer* id, SpriteDrawer* sd, CreatureDrawer* cd, CreatureNameDrawer* cnd, FloorDrawer* fd, MarkerDrawer* md, TooltipDrawer* td, Editor* ed) :
 	item_drawer(id), sprite_drawer(sd), creature_drawer(cd), floor_drawer(fd), marker_drawer(md), tooltip_drawer(td), creature_name_drawer(cnd), editor(ed) {
@@ -203,6 +221,9 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 
 	const auto& position = location->getPosition();
 
+	// Cache elapsed time once per tile to avoid repeated wxGetLocalTimeMillis() system calls
+	const uint32_t elapsed = static_cast<uint32_t>(wxGetLocalTimeMillis().GetValue());
+
 	ItemDefinitionView ground_it;
 	if (tile->ground) {
 		ground_it = tile->ground->getDefinition();
@@ -216,6 +237,18 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 		if (tile->ground && tile->ground->hasLight() && !hidden_invalid_ground && !unresolved_invalid_ground) {
 			light_buffer->AddLight(position.x, position.y, position.z, tile->ground->getLight());
 		}
+	}
+
+	// Blocking tile tracking for shadow occlusion
+	if (light_buffer && (options.show_shadow_occlusion || options.show_forced_light_zones)) {
+		if (tile->isBlocking()) {
+			light_buffer->blocking_grid.setBlocking(position.x, position.y, true);
+		}
+	}
+
+	// Custom item lights (ground)
+	if (light_buffer && options.show_custom_item_lights && tile->ground) {
+		tryAddCustomItemLight(light_buffer, position, tile->ground->getClientID(), elapsed);
 	}
 
 	Waypoint* waypoint = nullptr;
@@ -354,6 +387,11 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 
 				if (light_buffer && item->hasLight()) {
 					light_buffer->AddLight(position.x, position.y, position.z, item->getLight());
+				}
+
+				// Custom item lights (override or supplement .dat light)
+				if (light_buffer && options.show_custom_item_lights) {
+					tryAddCustomItemLight(light_buffer, position, item->getClientID(), elapsed);
 				}
 
 				// item tooltip (one per item)

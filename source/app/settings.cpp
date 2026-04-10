@@ -308,6 +308,10 @@ void Settings::IO(IOMode mode) {
 	Bool(SHOW_WALL_HOOKS, false);
 	Bool(SHOW_PICKUPABLES, false);
 	Bool(SHOW_MOVEABLES, false);
+	Bool(SHOW_SHADOW_OCCLUSION, false);
+	Bool(SHOW_CUSTOM_ITEM_LIGHTS, true);
+	Bool(SHOW_FORCED_LIGHT_ZONES, false);
+	Bool(SHOW_ZONE_BOUNDARIES, true);
 	Bool(SHOW_TOWNS, false);
 	Bool(ALWAYS_SHOW_ZONES, true);
 	Bool(EXT_HOUSE_SHADER, true);
@@ -468,6 +472,8 @@ void Settings::IO(IOMode mode) {
 	Int(WINDOW_WIDTH, 700);
 	Int(REPLACE_TOOL_WINDOW_WIDTH, 1400);
 	Int(REPLACE_TOOL_WINDOW_HEIGHT, 850);
+	Bool(REPLACE_TOOL_AUTO_ADD_RULE, false);
+	Bool(REPLACE_TOOL_AUTO_ASSIGN_PALETTE, false);
 	Bool(WINDOW_MAXIMIZED, false);
 	Bool(WELCOME_DIALOG, true);
 	Int(PREFERENCES_WINDOW_WIDTH, 1200);

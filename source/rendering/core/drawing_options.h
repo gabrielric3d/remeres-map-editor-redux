@@ -62,6 +62,11 @@ struct DrawingOptions {
 
 	bool show_camera_paths;
 
+	bool show_shadow_occlusion;
+	bool show_custom_item_lights;
+	bool show_forced_light_zones;
+	bool show_zone_boundaries;
+
 	bool show_wall_borders;
 	bool show_mountain_overlay;
 	bool show_stair_direction;

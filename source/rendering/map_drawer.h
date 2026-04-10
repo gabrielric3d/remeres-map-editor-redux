@@ -68,6 +68,7 @@ class WallBorderDrawer;
 class MountainOverlayDrawer;
 class StairDirectionDrawer;
 class LuaOverlayDrawer;
+class ZoneOverlayDrawer;
 
 class MapDrawer {
 	MapCanvas* canvas;
@@ -103,6 +104,7 @@ class MapDrawer {
 	std::unique_ptr<MountainOverlayDrawer> mountain_overlay_drawer;
 	std::unique_ptr<StairDirectionDrawer> stair_direction_drawer;
 	std::unique_ptr<LuaOverlayDrawer> lua_overlay_drawer;
+	std::unique_ptr<ZoneOverlayDrawer> zone_overlay_drawer;
 	std::unique_ptr<SpriteBatch> sprite_batch;
 	std::unique_ptr<PrimitiveRenderer> primitive_renderer;
 
@@ -155,6 +157,8 @@ public:
 	void DrawSpawnOverlays(NVGcontext* vg);
 
 	void DrawLight();
+	void DrawZoneOverlay();
+	void DrawZoneLabels(NVGcontext* vg);
 
 	void TakeScreenshot(uint8_t* screenshot_buffer);
 

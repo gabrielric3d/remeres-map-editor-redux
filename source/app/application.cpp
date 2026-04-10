@@ -23,6 +23,8 @@
 #include "util/file_system.h"
 #include "editor/hotkey_manager.h"
 #include "rendering/core/light_source_manager.h"
+#include "rendering/core/forced_light_zone.h"
+#include "rendering/core/custom_item_light.h"
 
 #include "game/sprites.h"
 #include "editor/editor.h"
@@ -171,6 +173,9 @@ bool Application::OnInit() {
 	FixVersionDiscrapencies();
 	g_hotkeys.LoadHotkeys();
 	LightSourceManager::instance().load();
+	wxString dataDir = FileSystem::GetDataDirectory();
+	ForcedLightZoneManager::instance().load(nstr(dataDir + "forced_light" + FileName::GetPathSeparator() + "forced_light_zones.lua"));
+	CustomItemLightManager::instance().load(nstr(dataDir + "forced_light" + FileName::GetPathSeparator() + "custom_item_lights.lua"));
 	ClientVersion::loadVersions();
 
 #ifdef _USE_PROCESS_COM

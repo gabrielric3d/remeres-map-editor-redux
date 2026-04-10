@@ -189,6 +189,11 @@
 		<item name="Show Wall Borders" hotkey="" action="SHOW_WALL_BORDERS" help="Show dashed border lines around walls and mountains."/>
 		<item name="Show Mountain Overlay" hotkey="" action="SHOW_MOUNTAIN_OVERLAY" help="Show semi-transparent overlay on mountain tiles."/>
 		<item name="Show Stair Direction" hotkey="" action="SHOW_STAIR_DIRECTION" help="Show directional arrows on floor-change tiles."/>
+		<separator/>
+		<item name="Shadow Occlusion" hotkey="" action="SHOW_SHADOW_OCCLUSION" help="Cast shadows from walls when light is enabled."/>
+		<item name="Custom Item Lights" hotkey="" action="SHOW_CUSTOM_ITEM_LIGHTS" help="Show custom light definitions from data/forced_light/custom_item_lights.lua."/>
+		<item name="Forced Light Zones" hotkey="" action="SHOW_FORCED_LIGHT_ZONES" help="Preview forced darkness zones from data/forced_light/forced_light_zones.lua."/>
+		<item name="Zone Boundaries" hotkey="" action="SHOW_ZONE_BOUNDARIES" help="Show visual boundaries of forced light zones."/>
 	</menu>
 	<menu name="Navigate">
 		<item name="Go to Previous Position" hotkey="P" action="GOTO_PREVIOUS_POSITION" help="Go to the previous screen center position."/>

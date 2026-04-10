@@ -78,6 +78,10 @@ void ViewSettingsHandler::LoadValues() {
 	menuBar->CheckItem(SHOW_WALL_BORDERS, g_settings.getBoolean(Config::SHOW_WALL_BORDERS));
 	menuBar->CheckItem(SHOW_MOUNTAIN_OVERLAY, g_settings.getBoolean(Config::SHOW_MOUNTAIN_OVERLAY));
 	menuBar->CheckItem(SHOW_STAIR_DIRECTION, g_settings.getBoolean(Config::SHOW_STAIR_DIRECTION));
+	menuBar->CheckItem(SHOW_SHADOW_OCCLUSION, g_settings.getBoolean(Config::SHOW_SHADOW_OCCLUSION));
+	menuBar->CheckItem(SHOW_CUSTOM_ITEM_LIGHTS, g_settings.getBoolean(Config::SHOW_CUSTOM_ITEM_LIGHTS));
+	menuBar->CheckItem(SHOW_FORCED_LIGHT_ZONES, g_settings.getBoolean(Config::SHOW_FORCED_LIGHT_ZONES));
+	menuBar->CheckItem(SHOW_ZONE_BOUNDARIES, g_settings.getBoolean(Config::SHOW_ZONE_BOUNDARIES));
 	menuBar->CheckItem(SHOW_CAMERA_PATHS, g_settings.getBoolean(Config::SHOW_CAMERA_PATHS));
 	menuBar->CheckItem(SHOW_TOWNS, g_settings.getBoolean(Config::SHOW_TOWNS));
 	menuBar->CheckItem(ALWAYS_SHOW_ZONES, g_settings.getBoolean(Config::ALWAYS_SHOW_ZONES));
@@ -135,6 +139,10 @@ void ViewSettingsHandler::OnChangeViewSettings(wxCommandEvent& event) {
 	g_settings.setInteger(Config::SHOW_WALL_BORDERS, menuBar->IsItemChecked(SHOW_WALL_BORDERS));
 	g_settings.setInteger(Config::SHOW_MOUNTAIN_OVERLAY, menuBar->IsItemChecked(SHOW_MOUNTAIN_OVERLAY));
 	g_settings.setInteger(Config::SHOW_STAIR_DIRECTION, menuBar->IsItemChecked(SHOW_STAIR_DIRECTION));
+	g_settings.setInteger(Config::SHOW_SHADOW_OCCLUSION, menuBar->IsItemChecked(SHOW_SHADOW_OCCLUSION));
+	g_settings.setInteger(Config::SHOW_CUSTOM_ITEM_LIGHTS, menuBar->IsItemChecked(SHOW_CUSTOM_ITEM_LIGHTS));
+	g_settings.setInteger(Config::SHOW_FORCED_LIGHT_ZONES, menuBar->IsItemChecked(SHOW_FORCED_LIGHT_ZONES));
+	g_settings.setInteger(Config::SHOW_ZONE_BOUNDARIES, menuBar->IsItemChecked(SHOW_ZONE_BOUNDARIES));
 	g_settings.setInteger(Config::SHOW_CAMERA_PATHS, menuBar->IsItemChecked(SHOW_CAMERA_PATHS));
 	g_settings.setInteger(Config::SHOW_TOWNS, menuBar->IsItemChecked(SHOW_TOWNS));
 	g_settings.setInteger(Config::ALWAYS_SHOW_ZONES, menuBar->IsItemChecked(ALWAYS_SHOW_ZONES));

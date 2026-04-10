@@ -79,6 +79,9 @@
 #include "rendering/drawers/overlays/wall_border_drawer.h"
 #include "rendering/drawers/overlays/mountain_overlay_drawer.h"
 #include "rendering/drawers/overlays/stair_direction_drawer.h"
+#include "rendering/drawers/overlays/zone_overlay_drawer.h"
+#include "rendering/core/forced_light_zone.h"
+#include "rendering/core/custom_item_light.h"
 
 // Shader Sources
 const char* screen_vert = R"(
@@ -135,6 +138,7 @@ MapDrawer::MapDrawer(MapCanvas* canvas) :
 	mountain_overlay_drawer = std::make_unique<MountainOverlayDrawer>();
 	stair_direction_drawer = std::make_unique<StairDirectionDrawer>();
 	lua_overlay_drawer = std::make_unique<LuaOverlayDrawer>(this);
+	zone_overlay_drawer = std::make_unique<ZoneOverlayDrawer>();
 
 	sprite_batch = std::make_unique<SpriteBatch>();
 	primitive_renderer = std::make_unique<PrimitiveRenderer>();
@@ -306,6 +310,17 @@ void MapDrawer::Draw() {
 	g_gui.gfx.updateTime();
 
 	light_buffer.Clear();
+
+	// Setup blocking grid for shadow occlusion and forced light zones
+	if (options.show_shadow_occlusion || options.show_forced_light_zones) {
+		int margin = 15; // max light radius
+		int minX = view.view_scroll_x / TILE_SIZE - margin;
+		int minY = view.view_scroll_y / TILE_SIZE - margin;
+		int maxX = static_cast<int>((view.view_scroll_x + view.screensize_x * view.zoom) / TILE_SIZE) + 2 + margin;
+		int maxY = static_cast<int>((view.view_scroll_y + view.screensize_y * view.zoom) / TILE_SIZE) + 2 + margin;
+		light_buffer.blocking_grid.resize(minX, minY, maxX - minX, maxY - minY);
+	}
+
 	creature_name_drawer->clear();
 	light_indicator_drawer->clear();
 	item_indicator_drawer->clear();
@@ -403,6 +418,11 @@ void MapDrawer::Draw() {
 		}
 	}
 
+	// Draw zone boundary overlays
+	if (options.show_zone_boundaries) {
+		DrawZoneOverlay();
+	}
+
 	// Draw Lua Overlays (sprites, lines, rects, etc.)
 	lua_overlay_drawer->Draw(view, options);
 
@@ -473,7 +493,28 @@ void MapDrawer::DrawMapLayer(int map_z, bool live_client) {
 }
 
 void MapDrawer::DrawLight() {
-	light_drawer->draw(view, options.experimental_fog, light_buffer, options.global_light_color, options.light_intensity, options.ambient_light_level);
+	bool use_shadow = options.show_shadow_occlusion && light_buffer.blocking_grid.width > 0;
+	const LightBuffer::BlockingGrid* blocking_ptr = use_shadow ? &light_buffer.blocking_grid : nullptr;
+
+	// Collect visible forced light zones for per-zone ambient rendering
+	std::vector<const ForcedLightZone*> visibleZones;
+	if (options.show_forced_light_zones) {
+		auto& zoneMgr = ForcedLightZoneManager::instance();
+		if (zoneMgr.isLoaded()) {
+			int minX = view.view_scroll_x / TILE_SIZE - 2;
+			int minY = view.view_scroll_y / TILE_SIZE - 2;
+			int maxX = static_cast<int>((view.view_scroll_x + view.screensize_x * view.zoom) / TILE_SIZE) + 2;
+			int maxY = static_cast<int>((view.view_scroll_y + view.screensize_y * view.zoom) / TILE_SIZE) + 2;
+
+			visibleZones = zoneMgr.getZonesInArea(minX, minY, maxX, maxY, canvas->floor);
+		}
+	}
+
+	// Pass zones to draw() so it can apply per-zone ambient via scissor between
+	// the global ambient clear and the light rendering pass
+	light_drawer->draw(view, options.experimental_fog, light_buffer,
+		options.global_light_color, options.light_intensity, options.ambient_light_level,
+		use_shadow, blocking_ptr, visibleZones);
 }
 
 void MapDrawer::TakeScreenshot(uint8_t* screenshot_buffer) {
@@ -494,6 +535,14 @@ void MapDrawer::DrawLightIndicators(NVGcontext* vg) {
 
 void MapDrawer::DrawItemIndicators(NVGcontext* vg) {
 	item_indicator_drawer->draw(vg, view);
+}
+
+void MapDrawer::DrawZoneOverlay() {
+	zone_overlay_drawer->draw(*primitive_renderer, view, options, canvas->floor);
+}
+
+void MapDrawer::DrawZoneLabels(NVGcontext* vg) {
+	zone_overlay_drawer->drawLabels(vg, view, options, canvas->floor);
 }
 
 void MapDrawer::DrawWallBorders(NVGcontext* vg) {

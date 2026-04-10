@@ -40,23 +40,26 @@ struct GPULight {
 	glm::vec4 color; // 16 bytes (offset 16) -> Total 32 bytes
 };
 
+class ForcedLightZone;
+
 class LightDrawer {
 public:
 	LightDrawer();
 	~LightDrawer();
-	void draw(const RenderView& view, bool fog, const LightBuffer& light_buffer, const wxColor& global_color, float light_intensity = 1.0f, float ambient_light_level = 0.5f);
+	void draw(const RenderView& view, bool fog, const LightBuffer& light_buffer, const wxColor& global_color, float light_intensity = 1.0f, float ambient_light_level = 0.5f, bool shadow_occlusion = false, const LightBuffer::BlockingGrid* blocking = nullptr, const std::vector<const ForcedLightZone*>& zones = {});
+
+	// Draw zone-based ambient darkening overlay on the FBO
+	void drawZoneAmbient(const RenderView& view, const ForcedLightZone& zone);
 
 private:
-	// wxColor global_color; // Removed state
-
-	// Open GL Texture used for lightmap
-	// It is owned by this class and should be released when context is destroyed
-
 	std::unique_ptr<ShaderProgram> shader;
 	std::unique_ptr<GLVertexArray> vao;
 	std::unique_ptr<GLBuffer> vbo;
 	std::unique_ptr<GLBuffer> light_ssbo;
-	size_t light_ssbo_capacity_ = 0; // Track capacity in bytes
+	size_t light_ssbo_capacity_ = 0;
+
+	std::unique_ptr<GLBuffer> blocking_ssbo;
+	size_t blocking_ssbo_capacity_ = 0;
 
 	std::vector<GPULight> gpu_lights_;
 

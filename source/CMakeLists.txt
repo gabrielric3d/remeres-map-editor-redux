@@ -211,6 +211,10 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/texture_array.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/texture_atlas.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/texture_garbage_collector.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/lua_table_parser.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/forced_light_zone.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/custom_item_light.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/shadow_caster.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/cursors/brush_cursor_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/cursors/drag_shadow_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/cursors/live_cursor_drawer.h
@@ -241,6 +245,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/wall_border_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/mountain_overlay_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/stair_direction_drawer.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/zone_overlay_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/floor_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/shade_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/tile_color_calculator.h
@@ -618,6 +623,10 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/texture_array.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/texture_atlas.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/texture_garbage_collector.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/lua_table_parser.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/forced_light_zone.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/custom_item_light.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/shadow_caster.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/cursors/brush_cursor_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/cursors/drag_shadow_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/cursors/live_cursor_drawer.cpp
@@ -648,6 +657,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/wall_border_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/mountain_overlay_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/stair_direction_drawer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/zone_overlay_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/floor_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/shade_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/tile_color_calculator.cpp

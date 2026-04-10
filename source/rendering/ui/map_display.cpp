@@ -53,6 +53,7 @@
 #include "ui/browse_tile_window.h"
 #include "ui/dialog_helper.h"
 #include "game/animation_timer.h"
+#include "rendering/core/custom_item_light.h"
 #include "ui/map_popup_menu.h"
 #include "brushes/brush_utility.h"
 #include "rendering/ui/clipboard_handler.h"
@@ -268,6 +269,9 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 	if (options.show_spawns) {
 		drawer->DrawSpawnOverlays(vg);
 	}
+	if (options.show_zone_boundaries) {
+		drawer->DrawZoneLabels(vg);
+	}
 	if (drawer->getLuaOverlayDrawer()) {
 		drawer->getLuaOverlayDrawer()->DrawUI(vg, drawer->getView(), options);
 	}
@@ -327,7 +331,11 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 		options.boundbox_selection = selection_controller->IsBoundboxSelection();
 		options.lasso_selection = selection_controller->IsLassoSelection();
 
-		if (options.show_preview) {
+		// Start animation timer for animated previews or custom item light patterns
+		bool needs_animation = options.show_preview
+			|| (options.show_lights && options.show_custom_item_lights
+				&& CustomItemLightManager::instance().hasAnimatedLights());
+		if (needs_animation) {
 			animation_timer->Start();
 			g_gui.gfx.resumeAnimation();
 		} else {
