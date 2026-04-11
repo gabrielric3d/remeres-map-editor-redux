@@ -403,87 +403,136 @@ void DrawOperations::draw(Editor& editor, Position offset, bool alt, bool dodraw
 		std::unique_ptr<BatchAction> batch = editor.actionQueue->createBatch(ACTION_DRAW);
 		std::unique_ptr<Action> action = editor.actionQueue->createAction(batch.get());
 
-		Tile* tile = editor.map.getTile(offset);
-		std::unique_ptr<Tile> new_tile;
-		if (tile) {
-			new_tile = TileOperations::deepCopy(tile, editor.map);
-		} else {
-			new_tile = editor.map.allocator(editor.map.createTileL(offset));
-		}
-		int param;
-		if (!brush->is<CreatureBrush>()) {
-			param = g_gui.GetBrushSize();
-		}
-		if (dodraw) {
-			brush->draw(&editor.map, new_tile.get(), &param);
-		} else {
-			brush->undraw(&editor.map, new_tile.get());
-		}
-		action->addChange(std::make_unique<Change>(std::move(new_tile)));
-		batch->addAndCommitAction(std::move(action));
+		if (brush->is<SpawnBrush>() && dodraw) {
+			int param = g_gui.GetBrushSize();
 
-		// After placing a spawn, distribute creatures from the spawn group
-		if (dodraw && brush->is<SpawnBrush>()) {
-			const auto& group = g_brush_manager.GetSpawnCreatureGroup();
-			if (!group.empty()) {
-				int radius = g_gui.GetBrushSize();
-				int spawn_time = g_settings.getInteger(Config::DEFAULT_SPAWNTIME);
+			// Track all tile changes locally so creature placement sees up-to-date state
+			std::map<Position, std::unique_ptr<Tile>> changes;
 
-				// Build list of creature placements: (type, count)
-				std::vector<std::pair<CreatureType*, int>> placements;
-				for (const auto& entry : group) {
-					CreatureType* ctype = g_creatures[entry.name];
-					if (ctype) {
-						placements.emplace_back(ctype, entry.count);
-					}
+			// Check if this is a new spawn (not overwriting an existing one)
+			Tile* original_tile = editor.map.getTile(offset);
+			const bool created_spawn = (original_tile == nullptr || original_tile->spawn == nullptr);
+
+			// Create/copy the center tile and draw the spawn on it
+			auto getOrCreateTile = [&](const Position& pos) -> Tile* {
+				auto it = changes.find(pos);
+				if (it != changes.end()) {
+					return it->second.get();
 				}
+				Tile* existing = editor.map.getTile(pos);
+				std::unique_ptr<Tile> copy;
+				if (existing) {
+					copy = TileOperations::deepCopy(existing, editor.map);
+				} else {
+					copy = editor.map.allocator(editor.map.createTileL(pos));
+				}
+				Tile* ptr = copy.get();
+				changes.emplace(pos, std::move(copy));
+				return ptr;
+			};
 
-				// Collect walkable candidate tiles within spawn radius (excluding center if already has creature)
-				std::vector<Position> candidates;
-				for (int dy = -radius; dy <= radius; ++dy) {
-					for (int dx = -radius; dx <= radius; ++dx) {
-						Position cpos(offset.x + dx, offset.y + dy, offset.z);
-						if (!cpos.isValid()) {
+			Tile* center_tile = getOrCreateTile(offset);
+			brush->draw(&editor.map, center_tile, &param);
+
+			// Distribute creatures from the spawn group (only for newly created spawns)
+			if (created_spawn) {
+				const auto& group = g_brush_manager.GetSpawnCreatureGroup();
+				if (!group.empty()) {
+					int spawn_time = g_settings.getInteger(Config::DEFAULT_SPAWNTIME);
+
+					// Collect candidate positions within spawn radius
+					std::vector<Position> positions;
+					positions.reserve(static_cast<size_t>((param * 2 + 1) * (param * 2 + 1)));
+					for (int dy = -param; dy <= param; ++dy) {
+						for (int dx = -param; dx <= param; ++dx) {
+							Position cpos(offset.x + dx, offset.y + dy, offset.z);
+							if (cpos.isValid()) {
+								positions.push_back(cpos);
+							}
+						}
+					}
+
+					// Shuffle for random distribution
+					static std::mt19937 rng(std::random_device{}());
+					std::shuffle(positions.begin(), positions.end(), rng);
+
+					// Place each creature from the group
+					size_t pos_index = 0;
+					for (const auto& entry : group) {
+						CreatureType* ctype = g_creatures[entry.name];
+						if (!ctype) {
 							continue;
 						}
-						Tile* ctile = editor.map.getTile(cpos);
-						if (ctile && ctile->creature) {
-							continue; // Already has a creature
+
+						for (int i = 0; i < entry.count; ++i) {
+							Tile* target = nullptr;
+							while (pos_index < positions.size()) {
+								const Position& pos = positions[pos_index++];
+
+								// Check candidate from local changes first, then from map
+								Tile* candidate = nullptr;
+								auto change_it = changes.find(pos);
+								if (change_it != changes.end()) {
+									candidate = change_it->second.get();
+								} else {
+									candidate = editor.map.getTile(pos);
+								}
+
+								// Validate: must have ground, not blocking, no existing creature
+								if (!candidate || !candidate->ground) {
+									continue;
+								}
+								if (candidate->isBlocking()) {
+									continue;
+								}
+								if (candidate->creature) {
+									continue;
+								}
+								if (candidate->isPZ() && !ctype->isNpc) {
+									continue;
+								}
+
+								target = getOrCreateTile(pos);
+								break;
+							}
+
+							if (!target) {
+								break; // No more valid positions
+							}
+
+							target->creature = std::make_unique<Creature>(ctype);
+							target->creature->setSpawnTime(spawn_time);
 						}
-						if (ctile && ctile->isBlocking()) {
-							continue;
-						}
-						candidates.push_back(cpos);
 					}
 				}
-
-				// Shuffle candidates for random distribution
-				static std::mt19937 rng(std::random_device{}());
-				std::shuffle(candidates.begin(), candidates.end(), rng);
-
-				// Place creatures from group into available positions
-				action = editor.actionQueue->createAction(batch.get());
-				size_t candidate_idx = 0;
-				for (const auto& [ctype, count] : placements) {
-					for (int i = 0; i < count && candidate_idx < candidates.size(); ++i) {
-						const Position& cpos = candidates[candidate_idx++];
-						auto* location = editor.map.createTileL(cpos);
-						Tile* existing = location->get();
-						std::unique_ptr<Tile> ctile;
-						if (existing) {
-							ctile = TileOperations::deepCopy(existing, editor.map);
-						} else {
-							ctile = editor.map.allocator(location);
-						}
-						ctile->creature = std::make_unique<Creature>(ctype);
-						ctile->creature->setSpawnTime(spawn_time);
-						action->addChange(std::make_unique<Change>(std::move(ctile)));
-					}
-				}
-				batch->addAndCommitAction(std::move(action));
 			}
+
+			// Add all changes to the action
+			for (auto& [pos, tile] : changes) {
+				action->addChange(std::make_unique<Change>(std::move(tile)));
+			}
+		} else {
+			// CreatureBrush or SpawnBrush undraw
+			Tile* tile = editor.map.getTile(offset);
+			std::unique_ptr<Tile> new_tile;
+			if (tile) {
+				new_tile = TileOperations::deepCopy(tile, editor.map);
+			} else {
+				new_tile = editor.map.allocator(editor.map.createTileL(offset));
+			}
+			int param;
+			if (!brush->is<CreatureBrush>()) {
+				param = g_gui.GetBrushSize();
+			}
+			if (dodraw) {
+				brush->draw(&editor.map, new_tile.get(), &param);
+			} else {
+				brush->undraw(&editor.map, new_tile.get());
+			}
+			action->addChange(std::make_unique<Change>(std::move(new_tile)));
 		}
 
+		batch->addAndCommitAction(std::move(action));
 		editor.addBatch(std::move(batch), 2);
 	}
 }
@@ -530,6 +579,93 @@ void DrawOperations::draw(Editor& editor, const PositionVector& tilestodraw, boo
 				action->addChange(std::make_unique<Change>(std::move(new_tile)));
 			}
 		}
+	} else if (brush->is<SpawnBrush>() && dodraw) {
+		// SpawnBrush needs special handling: spawn size as int parameter + creature group distribution
+		int param = g_gui.GetBrushSize();
+		std::map<Position, std::unique_ptr<Tile>> changes;
+		const auto& group = g_brush_manager.GetSpawnCreatureGroup();
+
+		auto getOrCreateTile = [&](const Position& pos) -> Tile* {
+			auto it = changes.find(pos);
+			if (it != changes.end()) {
+				return it->second.get();
+			}
+			Tile* existing = editor.map.getTile(pos);
+			std::unique_ptr<Tile> copy;
+			if (existing) {
+				copy = TileOperations::deepCopy(existing, editor.map);
+			} else {
+				copy = editor.map.allocator(editor.map.createTileL(pos));
+			}
+			Tile* ptr = copy.get();
+			changes.emplace(pos, std::move(copy));
+			return ptr;
+		};
+
+		for (const auto& drawPos : tilestodraw) {
+			Tile* original_tile = editor.map.getTile(drawPos);
+			const bool created_spawn = (original_tile == nullptr || original_tile->spawn == nullptr);
+
+			Tile* new_tile = getOrCreateTile(drawPos);
+			brush->draw(&editor.map, new_tile, &param);
+
+			if (created_spawn && !group.empty()) {
+				int spawn_time = g_settings.getInteger(Config::DEFAULT_SPAWNTIME);
+
+				std::vector<Position> positions;
+				positions.reserve(static_cast<size_t>((param * 2 + 1) * (param * 2 + 1)));
+				for (int dy = -param; dy <= param; ++dy) {
+					for (int dx = -param; dx <= param; ++dx) {
+						Position cpos(drawPos.x + dx, drawPos.y + dy, drawPos.z);
+						if (cpos.isValid()) {
+							positions.push_back(cpos);
+						}
+					}
+				}
+
+				static std::mt19937 rng(std::random_device{}());
+				std::shuffle(positions.begin(), positions.end(), rng);
+
+				size_t pos_index = 0;
+				for (const auto& entry : group) {
+					CreatureType* ctype = g_creatures[entry.name];
+					if (!ctype) {
+						continue;
+					}
+					for (int i = 0; i < entry.count; ++i) {
+						Tile* target = nullptr;
+						while (pos_index < positions.size()) {
+							const Position& pos = positions[pos_index++];
+							Tile* candidate = nullptr;
+							auto change_it = changes.find(pos);
+							if (change_it != changes.end()) {
+								candidate = change_it->second.get();
+							} else {
+								candidate = editor.map.getTile(pos);
+							}
+							if (!candidate || !candidate->ground || candidate->isBlocking() || candidate->creature) {
+								continue;
+							}
+							if (candidate->isPZ() && !ctype->isNpc) {
+								continue;
+							}
+							target = getOrCreateTile(pos);
+							break;
+						}
+						if (!target) {
+							break;
+						}
+						target->creature = std::make_unique<Creature>(ctype);
+						target->creature->setSpawnTime(spawn_time);
+					}
+				}
+			}
+		}
+
+		for (auto& [pos, tile] : changes) {
+			action->addChange(std::make_unique<Change>(std::move(tile)));
+		}
+		editor.addAction(std::move(action), 2);
 	} else {
 
 		for (const auto& drawPos : tilestodraw) {
@@ -549,8 +685,8 @@ void DrawOperations::draw(Editor& editor, const PositionVector& tilestodraw, boo
 				action->addChange(std::make_unique<Change>(std::move(new_tile)));
 			}
 		}
+		editor.addAction(std::move(action), 2);
 	}
-	editor.addAction(std::move(action), 2);
 }
 
 void DrawOperations::draw(Editor& editor, const PositionVector& tilestodraw, PositionVector& tilestoborder, bool alt, bool dodraw) {

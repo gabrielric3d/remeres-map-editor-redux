@@ -579,8 +579,10 @@ void ToolOptionsSurface::OnToolButton(wxCommandEvent& event) {
 				if (g_brush_manager.spawn_brush) {
 					active_brush = g_brush_manager.spawn_brush;
 					g_gui.SetSpawnTime(spawn_time_spin->GetValue());
-					g_gui.SetBrushSize(spawn_size_spin->GetValue());
+					// Save spawn size to settings BEFORE SelectBrush, since palette OnSwitchIn reads it
+					g_settings.setInteger(Config::CURRENT_SPAWN_RADIUS, std::max(1, spawn_size_spin->GetValue()));
 					g_gui.SelectBrush(g_brush_manager.spawn_brush, TILESET_CREATURE);
+					g_gui.SetBrushSize(spawn_size_spin->GetValue());
 					g_gui.SetStatusText("Selected Tool: Place Spawn");
 				}
 				break;

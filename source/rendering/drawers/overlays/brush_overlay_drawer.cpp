@@ -353,6 +353,34 @@ void BrushOverlayDrawer::draw(SpriteBatch& sprite_batch, PrimitiveRenderer& prim
 				creature_drawer->BlitCreature(sprite_batch, sprite_drawer, cx, cy, creature_brush->getType()->outfit, SOUTH, CreatureDrawOptions { .color = DrawColor(255, 64, 64, 160) });
 			}
 			// glDisable(GL_TEXTURE_2D);
+		} else if (brush->is<SpawnBrush>()) {
+			int radius = g_gui.GetBrushSize();
+
+			// Draw center tile filled
+			int cx = view.mouse_map_x * TILE_SIZE - view.view_scroll_x - view.getFloorAdjustment();
+			int cy = view.mouse_map_y * TILE_SIZE - view.view_scroll_y - view.getFloorAdjustment();
+			if (g_gui.gfx.ensureAtlasManager()) {
+				sprite_batch.drawRect(static_cast<float>(cx), static_cast<float>(cy), static_cast<float>(TILE_SIZE), static_cast<float>(TILE_SIZE), brushColor, *g_gui.gfx.getAtlasManager());
+			}
+
+			// Draw spawn radius border preview
+			int start_map_x = view.mouse_map_x - radius;
+			int start_map_y = view.mouse_map_y - radius;
+			int end_map_x = view.mouse_map_x + radius + 1;
+			int end_map_y = view.mouse_map_y + radius + 1;
+
+			int draw_start_x = start_map_x * TILE_SIZE - view.view_scroll_x - view.getFloorAdjustment();
+			int draw_start_y = start_map_y * TILE_SIZE - view.view_scroll_y - view.getFloorAdjustment();
+			int draw_end_x = end_map_x * TILE_SIZE - view.view_scroll_x - view.getFloorAdjustment();
+			int draw_end_y = end_map_y * TILE_SIZE - view.view_scroll_y - view.getFloorAdjustment();
+
+			float bx = static_cast<float>(draw_start_x);
+			float by = static_cast<float>(draw_start_y);
+			float bw = static_cast<float>(draw_end_x - draw_start_x);
+			float bh = static_cast<float>(draw_end_y - draw_start_y);
+
+			const glm::vec4 spawn_border_color(220.0f / 255.0f, 0.0f, 220.0f / 255.0f, 0.86f);
+			primitive_renderer.drawBox(glm::vec4(bx, by, bw, bh), spawn_border_color, 2.0f);
 		} else if (!brush->is<DoodadBrush>()) {
 			RAWBrush* raw_brush = nullptr;
 			if (brush->is<RAWBrush>()) { // Textured brush

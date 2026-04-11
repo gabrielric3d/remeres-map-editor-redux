@@ -177,7 +177,17 @@ void CreaturePalettePanel::SelectFirstBrush() {
 }
 
 Brush* CreaturePalettePanel::GetSelectedBrush() const {
-	return GetSelectedCreatureBrush();
+	if (creature_brush_button->GetValue()) {
+		Brush* brush = GetSelectedCreatureBrush();
+		if (brush && brush->is<CreatureBrush>()) {
+			return brush;
+		}
+	} else if (spawn_brush_button->GetValue()) {
+		g_settings.setInteger(Config::CURRENT_SPAWN_RADIUS, spawn_size_spin->GetValue());
+		g_settings.setInteger(Config::DEFAULT_SPAWNTIME, creature_spawntime_spin->GetValue());
+		return g_brush_manager.spawn_brush;
+	}
+	return nullptr;
 }
 
 Brush* CreaturePalettePanel::GetSelectedCreatureBrush() const {
@@ -216,7 +226,7 @@ bool CreaturePalettePanel::SelectBrush(const Brush* whatbrush) {
 }
 
 int CreaturePalettePanel::GetSelectedBrushSize() const {
-	return g_settings.getInteger(Config::CURRENT_SPAWN_RADIUS);
+	return spawn_size_spin->GetValue();
 }
 
 void CreaturePalettePanel::OnUpdate() {
@@ -242,13 +252,13 @@ void CreaturePalettePanel::OnUpdate() {
 
 void CreaturePalettePanel::OnUpdateBrushSize(BrushShape shape, int size) {
 	(void)shape;
-	(void)size;
+	spawn_size_spin->SetValue(size);
 }
 
 void CreaturePalettePanel::OnSwitchIn() {
 	g_gui.ActivatePalette(GetParentPalette());
-	g_gui.SetSpawnTime(g_settings.getInteger(Config::DEFAULT_SPAWNTIME));
-	g_gui.SetBrushSize(g_settings.getInteger(Config::CURRENT_SPAWN_RADIUS));
+	g_gui.SetSpawnTime(creature_spawntime_spin->GetValue());
+	g_gui.SetBrushSize(spawn_size_spin->GetValue());
 }
 
 void CreaturePalettePanel::SelectTileset(size_t index) {

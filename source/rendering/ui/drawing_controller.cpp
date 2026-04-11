@@ -426,11 +426,23 @@ void DrawingController::HandleWheel(int rotation, bool alt_down, bool ctrl_down)
 	if (alt_down) {
 		static double diff = 0.0;
 		diff += rotation;
-		if (diff <= 1.0 || diff >= 1.0) {
-			if (diff < 0.0) {
-				g_gui.IncreaseBrushSize();
+		if (diff <= -1.0 || diff >= 1.0) {
+			Brush* brush = g_gui.GetCurrentBrush();
+			if (brush && (brush->is<SpawnBrush>() || brush->is<CreatureBrush>())) {
+				// For spawn/creature brushes, increment/decrement by 1
+				int current_size = g_gui.GetBrushSize();
+				int max_radius = g_settings.getInteger(Config::MAX_SPAWN_RADIUS);
+				if (diff < 0.0) {
+					g_gui.SetBrushSize(std::min(current_size + 1, max_radius));
+				} else {
+					g_gui.SetBrushSize(std::max(current_size - 1, 1));
+				}
 			} else {
-				g_gui.DecreaseBrushSize();
+				if (diff < 0.0) {
+					g_gui.IncreaseBrushSize();
+				} else {
+					g_gui.DecreaseBrushSize();
+				}
 			}
 			diff = 0.0;
 		}

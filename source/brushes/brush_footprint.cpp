@@ -16,7 +16,7 @@ namespace {
 
 int NormalizeBrushAxisValue(int value, bool exact) {
 	const int min_value = exact ? 1 : 0;
-	return std::clamp(value, min_value, 15);
+	return std::clamp(value, min_value, 30);
 }
 
 BrushFootprint MakeBrushFootprint(const BrushSizeState& state) {
