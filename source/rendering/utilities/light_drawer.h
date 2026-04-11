@@ -40,7 +40,7 @@ struct GPULight {
 	glm::vec4 color; // 16 bytes (offset 16) -> Total 32 bytes
 };
 
-class ForcedLightZone;
+struct ForcedLightZone;
 
 class LightDrawer {
 public:
