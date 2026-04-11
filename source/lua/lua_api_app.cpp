@@ -703,7 +703,12 @@ namespace LuaAPI {
 			} else if (key == "spawnTime") {
 				return sol::make_object(lua, g_gui.GetSpawnTime());
 			}
-			return sol::nil;
+			// Fallback: check raw table for keys set by other modules (e.g. cameraPaths)
+			sol::object raw = self.raw_get<sol::object>(key);
+			if (raw.valid()) {
+				return raw;
+			}
+			return sol::make_object(lua, sol::nil);
 		};
 
 		mt[sol::meta_function::new_index] = [](sol::this_state ts, sol::table self, std::string key, sol::object value) {
@@ -728,6 +733,9 @@ namespace LuaAPI {
 				if (value.is<int>()) {
 					g_gui.SetSpawnTime(value.as<int>());
 				}
+			} else {
+				// Fallback: allow other modules to add fields to app table
+				self.raw_set(key, value);
 			}
 		};
 

@@ -192,6 +192,7 @@ namespace LuaAPI {
 		// Create app.cameraPaths table
 		sol::table app = lua["app"];
 		sol::table cameraPaths = lua.create_table();
+		app["cameraPaths"] = cameraPaths;
 
 		// getPaths() - returns table with all CameraPath data as tables
 		cameraPaths["getPaths"] = [](sol::this_state ts) -> sol::table {
@@ -451,7 +452,7 @@ namespace LuaAPI {
 
 		// setShowPaths(bool) - toggle camera path visibility
 		cameraPaths["setShowPaths"] = [](bool show) {
-			g_settings.setBoolean(Config::SHOW_CAMERA_PATHS, show);
+			g_settings.setInteger(Config::SHOW_CAMERA_PATHS, show ? 1 : 0);
 			g_gui.RefreshView();
 		};
 
@@ -549,8 +550,6 @@ namespace LuaAPI {
 		cameraPaths["EASING_EASE_IN"] = static_cast<int>(CameraEasing::EaseIn);
 		cameraPaths["EASING_EASE_OUT"] = static_cast<int>(CameraEasing::EaseOut);
 		cameraPaths["EASING_EASE_IN_OUT_CUBIC"] = static_cast<int>(CameraEasing::EaseInOutCubic);
-
-		app["cameraPaths"] = cameraPaths;
 	}
 
 } // namespace LuaAPI
