@@ -40,6 +40,7 @@ public:
 
 	bool isLoaded() const { return loaded_; }
 	bool hasAnimatedLights() const { return hasAnimated_; }
+	size_t count() const { return lights_.size(); }
 
 private:
 	CustomItemLightManager() = default;

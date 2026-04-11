@@ -616,6 +616,10 @@ void MainMenuBar::OnChangeViewSettings(wxCommandEvent& event) {
 	viewSettingsHandler->OnChangeViewSettings(event);
 }
 
+void MainMenuBar::OnReloadForcedLightData(wxCommandEvent& event) {
+	viewSettingsHandler->OnReloadForcedLightData(event);
+}
+
 void MainMenuBar::OnChangeFloor(wxCommandEvent& event) {
 	navigationMenuHandler->OnChangeFloor(event);
 }

@@ -170,5 +170,5 @@ void DrawingOptions::Update() {
 }
 
 bool DrawingOptions::isDrawLight() const noexcept {
-	return show_lights || show_forced_light_zones;
+	return show_lights;
 }

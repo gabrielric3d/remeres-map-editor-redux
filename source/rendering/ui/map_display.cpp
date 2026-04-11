@@ -269,7 +269,7 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 	if (options.show_spawns) {
 		drawer->DrawSpawnOverlays(vg);
 	}
-	if (options.show_zone_boundaries) {
+	if (options.show_lights && options.show_zone_boundaries) {
 		drawer->DrawZoneLabels(vg);
 	}
 	if (drawer->getLuaOverlayDrawer()) {

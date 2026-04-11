@@ -194,6 +194,7 @@ namespace MenuBar {
 		SHOW_CUSTOM_ITEM_LIGHTS,
 		SHOW_FORCED_LIGHT_ZONES,
 		SHOW_ZONE_BOUNDARIES,
+		RELOAD_FORCED_LIGHT_DATA,
 	};
 }
 
@@ -328,6 +329,7 @@ public:
 	void OnTakeScreenshot(wxCommandEvent& event);
 
 	void OnChangeViewSettings(wxCommandEvent& event);
+	void OnReloadForcedLightData(wxCommandEvent& event);
 	void OnChangeFloor(wxCommandEvent& event);
 
 	void OnMinimapWindow(wxCommandEvent& event);

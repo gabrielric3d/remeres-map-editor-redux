@@ -312,7 +312,7 @@ void MapDrawer::Draw() {
 	light_buffer.Clear();
 
 	// Setup blocking grid for shadow occlusion and forced light zones
-	if (options.show_shadow_occlusion || options.show_forced_light_zones) {
+	if (options.show_lights && (options.show_shadow_occlusion || options.show_forced_light_zones)) {
 		int margin = 15; // max light radius
 		int minX = view.view_scroll_x / TILE_SIZE - margin;
 		int minY = view.view_scroll_y / TILE_SIZE - margin;
@@ -418,8 +418,8 @@ void MapDrawer::Draw() {
 		}
 	}
 
-	// Draw zone boundary overlays
-	if (options.show_zone_boundaries) {
+	// Draw zone boundary overlays (only when light is active)
+	if (options.show_lights && options.show_zone_boundaries) {
 		DrawZoneOverlay();
 	}
 
@@ -498,7 +498,7 @@ void MapDrawer::DrawLight() {
 
 	// Collect visible forced light zones for per-zone ambient rendering
 	std::vector<const ForcedLightZone*> visibleZones;
-	if (options.show_forced_light_zones) {
+	if (options.show_lights && options.show_forced_light_zones) {
 		auto& zoneMgr = ForcedLightZoneManager::instance();
 		if (zoneMgr.isLoaded()) {
 			int minX = view.view_scroll_x / TILE_SIZE - 2;

@@ -3,6 +3,9 @@
 #include "ui/gui.h"
 #include "app/preferences.h"
 #include "rendering/ui/toast_renderer.h"
+#include "rendering/core/forced_light_zone.h"
+#include "rendering/core/custom_item_light.h"
+#include "util/file_system.h"
 #include <format>
 
 ViewSettingsHandler::ViewSettingsHandler(MainMenuBar* menuBar) :
@@ -227,4 +230,22 @@ void ViewSettingsHandler::OnSelectionLassoToggle(wxCommandEvent& WXUNUSED(event)
 		g_gui.SetStatusText("Lasso selection disabled.");
 		g_toast.Show("Lasso Tool Disabled");
 	}
+}
+
+void ViewSettingsHandler::OnReloadForcedLightData(wxCommandEvent& WXUNUSED(event)) {
+	wxString dataDir = FileSystem::GetDataDirectory();
+	wxString sep = wxString(wxFileName::GetPathSeparator());
+
+	ForcedLightZoneManager::instance().load(nstr(dataDir + "forced_light" + sep + "forced_light_zones.lua"));
+	CustomItemLightManager::instance().load(nstr(dataDir + "forced_light" + sep + "custom_item_lights.lua"));
+
+	auto& zones = ForcedLightZoneManager::instance();
+	auto& lights = CustomItemLightManager::instance();
+
+	std::string msg = std::format("Reloaded: {} zones, {} custom lights",
+		zones.getZones().size(), lights.count());
+
+	g_gui.SetStatusText(wxString(msg));
+	g_toast.Show(msg);
+	g_gui.RefreshView();
 }
