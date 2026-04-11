@@ -155,7 +155,7 @@ namespace {
 			return 0;
 		}
 
-		if (query_token.prefix_wildcard && query_token.suffix_wildcard && name_token.contains(query_token.value)) {
+		if (query_token.prefix_wildcard && query_token.suffix_wildcard && name_token.find(query_token.value) != std::string_view::npos) {
 			return 30 + static_cast<int>(name_token.size() - query_token.value.size());
 		}
 
@@ -178,7 +178,7 @@ namespace {
 			return 0;
 		}
 
-		if (query_token.prefix_wildcard && query_token.suffix_wildcard && name_token.contains(query_token.value)) {
+		if (query_token.prefix_wildcard && query_token.suffix_wildcard && name_token.find(query_token.value) != std::string_view::npos) {
 			return 30 + static_cast<int>(name_token.size() - query_token.value.size());
 		}
 

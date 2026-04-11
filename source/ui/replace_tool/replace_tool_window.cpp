@@ -74,8 +74,8 @@ void ReplaceToolWindow::OnClose(wxCloseEvent& event) {
 		g_settings.setInteger(Config::REPLACE_TOOL_WINDOW_HEIGHT, size.GetHeight());
 	}
 	// Save checkbox states
-	g_settings.setBoolean(Config::REPLACE_TOOL_AUTO_ADD_RULE, m_autoAddCheck->IsChecked());
-	g_settings.setBoolean(Config::REPLACE_TOOL_AUTO_ASSIGN_PALETTE, m_autoAssignCheck->IsChecked());
+	g_settings.setInteger(Config::REPLACE_TOOL_AUTO_ADD_RULE, m_autoAddCheck->IsChecked() ? 1 : 0);
+	g_settings.setInteger(Config::REPLACE_TOOL_AUTO_ASSIGN_PALETTE, m_autoAssignCheck->IsChecked() ? 1 : 0);
 	g_settings.save();
 	event.Skip(); // Allow window to close
 }

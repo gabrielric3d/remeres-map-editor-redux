@@ -14,7 +14,7 @@ class wxSearchCtrl;
 
 template <typename Enum>
 constexpr size_t findItemDialogIndex(Enum value) {
-	return static_cast<size_t>(std::to_underlying(value));
+	return static_cast<size_t>(static_cast<std::underlying_type_t<Enum>>(value));
 }
 
 class ForwardingSearchCtrl final : public wxSearchCtrl {
