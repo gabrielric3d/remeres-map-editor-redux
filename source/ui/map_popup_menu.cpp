@@ -61,7 +61,6 @@ void MapPopupMenu::Update() {
 
 	wxMenuItem* copyPositionItem = Append(MAP_POPUP_MENU_COPY_POSITION, "&Copy Position", "Copy the position as a lua table");
 	copyPositionItem->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_LOCATION, wxSize(16, 16)));
-	copyPositionItem->Enable(anything_selected);
 
 	wxMenuItem* pasteItem = Append(MAP_POPUP_MENU_PASTE, "&Paste\tCTRL+V", "Paste items in the copybuffer here");
 	pasteItem->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_PASTE, wxSize(16, 16)));

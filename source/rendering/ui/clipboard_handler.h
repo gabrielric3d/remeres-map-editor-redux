@@ -19,6 +19,7 @@
 #define RME_CLIPBOARD_HANDLER_H_
 
 class Editor;
+class Position;
 class Selection;
 
 // Static helper class for clipboard operations
@@ -32,6 +33,7 @@ public:
 
 	// Text clipboard operations
 	static void copyPosition(const Selection& selection);
+	static void copyPosition(const Position& pos);
 	static void copyServerId(const Selection& selection);
 	static void copyClientId(const Selection& selection);
 	static void copyName(const Selection& selection);

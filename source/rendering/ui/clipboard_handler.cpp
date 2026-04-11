@@ -101,6 +101,36 @@ void ClipboardHandler::copyPosition(const Selection& selection) {
 	}
 }
 
+void ClipboardHandler::copyPosition(const Position& pos) {
+	std::ostringstream clip;
+	switch (ClampCopyPositionFormat(g_settings.getInteger(Config::COPY_POSITION_FORMAT))) {
+		case 0:
+			clip << "{x = " << pos.x << ", y = " << pos.y << ", z = " << pos.z << "}";
+			break;
+		case 1:
+			clip << "{\"x\":" << pos.x << ",\"y\":" << pos.y << ",\"z\":" << pos.z << "}";
+			break;
+		case 2:
+			clip << pos.x << ", " << pos.y << ", " << pos.z;
+			break;
+		case 3:
+			clip << "(" << pos.x << ", " << pos.y << ", " << pos.z << ")";
+			break;
+		case 4:
+		default:
+			clip << "Position(" << pos.x << ", " << pos.y << ", " << pos.z << ")";
+			break;
+	}
+
+	if (wxTheClipboard->Open()) {
+		wxTextDataObject* obj = new wxTextDataObject();
+		obj->SetText(wxstr(clip.str()));
+		wxTheClipboard->SetData(obj);
+
+		wxTheClipboard->Close();
+	}
+}
+
 void ClipboardHandler::copyServerId(const Selection& selection) {
 	ASSERT(selection.size() == 1);
 

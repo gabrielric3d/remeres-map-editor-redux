@@ -85,7 +85,12 @@ void MapMenuHandler::OnDelete(wxCommandEvent& WXUNUSED(event)) {
 }
 
 void MapMenuHandler::OnCopyPosition(wxCommandEvent& WXUNUSED(event)) {
-	ClipboardHandler::copyPosition(editor.selection);
+	if (editor.selection.size() != 0) {
+		ClipboardHandler::copyPosition(editor.selection);
+	} else {
+		Position pos(canvas->last_click_map_x, canvas->last_click_map_y, canvas->last_click_map_z);
+		ClipboardHandler::copyPosition(pos);
+	}
 }
 
 void MapMenuHandler::OnCopyServerId(wxCommandEvent& WXUNUSED(event)) {
