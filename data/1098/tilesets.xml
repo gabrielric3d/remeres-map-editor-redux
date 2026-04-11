@@ -328,9 +328,11 @@
 			<brush name="grass (alternate border)"/>
 			<brush name="grass 2"/>
 			<brush name="grass 3"/>
+			<brush name="dead grass 2"/>
 			<brush name="dark grass"/>
 			<brush name="jungle grass"/>
 			<brush name="sky grass"/>
+			<brush name="dead grass"/>
 			<brush name="faun cobblestone"/>
 			<brush name="chocolate ground"/>
 			<brush name="chocolate ground mountain"/>
@@ -356,6 +358,7 @@
 			<brush name="earth ground"/>
 			<brush name="jungle dirt"/>
 			<brush name="dark dirt"/>
+			<brush name="dark dirt 2"/>
 			<brush name="melting ground"/>
 			<brush name="lava"/>
 			<brush name="lava (rock soil & cave ground)"/>
@@ -479,6 +482,7 @@
 			<brush name="alternate trees"/>
 			<brush name="birch trees"/>
 			<brush name="dead trees"/>
+			<brush name="big dead trees"/>
 			<brush name="mango tree"/>
 			<item id="6094"/>
 			<brush name="palm trees"/>
@@ -1440,6 +1444,8 @@
 			<brush name="krailos spikes1"/>
 			<brush name="krailos spikes2"/>
 			<brush name="blue spikey wall"/>
+			<brush name="circus tent wall 1"/>
+			<brush name="circus tent wall 2"/>
 		</terrain>
 	</tileset>
 
@@ -2263,6 +2269,9 @@
 			<brush name="stone throne"/>
 			<brush name="stone table"/>
 			<brush name="bench"/>
+			<brush name="bench 2"/>
+			<brush name="bench 3"/>
+			<brush name="bench 4"/>
 			<brush name="leaf bench"/>
 			<brush name="venorean bench"/>
 			-- carpets --
@@ -2812,6 +2821,7 @@
 
 			-- uber skeleton --
 			<item fromid="8388" toid="8415"/>
+			<brush name="big chocolate eggs"/>
 		</doodad>
 		<raw>
 		-- statues --
@@ -8068,5 +8078,10 @@
 			<item id="51764"/>
 			<item fromid="51773" toid="51779"/>
 		</doodad>
+	</tileset>
+	<tileset name="Light Bulbs">
+		<raw>
+			<item fromid="32421" toid="32432" name="light bulb"/>
+		</raw>
 	</tileset>
 </materials>

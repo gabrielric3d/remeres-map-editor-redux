@@ -15,7 +15,7 @@ DARKNESS_ZONES = {
     {
         name = "Hospital Main Floor",
         fromPos = Position(1269, 931, 7),
-        toPos = Position(1398, 1171, 7),
+        toPos = Position(1550, 1171, 5),
         ambient = 5,
         ambientColor = 129,
     },
