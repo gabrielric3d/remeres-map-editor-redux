@@ -42,6 +42,7 @@ private:
 	std::string m_capturedHotkey;
 
 	wxChoice* m_groundReplaceModifier = nullptr;
+	wxChoice* m_smartBrushModifier = nullptr;
 };
 
 #endif

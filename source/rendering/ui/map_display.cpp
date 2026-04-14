@@ -86,6 +86,37 @@
 
 bool MapCanvas::processed[] = { 0 };
 
+// Matches the configured Smart Brush modifier combo (Config::SMART_BRUSH_MODIFIER)
+// against the keyboard state. The stored string is a "+"-separated list of
+// Ctrl/Alt/Shift. All listed modifiers must be held, and no others.
+static bool IsSmartBrushModifier(bool shift_down, bool ctrl_down, bool alt_down) {
+	const std::string mod = g_settings.getString(Config::SMART_BRUSH_MODIFIER);
+	if (mod.empty()) {
+		return false;
+	}
+	bool want_ctrl = false, want_alt = false, want_shift = false;
+	size_t start = 0;
+	while (start <= mod.size()) {
+		size_t end = mod.find('+', start);
+		if (end == std::string::npos) {
+			end = mod.size();
+		}
+		std::string token = mod.substr(start, end - start);
+		if (token == "Ctrl") {
+			want_ctrl = true;
+		} else if (token == "Alt") {
+			want_alt = true;
+		} else if (token == "Shift") {
+			want_shift = true;
+		}
+		if (end == mod.size()) {
+			break;
+		}
+		start = end + 1;
+	}
+	return ctrl_down == want_ctrl && alt_down == want_alt && shift_down == want_shift;
+}
+
 // Helper to create attributes
 static wxGLAttributes& GetCoreProfileAttributes() {
 	static wxGLAttributes vAttrs = []() {
@@ -591,7 +622,7 @@ void MapCanvas::OnMouseActionClick(wxMouseEvent& event) {
 				ed->ApplyCameraPathsSnapshot(temp.snapshot(), ACTION_DRAW);
 			}
 		}
-	} else if (event.ControlDown() && event.AltDown()) {
+	} else if (IsSmartBrushModifier(event.ShiftDown(), event.ControlDown(), event.AltDown())) {
 		Tile* tile = editor.map.getTile(mouse_map_x, mouse_map_y, floor);
 		BrushSelector::SelectSmartBrush(editor, tile);
 	} else if (g_gui.IsSelectionMode()) {

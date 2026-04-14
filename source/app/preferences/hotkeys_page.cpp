@@ -86,14 +86,17 @@ HotkeysPage::HotkeysPage(wxWindow* parent) :
 	sizer->Add(m_statusText, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(8));
 
 	// Drawing Modifiers section
-	auto* modifierBox = new wxStaticBoxSizer(wxHORIZONTAL, this, "Drawing Modifiers");
-	modifierBox->Add(new wxStaticText(modifierBox->GetStaticBox(), wxID_ANY, "Ground Replace Modifier:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+	auto* modifierBox = new wxStaticBoxSizer(wxVERTICAL, this, "Drawing Modifiers");
+	wxWindow* modBoxWin = modifierBox->GetStaticBox();
+
+	auto* groundRow = new wxBoxSizer(wxHORIZONTAL);
+	groundRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "Ground Replace Modifier:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
 
 	wxArrayString modChoices;
 	modChoices.Add("Alt");
 	modChoices.Add("Ctrl");
 	modChoices.Add("Shift");
-	m_groundReplaceModifier = new wxChoice(modifierBox->GetStaticBox(), wxID_ANY, wxDefaultPosition, wxDefaultSize, modChoices);
+	m_groundReplaceModifier = new wxChoice(modBoxWin, wxID_ANY, wxDefaultPosition, wxDefaultSize, modChoices);
 
 	std::string currentMod = g_settings.getString(Config::GROUND_REPLACE_MODIFIER);
 	if (currentMod == "Ctrl") {
@@ -103,8 +106,35 @@ HotkeysPage::HotkeysPage(wxWindow* parent) :
 	} else {
 		m_groundReplaceModifier->SetSelection(0);
 	}
-	modifierBox->Add(m_groundReplaceModifier, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
-	modifierBox->Add(new wxStaticText(modifierBox->GetStaticBox(), wxID_ANY, "(Hold + Left Click to replace specific ground)"), 0, wxALIGN_CENTER_VERTICAL);
+	groundRow->Add(m_groundReplaceModifier, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+	groundRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "(Hold + Left Click to replace specific ground)"), 0, wxALIGN_CENTER_VERTICAL);
+	modifierBox->Add(groundRow, 0, wxEXPAND | wxALL, FromDIP(4));
+
+	auto* smartRow = new wxBoxSizer(wxHORIZONTAL);
+	smartRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "Smart Brush Picker Modifier:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+
+	wxArrayString smartChoices;
+	smartChoices.Add("Ctrl+Alt");
+	smartChoices.Add("Ctrl+Shift");
+	smartChoices.Add("Alt+Shift");
+	smartChoices.Add("Ctrl");
+	smartChoices.Add("Alt");
+	smartChoices.Add("Shift");
+	m_smartBrushModifier = new wxChoice(modBoxWin, wxID_ANY, wxDefaultPosition, wxDefaultSize, smartChoices);
+
+	std::string currentSmart = g_settings.getString(Config::SMART_BRUSH_MODIFIER);
+	int smartSel = 0;
+	for (unsigned int i = 0; i < smartChoices.GetCount(); ++i) {
+		if (smartChoices[i] == wxString(currentSmart)) {
+			smartSel = static_cast<int>(i);
+			break;
+		}
+	}
+	m_smartBrushModifier->SetSelection(smartSel);
+	smartRow->Add(m_smartBrushModifier, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+	smartRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "(Hold + Left Click on a tile to auto-select its brush)"), 0, wxALIGN_CENTER_VERTICAL);
+	modifierBox->Add(smartRow, 0, wxEXPAND | wxALL, FromDIP(4));
+
 	sizer->Add(modifierBox, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(8));
 
 	SetSizer(sizer);
@@ -144,6 +174,12 @@ void HotkeysPage::Apply() {
 		} else {
 			g_settings.setString(Config::GROUND_REPLACE_MODIFIER, "Alt");
 		}
+	}
+
+	if (m_smartBrushModifier) {
+		int sel = m_smartBrushModifier->GetSelection();
+		wxString choice = (sel != wxNOT_FOUND) ? m_smartBrushModifier->GetString(sel) : wxString("Ctrl+Alt");
+		g_settings.setString(Config::SMART_BRUSH_MODIFIER, std::string(choice.mb_str()));
 	}
 }
 
