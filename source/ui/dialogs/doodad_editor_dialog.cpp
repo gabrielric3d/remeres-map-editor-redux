@@ -26,6 +26,8 @@
 #include "item_definitions/core/item_definition_store.h"
 #include "rendering/core/game_sprite.h"
 #include "rendering/utilities/sprite_icon_generator.h"
+#include "app/managers/version_manager.h"
+#include "ext/pugixml.hpp"
 #include <wx/sizer.h>
 #include <wx/gbsizer.h>
 #include <wx/statline.h>
@@ -53,7 +55,8 @@ enum {
     ID_DOODAD_LIST,
     ID_PREV_PAGE,
     ID_NEXT_PAGE,
-    ID_CREATE_NEW
+    ID_CREATE_NEW,
+    ID_SAVE_TO_FILE
 };
 
 // Helper function to get item ID from current brush
@@ -79,11 +82,18 @@ public:
         : m_grid(grid), m_dialog(dialog) {}
 
     bool OnDropText(wxCoord x, wxCoord y, const wxString& data) override {
-        if (!m_grid || !data.StartsWith("ITEM_ID:")) {
+        if (!m_grid) {
             return false;
         }
 
-        wxString idStr = data.Mid(8);
+        wxString idStr;
+        if (data.StartsWith("ITEM_ID:")) {
+            idStr = data.Mid(8);
+        } else if (data.StartsWith("RME_ITEM:")) {
+            idStr = data.Mid(9);
+        } else {
+            return false;
+        }
         long itemId = 0;
         if (!idStr.ToLong(&itemId) || itemId <= 0 || itemId > 0xFFFF) {
             return false;
@@ -115,6 +125,7 @@ BEGIN_EVENT_TABLE(DoodadEditorDialog, wxDialog)
     EVT_BUTTON(ID_CLEAR_GRID, DoodadEditorDialog::OnClearGrid)
     EVT_BUTTON(ID_BROWSE_GRID_ITEM, DoodadEditorDialog::OnBrowseGridItem)
     EVT_BUTTON(wxID_SAVE, DoodadEditorDialog::OnSave)
+    EVT_BUTTON(ID_SAVE_TO_FILE, DoodadEditorDialog::OnSaveToFile)
     EVT_BUTTON(wxID_CLOSE, DoodadEditorDialog::OnClose)
     EVT_BUTTON(ID_PREV_PAGE, DoodadEditorDialog::OnPrevPage)
     EVT_BUTTON(ID_NEXT_PAGE, DoodadEditorDialog::OnNextPage)
@@ -268,7 +279,11 @@ void DoodadEditorDialog::CreateGUIControls() {
     row2Sizer->Add(m_redoBordersCheck, 0, wxRIGHT, 15);
 
     m_oneSizeCheck = new wxCheckBox(rightPanel, wxID_ANY, "One Size");
-    row2Sizer->Add(m_oneSizeCheck, 0);
+    row2Sizer->Add(m_oneSizeCheck, 0, wxRIGHT, 15);
+
+    m_saveAsAlternateCheck = new wxCheckBox(rightPanel, wxID_ANY, "Save as Alternate");
+    m_saveAsAlternateCheck->SetToolTip("Wraps items/composites in an <alternate> block when saving.");
+    row2Sizer->Add(m_saveAsAlternateCheck, 0);
 
     propsSizer->Add(row2Sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 
@@ -386,6 +401,7 @@ void DoodadEditorDialog::CreateGUIControls() {
     wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
     buttonSizer->AddStretchSpacer();
     buttonSizer->Add(new wxButton(rightPanel, wxID_SAVE, "Save to Clipboard"), 0, wxRIGHT, 5);
+    buttonSizer->Add(new wxButton(rightPanel, ID_SAVE_TO_FILE, "Save to File"), 0, wxRIGHT, 5);
     buttonSizer->Add(new wxButton(rightPanel, wxID_CLOSE, "Close"), 0);
     rightSizer->Add(buttonSizer, 0, wxEXPAND | wxALL, 10);
 
@@ -595,6 +611,7 @@ void DoodadEditorDialog::ClearEditor() {
     m_onDuplicateCheck->SetValue(false);
     m_redoBordersCheck->SetValue(false);
     m_oneSizeCheck->SetValue(false);
+    m_saveAsAlternateCheck->SetValue(false);
     m_thicknessCtrl->SetValue(25);
     m_thicknessCeilingCtrl->SetValue(100);
 
@@ -842,22 +859,35 @@ wxString DoodadEditorDialog::GenerateXML() {
 
     xml << ">\n";
 
+    const bool asAlternate = m_saveAsAlternateCheck && m_saveAsAlternateCheck->GetValue();
+    const char* itemIndent = asAlternate ? "\t\t" : "\t";
+    const char* compIndent = asAlternate ? "\t\t" : "\t";
+    const char* tileIndent = asAlternate ? "\t\t\t" : "\t\t";
+
+    if (asAlternate) {
+        xml << "\t<alternate>\n";
+    }
+
     for (const auto& item : m_singleItems) {
-        xml << "\t<item id=\"" << item.itemId << "\" chance=\"" << item.chance << "\" />\n";
+        xml << itemIndent << "<item id=\"" << item.itemId << "\" chance=\"" << item.chance << "\" />\n";
     }
 
     for (const auto& comp : m_composites) {
         if (comp.tiles.empty()) continue;
 
-        xml << "\t<composite chance=\"" << comp.chance << "\">\n";
+        xml << compIndent << "<composite chance=\"" << comp.chance << "\">\n";
         for (const auto& tile : comp.tiles) {
-            xml << "\t\t<tile x=\"" << tile.x << "\" y=\"" << tile.y << "\"";
+            xml << tileIndent << "<tile x=\"" << tile.x << "\" y=\"" << tile.y << "\"";
             if (tile.z != 0) {
                 xml << " z=\"" << tile.z << "\"";
             }
             xml << "> <item id=\"" << tile.itemId << "\" /> </tile>\n";
         }
-        xml << "\t</composite>\n";
+        xml << compIndent << "</composite>\n";
+    }
+
+    if (asAlternate) {
+        xml << "\t</alternate>\n";
     }
 
     xml << "</brush>\n";
@@ -910,6 +940,90 @@ void DoodadEditorDialog::SaveDoodad() {
 
 void DoodadEditorDialog::OnSave(wxCommandEvent& event) {
     SaveDoodad();
+}
+
+void DoodadEditorDialog::OnSaveToFile(wxCommandEvent& event) {
+    if (m_currentCompositeIndex >= 0) {
+        UpdateCompositeFromGrid();
+    }
+
+    if (!ValidateDoodad()) {
+        return;
+    }
+
+    ClientVersion* version = g_version.getLoadedVersion();
+    if (!version) {
+        wxMessageBox("No client version loaded.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    wxFileName doodadsFile(version->getDataPath().GetFullPath(), "doodads.xml");
+    const std::string filePath = doodadsFile.GetFullPath().ToStdString();
+
+    if (!doodadsFile.FileExists()) {
+        wxMessageBox(wxString::Format("doodads.xml not found at:\n%s", doodadsFile.GetFullPath()),
+            "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    pugi::xml_document doc;
+    pugi::xml_parse_result result = doc.load_file(filePath.c_str());
+    if (!result) {
+        wxMessageBox(wxString::Format("Failed to parse doodads.xml:\n%s", result.description()),
+            "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    pugi::xml_node root = doc.child("materials");
+    if (!root) {
+        wxMessageBox("Invalid doodads.xml: missing <materials> root.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    pugi::xml_document fragment;
+    const std::string xmlStr = GenerateXML().ToStdString();
+    if (!fragment.load(xmlStr.c_str())) {
+        wxMessageBox("Failed to parse generated XML.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+    pugi::xml_node newBrush = fragment.child("brush");
+    if (!newBrush) {
+        wxMessageBox("Generated XML has no <brush> node.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    const std::string brushName = m_nameCtrl->GetValue().IsEmpty()
+        ? std::string("new_doodad")
+        : m_nameCtrl->GetValue().ToStdString();
+
+    pugi::xml_node existing;
+    for (pugi::xml_node b = root.child("brush"); b; b = b.next_sibling("brush")) {
+        if (brushName == b.attribute("name").as_string()) {
+            existing = b;
+            break;
+        }
+    }
+
+    if (existing) {
+        int answer = wxMessageBox(
+            wxString::Format("A brush named \"%s\" already exists in doodads.xml.\n\nReplace it?", brushName),
+            "Brush exists", wxYES_NO | wxICON_QUESTION);
+        if (answer != wxYES) {
+            return;
+        }
+        root.insert_copy_before(newBrush, existing);
+        root.remove_child(existing);
+    } else {
+        root.append_copy(newBrush);
+    }
+
+    if (!doc.save_file(filePath.c_str(), "\t")) {
+        wxMessageBox("Failed to write doodads.xml.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    wxMessageBox(wxString::Format("Brush \"%s\" saved to doodads.xml.\n\nReload the client version to see the changes in-editor.", brushName),
+        "Success", wxOK | wxICON_INFORMATION);
 }
 
 void DoodadEditorDialog::OnClose(wxCommandEvent& event) {

@@ -106,6 +106,7 @@ public:
     void OnCompositeChanceChanged(wxSpinEvent& event);
     void OnClearGrid(wxCommandEvent& event);
     void OnSave(wxCommandEvent& event);
+    void OnSaveToFile(wxCommandEvent& event);
     void OnClose(wxCommandEvent& event);
     void OnBrowseGridItem(wxCommandEvent& event);
     void OnGridItemIdChanged(wxSpinEvent& event);
@@ -158,6 +159,7 @@ public:
     wxCheckBox* m_onDuplicateCheck;
     wxCheckBox* m_redoBordersCheck;
     wxCheckBox* m_oneSizeCheck;
+    wxCheckBox* m_saveAsAlternateCheck;
     wxSpinCtrl* m_thicknessCtrl;
     wxSpinCtrl* m_thicknessCeilingCtrl;
 
