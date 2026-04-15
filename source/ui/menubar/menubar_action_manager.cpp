@@ -37,6 +37,8 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(RELOAD_BRUSHES, wxITEM_NORMAL, OnReloadBrushes);
 	// MAKE_ACTION(RECENT_FILES, wxITEM_NORMAL, OnRecent);
 	MAKE_ACTION(PREFERENCES, wxITEM_NORMAL, OnPreferences);
+	MAKE_ACTION(OPEN_GRAPHICS_PREFERENCES, wxITEM_NORMAL, OnOpenGraphicsPreferences);
+	MAKE_ACTION(TOGGLE_SCREEN_SHADER, wxITEM_NORMAL, OnToggleScreenShader);
 	MAKE_ACTION(EXIT, wxITEM_NORMAL, OnQuit);
 
 	MAKE_ACTION(UNDO, wxITEM_NORMAL, OnUndo);

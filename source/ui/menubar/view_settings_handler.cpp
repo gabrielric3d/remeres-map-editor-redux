@@ -5,6 +5,7 @@
 #include "rendering/ui/toast_renderer.h"
 #include "rendering/core/forced_light_zone.h"
 #include "rendering/core/custom_item_light.h"
+#include "rendering/postprocess/post_process_manager.h"
 #include "util/file_system.h"
 #include <format>
 
@@ -238,6 +239,24 @@ void ViewSettingsHandler::OnSelectionLassoToggle(wxCommandEvent& WXUNUSED(event)
 void ViewSettingsHandler::OnToggleShowLights(wxCommandEvent& WXUNUSED(event)) {
 	using namespace MenuBar;
 	g_settings.setInteger(Config::SHOW_LIGHTS, menuBar->IsItemChecked(SHOW_LIGHTS));
+	g_gui.RefreshView();
+}
+
+void ViewSettingsHandler::OnToggleScreenShader(wxCommandEvent& WXUNUSED(event)) {
+	// Remember the last non-None shader so we can restore it on toggle-on.
+	static std::string last_active_shader = ShaderNames::NEVASCA;
+
+	const std::string current = g_settings.getString(Config::SCREEN_SHADER);
+	if (current != ShaderNames::NONE) {
+		last_active_shader = current;
+		g_settings.setString(Config::SCREEN_SHADER, ShaderNames::NONE);
+		g_gui.SetStatusText("Screen shader disabled.");
+		g_toast.Show("Screen Shader: Off");
+	} else {
+		g_settings.setString(Config::SCREEN_SHADER, last_active_shader);
+		g_gui.SetStatusText(wxString::Format("Screen shader enabled: %s", last_active_shader));
+		g_toast.Show(std::string("Screen Shader: ") + last_active_shader);
+	}
 	g_gui.RefreshView();
 }
 

@@ -79,8 +79,8 @@ void RadialWheel::SetupDefaultEntries() {
 		FireMenuEvent(MenuBar::SELECT_MODE_LASSO);
 	}});
 
-	m_entries.push_back({"Borderize", "B", []() {
-		FireMenuEvent(MenuBar::BORDERIZE_SELECTION);
+	m_entries.push_back({"Shader Settings", "H", []() {
+		FireMenuEvent(MenuBar::OPEN_GRAPHICS_PREFERENCES);
 	}});
 }
 

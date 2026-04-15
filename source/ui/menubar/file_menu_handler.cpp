@@ -132,6 +132,12 @@ void FileMenuHandler::OnPreferences(wxCommandEvent& WXUNUSED(event)) {
 	dialog.Destroy();
 }
 
+void FileMenuHandler::OnOpenGraphicsPreferences(wxCommandEvent& WXUNUSED(event)) {
+	PreferencesWindow dialog(frame, false, PreferencesWindow::PAGE_GRAPHICS);
+	dialog.ShowModal();
+	dialog.Destroy();
+}
+
 void FileMenuHandler::OnListExtensions(wxCommandEvent& WXUNUSED(event)) {
 	ExtensionsDialog exts(frame);
 	exts.ShowModal();

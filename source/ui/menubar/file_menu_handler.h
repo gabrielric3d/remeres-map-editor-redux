@@ -29,6 +29,7 @@ public:
 	void OnReloadDataFiles(wxCommandEvent& event);
 	void OnReloadBrushes(wxCommandEvent& event);
 	void OnPreferences(wxCommandEvent& event);
+	void OnOpenGraphicsPreferences(wxCommandEvent& event);
 	void OnListExtensions(wxCommandEvent& event);
 	void OnGotoWebsite(wxCommandEvent& event);
 	void OnAbout(wxCommandEvent& event);

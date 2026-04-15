@@ -32,7 +32,17 @@
 
 class PreferencesWindow : public wxDialog {
 public:
-	PreferencesWindow(wxWindow* parent, bool clientVersionSelected = false);
+	enum PageIndex {
+		PAGE_DEFAULT = -1,
+		PAGE_GENERAL = 0,
+		PAGE_EDITOR = 1,
+		PAGE_GRAPHICS = 2,
+		PAGE_INTERFACE = 3,
+		PAGE_HOTKEYS = 4,
+		PAGE_CLIENT_VERSION = 5,
+	};
+
+	PreferencesWindow(wxWindow* parent, bool clientVersionSelected = false, int initial_page = PAGE_DEFAULT);
 	~PreferencesWindow() override;
 
 	void OnClickApply(wxCommandEvent& event);

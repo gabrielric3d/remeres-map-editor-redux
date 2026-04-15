@@ -166,6 +166,7 @@
 		<!-- item/zone filters -->
 		<item name="Show Animation" hotkey="L" action="SHOW_PREVIEW" help="Show item animations."/>
 		<item name="Show Light" hotkey="Shift+L" action="SHOW_LIGHTS" help="Show lights."/>
+		<item name="Toggle Screen Shader" hotkey="Ctrl+Shift+S" action="TOGGLE_SCREEN_SHADER" help="Toggle the active screen shader on/off."/>
 		<item name="Show Light Strength" hotkey="Shift+K" action="SHOW_LIGHT_STR" help="Show indicators of light strength."/>
 		<item name="Show Technical Items" hotkey="Shift+T" action="SHOW_TECHNICAL_ITEMS" help="Shows some of special items that are not visible in game."/>
 		<item name="Show Invalid Tiles" hotkey="" action="SHOW_INVALID_TILES" help="Show preserved invalid OTBM content as tile overlays."/>

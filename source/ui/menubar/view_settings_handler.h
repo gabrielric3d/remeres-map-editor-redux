@@ -16,6 +16,7 @@ public:
 	void OnSelectionTypeChange(wxCommandEvent& event);
 	void OnSelectionLassoToggle(wxCommandEvent& event);
 	void OnToggleShowLights(wxCommandEvent& event);
+	void OnToggleScreenShader(wxCommandEvent& event);
 	void OnReloadForcedLightData(wxCommandEvent& event);
 
 private:

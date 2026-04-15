@@ -312,6 +312,10 @@ void MainMenuBar::OnPreferences(wxCommandEvent& event) {
 	fileMenuHandler->OnPreferences(event);
 }
 
+void MainMenuBar::OnOpenGraphicsPreferences(wxCommandEvent& event) {
+	fileMenuHandler->OnOpenGraphicsPreferences(event);
+}
+
 void MainMenuBar::OnQuit(wxCommandEvent& event) {
 	fileMenuHandler->OnQuit(event);
 }
@@ -476,6 +480,10 @@ void MainMenuBar::OnToggleAutomagic(wxCommandEvent& event) {
 
 void MainMenuBar::OnToggleShowLights(wxCommandEvent& event) {
 	viewSettingsHandler->OnToggleShowLights(event);
+}
+
+void MainMenuBar::OnToggleScreenShader(wxCommandEvent& event) {
+	viewSettingsHandler->OnToggleScreenShader(event);
 }
 
 void MainMenuBar::OnBorderizeSelection(wxCommandEvent& event) {

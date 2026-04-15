@@ -196,6 +196,8 @@ namespace MenuBar {
 		SHOW_FORCED_LIGHT_ZONES,
 		SHOW_ZONE_BOUNDARIES,
 		RELOAD_FORCED_LIGHT_DATA,
+		OPEN_GRAPHICS_PREFERENCES,
+		TOGGLE_SCREEN_SHADER,
 	};
 }
 
@@ -263,6 +265,7 @@ public:
 	void OnReloadDataFiles(wxCommandEvent& event); // RELOAD_DATA
 	void OnReloadBrushes(wxCommandEvent& event); // RELOAD_BRUSHES
 	void OnPreferences(wxCommandEvent& event);
+	void OnOpenGraphicsPreferences(wxCommandEvent& event);
 	void OnListExtensions(wxCommandEvent& event);
 	void OnGotoWebsite(wxCommandEvent& event);
 	void OnAbout(wxCommandEvent& event);
@@ -296,6 +299,7 @@ public:
 
 	void OnToggleAutomagic(wxCommandEvent& event);
 	void OnToggleShowLights(wxCommandEvent& event);
+	void OnToggleScreenShader(wxCommandEvent& event);
 
 	void OnBorderizeSelection(wxCommandEvent& event);
 	void OnBorderizeMap(wxCommandEvent& event);

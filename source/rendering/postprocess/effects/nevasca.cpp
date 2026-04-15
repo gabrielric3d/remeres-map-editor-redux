@@ -86,9 +86,12 @@ const float SNOW_SOFTNESS  = 0.20;
 const float EDGE_FADE      = 0.08;
 
 float sampleSnowLayer(vec2 screenUv, float scale, float speed, float sway,
-                      float intensity, float layerSeed) {
+                      float intensity, float layerSeed, vec2 windOffset) {
     float aspect = u_Resolution.x / u_Resolution.y;
-    vec2 uv = vec2(screenUv.x * aspect, screenUv.y) * scale;
+    // Apply wind push BEFORE scaling so the displacement is in screen-space
+    // (not multiplied by the layer scale).
+    vec2 pushedUv = screenUv + windOffset;
+    vec2 uv = vec2(pushedUv.x * aspect, pushedUv.y) * scale;
 
     float fallSpeed = speed * mix(0.6, 1.5, intensity);
     uv += normalize(FALL_DIR) * u_Time * fallSpeed * scale;
@@ -159,6 +162,16 @@ vec2 variationCenter(int variation, float progress) {
                 mix(-halfH, 1.0 + halfH, progress));
 }
 
+// Unit direction vector of the gust's movement, per variation.
+vec2 variationDirection(int variation) {
+    if (variation == 0) return vec2( 1.0,  0.0);
+    if (variation == 1) return vec2(-1.0,  0.0);
+    if (variation == 2) return vec2( 0.0,  1.0);
+    if (variation == 3) return vec2( 0.0, -1.0);
+    if (variation == 4) return normalize(vec2( 1.0,  1.0));
+    return normalize(vec2(-1.0,  1.0));
+}
+
 vec4 sampleMap(vec2 uv, float intensity) {
     float blurAmount = smoothstep(0.35, 1.0, intensity);
     if (blurAmount <= 0.0) {
@@ -184,14 +197,11 @@ void main() {
     vec2 screenUv = gl_FragCoord.xy / u_Resolution;
     screenUv.y = 1.0 - screenUv.y;
 
-    float farSnow  = sampleSnowLayer(screenUv, FAR_SCALE,  FAR_SPEED,  FAR_SWAY,  intensity, 1.0);
-    float midSnow  = sampleSnowLayer(screenUv, MID_SCALE,  MID_SPEED,  MID_SWAY,  intensity, 2.0);
-    float nearSnow = sampleSnowLayer(screenUv, NEAR_SCALE, NEAR_SPEED, NEAR_SWAY, intensity, 3.0);
-
-    float distantSnowMask = clamp(farSnow * 0.45 + midSnow * 0.75, 0.0, 1.0);
-    float nearSnowMask    = clamp(nearSnow * 1.0, 0.0, 1.0);
-
+    // -------- Wind gust pre-pass (compute gust state for wind push) --------
+    // We compute the active gust BEFORE sampling snow so we can use the
+    // gust's direction + proximity to push the snow flakes around.
     float gustMask = 0.0;
+    vec2  windPush = vec2(0.0);
     float gustIndex = floor(u_Time / GUST_PERIOD);
     float phase = mod(u_Time, GUST_PERIOD);
 
@@ -202,11 +212,65 @@ void main() {
     float skipRoll = gustHash(gustIndex, 91.0);
     bool gust_active = (skipRoll >= dynamicSkip) && (phase <= travelTime);
 
-    if (gust_active) {
-        float progress = phase / travelTime;
-        int variation = pickVariation(gustHash(gustIndex, 13.0));
-        vec2 gustCenter = variationCenter(variation, progress);
+    int   variation     = 0;
+    vec2  gustCenter    = vec2(0.5);
+    vec2  gustDir       = vec2(1.0, 0.0);
+    float progress      = 0.0;
+    float windInfluence = 0.0;
 
+    if (gust_active) {
+        progress   = phase / travelTime;
+        variation  = pickVariation(gustHash(gustIndex, 13.0));
+        gustCenter = variationCenter(variation, progress);
+        gustDir    = variationDirection(variation);
+
+        // Aspect-corrected vector from gust center to this pixel.
+        float aspect = u_Resolution.x / u_Resolution.y;
+        vec2  toPixel = vec2((screenUv.x - gustCenter.x) * aspect,
+                              screenUv.y - gustCenter.y);
+
+        // Project the pixel offset onto the gust's direction. Pixels in the
+        // *wake* of the gust (behind it relative to its motion) are still
+        // being dragged along — so we count both the radial proximity and the
+        // tangential extent.
+        float along  = dot(toPixel, gustDir);
+        vec2  tangent = toPixel - gustDir * along;
+        float across = length(tangent);
+
+        float acrossMask = 1.0 - smoothstep(0.25, 0.75, across);
+        // Asymmetric along mask: pixels behind the gust get a longer drag
+        // tail than pixels ahead (which haven't been hit yet).
+        float aheadMask  = 1.0 - smoothstep(0.0, 0.35, max(along, 0.0));
+        float behindMask = 1.0 - smoothstep(0.0, 0.85, max(-along, 0.0));
+        float alongMask  = max(aheadMask, behindMask);
+
+        windInfluence = acrossMask * alongMask;
+
+        // Smooth temporal ramp — slow build-up, sustain, gentle release.
+        float windEnvelope = smoothstep(0.0, 0.35, progress)
+                           * (1.0 - smoothstep(0.70, 1.0, progress));
+        windInfluence *= windEnvelope;
+
+        const float BASE_PUSH = 0.05;
+        float pushScale = mix(0.5, 1.4, intensity);
+        windPush = gustDir * (BASE_PUSH * pushScale * windInfluence);
+    }
+
+    // -------- Snow: 3 layers sampled from nevasca.png --------
+    // Per-layer wind weighting — near layer reacts most to wind (parallax),
+    // far layer barely budges.
+    float farSnow  = sampleSnowLayer(screenUv, FAR_SCALE,  FAR_SPEED,  FAR_SWAY,
+                                     intensity, 1.0, windPush * 0.25);
+    float midSnow  = sampleSnowLayer(screenUv, MID_SCALE,  MID_SPEED,  MID_SWAY,
+                                     intensity, 2.0, windPush * 0.60);
+    float nearSnow = sampleSnowLayer(screenUv, NEAR_SCALE, NEAR_SPEED, NEAR_SWAY,
+                                     intensity, 3.0, windPush * 1.00);
+
+    float distantSnowMask = clamp(farSnow * 0.45 + midSnow * 0.75, 0.0, 1.0);
+    float nearSnowMask    = clamp(nearSnow * 1.0, 0.0, 1.0);
+
+    // -------- Wind gust visual render --------
+    if (gust_active) {
         vec2 local;
         local.x = (screenUv.x - (gustCenter.x - GUST_WIDTH  * 0.5)) / GUST_WIDTH;
         local.y = (screenUv.y - (gustCenter.y - GUST_HEIGHT * 0.5)) / GUST_HEIGHT;

@@ -24,7 +24,7 @@
 #include "ui/gui.h"
 #include "util/image_manager.h"
 
-PreferencesWindow::PreferencesWindow(wxWindow* parent, bool clientVersionSelected) :
+PreferencesWindow::PreferencesWindow(wxWindow* parent, bool clientVersionSelected, int initial_page) :
 	wxDialog(parent, wxID_ANY, "Preferences", wxDefaultPosition, wxSize(980, 720), wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER) {
 	SetBackgroundColour(Theme::Get(Theme::Role::Surface));
 	SetMinSize(wxSize(FromDIP(860), FromDIP(640)));
@@ -56,7 +56,11 @@ PreferencesWindow::PreferencesWindow(wxWindow* parent, bool clientVersionSelecte
 	book->AddPage(interface_page, "Interface", false, 3);
 	book->AddPage(hotkeys_page, "Hotkeys", false, 4);
 	book->AddPage(client_version_page, "Client Version", false, 5);
-	book->SetSelection(clientVersionSelected ? 5 : 0);
+	if (initial_page >= 0) {
+		book->SetSelection(initial_page);
+	} else {
+		book->SetSelection(clientVersionSelected ? 5 : 0);
+	}
 
 	if (auto* list_view = book->GetListView()) {
 		list_view->SetMinSize(wxSize(FromDIP(170), -1));
