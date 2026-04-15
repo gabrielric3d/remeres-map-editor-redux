@@ -428,7 +428,10 @@ void PaletteWindow::OnKey(wxKeyEvent& event) {
 	}
 
 	if (g_gui.GetCurrentTab() != nullptr) {
-		g_gui.GetCurrentMapTab()->GetEventHandler()->AddPendingEvent(event);
+		MapCanvas* canvas = g_gui.GetCurrentMapTab()->GetCanvas();
+		if (canvas) {
+			canvas->GetEventHandler()->AddPendingEvent(event);
+		}
 	}
 }
 
