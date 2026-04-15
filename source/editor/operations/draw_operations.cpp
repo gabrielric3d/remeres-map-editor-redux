@@ -579,6 +579,7 @@ void DrawOperations::draw(Editor& editor, const PositionVector& tilestodraw, boo
 				action->addChange(std::make_unique<Change>(std::move(new_tile)));
 			}
 		}
+		editor.addAction(std::move(action), 2);
 	} else if (brush->is<SpawnBrush>() && dodraw) {
 		// SpawnBrush needs special handling: spawn size as int parameter + creature group distribution
 		int param = g_gui.GetBrushSize();
