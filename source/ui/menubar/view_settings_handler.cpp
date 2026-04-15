@@ -112,7 +112,10 @@ void ViewSettingsHandler::OnChangeViewSettings(wxCommandEvent& event) {
 	g_settings.setInteger(Config::TRANSPARENT_FLOORS, menuBar->IsItemChecked(GHOST_HIGHER_FLOORS));
 	g_settings.setInteger(Config::TRANSPARENT_ITEMS, menuBar->IsItemChecked(GHOST_ITEMS));
 	g_settings.setInteger(Config::SHOW_INGAME_BOX, menuBar->IsItemChecked(SHOW_INGAME_BOX));
-	g_settings.setInteger(Config::SHOW_LIGHTS, menuBar->IsItemChecked(SHOW_LIGHTS));
+	// SHOW_LIGHTS is intentionally NOT written here. The light toolbar is an
+	// independent source of truth for this setting, and this handler runs on
+	// every View menu toggle — reading a stale/unsynced menu check state would
+	// clobber the toolbar-driven value. SHOW_LIGHTS has its own handler below.
 	g_settings.setInteger(Config::SHOW_LIGHT_STR, menuBar->IsItemChecked(SHOW_LIGHT_STR));
 	g_settings.setInteger(Config::SHOW_TECHNICAL_ITEMS, menuBar->IsItemChecked(SHOW_TECHNICAL_ITEMS));
 	g_settings.setInteger(Config::SHOW_INVALID_TILES, menuBar->IsItemChecked(SHOW_INVALID_TILES));
@@ -230,6 +233,12 @@ void ViewSettingsHandler::OnSelectionLassoToggle(wxCommandEvent& WXUNUSED(event)
 		g_gui.SetStatusText("Lasso selection disabled.");
 		g_toast.Show("Lasso Tool Disabled");
 	}
+}
+
+void ViewSettingsHandler::OnToggleShowLights(wxCommandEvent& WXUNUSED(event)) {
+	using namespace MenuBar;
+	g_settings.setInteger(Config::SHOW_LIGHTS, menuBar->IsItemChecked(SHOW_LIGHTS));
+	g_gui.RefreshView();
 }
 
 void ViewSettingsHandler::OnReloadForcedLightData(wxCommandEvent& WXUNUSED(event)) {

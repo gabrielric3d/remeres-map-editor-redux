@@ -474,6 +474,10 @@ void MainMenuBar::OnToggleAutomagic(wxCommandEvent& event) {
 	viewSettingsHandler->OnToggleAutomagic(event);
 }
 
+void MainMenuBar::OnToggleShowLights(wxCommandEvent& event) {
+	viewSettingsHandler->OnToggleShowLights(event);
+}
+
 void MainMenuBar::OnBorderizeSelection(wxCommandEvent& event) {
 	mapActionsHandler->OnBorderizeSelection(event);
 }
@@ -859,6 +863,12 @@ void MainMenuBar::RefreshAcceleratorTable() {
 			continue;
 		}
 
+		// Mouse-button hotkeys are dispatched manually from MapCanvas,
+		// not through the accelerator table.
+		if (parsed.mouseButton != HotkeyMouseButton::None) {
+			continue;
+		}
+
 		entries.emplace_back(parsed.flags, parsed.keycode, MAIN_FRAME_MENU + static_cast<int>(id));
 	}
 
@@ -942,4 +952,37 @@ bool MainMenuBar::MatchesActionHotkey(MenuBar::ActionID id, const wxKeyEvent& ev
 	}
 
 	return pressed.flags == configured.flags && pressed.keycode == configured.keycode;
+}
+
+bool MainMenuBar::DispatchMouseHotkey(const wxMouseEvent& event, HotkeyMouseButton button) {
+	if (button == HotkeyMouseButton::None || !frame) {
+		return false;
+	}
+
+	HotkeyData pressed;
+	if (!MouseEventToHotkey(event, button, pressed)) {
+		return false;
+	}
+
+	for (const auto& [id, entry] : menu_hotkeys) {
+		if (entry.currentHotkey.empty()) {
+			continue;
+		}
+		HotkeyData configured;
+		if (!ParseHotkeyText(entry.currentHotkey, configured)) {
+			continue;
+		}
+		if (configured.mouseButton != pressed.mouseButton) {
+			continue;
+		}
+		if (configured.flags != pressed.flags) {
+			continue;
+		}
+
+		wxCommandEvent cmd(wxEVT_MENU, MAIN_FRAME_MENU + static_cast<int>(id));
+		cmd.SetEventObject(frame);
+		frame->GetEventHandler()->ProcessEvent(cmd);
+		return true;
+	}
+	return false;
 }

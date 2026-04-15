@@ -6,6 +6,8 @@
 #include "ui/toolbar/light_toolbar.h"
 #include "ui/gui.h"
 #include "ui/gui_ids.h"
+#include "ui/main_frame.h"
+#include "ui/main_menubar.h"
 #include "app/settings.h"
 #include "util/image_manager.h"
 
@@ -63,5 +65,12 @@ void LightToolBar::OnAmbientLightSlider(wxCommandEvent& event) {
 
 void LightToolBar::OnToggleLight(wxCommandEvent& event) {
 	g_settings.setInteger(Config::SHOW_LIGHTS, event.IsChecked());
+	// Keep the View menu item in sync — otherwise OnChangeViewSettings would read
+	// a stale unchecked state and clobber SHOW_LIGHTS on the next view toggle.
+	if (g_gui.root) {
+		if (MainMenuBar* mb = g_gui.root->GetMainMenuBar()) {
+			mb->CheckItem(MenuBar::SHOW_LIGHTS, event.IsChecked());
+		}
+	}
 	g_gui.RefreshView();
 }

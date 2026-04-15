@@ -23,6 +23,7 @@
 #include <unordered_map>
 #include <string_view>
 #include "ui/managers/recent_files_manager.h"
+#include "editor/hotkey_utils.h"
 
 namespace MenuBar {
 	struct Action;
@@ -240,6 +241,9 @@ public:
 	std::vector<MenuHotkeyEntry> GetMenuHotkeys() const;
 	void ApplyMenuHotkeys(const std::vector<MenuHotkeyEntry>& entries);
 	bool MatchesActionHotkey(MenuBar::ActionID id, const wxKeyEvent& event) const;
+	// Dispatches a menu action bound to a mouse button + modifier combo.
+	// Returns true if a binding matched and the action was fired.
+	bool DispatchMouseHotkey(const wxMouseEvent& event, HotkeyMouseButton button);
 
 	// Handlers
 	void OnNew(wxCommandEvent& event);
@@ -291,6 +295,7 @@ public:
 	void OnPaste(wxCommandEvent& event);
 
 	void OnToggleAutomagic(wxCommandEvent& event);
+	void OnToggleShowLights(wxCommandEvent& event);
 
 	void OnBorderizeSelection(wxCommandEvent& event);
 	void OnBorderizeMap(wxCommandEvent& event);
