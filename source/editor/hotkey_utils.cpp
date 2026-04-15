@@ -179,6 +179,7 @@ bool ParseHotkeyText(const std::string& text, HotkeyData& out) {
 
 	int flags = 0;
 	int keycode = 0;
+	HotkeyMouseButton mouseButton = HotkeyMouseButton::None;
 
 	for (const std::string& token : tokens) {
 		if (token.empty()) {
@@ -205,6 +206,27 @@ bool ParseHotkeyText(const std::string& text, HotkeyData& out) {
 			continue;
 		}
 
+		if (upper == "MIDDLE" || upper == "MOUSEMIDDLE") {
+			mouseButton = HotkeyMouseButton::Middle;
+			continue;
+		}
+		if (upper == "MOUSE4" || upper == "AUX1" || upper == "XBUTTON1") {
+			mouseButton = HotkeyMouseButton::Aux1;
+			continue;
+		}
+		if (upper == "MOUSE5" || upper == "AUX2" || upper == "XBUTTON2") {
+			mouseButton = HotkeyMouseButton::Aux2;
+			continue;
+		}
+		if (upper == "WHEELUP" || upper == "MWHEELUP") {
+			mouseButton = HotkeyMouseButton::WheelUp;
+			continue;
+		}
+		if (upper == "WHEELDOWN" || upper == "MWHEELDOWN") {
+			mouseButton = HotkeyMouseButton::WheelDown;
+			continue;
+		}
+
 		int key = KeyFromToken(token);
 		if (key == 0) {
 			return false;
@@ -212,17 +234,18 @@ bool ParseHotkeyText(const std::string& text, HotkeyData& out) {
 		keycode = key;
 	}
 
-	if (keycode == 0) {
+	if (mouseButton == HotkeyMouseButton::None && keycode == 0) {
 		return false;
 	}
 
 	out.flags = flags;
 	out.keycode = keycode;
+	out.mouseButton = mouseButton;
 	return true;
 }
 
 std::string HotkeyToText(const HotkeyData& hotkey) {
-	if (hotkey.keycode == 0) {
+	if (hotkey.mouseButton == HotkeyMouseButton::None && hotkey.keycode == 0) {
 		return "";
 	}
 
@@ -242,7 +265,15 @@ std::string HotkeyToText(const HotkeyData& hotkey) {
 	}
 #endif
 
-	std::string key = KeyToString(hotkey.keycode);
+	std::string key;
+	switch (hotkey.mouseButton) {
+		case HotkeyMouseButton::Middle:    key = "Middle"; break;
+		case HotkeyMouseButton::Aux1:      key = "Mouse4"; break;
+		case HotkeyMouseButton::Aux2:      key = "Mouse5"; break;
+		case HotkeyMouseButton::WheelUp:   key = "WheelUp"; break;
+		case HotkeyMouseButton::WheelDown: key = "WheelDown"; break;
+		case HotkeyMouseButton::None:      key = KeyToString(hotkey.keycode); break;
+	}
 	if (key.empty()) {
 		return "";
 	}
@@ -285,5 +316,23 @@ bool EventToHotkey(const wxKeyEvent& event, HotkeyData& out) {
 
 	out.flags = flags;
 	out.keycode = keycode;
+	out.mouseButton = HotkeyMouseButton::None;
+	return true;
+}
+
+bool MouseEventToHotkey(const wxMouseEvent& event, HotkeyMouseButton button, HotkeyData& out) {
+	if (button == HotkeyMouseButton::None) {
+		return false;
+	}
+	int flags = 0;
+	if (event.ControlDown()) flags |= wxACCEL_CTRL;
+	if (event.AltDown()) flags |= wxACCEL_ALT;
+	if (event.ShiftDown()) flags |= wxACCEL_SHIFT;
+#ifdef __APPLE__
+	if (event.CmdDown()) flags |= wxACCEL_CMD;
+#endif
+	out.flags = flags;
+	out.keycode = 0;
+	out.mouseButton = button;
 	return true;
 }

@@ -26,6 +26,8 @@
 #include <spdlog/spdlog.h>
 
 #include "ui/gui.h"
+#include "ui/main_frame.h"
+#include "ui/main_menubar.h"
 #include "editor/editor.h"
 #include "editor/action_queue.h"
 #include "brushes/brush.h"
@@ -118,6 +120,27 @@ static bool IsSmartBrushModifier(bool shift_down, bool ctrl_down, bool alt_down)
 	return ctrl_down == want_ctrl && alt_down == want_alt && shift_down == want_shift;
 }
 
+// Returns true if `button` matches the Smart Brush picker mouse button setting.
+// button values: "Middle Click", "Mouse4 (Back)", "Mouse5 (Forward)".
+static bool IsSmartBrushMouseButton(const char* button) {
+	const std::string cfg = g_settings.getString(Config::SMART_BRUSH_MOUSE_BUTTON);
+	if (cfg.empty() || cfg == "None") {
+		return false;
+	}
+	return cfg == button;
+}
+
+bool MapCanvas::TryHandleSmartBrushMouseClick(wxMouseEvent& event, const char* button) {
+	if (!IsSmartBrushMouseButton(button)) {
+		return false;
+	}
+	int mx, my;
+	ScreenToMap(event.GetX(), event.GetY(), &mx, &my);
+	Tile* tile = editor.map.getTile(mx, my, floor);
+	BrushSelector::SelectSmartBrush(editor, tile);
+	return true;
+}
+
 // Helper to create attributes
 static wxGLAttributes& GetCoreProfileAttributes() {
 	static wxGLAttributes vAttrs = []() {
@@ -184,6 +207,8 @@ MapCanvas::MapCanvas(wxWindow* parent, Editor& editor, int* attriblist) :
 	Bind(wxEVT_RIGHT_DOWN, &MapCanvas::OnMouseRightClick, this);
 	Bind(wxEVT_RIGHT_UP, &MapCanvas::OnMouseRightRelease, this);
 	Bind(wxEVT_MOUSEWHEEL, &MapCanvas::OnWheel, this);
+	Bind(wxEVT_AUX1_DOWN, &MapCanvas::OnMouseAux1Click, this);
+	Bind(wxEVT_AUX2_DOWN, &MapCanvas::OnMouseAux2Click, this);
 	Bind(wxEVT_ENTER_WINDOW, &MapCanvas::OnGainMouse, this);
 	Bind(wxEVT_LEAVE_WINDOW, &MapCanvas::OnLoseMouse, this);
 
@@ -538,10 +563,42 @@ void MapCanvas::OnMouseLeftDoubleClick(wxMouseEvent& event) {
 }
 
 void MapCanvas::OnMouseCenterClick(wxMouseEvent& event) {
+	if (TryHandleSmartBrushMouseClick(event, "Middle Click")) {
+		return;
+	}
+	if (auto* frame = g_gui.root) {
+		if (auto* mb = frame->GetMainMenuBar()) {
+			if (mb->DispatchMouseHotkey(event, HotkeyMouseButton::Middle)) {
+				return;
+			}
+		}
+	}
 	if (g_settings.getInteger(Config::SWITCH_MOUSEBUTTONS)) {
 		OnMousePropertiesClick(event);
 	} else {
 		OnMouseCameraClick(event);
+	}
+}
+
+void MapCanvas::OnMouseAux1Click(wxMouseEvent& event) {
+	if (TryHandleSmartBrushMouseClick(event, "Mouse4 (Back)")) {
+		return;
+	}
+	if (auto* frame = g_gui.root) {
+		if (auto* mb = frame->GetMainMenuBar()) {
+			mb->DispatchMouseHotkey(event, HotkeyMouseButton::Aux1);
+		}
+	}
+}
+
+void MapCanvas::OnMouseAux2Click(wxMouseEvent& event) {
+	if (TryHandleSmartBrushMouseClick(event, "Mouse5 (Forward)")) {
+		return;
+	}
+	if (auto* frame = g_gui.root) {
+		if (auto* mb = frame->GetMainMenuBar()) {
+			mb->DispatchMouseHotkey(event, HotkeyMouseButton::Aux2);
+		}
 	}
 }
 
@@ -750,6 +807,16 @@ void MapCanvas::OnMousePropertiesRelease(wxMouseEvent& event) {
 }
 
 void MapCanvas::OnWheel(wxMouseEvent& event) {
+	HotkeyMouseButton wheelBtn = (event.GetWheelRotation() > 0) ? HotkeyMouseButton::WheelUp : HotkeyMouseButton::WheelDown;
+	if (auto* frame = g_gui.root) {
+		if (auto* mb = frame->GetMainMenuBar()) {
+			if (mb->DispatchMouseHotkey(event, wheelBtn)) {
+				Refresh();
+				return;
+			}
+		}
+	}
+
 	if (event.ControlDown()) {
 		NavigationController::HandleWheel(this, event);
 	} else if (event.AltDown()) {

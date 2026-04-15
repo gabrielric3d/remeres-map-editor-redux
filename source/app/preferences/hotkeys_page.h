@@ -27,6 +27,9 @@ private:
 	void OnResetSelected(wxCommandEvent& event);
 	void OnResetAll(wxCommandEvent& event);
 	void OnHotkeyKeyDown(wxKeyEvent& event);
+	void OnHotkeyMouseDown(wxMouseEvent& event);
+	void OnHotkeyMouseWheel(wxMouseEvent& event);
+	void ApplyCapturedHotkey(const std::string& hotkeyText);
 
 	wxTextCtrl* m_searchCtrl = nullptr;
 	wxListCtrl* m_listCtrl = nullptr;
@@ -43,6 +46,7 @@ private:
 
 	wxChoice* m_groundReplaceModifier = nullptr;
 	wxChoice* m_smartBrushModifier = nullptr;
+	wxChoice* m_smartBrushMouseButton = nullptr;
 };
 
 #endif

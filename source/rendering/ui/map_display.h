@@ -67,6 +67,10 @@ public:
 	void OnMouseCenterRelease(wxMouseEvent& event);
 	void OnMouseRightClick(wxMouseEvent& event);
 	void OnMouseRightRelease(wxMouseEvent& event);
+	void OnMouseAux1Click(wxMouseEvent& event);
+	void OnMouseAux2Click(wxMouseEvent& event);
+
+	bool TryHandleSmartBrushMouseClick(wxMouseEvent& event, const char* button);
 
 	void OnKeyDown(wxKeyEvent& event);
 	void OnKeyUp(wxKeyEvent& event);

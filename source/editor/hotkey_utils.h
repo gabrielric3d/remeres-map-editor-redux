@@ -21,12 +21,22 @@
 #include <string>
 #include <wx/event.h>
 
-struct HotkeyData {
-	int flags = 0;   // wxACCEL_CTRL, wxACCEL_SHIFT, wxACCEL_ALT, wxACCEL_CMD
-	int keycode = 0; // WXK_* constants or character codes
+enum class HotkeyMouseButton {
+	None = 0,
+	Middle,
+	Aux1,     // "Mouse4"
+	Aux2,     // "Mouse5"
+	WheelUp,
+	WheelDown,
 };
 
-// Parse a hotkey string like "Ctrl+Shift+A" into HotkeyData.
+struct HotkeyData {
+	int flags = 0;   // wxACCEL_CTRL, wxACCEL_SHIFT, wxACCEL_ALT, wxACCEL_CMD
+	int keycode = 0; // WXK_* constants or character codes (ignored when mouseButton != None)
+	HotkeyMouseButton mouseButton = HotkeyMouseButton::None;
+};
+
+// Parse a hotkey string like "Ctrl+Shift+A" or "Ctrl+Mouse4" into HotkeyData.
 bool ParseHotkeyText(const std::string& text, HotkeyData& out);
 
 // Convert HotkeyData back to a display string like "Ctrl+Shift+A".
@@ -34,5 +44,8 @@ std::string HotkeyToText(const HotkeyData& hotkey);
 
 // Extract HotkeyData from a wxKeyEvent. Returns false for modifier-only keys.
 bool EventToHotkey(const wxKeyEvent& event, HotkeyData& out);
+
+// Build a HotkeyData for a mouse button from the current modifier state.
+bool MouseEventToHotkey(const wxMouseEvent& event, HotkeyMouseButton button, HotkeyData& out);
 
 #endif

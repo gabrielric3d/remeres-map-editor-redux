@@ -56,8 +56,12 @@ HotkeysPage::HotkeysPage(wxWindow* parent) :
 
 	m_hotkeyCtrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(180), -1),
 		wxTE_READONLY | wxTE_CENTER);
-	m_hotkeyCtrl->SetHint("Click 'Set' then press a key...");
+	m_hotkeyCtrl->SetHint("Click 'Set' then press a key or mouse button...");
 	m_hotkeyCtrl->Bind(wxEVT_KEY_DOWN, &HotkeysPage::OnHotkeyKeyDown, this);
+	m_hotkeyCtrl->Bind(wxEVT_MIDDLE_DOWN, &HotkeysPage::OnHotkeyMouseDown, this);
+	m_hotkeyCtrl->Bind(wxEVT_AUX1_DOWN, &HotkeysPage::OnHotkeyMouseDown, this);
+	m_hotkeyCtrl->Bind(wxEVT_AUX2_DOWN, &HotkeysPage::OnHotkeyMouseDown, this);
+	m_hotkeyCtrl->Bind(wxEVT_MOUSEWHEEL, &HotkeysPage::OnHotkeyMouseWheel, this);
 	captureSizer->Add(m_hotkeyCtrl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
 
 	m_setButton = new wxButton(this, wxID_ANY, "Set Hotkey");
@@ -135,6 +139,29 @@ HotkeysPage::HotkeysPage(wxWindow* parent) :
 	smartRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "(Hold + Left Click on a tile to auto-select its brush)"), 0, wxALIGN_CENTER_VERTICAL);
 	modifierBox->Add(smartRow, 0, wxEXPAND | wxALL, FromDIP(4));
 
+	auto* smartMouseRow = new wxBoxSizer(wxHORIZONTAL);
+	smartMouseRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "Smart Brush Picker Mouse Button:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+
+	wxArrayString smartMouseChoices;
+	smartMouseChoices.Add("None");
+	smartMouseChoices.Add("Middle Click");
+	smartMouseChoices.Add("Mouse4 (Back)");
+	smartMouseChoices.Add("Mouse5 (Forward)");
+	m_smartBrushMouseButton = new wxChoice(modBoxWin, wxID_ANY, wxDefaultPosition, wxDefaultSize, smartMouseChoices);
+
+	std::string currentSmartMouse = g_settings.getString(Config::SMART_BRUSH_MOUSE_BUTTON);
+	int smartMouseSel = 0;
+	for (unsigned int i = 0; i < smartMouseChoices.GetCount(); ++i) {
+		if (smartMouseChoices[i] == wxString(currentSmartMouse)) {
+			smartMouseSel = static_cast<int>(i);
+			break;
+		}
+	}
+	m_smartBrushMouseButton->SetSelection(smartMouseSel);
+	smartMouseRow->Add(m_smartBrushMouseButton, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+	smartMouseRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "(Click this mouse button on a tile to auto-select its brush)"), 0, wxALIGN_CENTER_VERTICAL);
+	modifierBox->Add(smartMouseRow, 0, wxEXPAND | wxALL, FromDIP(4));
+
 	sizer->Add(modifierBox, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(8));
 
 	SetSizer(sizer);
@@ -180,6 +207,12 @@ void HotkeysPage::Apply() {
 		int sel = m_smartBrushModifier->GetSelection();
 		wxString choice = (sel != wxNOT_FOUND) ? m_smartBrushModifier->GetString(sel) : wxString("Ctrl+Alt");
 		g_settings.setString(Config::SMART_BRUSH_MODIFIER, std::string(choice.mb_str()));
+	}
+
+	if (m_smartBrushMouseButton) {
+		int sel = m_smartBrushMouseButton->GetSelection();
+		wxString choice = (sel != wxNOT_FOUND) ? m_smartBrushMouseButton->GetString(sel) : wxString("None");
+		g_settings.setString(Config::SMART_BRUSH_MOUSE_BUTTON, std::string(choice.mb_str()));
 	}
 }
 
@@ -269,9 +302,9 @@ void HotkeysPage::OnSetHotkey(wxCommandEvent& WXUNUSED(event)) {
 
 	m_capturing = true;
 	m_capturedHotkey.clear();
-	m_hotkeyCtrl->SetValue("Press a key combination...");
+	m_hotkeyCtrl->SetValue("Press a key or click a mouse button...");
 	m_hotkeyCtrl->SetFocus();
-	m_statusText->SetLabel("Press the desired key combination. Press Escape to cancel.");
+	m_statusText->SetLabel("Press a key, click a mouse button (Middle/Mouse4/Mouse5), or scroll the wheel. Press Escape to cancel.");
 	m_statusText->SetForegroundColour(Theme::Get(Theme::Role::Text));
 }
 
@@ -365,7 +398,58 @@ void HotkeysPage::OnHotkeyKeyDown(wxKeyEvent& event) {
 	if (hotkeyText.empty()) {
 		return;
 	}
+	ApplyCapturedHotkey(hotkeyText);
+}
 
+void HotkeysPage::OnHotkeyMouseDown(wxMouseEvent& event) {
+	if (!m_capturing) {
+		event.Skip();
+		return;
+	}
+
+	HotkeyMouseButton button = HotkeyMouseButton::None;
+	wxEventType type = event.GetEventType();
+	if (type == wxEVT_MIDDLE_DOWN) {
+		button = HotkeyMouseButton::Middle;
+	} else if (type == wxEVT_AUX1_DOWN) {
+		button = HotkeyMouseButton::Aux1;
+	} else if (type == wxEVT_AUX2_DOWN) {
+		button = HotkeyMouseButton::Aux2;
+	}
+	if (button == HotkeyMouseButton::None) {
+		event.Skip();
+		return;
+	}
+
+	HotkeyData hotkey;
+	if (!MouseEventToHotkey(event, button, hotkey)) {
+		return;
+	}
+	std::string hotkeyText = HotkeyToText(hotkey);
+	if (hotkeyText.empty()) {
+		return;
+	}
+	ApplyCapturedHotkey(hotkeyText);
+}
+
+void HotkeysPage::OnHotkeyMouseWheel(wxMouseEvent& event) {
+	if (!m_capturing) {
+		event.Skip();
+		return;
+	}
+	HotkeyMouseButton button = (event.GetWheelRotation() > 0) ? HotkeyMouseButton::WheelUp : HotkeyMouseButton::WheelDown;
+	HotkeyData hotkey;
+	if (!MouseEventToHotkey(event, button, hotkey)) {
+		return;
+	}
+	std::string hotkeyText = HotkeyToText(hotkey);
+	if (hotkeyText.empty()) {
+		return;
+	}
+	ApplyCapturedHotkey(hotkeyText);
+}
+
+void HotkeysPage::ApplyCapturedHotkey(const std::string& hotkeyText) {
 	long sel = m_listCtrl->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
 	if (sel == -1) {
 		m_capturing = false;
