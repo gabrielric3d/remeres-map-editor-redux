@@ -494,6 +494,8 @@ void MapDrawer::DrawMap() {
 		++view.end_x;
 		++view.end_y;
 	}
+
+	floor_drawer->draw(*sprite_batch, item_drawer.get(), sprite_drawer.get(), creature_drawer.get(), view, options, editor);
 }
 
 void MapDrawer::DrawIngameBox(const ViewBounds& bounds) {
