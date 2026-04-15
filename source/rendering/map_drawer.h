@@ -118,6 +118,7 @@ class MapDrawer {
 	std::unique_ptr<GLVertexArray> pp_vao;
 	std::unique_ptr<GLBuffer> pp_vbo;
 	std::unique_ptr<GLBuffer> pp_ebo;
+	double pp_start_time_ms = 0.0;
 
 	void InitPostProcess();
 	void DrawPostProcess(const RenderView& view, const DrawingOptions& options);

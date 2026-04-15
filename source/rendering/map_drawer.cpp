@@ -100,6 +100,7 @@ void main() {
 MapDrawer::MapDrawer(MapCanvas* canvas) :
 	canvas(canvas), editor(canvas->editor) {
 
+	pp_start_time_ms = wxGetLocalTimeMillis().ToDouble();
 	light_drawer = std::make_shared<LightDrawer>();
 	tooltip_drawer = std::make_unique<TooltipDrawer>();
 
@@ -233,7 +234,8 @@ void MapDrawer::DrawPostProcess(const RenderView& view, const DrawingOptions& op
 		return;
 	}
 
-	ShaderProgram* shader = PostProcessManager::Instance().GetEffect(options.screen_shader_name);
+	const PostProcessEffect* effect_entry = PostProcessManager::Instance().GetEffectEntry(options.screen_shader_name);
+	ShaderProgram* shader = effect_entry ? effect_entry->shader.get() : PostProcessManager::Instance().GetEffect(options.screen_shader_name);
 	if (!shader) {
 		// Manager already tries fallback to NONE, but if even that is missing:
 		return;
@@ -246,13 +248,43 @@ void MapDrawer::DrawPostProcess(const RenderView& view, const DrawingOptions& op
 
 	shader->Use();
 	shader->SetInt("u_Texture", 0);
-	// Set TextureSize uniform if shader needs it
+	// Some effects (e.g. Nevasca) sample the framebuffer via u_Tex0 instead.
+	shader->SetInt("u_Tex0", 0);
 	shader->SetVec2("u_TextureSize", glm::vec2(fbo_width, fbo_height));
+	shader->SetVec2("u_Resolution", glm::vec2(view.screensize_x, view.screensize_y));
+
+	// Animated time in seconds since the MapDrawer was created.
+	const double now_ms = wxGetLocalTimeMillis().ToDouble();
+	const float u_time = static_cast<float>((now_ms - pp_start_time_ms) / 1000.0);
+	shader->SetFloat("u_Time", u_time);
+	shader->SetFloat("u_var0", 1.0f);
 
 	glBindTextureUnit(0, scale_texture->GetID());
+
+	// Bind any auxiliary textures the effect declared (units 1..N).
+	if (effect_entry) {
+		int unit = 1;
+		for (const auto& aux : effect_entry->aux_textures) {
+			if (aux.texture) {
+				glBindTextureUnit(unit, aux.texture->GetID());
+				shader->SetInt(aux.uniform_name, unit);
+			}
+			++unit;
+		}
+	}
+
 	glBindVertexArray(pp_vao->GetID());
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
+
+	// Unbind aux texture units to leave a clean state.
+	if (effect_entry) {
+		int unit = 1;
+		for (size_t i = 0; i < effect_entry->aux_textures.size(); ++i, ++unit) {
+			glBindTextureUnit(unit, 0);
+		}
+	}
+
 	shader->Unuse();
 }
 

@@ -43,6 +43,7 @@
 #include "rendering/ui/map_display.h"
 #include "rendering/ui/map_status_updater.h"
 #include "rendering/map_drawer.h"
+#include "rendering/postprocess/post_process_manager.h"
 #include "rendering/core/text_renderer.h"
 #include <glad/glad.h>
 #include <nanovg.h>
@@ -365,7 +366,8 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 		// Start animation timer for animated previews or custom item light patterns
 		bool needs_animation = options.show_preview
 			|| (options.show_lights && options.show_custom_item_lights
-				&& CustomItemLightManager::instance().hasAnimatedLights());
+				&& CustomItemLightManager::instance().hasAnimatedLights())
+			|| options.screen_shader_name == ShaderNames::NEVASCA;
 		if (needs_animation) {
 			animation_timer->Start();
 			g_gui.gfx.resumeAnimation();
