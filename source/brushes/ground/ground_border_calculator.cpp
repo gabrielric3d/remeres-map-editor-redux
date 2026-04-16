@@ -309,8 +309,9 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 				break;
 			}
 
-			if (borderCluster.border->tiles[direction] != 0) {
-				TileOperations::addBorderItem(tile, Item::Create(borderCluster.border->tiles[direction]));
+			uint32_t tileId = borderCluster.border->getRandomTileId(direction);
+			if (tileId != 0) {
+				TileOperations::addBorderItem(tile, Item::Create(tileId));
 			} else {
 				struct DiagonalComponent {
 					BorderType diagonal;
@@ -325,9 +326,11 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 				} };
 
 				if (auto it = std::ranges::find_if(diagonal_map, [direction](const auto& d) { return d.diagonal == direction; }); it != diagonal_map.end()) {
-					if (borderCluster.border->tiles[it->h1] != 0 && borderCluster.border->tiles[it->h2] != 0) {
-						TileOperations::addBorderItem(tile, Item::Create(borderCluster.border->tiles[it->h1]));
-						TileOperations::addBorderItem(tile, Item::Create(borderCluster.border->tiles[it->h2]));
+					uint32_t h1Id = borderCluster.border->getRandomTileId(it->h1);
+					uint32_t h2Id = borderCluster.border->getRandomTileId(it->h2);
+					if (h1Id != 0 && h2Id != 0) {
+						TileOperations::addBorderItem(tile, Item::Create(h1Id));
+						TileOperations::addBorderItem(tile, Item::Create(h2Id));
 					}
 				}
 			}

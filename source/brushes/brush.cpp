@@ -231,7 +231,7 @@ const AutoBorder* Brushes::findAutoBorderByBorderItem(uint16_t itemId, BorderTyp
 	const int hint = static_cast<int>(alignmentHint);
 	if (hint >= 1 && hint <= 12) {
 		for (const auto& [id, border] : borders) {
-			if (border && border->tiles[hint] == itemId) {
+			if (border && border->containsItemInDirection(itemId, hint)) {
 				return border.get();
 			}
 		}
@@ -241,10 +241,8 @@ const AutoBorder* Brushes::findAutoBorderByBorderItem(uint16_t itemId, BorderTyp
 		if (!border) {
 			continue;
 		}
-		for (int i = 1; i <= 12; ++i) {
-			if (border->tiles[i] == itemId) {
-				return border.get();
-			}
+		if (border->containsItem(itemId)) {
+			return border.get();
 		}
 	}
 

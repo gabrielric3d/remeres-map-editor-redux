@@ -307,8 +307,8 @@ void CopyBuffer::rotate(int quarterTurns) {
 
 			if (rotated != BORDER_NONE) {
 				const AutoBorder* border = get_border_for_item(item->getID(), current);
-				if (border && border->tiles[rotated] != 0) {
-					const uint16_t newId = static_cast<uint16_t>(border->tiles[rotated]);
+				if (border && border->getTileId(rotated) != 0) {
+					const uint16_t newId = static_cast<uint16_t>(border->getTileId(rotated));
 					if (newId != item->getID()) {
 						item->setID(newId);
 					}

@@ -26,6 +26,7 @@
 class BorderGridPanel;
 class BorderPreviewPanel;
 class BorderEditorDialog;
+class EdgeItemsPanel;
 
 // Drop target for the border grid - accepts item drags from palette
 class BorderGridDropTarget : public wxTextDropTarget {
@@ -56,6 +57,16 @@ enum BorderEdgePosition {
 BorderEdgePosition edgeStringToPosition(const std::string& edgeStr);
 std::string edgePositionToString(BorderEdgePosition pos);
 
+// A single item variant for a border edge direction
+struct BorderEdgeItem {
+	uint16_t itemId = 0;
+	int chance = 100;
+
+	BorderEdgeItem() = default;
+	BorderEdgeItem(uint16_t id, int c) : itemId(id), chance(c) { }
+};
+
+// Legacy struct kept for preview compatibility
 struct BorderItem {
 	BorderEdgePosition position;
 	uint16_t itemId;
@@ -72,6 +83,38 @@ struct GroundItem {
 	GroundItem(uint16_t id, int c) : itemId(id), chance(c) { }
 };
 
+// Visual panel that displays edge items as sprite cells with X button
+class EdgeItemsPanel : public wxPanel {
+public:
+	EdgeItemsPanel(wxWindow* parent, wxWindowID id = wxID_ANY);
+
+	void SetItems(const std::vector<BorderEdgeItem>& items);
+	void Clear();
+	int GetSelectedIndex() const { return m_selectedIndex; }
+
+	void OnPaint(wxPaintEvent& event);
+	void OnMouseClick(wxMouseEvent& event);
+
+private:
+	struct CellRect {
+		wxRect bounds;
+		wxRect closeBtn;
+		int index;
+	};
+
+	std::vector<BorderEdgeItem> m_items;
+	std::vector<CellRect> m_cells;
+	int m_selectedIndex = -1;
+
+	static constexpr int CELL_SIZE = 56;
+	static constexpr int CELL_MARGIN = 4;
+	static constexpr int CLOSE_BTN_SIZE = 14;
+
+	void RecalcLayout();
+
+	DECLARE_EVENT_TABLE()
+};
+
 class BorderEditorDialog : public wxDialog {
 public:
 	BorderEditorDialog(wxWindow* parent, const wxString& title);
@@ -79,6 +122,8 @@ public:
 
 	void OnPositionSelected(wxCommandEvent& event);
 	void OnAddItem(wxCommandEvent& event);
+	void OnRemoveBorderItem(int index);
+	void OnUpdateChance(wxCommandEvent& event);
 	void OnClear(wxCommandEvent& event);
 	void OnSave(wxCommandEvent& event);
 	void OnClose(wxCommandEvent& event);
@@ -91,6 +136,7 @@ public:
 	void OnGroundBrowse(wxCommandEvent& event);
 	void ApplyItemToPosition(BorderEdgePosition pos, uint16_t itemId);
 	void UpdatePreview();
+	void UpdateEdgeItemsList();
 	wxString GetVersionDataDirectory();
 
 protected:
@@ -118,6 +164,9 @@ public:
 	wxCheckBox* m_isGroundCheck;
 	wxSpinCtrl* m_groupCtrl;
 	wxSpinCtrl* m_itemIdCtrl;
+	wxSpinCtrl* m_itemChanceCtrl;
+	EdgeItemsPanel* m_edgeItemsPanel;
+	wxStaticText* m_edgeItemsLabel;
 
 	// Ground Tab
 	wxPanel* m_groundPanel;
@@ -130,8 +179,8 @@ public:
 	wxButton* m_addGroundItemButton;
 	wxButton* m_removeGroundItemButton;
 
-	// Border items
-	std::vector<BorderItem> m_borderItems;
+	// Border items: multiple items per direction with chance
+	std::map<BorderEdgePosition, std::vector<BorderEdgeItem>> m_borderItems;
 
 	// Ground items
 	std::vector<GroundItem> m_groundItems;
@@ -156,6 +205,7 @@ public:
 	~BorderGridPanel();
 
 	void SetItemId(BorderEdgePosition pos, uint16_t itemId);
+	void SetItemCount(BorderEdgePosition pos, int count);
 	uint16_t GetItemId(BorderEdgePosition pos) const;
 	void Clear();
 	void LoadSampleBorder();
@@ -173,6 +223,7 @@ public:
 
 private:
 	std::map<BorderEdgePosition, uint16_t> m_items;
+	std::map<BorderEdgePosition, int> m_itemCounts;
 	std::map<BorderEdgePosition, uint16_t> m_sampleItems;
 	std::vector<BorderItem> m_previewItems;
 	BorderEdgePosition m_selectedPosition;

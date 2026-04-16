@@ -157,9 +157,11 @@ void GroundBrush::getRelatedItems(std::vector<uint16_t>& items) {
 
 	for (const auto& bb : borders) {
 		if (bb->autoborder) {
-			for (uint32_t tile_id : bb->autoborder->tiles) {
-				if (tile_id != 0) {
-					items.push_back(static_cast<uint16_t>(tile_id));
+			for (const auto& direction_items : bb->autoborder->tiles) {
+				for (const auto& bic : direction_items) {
+					if (bic.id != 0) {
+						items.push_back(bic.id);
+					}
 				}
 			}
 		}

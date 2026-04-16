@@ -1118,8 +1118,8 @@ void DungeonPresetEditorDialog::RebuildGroundBrushList() {
 					const AutoBorder* ab = gb->getFirstOuterAutoBorder();
 					uint16_t previewId = 0;
 					if (ab) {
-						previewId = static_cast<uint16_t>(ab->tiles[NORTH_HORIZONTAL]);
-						if (previewId == 0) previewId = static_cast<uint16_t>(ab->tiles[EAST_HORIZONTAL]);
+						previewId = static_cast<uint16_t>(ab->getTileId(NORTH_HORIZONTAL));
+						if (previewId == 0) previewId = static_cast<uint16_t>(ab->getTileId(EAST_HORIZONTAL));
 					}
 					if (previewId == 0) previewId = gb->getFirstGroundItemId();
 					brushes.push_back({name, previewId});
@@ -1171,19 +1171,19 @@ void DungeonPresetEditorDialog::OnLoadGroundBrush(wxCommandEvent& event) {
 		if (ab) {
 			// Straights: AutoBorder N/S/E/W are swapped relative to dungeon convention
 			// AutoBorder "n" = piece on north side of terrain = dungeon "south" border
-			targetGrid->SetItemId(DSLOT_N, static_cast<uint16_t>(ab->tiles[SOUTH_HORIZONTAL]));
-			targetGrid->SetItemId(DSLOT_S, static_cast<uint16_t>(ab->tiles[NORTH_HORIZONTAL]));
-			targetGrid->SetItemId(DSLOT_E, static_cast<uint16_t>(ab->tiles[WEST_HORIZONTAL]));
-			targetGrid->SetItemId(DSLOT_W, static_cast<uint16_t>(ab->tiles[EAST_HORIZONTAL]));
+			targetGrid->SetItemId(DSLOT_N, static_cast<uint16_t>(ab->getTileId(SOUTH_HORIZONTAL)));
+			targetGrid->SetItemId(DSLOT_S, static_cast<uint16_t>(ab->getTileId(NORTH_HORIZONTAL)));
+			targetGrid->SetItemId(DSLOT_E, static_cast<uint16_t>(ab->getTileId(WEST_HORIZONTAL)));
+			targetGrid->SetItemId(DSLOT_W, static_cast<uint16_t>(ab->getTileId(EAST_HORIZONTAL)));
 			// Corners: same swap logic
-			targetGrid->SetItemId(DSLOT_NW, static_cast<uint16_t>(ab->tiles[SOUTHEAST_DIAGONAL]));
-			targetGrid->SetItemId(DSLOT_NE, static_cast<uint16_t>(ab->tiles[SOUTHWEST_DIAGONAL]));
-			targetGrid->SetItemId(DSLOT_SW, static_cast<uint16_t>(ab->tiles[NORTHEAST_DIAGONAL]));
-			targetGrid->SetItemId(DSLOT_SE, static_cast<uint16_t>(ab->tiles[NORTHWEST_DIAGONAL]));
-			targetGrid->SetItemId(DSLOT_INNER_NW, static_cast<uint16_t>(ab->tiles[SOUTHEAST_CORNER]));
-			targetGrid->SetItemId(DSLOT_INNER_NE, static_cast<uint16_t>(ab->tiles[SOUTHWEST_CORNER]));
-			targetGrid->SetItemId(DSLOT_INNER_SW, static_cast<uint16_t>(ab->tiles[NORTHEAST_CORNER]));
-			targetGrid->SetItemId(DSLOT_INNER_SE, static_cast<uint16_t>(ab->tiles[NORTHWEST_CORNER]));
+			targetGrid->SetItemId(DSLOT_NW, static_cast<uint16_t>(ab->getTileId(SOUTHEAST_DIAGONAL)));
+			targetGrid->SetItemId(DSLOT_NE, static_cast<uint16_t>(ab->getTileId(SOUTHWEST_DIAGONAL)));
+			targetGrid->SetItemId(DSLOT_SW, static_cast<uint16_t>(ab->getTileId(NORTHEAST_DIAGONAL)));
+			targetGrid->SetItemId(DSLOT_SE, static_cast<uint16_t>(ab->getTileId(NORTHWEST_DIAGONAL)));
+			targetGrid->SetItemId(DSLOT_INNER_NW, static_cast<uint16_t>(ab->getTileId(SOUTHEAST_CORNER)));
+			targetGrid->SetItemId(DSLOT_INNER_NE, static_cast<uint16_t>(ab->getTileId(SOUTHWEST_CORNER)));
+			targetGrid->SetItemId(DSLOT_INNER_SW, static_cast<uint16_t>(ab->getTileId(NORTHEAST_CORNER)));
+			targetGrid->SetItemId(DSLOT_INNER_SE, static_cast<uint16_t>(ab->getTileId(NORTHWEST_CORNER)));
 		}
 	}
 }

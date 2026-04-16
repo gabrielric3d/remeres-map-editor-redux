@@ -30,6 +30,7 @@
 #define BORDER_PREVIEW_SIZE 192
 #define ID_BORDER_GRID_SELECT wxID_HIGHEST + 1
 #define ID_GROUND_ITEM_LIST wxID_HIGHEST + 2
+#define ID_UPDATE_CHANCE wxID_HIGHEST + 3
 
 // ============================================================================
 // Utility functions
@@ -138,6 +139,7 @@ bool BorderGridDropTarget::OnDropText(wxCoord x, wxCoord y, const wxString& data
 
 BEGIN_EVENT_TABLE(BorderEditorDialog, wxDialog)
 	EVT_BUTTON(wxID_ADD, BorderEditorDialog::OnAddItem)
+	EVT_BUTTON(ID_UPDATE_CHANCE, BorderEditorDialog::OnUpdateChance)
 	EVT_BUTTON(wxID_CLEAR, BorderEditorDialog::OnClear)
 	EVT_BUTTON(wxID_SAVE, BorderEditorDialog::OnSave)
 	EVT_BUTTON(wxID_CLOSE, BorderEditorDialog::OnClose)
@@ -159,6 +161,11 @@ END_EVENT_TABLE()
 
 BEGIN_EVENT_TABLE(BorderPreviewPanel, wxPanel)
 	EVT_PAINT(BorderPreviewPanel::OnPaint)
+END_EVENT_TABLE()
+
+BEGIN_EVENT_TABLE(EdgeItemsPanel, wxPanel)
+	EVT_PAINT(EdgeItemsPanel::OnPaint)
+	EVT_LEFT_UP(EdgeItemsPanel::OnMouseClick)
 END_EVENT_TABLE()
 
 // ============================================================================
@@ -281,18 +288,34 @@ void BorderEditorDialog::CreateGUIControls() {
 	instructions->SetForegroundColour(Theme::Get(Theme::Role::Accent));
 	gridSizer->Add(instructions, 0, wxEXPAND | wxLEFT | wxRIGHT, 5);
 
+	// Edge items visual panel for the selected direction
+	m_edgeItemsLabel = newd wxStaticText(m_borderPanel, wxID_ANY, "Items for selected direction:");
+	gridSizer->Add(m_edgeItemsLabel, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 5);
+
+	m_edgeItemsPanel = newd EdgeItemsPanel(m_borderPanel);
+	gridSizer->Add(m_edgeItemsPanel, 0, wxEXPAND | wxLEFT | wxRIGHT, 5);
+
 	// Current selected item controls
 	wxBoxSizer* itemSizer = newd wxBoxSizer(wxHORIZONTAL);
 	itemSizer->Add(newd wxStaticText(m_borderPanel, wxID_ANY, "Item ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
 	m_itemIdCtrl = newd wxSpinCtrl(m_borderPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 0, 65535);
 	m_itemIdCtrl->SetToolTip("Enter an item ID manually");
 	itemSizer->Add(m_itemIdCtrl, 0, wxRIGHT, 5);
+
+	itemSizer->Add(newd wxStaticText(m_borderPanel, wxID_ANY, "Chance:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+	m_itemChanceCtrl = newd wxSpinCtrl(m_borderPanel, wxID_ANY, "100", wxDefaultPosition, wxSize(60, -1), wxSP_ARROW_KEYS, 1, 10000);
+	m_itemChanceCtrl->SetToolTip("Chance weight for this item variant");
+	itemSizer->Add(m_itemChanceCtrl, 0, wxRIGHT, 5);
+
 	wxButton* browseButton = newd wxButton(m_borderPanel, wxID_FIND, "Browse...", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	browseButton->SetToolTip("Browse for an item");
 	itemSizer->Add(browseButton, 0, wxRIGHT, 5);
-	wxButton* addButton = newd wxButton(m_borderPanel, wxID_ADD, "Add Manually", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-	addButton->SetToolTip("Add the item ID manually to the currently selected position");
-	itemSizer->Add(addButton, 0);
+	wxButton* addButton = newd wxButton(m_borderPanel, wxID_ADD, "Add", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+	addButton->SetToolTip("Add the item to the currently selected direction");
+	itemSizer->Add(addButton, 0, wxRIGHT, 5);
+	wxButton* updateChanceButton = newd wxButton(m_borderPanel, ID_UPDATE_CHANCE, "Set Chance", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+	updateChanceButton->SetToolTip("Update the chance of the selected item");
+	itemSizer->Add(updateChanceButton, 0);
 
 	gridSizer->Add(itemSizer, 0, wxEXPAND | wxALL, 5);
 	borderSizer->Add(gridSizer, 1, wxEXPAND | wxALL, 5);
@@ -566,38 +589,66 @@ void BorderEditorDialog::OnLoadBorder(wxCommandEvent& event) {
 		pugi::xml_attribute groupAttr = borderNode.attribute("group");
 		m_groupCtrl->SetValue(groupAttr ? groupAttr.as_int() : 0);
 
-		// Get the comment for the name
+		// Get the name from the comment, or fallback to "Border <id>"
+		std::string borderName;
 		pugi::xml_node commentNode = borderNode.previous_sibling();
 		if (commentNode && commentNode.type() == pugi::node_comment) {
-			std::string description = commentNode.value();
-			size_t first = description.find_first_not_of(" \t\n\r");
+			borderName = commentNode.value();
+			size_t first = borderName.find_first_not_of(" \t\n\r");
 			if (first != std::string::npos) {
-				description = description.substr(first);
-				size_t last = description.find_last_not_of(" \t\n\r");
+				borderName = borderName.substr(first);
+				size_t last = borderName.find_last_not_of(" \t\n\r");
 				if (last != std::string::npos) {
-					description = description.substr(0, last + 1);
+					borderName = borderName.substr(0, last + 1);
 				}
 			} else {
-				description.clear();
+				borderName.clear();
 			}
-			m_nameCtrl->SetValue(wxString(description));
-		} else {
-			m_nameCtrl->SetValue("");
 		}
+		if (borderName.empty()) {
+			borderName = "Border " + std::to_string(borderId);
+		}
+		m_nameCtrl->SetValue(wxString(borderName));
 
 		// Load all border items
 		for (pugi::xml_node itemNode = borderNode.child("borderitem"); itemNode; itemNode = itemNode.next_sibling("borderitem")) {
 			pugi::xml_attribute edgeAttr = itemNode.attribute("edge");
-			pugi::xml_attribute itemAttr = itemNode.attribute("item");
-
-			if (!edgeAttr || !itemAttr) continue;
+			if (!edgeAttr) continue;
 
 			BorderEdgePosition pos = edgeStringToPosition(edgeAttr.as_string());
-			uint16_t itemId = itemAttr.as_uint();
+			if (pos == EDGE_NONE) continue;
 
-			if (pos != EDGE_NONE && itemId > 0) {
-				m_borderItems.push_back(BorderItem(pos, itemId));
-				m_gridPanel->SetItemId(pos, itemId);
+			// New format: <borderitem edge="n"> <item id="123" chance="80" /> ... </borderitem>
+			pugi::xml_node firstItemChild = itemNode.child("item");
+			if (firstItemChild) {
+				for (pugi::xml_node subItem = firstItemChild; subItem; subItem = subItem.next_sibling("item")) {
+					pugi::xml_attribute subIdAttr = subItem.attribute("id");
+					if (!subIdAttr) continue;
+
+					uint16_t itemId = subIdAttr.as_uint();
+					int chance = subItem.attribute("chance") ? subItem.attribute("chance").as_int() : 100;
+
+					if (itemId > 0) {
+						m_borderItems[pos].push_back(BorderEdgeItem(itemId, chance));
+					}
+				}
+			} else {
+				// Legacy format: <borderitem edge="n" item="123" />
+				pugi::xml_attribute itemAttr = itemNode.attribute("item");
+				if (!itemAttr) continue;
+
+				uint16_t itemId = itemAttr.as_uint();
+				if (itemId > 0) {
+					m_borderItems[pos].push_back(BorderEdgeItem(itemId, 100));
+				}
+			}
+		}
+
+		// Update the grid with first item from each direction
+		for (const auto& [pos, items] : m_borderItems) {
+			if (!items.empty()) {
+				m_gridPanel->SetItemId(pos, items[0].itemId);
+				m_gridPanel->SetItemCount(pos, static_cast<int>(items.size()));
 			}
 		}
 
@@ -605,6 +656,7 @@ void BorderEditorDialog::OnLoadBorder(wxCommandEvent& event) {
 	}
 
 	UpdatePreview();
+	UpdateEdgeItemsList();
 	m_existingBordersCombo->SetSelection(selection);
 }
 
@@ -615,45 +667,20 @@ void BorderEditorDialog::ApplyItemToPosition(BorderEdgePosition pos, uint16_t it
 		m_itemIdCtrl->SetValue(itemId);
 	}
 
-	bool updated = false;
-	for (size_t i = 0; i < m_borderItems.size(); i++) {
-		if (m_borderItems[i].position == pos) {
-			m_borderItems[i].itemId = itemId;
-			updated = true;
-			break;
-		}
-	}
+	int chance = m_itemChanceCtrl ? m_itemChanceCtrl->GetValue() : 100;
 
-	if (!updated) {
-		m_borderItems.push_back(BorderItem(pos, itemId));
-	}
+	// Add item to this direction
+	m_borderItems[pos].push_back(BorderEdgeItem(itemId, chance));
 
-	m_gridPanel->SetItemId(pos, itemId);
+	// Update grid to show first item and count
+	m_gridPanel->SetItemId(pos, m_borderItems[pos][0].itemId);
+	m_gridPanel->SetItemCount(pos, static_cast<int>(m_borderItems[pos].size()));
 	UpdatePreview();
+	UpdateEdgeItemsList();
 }
 
 void BorderEditorDialog::OnPositionSelected(wxCommandEvent& event) {
-	BorderEdgePosition pos = static_cast<BorderEdgePosition>(event.GetInt());
-
-	// Get the item ID from the current brush
-	Brush* currentBrush = g_gui.GetCurrentBrush();
-	uint16_t itemId = 0;
-
-	if (currentBrush) {
-		itemId = GetItemIDFromBrush(currentBrush);
-	}
-
-	if (itemId > 0) {
-		ApplyItemToPosition(pos, itemId);
-	} else {
-		// Fallback to the item ID control
-		itemId = m_itemIdCtrl->GetValue();
-		if (itemId > 0) {
-			ApplyItemToPosition(pos, itemId);
-		} else {
-			wxMessageBox("Please select a brush or enter an item ID first.", "No Item", wxICON_INFORMATION);
-		}
-	}
+	UpdateEdgeItemsList();
 }
 
 void BorderEditorDialog::OnAddItem(wxCommandEvent& event) {
@@ -671,6 +698,42 @@ void BorderEditorDialog::OnAddItem(wxCommandEvent& event) {
 	}
 
 	ApplyItemToPosition(selectedPos, itemId);
+}
+
+void BorderEditorDialog::OnRemoveBorderItem(int index) {
+	BorderEdgePosition selectedPos = m_gridPanel->GetSelectedPosition();
+	if (selectedPos == EDGE_NONE) return;
+
+	auto it = m_borderItems.find(selectedPos);
+	if (it != m_borderItems.end() && index >= 0 && index < static_cast<int>(it->second.size())) {
+		it->second.erase(it->second.begin() + index);
+
+		if (it->second.empty()) {
+			m_borderItems.erase(it);
+			m_gridPanel->SetItemId(selectedPos, 0);
+			m_gridPanel->SetItemCount(selectedPos, 0);
+		} else {
+			m_gridPanel->SetItemId(selectedPos, it->second[0].itemId);
+			m_gridPanel->SetItemCount(selectedPos, static_cast<int>(it->second.size()));
+		}
+
+		UpdatePreview();
+		UpdateEdgeItemsList();
+	}
+}
+
+void BorderEditorDialog::OnUpdateChance(wxCommandEvent& event) {
+	BorderEdgePosition selectedPos = m_gridPanel->GetSelectedPosition();
+	if (selectedPos == EDGE_NONE) return;
+
+	int selection = m_edgeItemsPanel->GetSelectedIndex();
+	if (selection < 0) return;
+
+	auto it = m_borderItems.find(selectedPos);
+	if (it != m_borderItems.end() && selection < static_cast<int>(it->second.size())) {
+		it->second[selection].chance = m_itemChanceCtrl->GetValue();
+		UpdateEdgeItemsList();
+	}
 }
 
 void BorderEditorDialog::OnBrowse(wxCommandEvent& event) {
@@ -704,10 +767,38 @@ void BorderEditorDialog::ClearItems() {
 	m_groupCtrl->SetValue(0);
 
 	m_existingBordersCombo->SetSelection(0);
+	UpdateEdgeItemsList();
 }
 
 void BorderEditorDialog::UpdatePreview() {
-	m_gridPanel->SetPreviewItems(m_borderItems);
+	// Build flat list with first item of each direction for preview
+	std::vector<BorderItem> previewItems;
+	for (const auto& [pos, items] : m_borderItems) {
+		if (!items.empty()) {
+			previewItems.push_back(BorderItem(pos, items[0].itemId));
+		}
+	}
+	m_gridPanel->SetPreviewItems(previewItems);
+}
+
+void BorderEditorDialog::UpdateEdgeItemsList() {
+	BorderEdgePosition selectedPos = m_gridPanel->GetSelectedPosition();
+	if (selectedPos == EDGE_NONE) {
+		m_edgeItemsLabel->SetLabel("Items for selected direction:");
+		m_edgeItemsPanel->Clear();
+		return;
+	}
+
+	wxString dirName = wxString(edgePositionToString(selectedPos));
+	m_edgeItemsLabel->SetLabel(wxString::Format("Items for direction '%s':", dirName));
+
+	auto it = m_borderItems.find(selectedPos);
+	if (it == m_borderItems.end()) {
+		m_edgeItemsPanel->Clear();
+		return;
+	}
+
+	m_edgeItemsPanel->SetItems(it->second);
 }
 
 bool BorderEditorDialog::ValidateBorder() {
@@ -719,15 +810,6 @@ bool BorderEditorDialog::ValidateBorder() {
 	if (m_borderItems.empty()) {
 		wxMessageBox("The border must have at least one item.", "Validation Error", wxICON_ERROR);
 		return false;
-	}
-
-	std::set<BorderEdgePosition> positions;
-	for (const BorderItem& item : m_borderItems) {
-		if (positions.find(item.position) != positions.end()) {
-			wxMessageBox("The border contains duplicate positions.", "Validation Error", wxICON_ERROR);
-			return false;
-		}
-		positions.insert(item.position);
 	}
 
 	int id = m_idCtrl->GetValue();
@@ -819,10 +901,27 @@ void BorderEditorDialog::SaveBorder() {
 	}
 
 	// Add all border items
-	for (const BorderItem& item : m_borderItems) {
-		pugi::xml_node itemNode = borderNode.append_child("borderitem");
-		itemNode.append_attribute("edge").set_value(edgePositionToString(item.position).c_str());
-		itemNode.append_attribute("item").set_value(item.itemId);
+	for (const auto& [pos, items] : m_borderItems) {
+		if (items.empty()) continue;
+
+		std::string edgeStr = edgePositionToString(pos);
+
+		if (items.size() == 1) {
+			// Single item: use legacy format for simplicity
+			pugi::xml_node itemNode = borderNode.append_child("borderitem");
+			itemNode.append_attribute("edge").set_value(edgeStr.c_str());
+			itemNode.append_attribute("item").set_value(items[0].itemId);
+		} else {
+			// Multiple items: use new table format
+			pugi::xml_node edgeNode = borderNode.append_child("borderitem");
+			edgeNode.append_attribute("edge").set_value(edgeStr.c_str());
+
+			for (const auto& item : items) {
+				pugi::xml_node subItem = edgeNode.append_child("item");
+				subItem.append_attribute("id").set_value(item.itemId);
+				subItem.append_attribute("chance").set_value(item.chance);
+			}
+		}
 	}
 
 	// Save the file
@@ -1096,6 +1195,13 @@ void BorderGridPanel::SetItemId(BorderEdgePosition pos, uint16_t itemId) {
 	}
 }
 
+void BorderGridPanel::SetItemCount(BorderEdgePosition pos, int count) {
+	if (pos >= 0 && pos < EDGE_COUNT) {
+		m_itemCounts[pos] = count;
+		Refresh();
+	}
+}
+
 uint16_t BorderGridPanel::GetItemId(BorderEdgePosition pos) const {
 	auto it = m_items.find(pos);
 	if (it != m_items.end()) {
@@ -1108,6 +1214,7 @@ void BorderGridPanel::Clear() {
 	for (auto& item : m_items) {
 		item.second = 0;
 	}
+	m_itemCounts.clear();
 	Refresh();
 }
 
@@ -1141,11 +1248,20 @@ void BorderGridPanel::LoadSampleBorder() {
 
 		for (pugi::xml_node itemNode = borderNode.child("borderitem"); itemNode; itemNode = itemNode.next_sibling("borderitem")) {
 			pugi::xml_attribute edgeAttr = itemNode.attribute("edge");
-			pugi::xml_attribute itemAttr = itemNode.attribute("item");
-			if (!edgeAttr || !itemAttr) continue;
+			if (!edgeAttr) continue;
+
+			uint16_t itemId = 0;
+			// Support both formats for sample loading
+			pugi::xml_node firstChild = itemNode.child("item");
+			if (firstChild) {
+				pugi::xml_attribute subIdAttr = firstChild.attribute("id");
+				if (subIdAttr) itemId = subIdAttr.as_uint();
+			} else {
+				pugi::xml_attribute itemAttr = itemNode.attribute("item");
+				if (itemAttr) itemId = itemAttr.as_uint();
+			}
 
 			BorderEdgePosition pos = edgeStringToPosition(edgeAttr.as_string());
-			uint16_t itemId = itemAttr.as_uint();
 			if (pos != EDGE_NONE && itemId > 0) {
 				candidate[pos] = itemId;
 			}
@@ -1161,11 +1277,19 @@ void BorderGridPanel::LoadSampleBorder() {
 	for (pugi::xml_node borderNode = materials.child("border"); borderNode; borderNode = borderNode.next_sibling("border")) {
 		for (pugi::xml_node itemNode = borderNode.child("borderitem"); itemNode; itemNode = itemNode.next_sibling("borderitem")) {
 			pugi::xml_attribute edgeAttr = itemNode.attribute("edge");
-			pugi::xml_attribute itemAttr = itemNode.attribute("item");
-			if (!edgeAttr || !itemAttr) continue;
+			if (!edgeAttr) continue;
+
+			uint16_t itemId = 0;
+			pugi::xml_node firstChild = itemNode.child("item");
+			if (firstChild) {
+				pugi::xml_attribute subIdAttr = firstChild.attribute("id");
+				if (subIdAttr) itemId = subIdAttr.as_uint();
+			} else {
+				pugi::xml_attribute itemAttr = itemNode.attribute("item");
+				if (itemAttr) itemId = itemAttr.as_uint();
+			}
 
 			BorderEdgePosition pos = edgeStringToPosition(edgeAttr.as_string());
-			uint16_t itemId = itemAttr.as_uint();
 			if (pos != EDGE_NONE && itemId > 0) {
 				m_sampleItems[pos] = itemId;
 			}
@@ -1272,6 +1396,29 @@ void BorderGridPanel::OnPaint(wxPaintEvent& event) {
 				if (sprite) {
 					sprite->DrawTo(&dc, SPRITE_SIZE_32x32, x, y, cellW, cellH);
 				}
+			}
+
+			// Draw item count badge if more than 1
+			auto countIt = m_itemCounts.find(pos);
+			if (countIt != m_itemCounts.end() && countIt->second > 1) {
+				wxString badge = wxString::Format("x%d", countIt->second);
+				dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
+				wxSize badgeSize = dc.GetTextExtent(badge);
+
+				int badgeX = x + cellW - badgeSize.GetWidth() - 1;
+				int badgeY = y;
+
+				// Badge background
+				dc.SetBrush(wxBrush(wxColour(40, 40, 40, 200)));
+				dc.SetPen(*wxTRANSPARENT_PEN);
+				dc.DrawRoundedRectangle(badgeX - 2, badgeY, badgeSize.GetWidth() + 4, badgeSize.GetHeight() + 2, 3);
+
+				dc.SetTextForeground(wxColour(100, 200, 255));
+				dc.DrawText(badge, badgeX, badgeY);
+
+				// Reset
+				dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
+				dc.SetPen(wxPen(Theme::Get(Theme::Role::Border)));
 			}
 		} else {
 			// Empty slot: draw sample sprite with reduced opacity
@@ -1543,6 +1690,17 @@ void BorderGridPanel::OnMouseClick(wxMouseEvent& event) {
 void BorderGridPanel::OnMouseDown(wxMouseEvent& event) {
 	BorderEdgePosition pos = GetPositionFromCoordinates(event.GetX(), event.GetY());
 	SetSelectedPosition(pos);
+
+	// Update the edge items list when selecting a position
+	wxWindow* parent = GetParent();
+	while (parent && !dynamic_cast<BorderEditorDialog*>(parent)) {
+		parent = parent->GetParent();
+	}
+	BorderEditorDialog* dialog = dynamic_cast<BorderEditorDialog*>(parent);
+	if (dialog) {
+		dialog->UpdateEdgeItemsList();
+	}
+
 	event.Skip();
 }
 
@@ -1553,8 +1711,9 @@ void BorderGridPanel::OnRightClick(wxMouseEvent& event) {
 	uint16_t itemId = GetItemId(pos);
 	if (itemId == 0) return;
 
-	// Remove the item from this position
+	// Remove all items from this position
 	m_items.erase(pos);
+	m_itemCounts.erase(pos);
 	SetSelectedPosition(EDGE_NONE);
 
 	// Remove from parent dialog's border items list and update preview
@@ -1565,14 +1724,159 @@ void BorderGridPanel::OnRightClick(wxMouseEvent& event) {
 
 	BorderEditorDialog* dialog = dynamic_cast<BorderEditorDialog*>(parent);
 	if (dialog) {
-		auto& items = dialog->m_borderItems;
-		items.erase(
-			std::remove_if(items.begin(), items.end(),
-				[pos](const BorderItem& item) { return item.position == pos; }),
-			items.end());
+		dialog->m_borderItems.erase(pos);
 		dialog->UpdatePreview();
+		dialog->UpdateEdgeItemsList();
 	}
 
+	Refresh();
+}
+
+// ============================================================================
+// EdgeItemsPanel
+// ============================================================================
+
+EdgeItemsPanel::EdgeItemsPanel(wxWindow* parent, wxWindowID id) :
+	wxPanel(parent, id, wxDefaultPosition, wxSize(-1, CELL_SIZE + 2 * CELL_MARGIN), wxBORDER_NONE) {
+	SetBackgroundStyle(wxBG_STYLE_PAINT);
+	SetMinSize(wxSize(-1, CELL_SIZE + 2 * CELL_MARGIN));
+}
+
+void EdgeItemsPanel::SetItems(const std::vector<BorderEdgeItem>& items) {
+	m_items = items;
+	if (m_selectedIndex >= static_cast<int>(m_items.size())) {
+		m_selectedIndex = -1;
+	}
+	RecalcLayout();
+	Refresh();
+}
+
+void EdgeItemsPanel::Clear() {
+	m_items.clear();
+	m_cells.clear();
+	m_selectedIndex = -1;
+	Refresh();
+}
+
+void EdgeItemsPanel::RecalcLayout() {
+	m_cells.clear();
+	int x = CELL_MARGIN;
+	int y = CELL_MARGIN;
+	for (int i = 0; i < static_cast<int>(m_items.size()); ++i) {
+		CellRect cell;
+		cell.index = i;
+		cell.bounds = wxRect(x, y, CELL_SIZE, CELL_SIZE);
+		cell.closeBtn = wxRect(x + CELL_SIZE - CLOSE_BTN_SIZE - 2, y + 2, CLOSE_BTN_SIZE, CLOSE_BTN_SIZE);
+		m_cells.push_back(cell);
+		x += CELL_SIZE + CELL_MARGIN;
+	}
+}
+
+void EdgeItemsPanel::OnPaint(wxPaintEvent& event) {
+	wxAutoBufferedPaintDC dc(this);
+
+	dc.SetBackground(wxBrush(Theme::Get(Theme::Role::Background)));
+	dc.Clear();
+
+	if (m_items.empty()) {
+		dc.SetTextForeground(Theme::Get(Theme::Role::TextSubtle));
+		dc.SetFont(wxFont(9, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_ITALIC, wxFONTWEIGHT_NORMAL));
+		dc.DrawText("No items. Select a direction and add items.", CELL_MARGIN, CELL_MARGIN + 4);
+		return;
+	}
+
+	const int SPRITE_PADDING = 4;
+	const int spriteArea = CELL_SIZE - 2 * SPRITE_PADDING;
+
+	for (const auto& cell : m_cells) {
+		const auto& item = m_items[cell.index];
+
+		// Cell background
+		bool selected = (cell.index == m_selectedIndex);
+		if (selected) {
+			dc.SetPen(wxPen(Theme::Get(Theme::Role::Accent), 2));
+			dc.SetBrush(wxBrush(Theme::Get(Theme::Role::Selected)));
+		} else {
+			dc.SetPen(wxPen(Theme::Get(Theme::Role::Border)));
+			dc.SetBrush(wxBrush(Theme::Get(Theme::Role::Surface)));
+		}
+		dc.DrawRoundedRectangle(cell.bounds, 3);
+
+		// Sprite
+		const auto itemDef = g_item_definitions.get(item.itemId);
+		if (itemDef) {
+			Sprite* sprite = g_gui.gfx.getSprite(itemDef.clientId());
+			if (sprite) {
+				sprite->DrawTo(&dc, SPRITE_SIZE_32x32,
+					cell.bounds.x + SPRITE_PADDING,
+					cell.bounds.y + SPRITE_PADDING,
+					spriteArea, spriteArea);
+			}
+		}
+
+		// Chance label at bottom
+		dc.SetFont(wxFont(7, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
+		dc.SetTextForeground(Theme::Get(Theme::Role::TextSubtle));
+		wxString chanceLabel = wxString::Format("%d%%", item.chance);
+		wxSize ts = dc.GetTextExtent(chanceLabel);
+		dc.DrawText(chanceLabel,
+			cell.bounds.x + (CELL_SIZE - ts.GetWidth()) / 2,
+			cell.bounds.y + CELL_SIZE - ts.GetHeight() - 2);
+
+		// Close button (X)
+		dc.SetPen(*wxTRANSPARENT_PEN);
+		dc.SetBrush(wxBrush(wxColour(180, 50, 50)));
+		dc.DrawRoundedRectangle(cell.closeBtn, 2);
+
+		dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
+		dc.SetTextForeground(*wxWHITE);
+		wxSize xSize = dc.GetTextExtent("X");
+		dc.DrawText("X",
+			cell.closeBtn.x + (cell.closeBtn.width - xSize.GetWidth()) / 2,
+			cell.closeBtn.y + (cell.closeBtn.height - xSize.GetHeight()) / 2);
+	}
+}
+
+void EdgeItemsPanel::OnMouseClick(wxMouseEvent& event) {
+	int mx = event.GetX();
+	int my = event.GetY();
+
+	for (const auto& cell : m_cells) {
+		// Check close button first
+		if (cell.closeBtn.Contains(mx, my)) {
+			// Find parent BorderEditorDialog and call remove
+			wxWindow* parent = GetParent();
+			while (parent && !dynamic_cast<BorderEditorDialog*>(parent)) {
+				parent = parent->GetParent();
+			}
+			BorderEditorDialog* dialog = dynamic_cast<BorderEditorDialog*>(parent);
+			if (dialog) {
+				dialog->OnRemoveBorderItem(cell.index);
+			}
+			return;
+		}
+
+		// Select cell
+		if (cell.bounds.Contains(mx, my)) {
+			m_selectedIndex = cell.index;
+
+			// Update chance control in parent dialog
+			wxWindow* parent = GetParent();
+			while (parent && !dynamic_cast<BorderEditorDialog*>(parent)) {
+				parent = parent->GetParent();
+			}
+			BorderEditorDialog* dialog = dynamic_cast<BorderEditorDialog*>(parent);
+			if (dialog && cell.index < static_cast<int>(m_items.size())) {
+				dialog->m_itemChanceCtrl->SetValue(m_items[cell.index].chance);
+			}
+
+			Refresh();
+			return;
+		}
+	}
+
+	// Clicked outside any cell - deselect
+	m_selectedIndex = -1;
 	Refresh();
 }
 

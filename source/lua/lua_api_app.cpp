@@ -426,7 +426,22 @@ namespace LuaAPI {
 
 			sol::table tiles = lua.create_table();
 			for (int i = 0; i < 13; ++i) {
-				tiles[i + 1] = border->tiles[i];
+				const auto& dirItems = border->tiles[i];
+				if (dirItems.empty()) {
+					tiles[i + 1] = lua.create_table();
+				} else if (dirItems.size() == 1) {
+					// Backwards compatible: single item returns just the id
+					tiles[i + 1] = dirItems[0].id;
+				} else {
+					sol::table itemList = lua.create_table();
+					for (size_t j = 0; j < dirItems.size(); ++j) {
+						sol::table entry = lua.create_table();
+						entry["id"] = dirItems[j].id;
+						entry["chance"] = dirItems[j].chance;
+						itemList[j + 1] = entry;
+					}
+					tiles[i + 1] = itemList;
+				}
 			}
 			b["tiles"] = tiles;
 

@@ -7,15 +7,24 @@
 
 #include "app/main.h"
 #include <array>
+#include <cstdlib>
+#include <numeric>
 #include <string>
 #include <string_view>
 #include <vector>
 
 class GroundBrush;
-// class std::vector<std::string>;
 namespace pugi {
 	class xml_node;
 }
+
+/**
+ * @brief Represents a single border item with a chance weight.
+ */
+struct BorderItemChance {
+	uint16_t id = 0;
+	int chance = 100;
+};
 
 /**
  * @brief Handles auto-bordering logic for brushes.
@@ -58,10 +67,31 @@ public:
 	bool load(pugi::xml_node node, std::vector<std::string>& warnings, GroundBrush* owner = nullptr, uint16_t border_base_ground_id = 0);
 
 	/**
-	 * @brief Array of tile IDs for each border direction.
+	 * @brief Returns the primary (first) item ID for a given direction, or 0 if none.
+	 */
+	uint32_t getTileId(int direction) const;
+
+	/**
+	 * @brief Returns a random item ID for a given direction based on chance weights.
+	 * Falls back to the first item if only one exists.
+	 */
+	uint32_t getRandomTileId(int direction) const;
+
+	/**
+	 * @brief Checks if a given item ID exists in any direction of this border.
+	 */
+	bool containsItem(uint16_t itemId) const;
+
+	/**
+	 * @brief Checks if a given item ID exists in a specific direction.
+	 */
+	bool containsItemInDirection(uint16_t itemId, int direction) const;
+
+	/**
+	 * @brief Items for each border direction, supporting multiple items with chance weights.
 	 * Indices correspond to the direction mapping (e.g., NORTH_HORIZONTAL).
 	 */
-	std::array<uint32_t, 13> tiles;
+	std::array<std::vector<BorderItemChance>, 13> tiles;
 
 	/**
 	 * @brief The unique ID of this auto-border.

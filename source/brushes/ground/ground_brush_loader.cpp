@@ -257,7 +257,7 @@ bool GroundBrushLoader::load(GroundBrush& brush, pugi::xml_node node, std::vecto
 								AutoBorder* autoBorder = it->second.get();
 								ASSERT(autoBorder != nullptr);
 
-								uint32_t match_itemid = autoBorder->tiles[edge_id];
+								uint32_t match_itemid = autoBorder->getTileId(edge_id);
 								if (!specificCaseBlock) {
 									specificCaseBlock = std::make_unique<GroundBrush::SpecificCaseBlock>();
 								}
@@ -332,7 +332,7 @@ bool GroundBrushLoader::load(GroundBrush& brush, pugi::xml_node node, std::vecto
 									specificCaseBlock = std::make_unique<GroundBrush::SpecificCaseBlock>();
 								}
 
-								specificCaseBlock->to_replace_id = autoBorder->tiles[edge_id];
+								specificCaseBlock->to_replace_id = autoBorder->getTileId(edge_id);
 								specificCaseBlock->with_id = with_id;
 							} else if (std::ranges::equal(actionName, std::string_view("replace_item"), iequal)) {
 								if (!(attribute = actionChild.attribute("id"))) {
