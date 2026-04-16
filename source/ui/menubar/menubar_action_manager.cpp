@@ -99,6 +99,7 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(VIEW_TOOLBARS_SIZES, wxITEM_CHECK, OnToolbars);
 	MAKE_ACTION(VIEW_TOOLBARS_STANDARD, wxITEM_CHECK, OnToolbars);
 	MAKE_ACTION(NEW_VIEW, wxITEM_NORMAL, OnNewView);
+	MAKE_ACTION(NEW_DETACHED_VIEW, wxITEM_NORMAL, OnNewDetachedView);
 	MAKE_ACTION(TOGGLE_FULLSCREEN, wxITEM_NORMAL, OnToggleFullscreen);
 
 	MAKE_ACTION(ZOOM_IN, wxITEM_NORMAL, OnZoomIn);
@@ -295,6 +296,7 @@ void MenuBarActionManager::UpdateState(MainMenuBar* mb) {
 	mb->EnableItem(MAP_STATISTICS, is_local);
 
 	mb->EnableItem(NEW_VIEW, has_map);
+	mb->EnableItem(NEW_DETACHED_VIEW, has_map);
 	mb->EnableItem(ZOOM_IN, has_map);
 	mb->EnableItem(ZOOM_OUT, has_map);
 	mb->EnableItem(ZOOM_NORMAL, has_map);

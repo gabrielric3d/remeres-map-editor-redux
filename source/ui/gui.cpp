@@ -26,6 +26,7 @@
 #include "util/file_system.h"
 #include "ui/main_menubar.h"
 #include "ui/dialog_util.h"
+#include "ui/map_window.h"
 
 #include "editor/editor.h"
 #include "editor/action_queue.h"
@@ -116,6 +117,16 @@ GUI::GUI() :
 GUI::~GUI() {
 	spdlog::info("GUI destructor started");
 	spdlog::default_logger()->flush();
+
+	for (auto& entry : detached_views) {
+		for (wxFrame* frame : entry.second) {
+			if (frame) {
+				frame->Destroy();
+			}
+		}
+	}
+	detached_views.clear();
+	dockable_views.clear();
 
 	DestroyAreaDecorationDialog();
 	DestroyInstanceLayoutDialog();
@@ -555,6 +566,261 @@ bool GUI::CloseAllEditors() {
 }
 void GUI::NewMapView() {
 	g_editors.NewMapView();
+}
+
+void GUI::NewDetachedMapView() {
+	MapTab* mapTab = GetCurrentMapTab();
+	if (!mapTab) {
+		return;
+	}
+
+	wxArrayString choices;
+	choices.Add("Detached Window (Can be moved to another monitor)");
+	choices.Add("Always-on-top Window (Will stay on top of other windows)");
+	choices.Add("Dockable Panel (Can be attached like palette/minimap)");
+
+	wxSingleChoiceDialog dialog(root, "Select type of view:", "Map View Options", choices);
+	if (dialog.ShowModal() != wxID_OK) {
+		return;
+	}
+
+	Editor* editor = mapTab->GetEditor();
+	const EditorMode current_mode = mapTab->GetMode();
+	const int selection = dialog.GetSelection();
+
+	if (selection == 0 || selection == 1) {
+		wxFrame* detachedFrame = newd wxFrame(
+			root,
+			wxID_ANY,
+			"Detached Map View",
+			wxDefaultPosition,
+			wxSize(800, 600),
+			wxDEFAULT_FRAME_STYLE | wxRESIZE_BORDER | wxMAXIMIZE_BOX | wxMINIMIZE_BOX
+		);
+
+		MapWindow* newMapWindow = newd MapWindow(detachedFrame, *editor);
+		wxSizer* sizer = newd wxBoxSizer(wxVERTICAL);
+		sizer->Add(newMapWindow, 1, wxEXPAND);
+		detachedFrame->SetSizer(sizer);
+
+		newMapWindow->FitToMap();
+		newMapWindow->SetScreenCenterPosition(mapTab->GetScreenCenterPosition());
+
+		if (current_mode == SELECTION_MODE) {
+			newMapWindow->GetCanvas()->EnterSelectionMode();
+		} else {
+			newMapWindow->GetCanvas()->EnterDrawingMode();
+		}
+
+		wxToolBar* toolbar = newd wxToolBar(detachedFrame, wxID_ANY);
+		wxButton* syncButton = newd wxButton(toolbar, wxID_ANY, "Sync View");
+		wxCheckBox* pinCheckbox = newd wxCheckBox(toolbar, wxID_ANY, "Keep on Top");
+		wxCheckBox* keepOpenCheckbox = newd wxCheckBox(toolbar, wxID_ANY, "Keep Open");
+		toolbar->AddControl(syncButton);
+		toolbar->AddSeparator();
+		toolbar->AddControl(pinCheckbox);
+		toolbar->AddSeparator();
+		toolbar->AddControl(keepOpenCheckbox);
+		toolbar->Realize();
+		sizer->Insert(0, toolbar, 0, wxEXPAND);
+
+		syncButton->Bind(wxEVT_BUTTON, [this, newMapWindow](wxCommandEvent& WXUNUSED(event)) {
+			MapTab* currentTab = GetCurrentMapTab();
+			if (currentTab) {
+				newMapWindow->SetScreenCenterPosition(currentTab->GetScreenCenterPosition());
+			}
+		});
+
+		pinCheckbox->Bind(wxEVT_CHECKBOX, [detachedFrame](wxCommandEvent& event) {
+			const bool checked = event.IsChecked();
+			if (checked) {
+				detachedFrame->SetWindowStyleFlag(detachedFrame->GetWindowStyleFlag() | wxSTAY_ON_TOP);
+			} else {
+				detachedFrame->SetWindowStyleFlag(detachedFrame->GetWindowStyleFlag() & ~wxSTAY_ON_TOP);
+			}
+			detachedFrame->Refresh();
+		});
+
+		struct WindowData : public wxClientData {
+			bool keepOpen = false;
+		};
+		WindowData* windowData = newd WindowData();
+		detachedFrame->SetClientObject(windowData);
+
+		detachedFrame->Bind(wxEVT_CLOSE_WINDOW, [detachedFrame](wxCloseEvent& event) {
+			WindowData* data = static_cast<WindowData*>(detachedFrame->GetClientObject());
+			if (data && data->keepOpen && event.CanVeto()) {
+				event.Veto();
+				detachedFrame->Iconize(true);
+			} else {
+				detachedFrame->Destroy();
+			}
+		});
+
+		keepOpenCheckbox->Bind(wxEVT_CHECKBOX, [detachedFrame](wxCommandEvent& event) {
+			wxCheckBox* cb = static_cast<wxCheckBox*>(event.GetEventObject());
+			WindowData* data = static_cast<WindowData*>(detachedFrame->GetClientObject());
+			if (data) {
+				data->keepOpen = cb->GetValue();
+			}
+		});
+
+		newMapWindow->Bind(wxEVT_RIGHT_DOWN, [newMapWindow](wxMouseEvent& WXUNUSED(event)) {
+			wxMenu popupMenu;
+			wxMenu* floorMenu = newd wxMenu();
+			for (int floor = 0; floor <= 15; ++floor) {
+				wxMenuItem* floorItem = floorMenu->Append(wxID_ANY, wxString::Format("Floor %d", floor));
+				floorMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [newMapWindow, floor](wxCommandEvent& WXUNUSED(event)) {
+					newMapWindow->GetCanvas()->ChangeFloor(floor);
+				}, floorItem->GetId());
+			}
+			popupMenu.Append(wxID_ANY, "Go to Floor", floorMenu);
+			newMapWindow->PopupMenu(&popupMenu);
+		});
+
+		detachedFrame->SetTitle(wxString::Format("Detached View: %s", wxstr(editor->getMap()->getName())));
+
+		if (selection == 1) {
+			detachedFrame->SetWindowStyleFlag(detachedFrame->GetWindowStyleFlag() | wxSTAY_ON_TOP);
+			detachedFrame->SetTitle(wxString::Format("Always-on-top View: %s", wxstr(editor->getMap()->getName())));
+			pinCheckbox->SetValue(true);
+		}
+
+		RegisterDetachedView(editor, detachedFrame);
+
+		detachedFrame->Bind(wxEVT_DESTROY, [this, editor, detachedFrame](wxWindowDestroyEvent& WXUNUSED(event)) {
+			UnregisterDetachedView(editor, detachedFrame);
+		});
+
+		detachedFrame->Show();
+		SetStatusText(selection == 0 ? "Created new detached view" : "Created new always-on-top view");
+	} else if (selection == 2) {
+		MapWindow* newMapWindow = newd MapWindow(root, *editor);
+
+		wxAuiPaneInfo paneInfo;
+		paneInfo.Caption("Map View")
+			.Float()
+			.Floatable(true)
+			.Dockable(true)
+			.Movable(true)
+			.Resizable(true)
+			.MinSize(400, 300)
+			.BestSize(640, 480);
+
+		aui_manager->AddPane(newMapWindow, paneInfo);
+		aui_manager->Update();
+
+		newMapWindow->FitToMap();
+		newMapWindow->SetScreenCenterPosition(mapTab->GetScreenCenterPosition());
+
+		if (current_mode == SELECTION_MODE) {
+			newMapWindow->GetCanvas()->EnterSelectionMode();
+		} else {
+			newMapWindow->GetCanvas()->EnterDrawingMode();
+		}
+
+		RegisterDockableView(editor, newMapWindow);
+
+		newMapWindow->Bind(wxEVT_DESTROY, [this, editor, newMapWindow](wxWindowDestroyEvent& event) {
+			UnregisterDockableView(editor, newMapWindow);
+			event.Skip();
+		});
+
+		SetStatusText("Created new dockable map view");
+	}
+}
+
+void GUI::RegisterDetachedView(Editor* editor, wxFrame* frame) {
+	if (!editor || !frame) {
+		return;
+	}
+	detached_views[editor].push_back(frame);
+}
+
+void GUI::RegisterDockableView(Editor* editor, MapWindow* window) {
+	if (!editor || !window) {
+		return;
+	}
+	dockable_views[editor].push_back(window);
+}
+
+void GUI::UnregisterDetachedView(Editor* editor, wxFrame* frame) {
+	auto it = detached_views.find(editor);
+	if (it == detached_views.end()) {
+		return;
+	}
+	it->second.remove(frame);
+	if (it->second.empty()) {
+		detached_views.erase(it);
+	}
+}
+
+void GUI::UnregisterDockableView(Editor* editor, MapWindow* window) {
+	auto it = dockable_views.find(editor);
+	if (it == dockable_views.end()) {
+		return;
+	}
+	it->second.remove(window);
+	if (it->second.empty()) {
+		dockable_views.erase(it);
+	}
+}
+
+bool GUI::HasDetachedViews(Editor* editor) const {
+	auto detached_it = detached_views.find(editor);
+	auto dockable_it = dockable_views.find(editor);
+
+	return (detached_it != detached_views.end() && !detached_it->second.empty()) ||
+		(dockable_it != dockable_views.end() && !dockable_it->second.empty());
+}
+
+bool GUI::CloseDetachedViews(Editor* editor) {
+	bool had_views = false;
+
+	auto frame_it = detached_views.find(editor);
+	if (frame_it != detached_views.end()) {
+		std::list<wxFrame*> frames_to_close = frame_it->second;
+		for (wxFrame* frame : frames_to_close) {
+			frame->Close(true);
+		}
+		detached_views.erase(editor);
+		had_views = true;
+	}
+
+	auto dock_it = dockable_views.find(editor);
+	if (dock_it != dockable_views.end()) {
+		std::list<MapWindow*> windows_to_close = dock_it->second;
+		for (MapWindow* window : windows_to_close) {
+			if (aui_manager && aui_manager->GetPane(window).IsOk()) {
+				aui_manager->DetachPane(window);
+				window->Destroy();
+			}
+		}
+		dockable_views.erase(editor);
+		had_views = true;
+		if (aui_manager) {
+			aui_manager->Update();
+		}
+	}
+
+	wxTheApp->ProcessPendingEvents();
+	return had_views;
+}
+
+void GUI::UpdateDetachedViewsTitle(Editor* editor) {
+	auto it = detached_views.find(editor);
+	if (it == detached_views.end()) {
+		return;
+	}
+
+	for (wxFrame* frame : it->second) {
+		const wxString title = frame->GetTitle();
+		if (title.Contains("Always-on-top View:")) {
+			frame->SetTitle(wxString::Format("Always-on-top View: %s", wxstr(editor->getMap()->getName())));
+		} else {
+			frame->SetTitle(wxString::Format("Detached View: %s", wxstr(editor->getMap()->getName())));
+		}
+	}
 }
 
 void GUI::AddPendingLiveClient(std::unique_ptr<LiveClient> client) {

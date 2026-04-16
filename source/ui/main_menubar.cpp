@@ -593,6 +593,10 @@ void MainMenuBar::OnNewView(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.NewMapView();
 }
 
+void MainMenuBar::OnNewDetachedView(wxCommandEvent& WXUNUSED(event)) {
+	g_gui.NewDetachedMapView();
+}
+
 void MainMenuBar::OnToggleFullscreen(wxCommandEvent& WXUNUSED(event)) {
 	if (frame->IsFullScreen()) {
 		frame->ShowFullScreen(false);

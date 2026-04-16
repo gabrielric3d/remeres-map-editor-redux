@@ -1,6 +1,9 @@
 #ifndef RME_GUI_H_
 #define RME_GUI_H_
 
+#include <list>
+#include <map>
+
 #include "rendering/core/graphics.h"
 #include "map/position.h"
 
@@ -305,6 +308,17 @@ public:
 	bool CloseLiveEditors(LiveSocket* sock);
 	bool CloseAllEditors();
 	void NewMapView();
+	void NewDetachedMapView();
+
+	// Detached views management
+	void RegisterDetachedView(Editor* editor, wxFrame* frame);
+	void RegisterDockableView(Editor* editor, MapWindow* window);
+	void UnregisterDetachedView(Editor* editor, wxFrame* frame);
+	void UnregisterDockableView(Editor* editor, MapWindow* window);
+	bool HasDetachedViews(Editor* editor) const;
+	bool CloseDetachedViews(Editor* editor);
+	void UpdateDetachedViewsTitle(Editor* editor);
+
 	void AddPendingLiveClient(std::unique_ptr<LiveClient> client);
 	std::unique_ptr<LiveClient> PopPendingLiveClient(LiveClient* ptr);
 
@@ -369,6 +383,10 @@ public:
 
 	ToolOptionsWindow* tool_options;
 	TilePropertiesPanel* tile_properties_panel;
+	// Detached map views (floating frames and dockable panels)
+	std::map<Editor*, std::list<wxFrame*>> detached_views;
+	std::map<Editor*, std::list<MapWindow*>> dockable_views;
+
 	AreaDecorationDialog* area_decoration_dialog = nullptr;
 	StructureManagerDialog* structure_manager_dialog = nullptr;
 	class DungeonGeneratorDialog* dungeon_generator_dialog = nullptr;

@@ -62,6 +62,25 @@ bool EditorManager::IsEditorOpen() const {
 
 void EditorManager::CloseCurrentEditor() {
 	spdlog::info("EditorManager::CloseCurrentEditor - Closing current tab");
+
+	MapTab* mapTab = GetCurrentMapTab();
+	if (mapTab) {
+		Editor* editor = mapTab->GetEditor();
+		if (editor && g_gui.HasDetachedViews(editor)) {
+			wxString message = "This map has one or more detached views open.\n";
+			message += "You must close all detached views before closing the map.\n\n";
+			message += "Do you want to close them now?";
+
+			wxMessageDialog msgDialog(g_gui.root, message, "Detached Views Open",
+			                          wxYES_NO | wxICON_QUESTION);
+			if (msgDialog.ShowModal() != wxID_YES) {
+				spdlog::info("EditorManager::CloseCurrentEditor - Cancelled: detached views open");
+				return;
+			}
+			g_gui.CloseDetachedViews(editor);
+		}
+	}
+
 	g_palettes.RefreshPalettes();
 	g_gui.tabbook->DeleteTab(g_gui.tabbook->GetSelection());
 	g_gui.root->UpdateMenubar();
@@ -118,6 +137,31 @@ bool EditorManager::CloseLiveEditors(LiveSocket* sock) {
 
 bool EditorManager::CloseAllEditors() {
 	spdlog::info("EditorManager::CloseAllEditors - Closing all tabs");
+
+	bool any_detached = false;
+	for (int i = 0; i < g_gui.tabbook->GetTabCount(); ++i) {
+		auto* mapTab = dynamic_cast<MapTab*>(g_gui.tabbook->GetTab(i));
+		if (mapTab && mapTab->GetEditor() && g_gui.HasDetachedViews(mapTab->GetEditor())) {
+			any_detached = true;
+			break;
+		}
+	}
+	if (any_detached) {
+		wxMessageDialog msgDialog(g_gui.root,
+			"One or more maps have detached views open.\nClose all detached views now?",
+			"Detached Views Open", wxYES_NO | wxICON_QUESTION);
+		if (msgDialog.ShowModal() != wxID_YES) {
+			spdlog::info("EditorManager::CloseAllEditors - Cancelled: detached views open");
+			return false;
+		}
+		for (int i = 0; i < g_gui.tabbook->GetTabCount(); ++i) {
+			auto* mapTab = dynamic_cast<MapTab*>(g_gui.tabbook->GetTab(i));
+			if (mapTab && mapTab->GetEditor()) {
+				g_gui.CloseDetachedViews(mapTab->GetEditor());
+			}
+		}
+	}
+
 	for (int i = 0; i < g_gui.tabbook->GetTabCount(); ++i) {
 		auto* mapTab = dynamic_cast<MapTab*>(g_gui.tabbook->GetTab(i));
 		if (mapTab) {
