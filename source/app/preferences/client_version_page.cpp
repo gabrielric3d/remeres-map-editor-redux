@@ -9,6 +9,7 @@
 #include <ranges>
 #include <thread>
 
+#include <wx/dirdlg.h>
 #include <wx/menu.h>
 #include <wx/tokenzr.h>
 #include <wx/weakref.h>
@@ -29,6 +30,13 @@ constexpr std::array<std::string_view, 8> kAutoDetectedProperties = {
 	"extended",
 	"frameDurations",
 	"frameGroups",
+};
+
+constexpr std::array<std::string_view, 4> kRequiredFilesProperties = {
+	"clientPath",
+	"metadataFile",
+	"spritesFile",
+	"otbFile",
 };
 
 bool IsAutoDetectedProperty(std::string_view property_name) {
@@ -239,6 +247,15 @@ ClientVersionPage::ClientVersionPage(wxWindow* parent) : PreferencesPage(parent)
 	client_prop_grid->SetMinSize(wxSize(-1, FromDIP(420)));
 	details_section->GetBodySizer()->Add(client_prop_grid, 1, wxEXPAND);
 
+	auto* file_buttons_row = new wxBoxSizer(wxHORIZONTAL);
+	select_folder_btn = new wxButton(details_section, wxID_ANY, "Select Client Folder...");
+	select_folder_btn->Bind(wxEVT_BUTTON, &ClientVersionPage::OnSelectClientFolder, this);
+	file_buttons_row->Add(select_folder_btn, 1, wxEXPAND | wxRIGHT, FromDIP(6));
+	select_otb_btn = new wxButton(details_section, wxID_ANY, "Select Items File...");
+	select_otb_btn->Bind(wxEVT_BUTTON, &ClientVersionPage::OnSelectItemsFile, this);
+	file_buttons_row->Add(select_otb_btn, 1, wxEXPAND | wxLEFT, FromDIP(6));
+	details_section->GetBodySizer()->Add(file_buttons_row, 0, wxEXPAND | wxTOP, FromDIP(10));
+
 	editor_sizer->Add(details_section, 1, wxEXPAND | wxALL, FromDIP(10));
 	editor_panel->SetSizer(editor_sizer);
 	detail_book->AddPage(editor_panel, "Editor");
@@ -269,6 +286,11 @@ ClientVersionPage::ClientVersionPage(wxWindow* parent) : PreferencesPage(parent)
 	add_client_btn->Bind(wxEVT_BUTTON, &ClientVersionPage::OnAddClient, this);
 	duplicate_client_btn->Bind(wxEVT_BUTTON, &ClientVersionPage::OnDuplicateClient, this);
 	delete_client_btn->Bind(wxEVT_BUTTON, &ClientVersionPage::OnDeleteClient, this);
+
+	missing_pulse_timer.SetOwner(this);
+	Bind(wxEVT_TIMER, &ClientVersionPage::OnMissingPulseTick, this);
+	RefreshMissingPulseState();
+	RefreshFilesPathButtons();
 }
 
 void ClientVersionPage::PopulateDefaultVersionChoice() {
@@ -518,6 +540,9 @@ void ClientVersionPage::RefreshClientEditor() {
 
 	client_prop_grid->ExpandAll();
 	client_prop_grid->Refresh();
+
+	RefreshMissingPulseState();
+	RefreshFilesPathButtons();
 }
 
 bool ClientVersionPage::ResolvePendingChanges(ClientVersion* client) {
@@ -777,7 +802,14 @@ void ClientVersionPage::UpdatePropertyValidation(wxPGProperty* prop) {
 		return;
 	}
 
-	switch (GetPropertyState(active_client, nstr(prop->GetName()))) {
+	const std::string prop_name = nstr(prop->GetName());
+	if (IsPropertyMissing(prop_name)) {
+		const double ratio = missing_pulse_high ? 0.55 : 0.25;
+		prop->SetBackgroundColour(BlendColour(background, Theme::Get(Theme::Role::Error), ratio));
+		return;
+	}
+
+	switch (GetPropertyState(active_client, prop_name)) {
 		case PropertyVisualState::Pending:
 			prop->SetBackgroundColour(BlendColour(background, Theme::Get(Theme::Role::Warning), 0.30));
 			break;
@@ -792,6 +824,158 @@ void ClientVersionPage::UpdatePropertyValidation(wxPGProperty* prop) {
 			prop->SetBackgroundColour(background);
 			break;
 	}
+}
+
+bool ClientVersionPage::IsPropertyMissing(std::string_view property_name) const {
+	if (!active_client) {
+		return false;
+	}
+	if (std::ranges::find(kRequiredFilesProperties, property_name) == kRequiredFilesProperties.end()) {
+		return false;
+	}
+	if (property_name == "clientPath") {
+		return !active_client->hasConfiguredClientPath();
+	}
+	if (property_name == "metadataFile") {
+		return active_client->getMetadataFile().empty();
+	}
+	if (property_name == "spritesFile") {
+		return active_client->getSpritesFile().empty();
+	}
+	if (property_name == "otbFile") {
+		return active_client->getOtbFile().empty();
+	}
+	return false;
+}
+
+void ClientVersionPage::RefreshMissingPulseState() {
+	bool any_missing = false;
+	for (const auto& name : kRequiredFilesProperties) {
+		if (IsPropertyMissing(name)) {
+			any_missing = true;
+			break;
+		}
+	}
+
+	if (any_missing) {
+		if (!missing_pulse_timer.IsRunning()) {
+			missing_pulse_high = false;
+			missing_pulse_timer.Start(500);
+		}
+	} else {
+		if (missing_pulse_timer.IsRunning()) {
+			missing_pulse_timer.Stop();
+		}
+		missing_pulse_high = false;
+		if (client_prop_grid) {
+			for (const auto& name : kRequiredFilesProperties) {
+				if (auto* prop = client_prop_grid->GetPropertyByName(wxString::FromUTF8(std::string(name)))) {
+					UpdatePropertyValidation(prop);
+				}
+			}
+			client_prop_grid->Refresh();
+		}
+	}
+}
+
+void ClientVersionPage::RefreshFilesPathButtons() {
+	const wxColour background = Theme::Get(Theme::Role::Background);
+	const wxColour highlight = BlendColour(background, Theme::Get(Theme::Role::Error), 0.55);
+
+	const auto apply = [&](wxButton* btn, bool needs, const wxString& needs_label, const wxString& done_label) {
+		if (!btn) {
+			return;
+		}
+		if (!active_client) {
+			btn->Enable(false);
+			btn->SetLabel(needs_label);
+			btn->SetBackgroundColour(wxNullColour);
+			btn->SetForegroundColour(wxNullColour);
+			btn->Refresh();
+			return;
+		}
+		btn->Enable(true);
+		btn->SetLabel(needs ? needs_label : done_label);
+		if (needs) {
+			btn->SetBackgroundColour(highlight);
+			btn->SetForegroundColour(*wxWHITE);
+		} else {
+			btn->SetBackgroundColour(wxNullColour);
+			btn->SetForegroundColour(wxNullColour);
+		}
+		btn->Refresh();
+	};
+
+	apply(select_folder_btn, active_client && !active_client->hasConfiguredClientPath(),
+		"Select Client Folder...", "Change Client Folder...");
+	apply(select_otb_btn, active_client && active_client->getOtbFile().empty(),
+		"Select Items File...", "Change Items File...");
+}
+
+void ClientVersionPage::OnMissingPulseTick(wxTimerEvent& WXUNUSED(event)) {
+	if (!client_prop_grid) {
+		return;
+	}
+	missing_pulse_high = !missing_pulse_high;
+	for (const auto& name : kRequiredFilesProperties) {
+		if (auto* prop = client_prop_grid->GetPropertyByName(wxString::FromUTF8(std::string(name)))) {
+			UpdatePropertyValidation(prop);
+		}
+	}
+	client_prop_grid->Refresh();
+}
+
+void ClientVersionPage::OnSelectClientFolder(wxCommandEvent& WXUNUSED(event)) {
+	if (!active_client) {
+		return;
+	}
+
+	const wxString initial_path = active_client->hasConfiguredClientPath()
+		? active_client->getClientPath().GetFullPath()
+		: wxString();
+
+	wxDirDialog dialog(this, "Select the folder containing Tibia.dat and Tibia.spr", initial_path, wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+	if (dialog.ShowModal() != wxID_OK) {
+		return;
+	}
+
+	active_client->setClientPath(FileName(dialog.GetPath()));
+	active_client->markDirty();
+	RequestClientAssetDetection(*active_client);
+	SyncClientPropertiesToGrid(*active_client);
+	RefreshMissingPulseState();
+	RefreshFilesPathButtons();
+	RefreshSummary();
+}
+
+void ClientVersionPage::OnSelectItemsFile(wxCommandEvent& WXUNUSED(event)) {
+	if (!active_client) {
+		return;
+	}
+
+	wxString default_dir;
+	wxString default_file;
+	if (!active_client->getOtbFile().empty()) {
+		const wxFileName current(wxString::FromUTF8(active_client->getOtbFile()));
+		default_dir = current.GetPath();
+		default_file = current.GetFullName();
+	} else {
+		default_dir = active_client->getDataPath().GetFullPath();
+	}
+
+	wxFileDialog dialog(this, "Select items.otb", default_dir, default_file,
+		"OTB Files (*.otb)|*.otb|All Files (*.*)|*.*",
+		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (dialog.ShowModal() != wxID_OK) {
+		return;
+	}
+
+	active_client->setOtbFile(nstr(dialog.GetPath()));
+	active_client->markDirty();
+	SyncClientPropertiesToGrid(*active_client);
+	RefreshMissingPulseState();
+	RefreshFilesPathButtons();
+	RefreshSummary();
 }
 
 void ClientVersionPage::OnClientSelected(wxTreeEvent& WXUNUSED(event)) {
@@ -1007,6 +1191,8 @@ void ClientVersionPage::OnPropertyChanged(wxPropertyGridEvent& event) {
 	UpdatePropertyValidation(prop);
 	client_prop_grid->Refresh();
 	RefreshSummary();
+	RefreshMissingPulseState();
+	RefreshFilesPathButtons();
 }
 
 void ClientVersionPage::OnAddClient(wxCommandEvent& WXUNUSED(event)) {

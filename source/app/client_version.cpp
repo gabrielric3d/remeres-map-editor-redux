@@ -591,7 +591,13 @@ bool ClientVersion::isVisible() const {
 }
 
 void ClientVersion::setClientPath(const FileName& dir) {
-	client_path.Assign(dir);
+	const wxString raw = dir.GetFullPath();
+	if (raw.IsEmpty()) {
+		client_path.Clear();
+		return;
+	}
+	client_path.AssignDir(raw);
+	client_path.Normalize(wxPATH_NORM_ABSOLUTE | wxPATH_NORM_DOTS);
 }
 
 bool ClientVersion::hasConfiguredClientPath() const {

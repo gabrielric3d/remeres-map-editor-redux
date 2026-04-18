@@ -13,6 +13,7 @@
 #include <wx/srchctrl.h>
 #include <wx/simplebook.h>
 #include <wx/splitter.h>
+#include <wx/timer.h>
 #include <wx/treectrl.h>
 
 #include "app/client_asset_detector.h"
@@ -67,6 +68,13 @@ private:
 	void OnPropertyChanged(wxPropertyGridEvent& event);
 	void OnAddClient(wxCommandEvent& event);
 	void OnDeleteClient(wxCommandEvent& event);
+	void OnSelectClientFolder(wxCommandEvent& event);
+	void OnSelectItemsFile(wxCommandEvent& event);
+	void OnMissingPulseTick(wxTimerEvent& event);
+
+	[[nodiscard]] bool IsPropertyMissing(std::string_view property_name) const;
+	void RefreshMissingPulseState();
+	void RefreshFilesPathButtons();
 
 	wxSplitterWindow* client_splitter = nullptr;
 	wxSearchCtrl* client_search_ctrl = nullptr;
@@ -81,6 +89,10 @@ private:
 	wxSimplebook* detail_book = nullptr;
 	wxStaticText* summary_name_label = nullptr;
 	wxStaticText* summary_dirty_label = nullptr;
+	wxButton* select_folder_btn = nullptr;
+	wxButton* select_otb_btn = nullptr;
+	wxTimer missing_pulse_timer;
+	bool missing_pulse_high = false;
 	ClientVersion* active_client = nullptr;
 	bool ignore_tree_selection = false;
 	bool suppress_property_events = false;
