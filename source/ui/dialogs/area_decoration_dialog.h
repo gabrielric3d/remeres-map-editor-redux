@@ -99,6 +99,8 @@ private:
 	wxButton* m_replaceClusterBtn;
 	wxSpinCtrl* m_newItemIdSpin;
 	wxSpinCtrl* m_newItemWeightSpin;
+	wxSpinCtrl* m_newItemFromIdSpin;
+	wxSpinCtrl* m_newItemToIdSpin;
 	wxSpinCtrl* m_clusterCountSpin;
 	wxSpinCtrl* m_clusterRadiusSpin;
 	wxSpinCtrl* m_clusterMinDistanceSpin;
@@ -167,6 +169,7 @@ private:
 	void UpdateClusterTilesList();
 	void UpdateClusterControls();
 	void OnAddItem(wxCommandEvent& event);
+	void OnAddItemRange(wxCommandEvent& event);
 	void OnEditItem(wxCommandEvent& event);
 	void OnPreviewClusterItem(wxCommandEvent& event);
 	void OnReplaceClusterFromSelection(wxCommandEvent& event);

@@ -61,6 +61,7 @@ namespace {
 		ID_FLOOR_TYPE_SINGLE,
 		ID_FLOOR_TYPE_RANGE,
 		ID_ADD_ITEM,
+		ID_ADD_ITEM_RANGE,
 		ID_EDIT_ITEM,
 		ID_REMOVE_ITEM,
 		ID_CLEAR_ITEMS,
@@ -214,6 +215,7 @@ wxBEGIN_EVENT_TABLE(FloorRuleEditDialog, wxDialog)
 	EVT_BUTTON(ID_CLUSTER_PREVIEW, FloorRuleEditDialog::OnClusterPreview)
 	EVT_BUTTON(ID_CLUSTER_BROWSE_ITEM, FloorRuleEditDialog::OnClusterBrowseItem)
 	EVT_BUTTON(ID_ADD_ITEM, FloorRuleEditDialog::OnAddItem)
+	EVT_BUTTON(ID_ADD_ITEM_RANGE, FloorRuleEditDialog::OnAddItemRange)
 	EVT_BUTTON(ID_EDIT_ITEM, FloorRuleEditDialog::OnEditItem)
 	EVT_BUTTON(ID_PREVIEW_CLUSTER_ITEM, FloorRuleEditDialog::OnPreviewClusterItem)
 	EVT_BUTTON(ID_REPLACE_CLUSTER, FloorRuleEditDialog::OnReplaceClusterFromSelection)
@@ -654,6 +656,22 @@ void FloorRuleEditDialog::CreateControls() {
 	singleItemRow->Add(addBtn, 0, wxALIGN_CENTER_VERTICAL);
 
 	singleItemSizer->Add(singleItemRow, 0, wxALL, 6);
+
+	// ---- Range row: add multiple items at once by ID range ----
+	wxBoxSizer* rangeRow = new wxBoxSizer(wxHORIZONTAL);
+	rangeRow->Add(new wxStaticText(singleItemPanel, wxID_ANY, "From ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 3);
+	m_newItemFromIdSpin = new wxSpinCtrl(singleItemPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 0, 65535, 0);
+	rangeRow->Add(m_newItemFromIdSpin, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 10);
+
+	rangeRow->Add(new wxStaticText(singleItemPanel, wxID_ANY, "To ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 3);
+	m_newItemToIdSpin = new wxSpinCtrl(singleItemPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 0, 65535, 0);
+	rangeRow->Add(m_newItemToIdSpin, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 10);
+
+	wxButton* addRangeBtn = new wxButton(singleItemPanel, ID_ADD_ITEM_RANGE, "Add Range", wxDefaultPosition, wxSize(80, -1));
+	addRangeBtn->SetToolTip("Add all items in the given ID range (inclusive) using the Weight above");
+	rangeRow->Add(addRangeBtn, 0, wxALIGN_CENTER_VERTICAL);
+
+	singleItemSizer->Add(rangeRow, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
 	singleItemPanel->SetSizer(singleItemSizer);
 	itemsBox->Add(singleItemPanel, 0, wxLEFT | wxRIGHT | wxTOP | wxEXPAND, 5);
 
@@ -1367,6 +1385,36 @@ void FloorRuleEditDialog::OnAddItem(wxCommandEvent& event) {
 	}
 
 	m_rule.items.push_back(AreaDecoration::ItemEntry(itemId, weight));
+	UpdateItemsList();
+}
+
+void FloorRuleEditDialog::OnAddItemRange(wxCommandEvent& event) {
+	int fromId = m_newItemFromIdSpin->GetValue();
+	int toId = m_newItemToIdSpin->GetValue();
+	int weight = m_newItemWeightSpin->GetValue();
+
+	if (fromId <= 0 || toId <= 0) {
+		wxMessageBox("From ID and To ID must be greater than 0", "Error", wxOK | wxICON_ERROR);
+		return;
+	}
+
+	if (fromId > toId) {
+		std::swap(fromId, toId);
+	}
+
+	const int kMaxRange = 1000;
+	if (toId - fromId + 1 > kMaxRange) {
+		wxString msg = wxString::Format(
+			"Range is too large (%d items). Add up to %d items at a time.",
+			toId - fromId + 1, kMaxRange
+		);
+		wxMessageBox(msg, "Error", wxOK | wxICON_ERROR);
+		return;
+	}
+
+	for (int id = fromId; id <= toId; ++id) {
+		m_rule.items.push_back(AreaDecoration::ItemEntry(static_cast<uint16_t>(id), weight));
+	}
 	UpdateItemsList();
 }
 
