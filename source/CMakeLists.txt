@@ -386,6 +386,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/result_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/tileset_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/welcome_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/map_details_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_button.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_card.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_formatters.h
@@ -805,6 +806,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/tileset_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/theme.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/welcome_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/map_details_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_button.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_card.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/welcome/startup_formatters.cpp

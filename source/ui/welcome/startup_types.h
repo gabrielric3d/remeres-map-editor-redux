@@ -14,6 +14,7 @@ struct StartupRecentMapEntry {
 	wxString path;
 	wxString modified_label;
 	bool ephemeral = false;
+	bool is_favorite = false;
 };
 
 struct StartupConfiguredClientEntry {
@@ -38,8 +39,11 @@ struct StartupLoadRequest {
 struct StartupListItem {
 	wxString primary_text;
 	wxString secondary_text;
+	wxString tertiary_text;
 	std::string icon_art_id;
 	wxColour accent_colour = wxNullColour;
+	bool show_star = false;
+	bool is_favorite = false;
 };
 
 struct StartupInfoField {

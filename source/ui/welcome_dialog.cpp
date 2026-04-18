@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <format>
 #include <ranges>
+#include <sstream>
 
 #include <wx/filedlg.h>
 #include <wx/filename.h>
@@ -12,11 +13,12 @@
 #include "app/definitions.h"
 #include "app/main.h"
 #include "app/preferences.h"
+#include "app/settings.h"
 #include "ui/theme.h"
+#include "ui/welcome/map_details_dialog.h"
 #include "ui/welcome/startup_button.h"
 #include "ui/welcome/startup_card.h"
 #include "ui/welcome/startup_formatters.h"
-#include "ui/welcome/startup_info_panel.h"
 #include "ui/welcome/startup_list_box.h"
 #include "util/image_manager.h"
 
@@ -27,6 +29,16 @@ constexpr int ID_RECENT_LIST = wxID_HIGHEST + 101;
 constexpr int ID_CLIENT_LIST = wxID_HIGHEST + 102;
 constexpr int ID_FORCE_LOAD = wxID_HIGHEST + 103;
 constexpr int ID_LOAD_BUTTON = wxID_HIGHEST + 104;
+constexpr int ID_FAVORITE_LIST = wxID_HIGHEST + 105;
+constexpr int ID_INFO_BUTTON = wxID_HIGHEST + 106;
+
+bool PathsEqual(const wxString& lhs, const wxString& rhs) {
+#ifdef __WINDOWS__
+	return lhs.CmpNoCase(rhs) == 0;
+#else
+	return lhs == rhs;
+#endif
+}
 
 wxString BuildHeaderTitle(const wxString& title_text, const wxString& version_text) {
 	if (version_text.empty()) {
@@ -48,8 +60,22 @@ WelcomeDialog::WelcomeDialog(const wxString& title_text, const wxString& version
 	SetForegroundColour(Theme::Get(Theme::Role::Text));
 	SetMinSize(FROM_DIP(this, wxSize(1180, 720)));
 
+	const auto favorite_paths = LoadFavoritesFromSettings();
+	const auto is_favorite_path = [&favorite_paths](const wxString& path) {
+		return std::ranges::any_of(favorite_paths, [&path](const wxString& fav) {
+			return PathsEqual(fav, path);
+		});
+	};
+
+	for (const auto& favorite_path : favorite_paths) {
+		m_favorite_maps.push_back({ favorite_path, FormatModifiedLabel(favorite_path), false, true });
+	}
+
 	for (const auto& recent_file : recent_files) {
-		m_recent_maps.push_back({ recent_file, FormatModifiedLabel(recent_file), false });
+		if (is_favorite_path(recent_file)) {
+			continue;
+		}
+		m_recent_maps.push_back({ recent_file, FormatModifiedLabel(recent_file), false, false });
 	}
 
 	for (ClientVersion* client : ClientVersion::getConfiguredVisible()) {
@@ -62,6 +88,8 @@ WelcomeDialog::WelcomeDialog(const wxString& title_text, const wxString& version
 
 	BuildInterface(title_text, version_text, rme_logo);
 	Bind(wxEVT_SIZE, &WelcomeDialog::OnSize, this);
+	m_info_pulse_timer.SetOwner(this);
+	Bind(wxEVT_TIMER, &WelcomeDialog::OnInfoPulseTick, this);
 
 	if (!m_configured_clients.empty()) {
 		const ClientVersion* latest = ClientVersion::getLatestVersion();
@@ -72,11 +100,11 @@ WelcomeDialog::WelcomeDialog(const wxString& title_text, const wxString& version
 		SetSelectedClientIndex(default_client_index, false);
 	}
 
-	if (!m_recent_maps.empty()) {
+	if (!m_favorite_maps.empty()) {
+		SetSelectedFavoriteIndex(0);
+	} else if (!m_recent_maps.empty()) {
 		SetSelectedMapIndex(0);
 	} else {
-		RefreshMapInfoPanel();
-		RefreshClientInfoPanel();
 		RefreshFooterState();
 	}
 
@@ -175,28 +203,27 @@ void WelcomeDialog::BuildInterface(const wxString& title_text, const wxString& v
 	actions_card->GetBodySizer()->Add(browse_map_button, 0, wxEXPAND);
 	content_sizer->Add(actions_card, 0, wxEXPAND | wxALL, FromDIP(10));
 
+	auto* favorite_card = new StartupCardPanel(content_panel, "Favorite Maps");
+	m_favorite_list = new StartupListBox(favorite_card, ID_FAVORITE_LIST);
+	m_favorite_list->Bind(wxEVT_LISTBOX, &WelcomeDialog::OnFavoriteMapSelected, this);
+	m_favorite_list->Bind(wxEVT_LISTBOX_DCLICK, &WelcomeDialog::OnFavoriteMapActivated, this);
+	m_favorite_list->Bind(STARTUP_FAVORITE_TOGGLED, &WelcomeDialog::OnFavoriteFavoriteToggled, this);
+	favorite_card->GetBodySizer()->Add(m_favorite_list, 1, wxEXPAND);
+	content_sizer->Add(favorite_card, 30, wxEXPAND | wxTOP | wxBOTTOM | wxRIGHT, FromDIP(10));
+
 	auto* recent_card = new StartupCardPanel(content_panel, "Recent Maps");
 	m_recent_list = new StartupListBox(recent_card, ID_RECENT_LIST);
 	m_recent_list->Bind(wxEVT_LISTBOX, &WelcomeDialog::OnRecentMapSelected, this);
 	m_recent_list->Bind(wxEVT_LISTBOX_DCLICK, &WelcomeDialog::OnRecentMapActivated, this);
+	m_recent_list->Bind(STARTUP_FAVORITE_TOGGLED, &WelcomeDialog::OnRecentFavoriteToggled, this);
 	recent_card->GetBodySizer()->Add(m_recent_list, 1, wxEXPAND);
-	content_sizer->Add(recent_card, 22, wxEXPAND | wxTOP | wxBOTTOM | wxRIGHT, FromDIP(10));
-
-	auto* map_card = new StartupCardPanel(content_panel, "Selected Map Info");
-	m_map_info_panel = new StartupInfoPanel(map_card);
-	map_card->GetBodySizer()->Add(m_map_info_panel, 1, wxEXPAND);
-	content_sizer->Add(map_card, 20, wxEXPAND | wxTOP | wxBOTTOM | wxRIGHT, FromDIP(10));
-
-	auto* client_card = new StartupCardPanel(content_panel, "Client Information");
-	m_client_info_panel = new StartupInfoPanel(client_card);
-	client_card->GetBodySizer()->Add(m_client_info_panel, 1, wxEXPAND);
-	content_sizer->Add(client_card, 20, wxEXPAND | wxTOP | wxBOTTOM | wxRIGHT, FromDIP(10));
+	content_sizer->Add(recent_card, 30, wxEXPAND | wxTOP | wxBOTTOM | wxRIGHT, FromDIP(10));
 
 	auto* available_clients_card = new StartupCardPanel(content_panel, "Available Clients");
 	m_client_list = new StartupListBox(available_clients_card, ID_CLIENT_LIST);
 	m_client_list->Bind(wxEVT_LISTBOX, &WelcomeDialog::OnClientSelected, this);
 	available_clients_card->GetBodySizer()->Add(m_client_list, 1, wxEXPAND);
-	content_sizer->Add(available_clients_card, 18, wxEXPAND | wxTOP | wxBOTTOM | wxRIGHT, FromDIP(10));
+	content_sizer->Add(available_clients_card, 20, wxEXPAND | wxTOP | wxBOTTOM | wxRIGHT, FromDIP(10));
 
 	content_panel->SetSizer(content_sizer);
 	root_sizer->Add(content_panel, 1, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
@@ -225,6 +252,12 @@ void WelcomeDialog::BuildInterface(const wxString& title_text, const wxString& v
 	auto* footer_right = new wxBoxSizer(wxHORIZONTAL);
 	footer_right->AddStretchSpacer();
 
+	m_info_button = new StartupButton(footer_panel, ID_INFO_BUTTON, "Info", StartupButtonVariant::Secondary);
+	m_info_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_CIRCLE_INFO, FromDIP(wxSize(18, 18))));
+	m_info_button->Bind(wxEVT_BUTTON, &WelcomeDialog::OnInfoRequested, this);
+	m_info_button->Enable(false);
+	footer_right->Add(m_info_button, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+
 	m_force_load_checkbox = new wxCheckBox(footer_panel, ID_FORCE_LOAD, "Force Load");
 	m_force_load_checkbox->SetForegroundColour(Theme::Get(Theme::Role::Text));
 	m_force_load_checkbox->SetBackgroundColour(footer_panel->GetBackgroundColour());
@@ -244,6 +277,7 @@ void WelcomeDialog::BuildInterface(const wxString& title_text, const wxString& v
 	SetSizer(root_sizer);
 
 	RefreshRecentMapList();
+	RefreshFavoriteMapList();
 	RefreshClientList();
 }
 
@@ -273,12 +307,53 @@ void WelcomeDialog::OnLoadRequested(wxCommandEvent& WXUNUSED(event)) {
 	AttemptLoad(true);
 }
 
+void WelcomeDialog::OnInfoRequested(wxCommandEvent& WXUNUSED(event)) {
+	const OTBMStartupPeekResult* map_info = GetSelectedMapInfo();
+	if (!map_info) {
+		return;
+	}
+	MapDetailsDialog dialog(this, GetSelectedMapPath(), map_info, GetSelectedClient());
+	dialog.ShowModal();
+}
+
+void WelcomeDialog::OnInfoPulseTick(wxTimerEvent& WXUNUSED(event)) {
+	if (!m_info_button || !m_info_button->IsEnabled()) {
+		return;
+	}
+	m_info_pulse_phase = (m_info_pulse_phase + 1) % 2;
+	m_info_button->SetVariant(m_info_pulse_phase == 0 ? StartupButtonVariant::Secondary : StartupButtonVariant::Primary);
+}
+
 void WelcomeDialog::OnRecentMapSelected(wxCommandEvent& WXUNUSED(event)) {
 	SetSelectedMapIndex(m_recent_list->GetSelection());
 }
 
 void WelcomeDialog::OnRecentMapActivated(wxCommandEvent& WXUNUSED(event)) {
 	AttemptLoad(true);
+}
+
+void WelcomeDialog::OnFavoriteMapSelected(wxCommandEvent& WXUNUSED(event)) {
+	SetSelectedFavoriteIndex(m_favorite_list->GetSelection());
+}
+
+void WelcomeDialog::OnFavoriteMapActivated(wxCommandEvent& WXUNUSED(event)) {
+	AttemptLoad(true);
+}
+
+void WelcomeDialog::OnRecentFavoriteToggled(wxCommandEvent& event) {
+	const int index = event.GetInt();
+	if (index < 0 || index >= static_cast<int>(m_recent_maps.size())) {
+		return;
+	}
+	ToggleFavoriteByPath(m_recent_maps[index].path);
+}
+
+void WelcomeDialog::OnFavoriteFavoriteToggled(wxCommandEvent& event) {
+	const int index = event.GetInt();
+	if (index < 0 || index >= static_cast<int>(m_favorite_maps.size())) {
+		return;
+	}
+	ToggleFavoriteByPath(m_favorite_maps[index].path);
 }
 
 void WelcomeDialog::OnClientSelected(wxCommandEvent& WXUNUSED(event)) {
@@ -298,16 +373,51 @@ void WelcomeDialog::RefreshRecentMapList() {
 	std::vector<StartupListItem> items;
 	items.reserve(m_recent_maps.size());
 	for (const auto& map_entry : m_recent_maps) {
+		const wxFileName filename(map_entry.path);
 		items.push_back({
-			map_entry.path,
+			filename.GetFullName(),
+			filename.GetPath(),
 			map_entry.modified_label,
 			std::string(ICON_FILE),
+			wxNullColour,
+			true,
+			map_entry.is_favorite,
 		});
 	}
 
 	m_recent_list->SetItems(std::move(items));
-	if (m_selected_map_index != wxNOT_FOUND && m_selected_map_index < static_cast<int>(m_recent_maps.size())) {
+	if (!m_selection_in_favorites && m_selected_map_index != wxNOT_FOUND && m_selected_map_index < static_cast<int>(m_recent_maps.size())) {
 		m_recent_list->SetSelection(m_selected_map_index);
+	} else {
+		m_recent_list->SetSelection(wxNOT_FOUND);
+	}
+}
+
+void WelcomeDialog::RefreshFavoriteMapList() {
+	if (!m_favorite_list) {
+		return;
+	}
+	std::vector<StartupListItem> items;
+	items.reserve(m_favorite_maps.size());
+	const wxColour favorite_colour(214, 170, 46);
+	for (const auto& map_entry : m_favorite_maps) {
+		const wxFileName filename(map_entry.path);
+		items.push_back({
+			filename.GetFullName(),
+			filename.GetPath(),
+			map_entry.modified_label,
+			std::string(ICON_FILE),
+			favorite_colour,
+			true,
+			true,
+		});
+	}
+
+	m_favorite_list->SetItems(std::move(items));
+	if (m_selection_in_favorites && m_selected_favorite_index != wxNOT_FOUND && m_selected_favorite_index < static_cast<int>(m_favorite_maps.size())) {
+		m_favorite_list->SetSelection(m_selected_favorite_index);
+	} else {
+		m_favorite_list->SetSelection(wxNOT_FOUND);
 	}
 }
 
@@ -318,6 +428,7 @@ void WelcomeDialog::RefreshClientList() {
 		items.push_back({
 			client_entry.name,
 			FormatStartupClientPath(client_entry.client_path),
+			wxString(),
 			std::string(ICON_HARD_DRIVE),
 		});
 	}
@@ -326,14 +437,6 @@ void WelcomeDialog::RefreshClientList() {
 	if (m_selected_client_index != wxNOT_FOUND && m_selected_client_index < static_cast<int>(m_configured_clients.size())) {
 		m_client_list->SetSelection(m_selected_client_index);
 	}
-}
-
-void WelcomeDialog::RefreshMapInfoPanel() {
-	m_map_info_panel->SetFields(BuildStartupMapFields(GetSelectedMapInfo()));
-}
-
-void WelcomeDialog::RefreshClientInfoPanel() {
-	m_client_info_panel->SetFields(BuildStartupClientFields(GetSelectedClient()));
 }
 
 void WelcomeDialog::RefreshFooterState() {
@@ -350,9 +453,46 @@ void WelcomeDialog::RefreshFooterState() {
 	const bool can_load = status == StartupCompatibilityStatus::Compatible || status == StartupCompatibilityStatus::Forced;
 	m_load_button->Enable(can_load);
 
+	UpdateInfoButtonPulse();
+
 	Layout();
 	UpdateStatusWrap();
 	Layout();
+}
+
+void WelcomeDialog::UpdateInfoButtonPulse() {
+	if (!m_info_button) {
+		return;
+	}
+
+	const bool has_selection = GetSelectedMapInfo() != nullptr;
+	m_info_button->Enable(has_selection);
+
+	if (has_selection) {
+		if (!m_info_pulse_timer.IsRunning()) {
+			m_info_pulse_phase = 0;
+			m_info_pulse_timer.Start(500);
+		}
+	} else {
+		if (m_info_pulse_timer.IsRunning()) {
+			m_info_pulse_timer.Stop();
+		}
+		m_info_pulse_phase = 0;
+		m_info_button->SetVariant(StartupButtonVariant::Secondary);
+	}
+}
+
+wxString WelcomeDialog::GetSelectedMapPath() const {
+	if (m_selection_in_favorites) {
+		if (m_selected_favorite_index != wxNOT_FOUND && m_selected_favorite_index < static_cast<int>(m_favorite_maps.size())) {
+			return m_favorite_maps[m_selected_favorite_index].path;
+		}
+	} else {
+		if (m_selected_map_index != wxNOT_FOUND && m_selected_map_index < static_cast<int>(m_recent_maps.size())) {
+			return m_recent_maps[m_selected_map_index].path;
+		}
+	}
+	return wxEmptyString;
 }
 
 void WelcomeDialog::UpdateStatusWrap() {
@@ -372,13 +512,39 @@ void WelcomeDialog::SetSelectedMapIndex(int index) {
 		m_recent_list->SetSelection(wxNOT_FOUND);
 	} else {
 		m_selected_map_index = index;
+		m_selection_in_favorites = false;
+		m_selected_favorite_index = wxNOT_FOUND;
+		if (m_favorite_list) {
+			m_favorite_list->SetSelection(wxNOT_FOUND);
+		}
 		m_recent_list->SetSelection(index);
 		EnsurePeeked(m_recent_maps[index].path);
 	}
 
 	AutoSelectMatchingClient();
-	RefreshMapInfoPanel();
-	RefreshClientInfoPanel();
+	RefreshFooterState();
+}
+
+void WelcomeDialog::SetSelectedFavoriteIndex(int index) {
+	if (index < 0 || index >= static_cast<int>(m_favorite_maps.size())) {
+		m_selected_favorite_index = wxNOT_FOUND;
+		if (m_favorite_list) {
+			m_favorite_list->SetSelection(wxNOT_FOUND);
+		}
+	} else {
+		m_selected_favorite_index = index;
+		m_selection_in_favorites = true;
+		m_selected_map_index = wxNOT_FOUND;
+		if (m_recent_list) {
+			m_recent_list->SetSelection(wxNOT_FOUND);
+		}
+		if (m_favorite_list) {
+			m_favorite_list->SetSelection(index);
+		}
+		EnsurePeeked(m_favorite_maps[index].path);
+	}
+
+	AutoSelectMatchingClient();
 	RefreshFooterState();
 }
 
@@ -392,7 +558,6 @@ void WelcomeDialog::SetSelectedClientIndex(int index, bool manual_selection) {
 	}
 
 	m_has_manual_client_selection = manual_selection;
-	RefreshClientInfoPanel();
 	RefreshFooterState();
 }
 
@@ -428,7 +593,10 @@ void WelcomeDialog::AutoSelectMatchingClient() {
 }
 
 bool WelcomeDialog::AttemptLoad(bool show_message) {
-	if (m_selected_map_index == wxNOT_FOUND) {
+	const bool has_selection = m_selection_in_favorites
+		? (m_selected_favorite_index != wxNOT_FOUND)
+		: (m_selected_map_index != wxNOT_FOUND);
+	if (!has_selection) {
 		if (show_message) {
 			wxMessageBox("Select a map before loading.", "Load Map", wxOK | wxICON_INFORMATION, this);
 		}
@@ -460,8 +628,12 @@ bool WelcomeDialog::AttemptLoad(bool show_message) {
 		return false;
 	}
 
+	const wxString selected_path = m_selection_in_favorites
+		? m_favorite_maps[m_selected_favorite_index].path
+		: m_recent_maps[m_selected_map_index].path;
+
 	m_pending_load_request = StartupLoadRequest {
-		m_recent_maps[m_selected_map_index].path,
+		selected_path,
 		MapLoadOptions {
 			.selected_client_id = selected_client->getID(),
 			.force_client_mismatch = status == StartupCompatibilityStatus::Forced,
@@ -475,6 +647,14 @@ bool WelcomeDialog::AttemptLoad(bool show_message) {
 }
 
 bool WelcomeDialog::AddBrowsedMap(const wxString& path) {
+	const auto favorite_it = std::ranges::find_if(m_favorite_maps, [&path](const auto& entry) {
+		return PathsEqual(entry.path, path);
+	});
+	if (favorite_it != m_favorite_maps.end()) {
+		SetSelectedFavoriteIndex(static_cast<int>(std::distance(m_favorite_maps.begin(), favorite_it)));
+		return true;
+	}
+
 	const int existing_index = FindRecentMapIndex(path);
 	if (existing_index != wxNOT_FOUND) {
 		SetSelectedMapIndex(existing_index);
@@ -489,6 +669,7 @@ bool WelcomeDialog::AddBrowsedMap(const wxString& path) {
 		path,
 		FormatModifiedLabel(path),
 		true,
+		false,
 	});
 	RefreshRecentMapList();
 	SetSelectedMapIndex(0);
@@ -510,11 +691,20 @@ void WelcomeDialog::EnsurePeeked(const wxString& path) {
 }
 
 const OTBMStartupPeekResult* WelcomeDialog::GetSelectedMapInfo() const {
-	if (m_selected_map_index == wxNOT_FOUND || m_selected_map_index >= static_cast<int>(m_recent_maps.size())) {
-		return nullptr;
+	wxString path;
+	if (m_selection_in_favorites) {
+		if (m_selected_favorite_index == wxNOT_FOUND || m_selected_favorite_index >= static_cast<int>(m_favorite_maps.size())) {
+			return nullptr;
+		}
+		path = m_favorite_maps[m_selected_favorite_index].path;
+	} else {
+		if (m_selected_map_index == wxNOT_FOUND || m_selected_map_index >= static_cast<int>(m_recent_maps.size())) {
+			return nullptr;
+		}
+		path = m_recent_maps[m_selected_map_index].path;
 	}
 
-	const auto key = NormalizePathKey(m_recent_maps[m_selected_map_index].path);
+	const auto key = NormalizePathKey(path);
 	const auto it = m_peek_cache.find(key);
 	return it != m_peek_cache.end() ? &it->second : nullptr;
 }
@@ -548,7 +738,7 @@ wxString WelcomeDialog::BuildCompatibilityMessage() const {
 	const OTBMStartupPeekResult* map_info = GetSelectedMapInfo();
 	ClientVersion* client = GetSelectedClient();
 
-	if (m_recent_maps.empty()) {
+	if (m_recent_maps.empty() && m_favorite_maps.empty()) {
 		return "No recent maps yet. Browse for a map or start a new one.";
 	}
 	if (!map_info) {
@@ -602,4 +792,85 @@ std::string WelcomeDialog::NormalizePathKey(const wxString& path) {
 	wxFileName filename(path);
 	filename.Normalize(wxPATH_NORM_ABSOLUTE | wxPATH_NORM_DOTS | wxPATH_NORM_TILDE);
 	return nstr(filename.GetFullPath());
+}
+
+std::vector<wxString> WelcomeDialog::LoadFavoritesFromSettings() const {
+	std::vector<wxString> favorites;
+	const std::string raw = g_settings.getString(Config::FAVORITE_FILES);
+	std::istringstream stream(raw);
+	std::string line;
+	while (std::getline(stream, line)) {
+		if (!line.empty() && line.back() == '\r') {
+			line.pop_back();
+		}
+		if (line.empty()) {
+			continue;
+		}
+		wxString path = wxString::FromUTF8(line);
+		if (std::ranges::any_of(favorites, [&path](const wxString& existing) { return PathsEqual(existing, path); })) {
+			continue;
+		}
+		favorites.push_back(path);
+	}
+	return favorites;
+}
+
+void WelcomeDialog::SaveFavoritesToSettings() const {
+	std::ostringstream stream;
+	for (size_t i = 0; i < m_favorite_maps.size(); ++i) {
+		if (i > 0) {
+			stream << "\n";
+		}
+		stream << m_favorite_maps[i].path.ToStdString(wxConvUTF8);
+	}
+	g_settings.setString(Config::FAVORITE_FILES, stream.str());
+}
+
+void WelcomeDialog::ToggleFavoriteByPath(const wxString& path) {
+	const auto favorite_it = std::ranges::find_if(m_favorite_maps, [&path](const auto& entry) {
+		return PathsEqual(entry.path, path);
+	});
+
+	if (favorite_it != m_favorite_maps.end()) {
+		StartupRecentMapEntry moved = *favorite_it;
+		moved.is_favorite = false;
+		m_favorite_maps.erase(favorite_it);
+
+		const auto existing_recent = std::ranges::find_if(m_recent_maps, [&path](const auto& entry) {
+			return PathsEqual(entry.path, path);
+		});
+		if (existing_recent == m_recent_maps.end()) {
+			m_recent_maps.insert(m_recent_maps.begin(), std::move(moved));
+		}
+	} else {
+		const auto recent_it = std::ranges::find_if(m_recent_maps, [&path](const auto& entry) {
+			return PathsEqual(entry.path, path);
+		});
+		StartupRecentMapEntry moved;
+		if (recent_it != m_recent_maps.end()) {
+			moved = *recent_it;
+			m_recent_maps.erase(recent_it);
+		} else {
+			moved = { path, FormatModifiedLabel(path), false, true };
+		}
+		moved.is_favorite = true;
+		m_favorite_maps.insert(m_favorite_maps.begin(), std::move(moved));
+	}
+
+	SaveFavoritesToSettings();
+
+	m_selection_in_favorites = false;
+	m_selected_map_index = wxNOT_FOUND;
+	m_selected_favorite_index = wxNOT_FOUND;
+
+	RefreshRecentMapList();
+	RefreshFavoriteMapList();
+
+	if (!m_favorite_maps.empty()) {
+		SetSelectedFavoriteIndex(0);
+	} else if (!m_recent_maps.empty()) {
+		SetSelectedMapIndex(0);
+	} else {
+		RefreshFooterState();
+	}
 }
