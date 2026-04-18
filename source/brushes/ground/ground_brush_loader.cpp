@@ -9,6 +9,7 @@
 #include "item_definitions/core/item_definition_store.h"
 #include "ext/pugixml.hpp"
 #include <wx/string.h>
+#include <sstream>
 
 extern Brushes g_brushes;
 
@@ -126,8 +127,19 @@ bool GroundBrushLoader::load(GroundBrush& brush, pugi::xml_node node, std::vecto
 				brush.optional_border = it->second.get();
 			}
 		} else if (std::ranges::equal(childName, std::string_view("border"), iequal)) {
-			std::unique_ptr<AutoBorder> newAutoBorder;
-			AutoBorder* autoBorderPtr = nullptr;
+			// Skip borders explicitly disabled in XML (enabled="false").
+			// Lets the user keep border definitions dormant without deleting them.
+			if ((attribute = childNode.attribute("enabled")) && !attribute.as_bool()) {
+				continue;
+			}
+
+			// Collect AutoBorder pointers for all IDs (supports comma-separated list).
+			// For ground_equivalent (inline border), only one owning pointer is produced.
+			struct CollectedBorder {
+				std::unique_ptr<AutoBorder> owned; // non-null for inline ground_equivalent
+				AutoBorder* ptr = nullptr; // may be null (explicit id="0")
+			};
+			std::vector<CollectedBorder> autoBorders;
 
 			if (!(attribute = childNode.attribute("id"))) {
 				if (!(attribute = childNode.attribute("ground_equivalent"))) {
@@ -149,83 +161,153 @@ bool GroundBrushLoader::load(GroundBrush& brush, pugi::xml_node node, std::vecto
 				}
 
 				if (valid) {
-					newAutoBorder = std::make_unique<AutoBorder>(0);
+					auto newAutoBorder = std::make_unique<AutoBorder>(0);
 					newAutoBorder->ground = true;
 					newAutoBorder->load(childNode, warnings, &brush, border_base_ground_id);
-					autoBorderPtr = newAutoBorder.get();
+					CollectedBorder cb;
+					cb.ptr = newAutoBorder.get();
+					cb.owned = std::move(newAutoBorder);
+					autoBorders.push_back(std::move(cb));
 				} else {
 					continue;
 				}
 			} else {
-				int32_t id = attribute.as_int();
-				if (id == 0) {
-					autoBorderPtr = nullptr;
-				} else {
-					auto it = g_brushes.borders.find(id);
-					if (it == g_brushes.borders.end() || !it->second) {
-						warnings.push_back("\nCould not find border id " + std::to_string(id));
+				// Parse comma-separated IDs
+				const std::string idStr = attribute.as_string();
+				std::stringstream ss(idStr);
+				std::string token;
+
+				while (std::getline(ss, token, ',')) {
+					// Trim whitespace
+					size_t start = token.find_first_not_of(" \t");
+					size_t end = token.find_last_not_of(" \t");
+					if (start == std::string::npos) {
 						continue;
 					}
-					autoBorderPtr = it->second.get();
+					token = token.substr(start, end - start + 1);
+
+					int32_t id;
+					try {
+						id = std::stoi(token);
+					} catch (const std::exception&) {
+						warnings.push_back("\nInvalid border id token '" + token + "'");
+						continue;
+					}
+
+					CollectedBorder cb;
+					if (id == 0) {
+						cb.ptr = nullptr;
+					} else {
+						auto it = g_brushes.borders.find(id);
+						if (it == g_brushes.borders.end() || !it->second) {
+							warnings.push_back("\nCould not find border id " + std::to_string(id));
+							continue;
+						}
+						cb.ptr = it->second.get();
+					}
+					autoBorders.push_back(std::move(cb));
 				}
 			}
 
-			auto borderBlock = std::make_unique<GroundBrush::BorderBlock>();
-			borderBlock->super = false;
-			borderBlock->outer = true;
-			if (newAutoBorder) {
-				borderBlock->owned_autoborder = std::move(newAutoBorder);
+			if (autoBorders.empty()) {
+				continue;
 			}
-			borderBlock->autoborder = autoBorderPtr;
+
+			// Parse common attributes once (shared by all borders in the group)
+			uint32_t toValue = 0xFFFFFFFF;
+			bool isOuter = true;
+			bool isSuper = false;
 
 			if ((attribute = childNode.attribute("to"))) {
 				const std::string_view value = attribute.as_string();
 				if (value == "all") {
-					borderBlock->to = 0xFFFFFFFF;
+					toValue = 0xFFFFFFFF;
 				} else if (value == "none") {
-					borderBlock->to = 0;
+					toValue = 0;
 				} else {
 					Brush* tobrush = g_brushes.getBrush(value);
 					if (!tobrush) {
 						warnings.push_back((wxString("To brush ") + wxstr(value) + " doesn't exist.").ToStdString());
-						// newAutoBorder is automatically deleted if borderBlock is destroyed or reset (RAII via std::unique_ptr)
 						continue;
 					}
-					borderBlock->to = tobrush->getID();
+					toValue = tobrush->getID();
 				}
-			} else {
-				borderBlock->to = 0xFFFFFFFF;
+			}
+
+			// Parse not-to attribute for exclusions (comma-separated list of brush names)
+			std::vector<uint32_t> notToValues;
+			if ((attribute = childNode.attribute("not-to"))) {
+				const std::string notToStr = attribute.as_string();
+				std::stringstream nss(notToStr);
+				std::string brushName;
+				while (std::getline(nss, brushName, ',')) {
+					size_t start = brushName.find_first_not_of(" \t");
+					size_t end = brushName.find_last_not_of(" \t");
+					if (start != std::string::npos && end != std::string::npos) {
+						brushName = brushName.substr(start, end - start + 1);
+					}
+					if (!brushName.empty()) {
+						Brush* notToBrush = g_brushes.getBrush(brushName);
+						if (!notToBrush) {
+							warnings.push_back((wxString("Not-to brush ") + wxstr(brushName) + " doesn't exist.").ToStdString());
+						} else {
+							notToValues.push_back(notToBrush->getID());
+						}
+					}
+				}
 			}
 
 			if ((attribute = childNode.attribute("super")) && attribute.as_bool()) {
-				borderBlock->super = true;
+				isSuper = true;
 			}
 
 			if ((attribute = childNode.attribute("align"))) {
 				const std::string_view value = attribute.as_string();
 				if (value == "outer") {
-					borderBlock->outer = true;
+					isOuter = true;
 				} else if (value == "inner") {
-					borderBlock->outer = false;
+					isOuter = false;
 				} else {
-					borderBlock->outer = true;
+					isOuter = true;
 				}
 			}
 
-			if (borderBlock->outer) {
-				if (borderBlock->to == 0) {
+			// Update border flags once (same for all borders in the group)
+			if (isOuter) {
+				if (toValue == 0) {
 					brush.has_zilch_outer_border = true;
 				} else {
 					brush.has_outer_border = true;
 				}
 			} else {
-				if (borderBlock->to == 0) {
+				if (toValue == 0) {
 					brush.has_zilch_inner_border = true;
 				} else {
 					brush.has_inner_border = true;
 				}
 			}
 
+			// Create BorderBlock for each border ID; keep pointers to add specific cases afterwards.
+			// Specific cases are attached to the first block only (matches BT behavior).
+			std::vector<GroundBrush::BorderBlock*> createdBlocks;
+			int32_t layerOrder = 0;
+			for (auto& cb : autoBorders) {
+				auto borderBlock = std::make_unique<GroundBrush::BorderBlock>();
+				borderBlock->super = isSuper;
+				borderBlock->outer = isOuter;
+				borderBlock->to = toValue;
+				borderBlock->not_to = notToValues;
+				borderBlock->layer_order = layerOrder++;
+				if (cb.owned) {
+					borderBlock->owned_autoborder = std::move(cb.owned);
+				}
+				borderBlock->autoborder = cb.ptr;
+
+				createdBlocks.push_back(borderBlock.get());
+				brush.borders.push_back(std::move(borderBlock));
+			}
+
+			GroundBrush::BorderBlock* borderBlock = createdBlocks.front();
 			for (pugi::xml_node subChildNode : childNode.children()) {
 				if (!std::ranges::equal(std::string_view(subChildNode.name()), std::string_view("specific"), iequal)) {
 					continue;
@@ -374,7 +456,6 @@ bool GroundBrushLoader::load(GroundBrush& brush, pugi::xml_node node, std::vecto
 					borderBlock->specific_cases.push_back(std::move(specificCaseBlock));
 				}
 			}
-			brush.borders.push_back(std::move(borderBlock));
 		} else if (std::ranges::equal(childName, std::string_view("friend"), iequal)) {
 			const std::string_view name = childNode.attribute("name").as_string();
 			if (!name.empty()) {

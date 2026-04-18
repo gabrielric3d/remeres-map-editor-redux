@@ -3,8 +3,6 @@
 #include "ui/gui_ids.h"
 #include "ui/add_tileset_window.h"
 #include "ui/add_item_window.h"
-#include "ui/dialogs/border_editor_dialog.h"
-#include "ui/dialogs/doodad_editor_dialog.h"
 #include "game/materials.h"
 #include "palette/palette_window.h"
 #include "palette/managers/palette_manager.h"
@@ -21,8 +19,6 @@ BrushPalettePanel::BrushPalettePanel(wxWindow* parent, const TilesetContainer& t
 	choicebook(nullptr) {
 	Bind(wxEVT_BUTTON, &BrushPalettePanel::OnClickAddItemToTileset, this, wxID_ADD);
 	Bind(wxEVT_BUTTON, &BrushPalettePanel::OnClickAddTileset, this, wxID_NEW);
-	Bind(wxEVT_BUTTON, &BrushPalettePanel::OnClickCreateBorder, this, PALETTE_TERRAIN_CREATE_BORDER);
-	Bind(wxEVT_BUTTON, &BrushPalettePanel::OnClickEditDoodad, this, PALETTE_DOODAD_EDIT_DOODAD);
 	Bind(wxEVT_CHOICEBOOK_PAGE_CHANGING, &BrushPalettePanel::OnSwitchingPage, this);
 	Bind(wxEVT_CHOICEBOOK_PAGE_CHANGED, &BrushPalettePanel::OnPageChanged, this);
 
@@ -81,19 +77,9 @@ BrushPalettePanel::BrushPalettePanel(wxWindow* parent, const TilesetContainer& t
 		Bind(wxEVT_CHOICE, &BrushPalettePanel::OnSlotSizeChanged, this, PALETTE_SLOT_SIZE_CHOICE);
 	}
 
-	if (category == TILESET_TERRAIN) {
-		wxButton* createBorderButton = newd wxButton(this, PALETTE_TERRAIN_CREATE_BORDER, "Create Border");
-		createBorderButton->SetToolTip("Open the Border Editor to create or edit auto-borders");
-		topsizer->Add(createBorderButton, 0, wxEXPAND | wxALL, 5);
-	}
+	// Border and Doodad editors moved to Tools > Brushes Editor (menubar).
 
-	if (category == TILESET_DOODAD) {
-		wxButton* editDoodadButton = newd wxButton(this, PALETTE_DOODAD_EDIT_DOODAD, "Doodad Editor");
-		editDoodadButton->SetToolTip("Open the Doodad Brush Editor to view and create doodad brushes");
-		topsizer->Add(editDoodadButton, 0, wxEXPAND | wxALL, 5);
-	}
-
-	if (g_settings.getBoolean(Config::SHOW_TILESET_EDITOR)) {
+if (g_settings.getBoolean(Config::SHOW_TILESET_EDITOR)) {
 		wxSizer* tmpsizer = newd wxBoxSizer(wxHORIZONTAL);
 		wxButton* buttonAddTileset = newd wxButton(this, wxID_NEW, "Add new Tileset");
 		buttonAddTileset->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_PLUS, wxSize(16, 16)));
@@ -407,13 +393,3 @@ void BrushPalettePanel::OnSlotSizeChanged(wxCommandEvent&) {
 	}
 }
 
-void BrushPalettePanel::OnClickCreateBorder(wxCommandEvent& WXUNUSED(event)) {
-	BorderEditorDialog* dialog = newd BorderEditorDialog(g_gui.root, "Auto Border Editor");
-	dialog->Show();
-	g_gui.RefreshView();
-}
-
-void BrushPalettePanel::OnClickEditDoodad(wxCommandEvent& WXUNUSED(event)) {
-	DoodadEditorDialog* dialog = newd DoodadEditorDialog(g_gui.root, "Doodad Brush Editor");
-	dialog->Show();
-}

@@ -18,6 +18,7 @@
 #ifndef RME_GROUND_BRUSH_H
 #define RME_GROUND_BRUSH_H
 
+#include <vector>
 #include "brushes/brush.h"
 
 //=============================================================================
@@ -44,6 +45,12 @@ public:
 
 	static void doBorders(BaseMap* map, Tile* tile);
 	static const BorderBlock* getBrushTo(GroundBrush* first, GroundBrush* second);
+	static std::vector<const BorderBlock*> getBrushesTo(GroundBrush* first, GroundBrush* second);
+
+private:
+	static bool isExcludedBrush(const BorderBlock* bb, uint32_t brushId);
+
+public:
 
 	int32_t getZ() const override {
 		return z_order;
@@ -121,6 +128,8 @@ protected: // Members
 		bool outer;
 		bool super;
 		uint32_t to;
+		std::vector<uint32_t> not_to; // Brushes to exclude from this border
+		int32_t layer_order = 0; // Order within same z-level (0 = bottom, higher = on top)
 
 		std::unique_ptr<AutoBorder> owned_autoborder;
 		AutoBorder* autoborder;
@@ -135,10 +144,14 @@ protected: // Members
 	struct BorderCluster {
 		uint32_t alignment;
 		int32_t z;
+		int32_t layer_order = 0; // Order within same z-level
 		const AutoBorder* border;
 
 		bool operator<(const BorderCluster& other) const {
-			return other.z > z;
+			if (z != other.z) {
+				return z < other.z;
+			}
+			return layer_order < other.layer_order;
 		}
 	};
 

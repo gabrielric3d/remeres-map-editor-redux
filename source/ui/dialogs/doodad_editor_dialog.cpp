@@ -26,6 +26,7 @@
 #include "item_definitions/core/item_definition_store.h"
 #include "rendering/core/game_sprite.h"
 #include "rendering/utilities/sprite_icon_generator.h"
+#include "ui/theme.h"
 #include "app/managers/version_manager.h"
 #include "ext/pugixml.hpp"
 #include <wx/sizer.h>
@@ -35,6 +36,7 @@
 #include <wx/dnd.h>
 #include <wx/clipbrd.h>
 #include <map>
+#include <set>
 #include <sstream>
 
 // IDs for controls
@@ -56,7 +58,8 @@ enum {
     ID_PREV_PAGE,
     ID_NEXT_PAGE,
     ID_CREATE_NEW,
-    ID_SAVE_TO_FILE
+    ID_SAVE_TO_FILE,
+    ID_ADD_TO_TILESET_DOODAD
 };
 
 // Helper function to get item ID from current brush
@@ -115,8 +118,38 @@ private:
     DoodadEditorDialog* m_dialog;
 };
 
+// Drop target for the single items list
+class DoodadSingleItemDropTarget : public wxTextDropTarget {
+public:
+    explicit DoodadSingleItemDropTarget(DoodadEditorDialog* dialog) : m_dialog(dialog) {}
+
+    bool OnDropText(wxCoord /*x*/, wxCoord /*y*/, const wxString& data) override {
+        if (!m_dialog) return false;
+
+        wxString idStr;
+        if (data.StartsWith("ITEM_ID:")) {
+            idStr = data.Mid(8);
+        } else if (data.StartsWith("RME_ITEM:")) {
+            idStr = data.Mid(9);
+        } else {
+            return false;
+        }
+
+        unsigned long itemId = 0;
+        if (!idStr.ToULong(&itemId) || itemId == 0 || itemId > 0xFFFF) {
+            return false;
+        }
+
+        m_dialog->AddSingleItemById(static_cast<uint16_t>(itemId));
+        return true;
+    }
+
+private:
+    DoodadEditorDialog* m_dialog;
+};
+
 // Event tables
-BEGIN_EVENT_TABLE(DoodadEditorDialog, wxDialog)
+BEGIN_EVENT_TABLE(DoodadEditorDialog, wxPanel)
     EVT_BUTTON(ID_ADD_SINGLE_ITEM, DoodadEditorDialog::OnAddSingleItem)
     EVT_BUTTON(ID_REMOVE_SINGLE_ITEM, DoodadEditorDialog::OnRemoveSingleItem)
     EVT_BUTTON(ID_BROWSE_SINGLE_ITEM, DoodadEditorDialog::OnBrowseSingleItem)
@@ -126,7 +159,6 @@ BEGIN_EVENT_TABLE(DoodadEditorDialog, wxDialog)
     EVT_BUTTON(ID_BROWSE_GRID_ITEM, DoodadEditorDialog::OnBrowseGridItem)
     EVT_BUTTON(wxID_SAVE, DoodadEditorDialog::OnSave)
     EVT_BUTTON(ID_SAVE_TO_FILE, DoodadEditorDialog::OnSaveToFile)
-    EVT_BUTTON(wxID_CLOSE, DoodadEditorDialog::OnClose)
     EVT_BUTTON(ID_PREV_PAGE, DoodadEditorDialog::OnPrevPage)
     EVT_BUTTON(ID_NEXT_PAGE, DoodadEditorDialog::OnNextPage)
     EVT_BUTTON(ID_CREATE_NEW, DoodadEditorDialog::OnCreateNew)
@@ -137,7 +169,7 @@ BEGIN_EVENT_TABLE(DoodadEditorDialog, wxDialog)
     EVT_NOTEBOOK_PAGE_CHANGED(wxID_ANY, DoodadEditorDialog::OnPageChanged)
     EVT_TIMER(ID_LOAD_TIMER, DoodadEditorDialog::OnLoadTimer)
     EVT_TEXT(ID_FILTER_TEXT, DoodadEditorDialog::OnFilterChanged)
-    EVT_CLOSE(DoodadEditorDialog::OnCloseWindow)
+    EVT_BUTTON(ID_ADD_TO_TILESET_DOODAD, DoodadEditorDialog::OnAddToTileset)
 END_EVENT_TABLE()
 
 BEGIN_EVENT_TABLE(DoodadGridPanel, wxPanel)
@@ -154,9 +186,8 @@ END_EVENT_TABLE()
 // DoodadEditorDialog Implementation
 // ============================================================================
 
-DoodadEditorDialog::DoodadEditorDialog(wxWindow* parent, const wxString& title) :
-    wxDialog(parent, wxID_ANY, title, wxDefaultPosition, wxSize(1200, 800),
-        wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER | wxMAXIMIZE_BOX | wxFRAME_FLOAT_ON_PARENT),
+DoodadEditorDialog::DoodadEditorDialog(wxWindow* parent) :
+    wxPanel(parent, wxID_ANY),
     m_currentCompositeIndex(-1),
     m_activeTab(0),
     m_loadTimer(nullptr),
@@ -165,7 +196,7 @@ DoodadEditorDialog::DoodadEditorDialog(wxWindow* parent, const wxString& title) 
     m_totalPages(0) {
 
     CreateGUIControls();
-    CenterOnParent();
+    LoadExistingTilesets();
 
     // Start async loading after window is shown
     m_loadTimer = new wxTimer(this, ID_LOAD_TIMER);
@@ -309,7 +340,9 @@ void DoodadEditorDialog::CreateGUIControls() {
 
     wxStaticBoxSizer* singleItemsSizer = new wxStaticBoxSizer(wxVERTICAL, m_singlePanel, "Single Items (non-composite)");
 
-    m_singleItemsList = new wxListBox(m_singlePanel, ID_SINGLE_ITEM_LIST, wxDefaultPosition, wxSize(-1, 150), 0, nullptr, wxLB_SINGLE);
+    m_singleItemsList = new DoodadSingleItemsPanel(m_singlePanel, ID_SINGLE_ITEM_LIST);
+    m_singleItemsList->SetDropTarget(new DoodadSingleItemDropTarget(this));
+    m_singleItemsList->SetToolTip("Drag items from the palette here to add them, or use the Add button below.");
     singleItemsSizer->Add(m_singleItemsList, 1, wxEXPAND | wxALL, 5);
 
     wxBoxSizer* singleControlsSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -397,12 +430,30 @@ void DoodadEditorDialog::CreateGUIControls() {
 
     rightSizer->Add(m_notebook, 1, wxEXPAND | wxALL, 5);
 
+    // === Assign to Tileset ===
+    wxStaticBoxSizer* tilesetAssignSizer = new wxStaticBoxSizer(wxHORIZONTAL, rightPanel, "Assign to Tileset");
+
+    wxBoxSizer* tilesetComboSizer = new wxBoxSizer(wxVERTICAL);
+    tilesetComboSizer->Add(new wxStaticText(rightPanel, wxID_ANY, "Tileset:"), 0);
+    m_tilesetCombo = new wxComboBox(rightPanel, wxID_ANY, "", wxDefaultPosition, wxSize(200, -1), 0, nullptr, wxCB_DROPDOWN);
+    m_tilesetCombo->SetToolTip("Type to search, or pick from the list of tilesets defined in tilesets.xml.");
+    tilesetComboSizer->Add(m_tilesetCombo, 0, wxEXPAND | wxTOP, 2);
+    tilesetAssignSizer->Add(tilesetComboSizer, 1, wxEXPAND | wxRIGHT, 5);
+
+    wxBoxSizer* tilesetBtnSizer = new wxBoxSizer(wxVERTICAL);
+    tilesetBtnSizer->AddStretchSpacer();
+    m_addToTilesetButton = new wxButton(rightPanel, ID_ADD_TO_TILESET_DOODAD, "Add brush to Tileset", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+    m_addToTilesetButton->SetToolTip("Adds the current doodad brush (by name) to the selected tileset in tilesets.xml.");
+    tilesetBtnSizer->Add(m_addToTilesetButton, 0);
+    tilesetAssignSizer->Add(tilesetBtnSizer, 0, wxEXPAND);
+
+    rightSizer->Add(tilesetAssignSizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+
     // === Bottom buttons ===
     wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
     buttonSizer->AddStretchSpacer();
     buttonSizer->Add(new wxButton(rightPanel, wxID_SAVE, "Save to Clipboard"), 0, wxRIGHT, 5);
     buttonSizer->Add(new wxButton(rightPanel, ID_SAVE_TO_FILE, "Save to File"), 0, wxRIGHT, 5);
-    buttonSizer->Add(new wxButton(rightPanel, wxID_CLOSE, "Close"), 0);
     rightSizer->Add(buttonSizer, 0, wxEXPAND | wxALL, 10);
 
     rightPanel->SetSizer(rightSizer);
@@ -643,11 +694,29 @@ void DoodadEditorDialog::OnAddSingleItem(wxCommandEvent& event) {
     UpdateSingleItemsList();
 }
 
+void DoodadEditorDialog::AddSingleItemById(uint16_t itemId) {
+    if (itemId == 0) return;
+
+    int chance = m_singleItemChanceCtrl ? m_singleItemChanceCtrl->GetValue() : 10;
+    m_singleItems.push_back(DoodadSingleItem(itemId, chance));
+    UpdateSingleItemsList();
+}
+
 void DoodadEditorDialog::OnRemoveSingleItem(wxCommandEvent& event) {
-    int sel = m_singleItemsList->GetSelection();
-    if (sel != wxNOT_FOUND && sel < (int)m_singleItems.size()) {
-        m_singleItems.erase(m_singleItems.begin() + sel);
+    RemoveSingleItemAt(m_singleItemsList->GetSelectedIndex());
+}
+
+void DoodadEditorDialog::RemoveSingleItemAt(int index) {
+    if (index >= 0 && index < (int)m_singleItems.size()) {
+        m_singleItems.erase(m_singleItems.begin() + index);
         UpdateSingleItemsList();
+    }
+}
+
+void DoodadEditorDialog::SelectSingleItemAt(int index) {
+    if (index >= 0 && index < (int)m_singleItems.size()) {
+        m_singleItemIdCtrl->SetValue(m_singleItems[index].itemId);
+        m_singleItemChanceCtrl->SetValue(m_singleItems[index].chance);
     }
 }
 
@@ -791,11 +860,7 @@ uint16_t DoodadEditorDialog::GetCurrentItemId() const {
 }
 
 void DoodadEditorDialog::UpdateSingleItemsList() {
-    m_singleItemsList->Clear();
-    for (const auto& item : m_singleItems) {
-        wxString label = wxString::Format("ID: %d (Chance: %d)", item.itemId, item.chance);
-        m_singleItemsList->Append(label);
-    }
+    m_singleItemsList->SetItems(m_singleItems);
 }
 
 void DoodadEditorDialog::UpdateCompositesList() {
@@ -818,6 +883,11 @@ void DoodadEditorDialog::UpdatePreview() {
 }
 
 void DoodadEditorDialog::OnPageChanged(wxBookCtrlEvent& event) {
+    // Ignore events from the outer BrushesEditorDialog notebook — only react to our own.
+    if (event.GetEventObject() != m_notebook) {
+        event.Skip();
+        return;
+    }
     m_activeTab = event.GetSelection();
     event.Skip();
 }
@@ -914,6 +984,126 @@ bool DoodadEditorDialog::ValidateDoodad() {
     }
 
     return true;
+}
+
+void DoodadEditorDialog::LoadExistingTilesets() {
+    if (!m_tilesetCombo) return;
+    m_tilesetCombo->Clear();
+
+    ClientVersion* version = g_version.getLoadedVersion();
+    if (!version) return;
+
+    wxFileName tilesetsFile(version->getDataPath().GetFullPath(), "tilesets.xml");
+    if (!tilesetsFile.FileExists()) return;
+
+    pugi::xml_document doc;
+    if (!doc.load_file(tilesetsFile.GetFullPath().ToStdString().c_str())) return;
+
+    pugi::xml_node materials = doc.child("materials");
+    if (!materials) return;
+
+    std::set<std::string> seen;
+    for (pugi::xml_node tilesetNode = materials.child("tileset"); tilesetNode; tilesetNode = tilesetNode.next_sibling("tileset")) {
+        pugi::xml_attribute nameAttr = tilesetNode.attribute("name");
+        if (!nameAttr) continue;
+        std::string name = nameAttr.as_string();
+        if (seen.insert(name).second) {
+            m_tilesetCombo->Append(wxString(name));
+        }
+    }
+}
+
+void DoodadEditorDialog::OnAddToTileset(wxCommandEvent& WXUNUSED(event)) {
+    wxString brushName = m_nameCtrl->GetValue().Trim(true).Trim(false);
+    if (brushName.IsEmpty()) {
+        wxMessageBox("Please enter a name for the doodad brush first.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    wxString tilesetName = m_tilesetCombo->GetValue().Trim(true).Trim(false);
+    if (tilesetName.IsEmpty()) {
+        wxMessageBox("Please select or type a tileset name.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    ClientVersion* version = g_version.getLoadedVersion();
+    if (!version) {
+        wxMessageBox("No client version loaded.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    wxFileName tilesetsFile(version->getDataPath().GetFullPath(), "tilesets.xml");
+    if (!tilesetsFile.FileExists()) {
+        wxMessageBox("Cannot find tilesets.xml in the data directory.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    const std::string filePath = tilesetsFile.GetFullPath().ToStdString();
+
+    pugi::xml_document doc;
+    pugi::xml_parse_result result = doc.load_file(filePath.c_str());
+    if (!result) {
+        wxMessageBox(wxString::Format("Failed to parse tilesets.xml:\n%s", result.description()),
+            "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    pugi::xml_node materials = doc.child("materials");
+    if (!materials) {
+        wxMessageBox("Invalid tilesets.xml: missing 'materials' node.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    // Find or create the target tileset
+    pugi::xml_node targetTileset;
+    for (pugi::xml_node tilesetNode = materials.child("tileset"); tilesetNode; tilesetNode = tilesetNode.next_sibling("tileset")) {
+        pugi::xml_attribute nameAttr = tilesetNode.attribute("name");
+        if (nameAttr && wxString(nameAttr.as_string()) == tilesetName) {
+            targetTileset = tilesetNode;
+            break;
+        }
+    }
+
+    if (!targetTileset) {
+        if (wxMessageBox("Tileset '" + tilesetName + "' does not exist. Create it?",
+                "Create Tileset", wxYES_NO | wxICON_QUESTION) != wxYES) {
+            return;
+        }
+        targetTileset = materials.append_child("tileset");
+        targetTileset.append_attribute("name").set_value(tilesetName.ToStdString().c_str());
+    }
+
+    // Find or create the <doodad> child (doodad brushes live under doodad category)
+    pugi::xml_node doodad = targetTileset.child("doodad");
+    if (!doodad) {
+        doodad = targetTileset.append_child("doodad");
+    }
+
+    // Check for duplicates
+    for (pugi::xml_node brushNode = doodad.child("brush"); brushNode; brushNode = brushNode.next_sibling("brush")) {
+        pugi::xml_attribute nameAttr = brushNode.attribute("name");
+        if (nameAttr && wxString(nameAttr.as_string()) == brushName) {
+            wxMessageBox("Brush '" + brushName + "' is already in tileset '" + tilesetName + "'.",
+                "Already Exists", wxOK | wxICON_INFORMATION);
+            return;
+        }
+    }
+
+    // Append and save
+    pugi::xml_node newBrush = doodad.append_child("brush");
+    newBrush.append_attribute("name").set_value(brushName.ToStdString().c_str());
+
+    if (!doc.save_file(filePath.c_str())) {
+        wxMessageBox("Failed to save tilesets.xml.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    wxMessageBox("Brush '" + brushName + "' added to tileset '" + tilesetName + "'.\n"
+        "Restart the editor (or reload the client) to see it in the palette.",
+        "Success", wxOK | wxICON_INFORMATION);
+
+    LoadExistingTilesets();
+    m_tilesetCombo->SetValue(tilesetName);
 }
 
 void DoodadEditorDialog::SaveDoodad() {
@@ -1024,14 +1214,6 @@ void DoodadEditorDialog::OnSaveToFile(wxCommandEvent& event) {
 
     wxMessageBox(wxString::Format("Brush \"%s\" saved to doodads.xml.\n\nReload the client version to see the changes in-editor.", brushName),
         "Success", wxOK | wxICON_INFORMATION);
-}
-
-void DoodadEditorDialog::OnClose(wxCommandEvent& event) {
-    Destroy();
-}
-
-void DoodadEditorDialog::OnCloseWindow(wxCloseEvent& event) {
-    Destroy();
 }
 
 // ============================================================================
@@ -1459,4 +1641,187 @@ void DoodadPreviewPanel::OnPaint(wxPaintEvent& event) {
     dc.SetTextForeground(wxColour(100, 100, 100));
     dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
     dc.DrawText("(0,0)", centerX - 12, centerY + cellSize / 2 + 2);
+}
+
+// ============================================================================
+// DoodadSingleItemsPanel Implementation
+// ============================================================================
+
+BEGIN_EVENT_TABLE(DoodadSingleItemsPanel, wxPanel)
+    EVT_PAINT(DoodadSingleItemsPanel::OnPaint)
+    EVT_LEFT_UP(DoodadSingleItemsPanel::OnMouseClick)
+    EVT_SIZE(DoodadSingleItemsPanel::OnSize)
+END_EVENT_TABLE()
+
+DoodadSingleItemsPanel::DoodadSingleItemsPanel(wxWindow* parent, wxWindowID id) :
+    wxPanel(parent, id, wxDefaultPosition, wxSize(-1, 3 * (CELL_SIZE + CELL_MARGIN) + CELL_MARGIN), wxBORDER_NONE) {
+    SetBackgroundStyle(wxBG_STYLE_PAINT);
+    SetMinSize(wxSize(-1, 3 * (CELL_SIZE + CELL_MARGIN) + CELL_MARGIN));
+}
+
+void DoodadSingleItemsPanel::SetItems(const std::vector<DoodadSingleItem>& items) {
+    m_items = items;
+    if (m_selectedIndex >= static_cast<int>(m_items.size())) {
+        m_selectedIndex = -1;
+    }
+    RecalcLayout();
+    Refresh();
+}
+
+void DoodadSingleItemsPanel::Clear() {
+    m_items.clear();
+    m_cells.clear();
+    m_selectedIndex = -1;
+    Refresh();
+}
+
+void DoodadSingleItemsPanel::SetSelectedIndex(int idx) {
+    if (idx < -1 || idx >= static_cast<int>(m_items.size())) return;
+    m_selectedIndex = idx;
+    Refresh();
+}
+
+void DoodadSingleItemsPanel::AddItemFromDrop(uint16_t itemId) {
+    wxWindow* parent = GetParent();
+    while (parent && !dynamic_cast<DoodadEditorDialog*>(parent)) {
+        parent = parent->GetParent();
+    }
+    DoodadEditorDialog* dialog = dynamic_cast<DoodadEditorDialog*>(parent);
+    if (dialog) {
+        dialog->AddSingleItemById(itemId);
+    }
+}
+
+void DoodadSingleItemsPanel::RecalcLayout() {
+    m_cells.clear();
+
+    int clientWidth = GetClientSize().GetWidth();
+    if (clientWidth <= 0) clientWidth = CELL_SIZE + 2 * CELL_MARGIN;
+
+    int perRow = std::max(1, (clientWidth - CELL_MARGIN) / (CELL_SIZE + CELL_MARGIN));
+
+    int x = CELL_MARGIN;
+    int y = CELL_MARGIN;
+    int col = 0;
+
+    for (int i = 0; i < static_cast<int>(m_items.size()); ++i) {
+        CellRect cell;
+        cell.index = i;
+        cell.bounds = wxRect(x, y, CELL_SIZE, CELL_SIZE);
+        cell.closeBtn = wxRect(x + CELL_SIZE - CLOSE_BTN_SIZE - 2, y + 2, CLOSE_BTN_SIZE, CLOSE_BTN_SIZE);
+        m_cells.push_back(cell);
+
+        col++;
+        if (col >= perRow) {
+            col = 0;
+            x = CELL_MARGIN;
+            y += CELL_SIZE + CELL_MARGIN;
+        } else {
+            x += CELL_SIZE + CELL_MARGIN;
+        }
+    }
+}
+
+void DoodadSingleItemsPanel::OnSize(wxSizeEvent& event) {
+    RecalcLayout();
+    Refresh();
+    event.Skip();
+}
+
+void DoodadSingleItemsPanel::OnPaint(wxPaintEvent& event) {
+    wxAutoBufferedPaintDC dc(this);
+
+    dc.SetBackground(wxBrush(Theme::Get(Theme::Role::Background)));
+    dc.Clear();
+
+    if (m_items.empty()) {
+        dc.SetTextForeground(Theme::Get(Theme::Role::TextSubtle));
+        dc.SetFont(wxFont(9, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_ITALIC, wxFONTWEIGHT_NORMAL));
+        dc.DrawText("No items. Drag from the palette or use the Add button.", CELL_MARGIN, CELL_MARGIN + 4);
+        return;
+    }
+
+    const int SPRITE_PADDING = 4;
+    const int spriteArea = CELL_SIZE - 2 * SPRITE_PADDING;
+
+    int totalChance = 0;
+    for (const auto& item : m_items) totalChance += item.chance;
+    if (totalChance <= 0) totalChance = 1;
+
+    for (const auto& cell : m_cells) {
+        const auto& item = m_items[cell.index];
+
+        bool selected = (cell.index == m_selectedIndex);
+        if (selected) {
+            dc.SetPen(wxPen(Theme::Get(Theme::Role::Accent), 2));
+            dc.SetBrush(wxBrush(Theme::Get(Theme::Role::Selected)));
+        } else {
+            dc.SetPen(wxPen(Theme::Get(Theme::Role::Border)));
+            dc.SetBrush(wxBrush(Theme::Get(Theme::Role::Surface)));
+        }
+        dc.DrawRoundedRectangle(cell.bounds, 3);
+
+        const auto itemDef = g_item_definitions.get(item.itemId);
+        if (itemDef) {
+            Sprite* sprite = g_gui.gfx.getSprite(itemDef.clientId());
+            if (sprite) {
+                sprite->DrawTo(&dc, SPRITE_SIZE_32x32,
+                    cell.bounds.x + SPRITE_PADDING,
+                    cell.bounds.y + SPRITE_PADDING,
+                    spriteArea, spriteArea);
+            }
+        }
+
+        dc.SetFont(wxFont(7, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
+        dc.SetTextForeground(Theme::Get(Theme::Role::TextSubtle));
+        int pct = static_cast<int>((static_cast<double>(item.chance) / totalChance) * 100.0 + 0.5);
+        wxString chanceLabel = wxString::Format("%d (%d%%)", item.chance, pct);
+        wxSize ts = dc.GetTextExtent(chanceLabel);
+        dc.DrawText(chanceLabel,
+            cell.bounds.x + (CELL_SIZE - ts.GetWidth()) / 2,
+            cell.bounds.y + CELL_SIZE - ts.GetHeight() - 2);
+
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(wxBrush(wxColour(180, 50, 50)));
+        dc.DrawRoundedRectangle(cell.closeBtn, 2);
+
+        dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
+        dc.SetTextForeground(*wxWHITE);
+        wxSize xSize = dc.GetTextExtent("X");
+        dc.DrawText("X",
+            cell.closeBtn.x + (cell.closeBtn.width - xSize.GetWidth()) / 2,
+            cell.closeBtn.y + (cell.closeBtn.height - xSize.GetHeight()) / 2);
+    }
+}
+
+void DoodadSingleItemsPanel::OnMouseClick(wxMouseEvent& event) {
+    int mx = event.GetX();
+    int my = event.GetY();
+
+    wxWindow* parent = GetParent();
+    while (parent && !dynamic_cast<DoodadEditorDialog*>(parent)) {
+        parent = parent->GetParent();
+    }
+    DoodadEditorDialog* dialog = dynamic_cast<DoodadEditorDialog*>(parent);
+
+    for (const auto& cell : m_cells) {
+        if (cell.closeBtn.Contains(mx, my)) {
+            if (dialog) {
+                dialog->RemoveSingleItemAt(cell.index);
+            }
+            return;
+        }
+
+        if (cell.bounds.Contains(mx, my)) {
+            m_selectedIndex = cell.index;
+            if (dialog) {
+                dialog->SelectSingleItemAt(cell.index);
+            }
+            Refresh();
+            return;
+        }
+    }
+
+    m_selectedIndex = -1;
+    Refresh();
 }

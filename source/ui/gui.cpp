@@ -57,6 +57,7 @@
 #include "ui/dialogs/dungeon_generator_dialog.h"
 #include "ui/dialogs/structure_manager_window.h"
 #include "ui/dialogs/instance_layout_dialog.h"
+#include "ui/dialogs/brushes_editor_dialog.h"
 
 #include "rendering/ui/toast_renderer.h"
 #include "live/live_client.h"
@@ -984,6 +985,26 @@ void GUI::DestroyStructureManagerDialog() {
 	if (structure_manager_dialog) {
 		structure_manager_dialog->Destroy();
 		structure_manager_dialog = nullptr;
+	}
+}
+
+//=============================================================================
+// Brushes Editor Dialog management
+
+void GUI::ShowBrushesEditorDialog() {
+	if (brushes_editor_dialog) {
+		brushes_editor_dialog->Show();
+		brushes_editor_dialog->Raise();
+	} else {
+		brushes_editor_dialog = newd BrushesEditorDialog(root);
+		brushes_editor_dialog->Show();
+	}
+}
+
+void GUI::DestroyBrushesEditorDialog() {
+	if (brushes_editor_dialog) {
+		brushes_editor_dialog->Destroy();
+		brushes_editor_dialog = nullptr;
 	}
 }
 

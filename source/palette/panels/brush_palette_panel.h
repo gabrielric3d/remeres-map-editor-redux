@@ -45,8 +45,6 @@ public:
 	void OnClickAddItemToTileset(wxCommandEvent& WXUNUSED(event));
 	void OnIconBackgroundChanged(wxCommandEvent& event);
 	void OnSlotSizeChanged(wxCommandEvent& event);
-	void OnClickCreateBorder(wxCommandEvent& event);
-	void OnClickEditDoodad(wxCommandEvent& event);
 
 protected:
 	PaletteType palette_type;

@@ -87,6 +87,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/game/outfit.h
     ${CMAKE_CURRENT_LIST_DIR}/game/spawn.h
     ${CMAKE_CURRENT_LIST_DIR}/game/sprites.h
+    ${CMAKE_CURRENT_LIST_DIR}/game/stair_overlays.h
     ${CMAKE_CURRENT_LIST_DIR}/game/town.h
     ${CMAKE_CURRENT_LIST_DIR}/game/preview_preferences.h
     ${CMAKE_CURRENT_LIST_DIR}/game/waypoints.h
@@ -117,6 +118,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/light_source_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_editor_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/brushes_editor_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_generator_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_preset_editor_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/instance_layout_dialog.h
@@ -512,6 +514,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/game/item_attributes.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/materials.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/spawn.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/game/stair_overlays.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/town.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/preview_preferences.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/waypoints.cpp
@@ -537,6 +540,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/light_source_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_editor_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/brushes_editor_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_generator_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_preset_editor_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/instance_layout_dialog.cpp

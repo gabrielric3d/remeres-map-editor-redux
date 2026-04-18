@@ -194,6 +194,7 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(DUNGEON_GENERATOR, wxITEM_NORMAL, OnDungeonGenerator);
 	MAKE_ACTION(STRUCTURE_MANAGER, wxITEM_NORMAL, OnStructureManager);
 	MAKE_ACTION(INSTANCE_LAYOUT_GENERATOR, wxITEM_NORMAL, OnInstanceLayoutGenerator);
+	MAKE_ACTION(BRUSHES_EDITOR, wxITEM_NORMAL, OnBrushesEditor);
 	MAKE_ACTION(RADIAL_WHEEL, wxITEM_NORMAL, OnRadialWheel);
 	MAKE_ACTION(DEBUG_VIEW_DAT, wxITEM_NORMAL, OnDebugViewDat);
 	MAKE_ACTION(EXTENSIONS, wxITEM_NORMAL, OnListExtensions);

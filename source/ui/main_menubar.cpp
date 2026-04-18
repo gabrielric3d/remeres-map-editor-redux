@@ -759,6 +759,10 @@ void MainMenuBar::OnStructureManager(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.ShowStructureManagerDialog();
 }
 
+void MainMenuBar::OnBrushesEditor(wxCommandEvent& WXUNUSED(event)) {
+	g_gui.ShowBrushesEditorDialog();
+}
+
 void MainMenuBar::OnInstanceLayoutGenerator(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.ShowInstanceLayoutDialog();
 }

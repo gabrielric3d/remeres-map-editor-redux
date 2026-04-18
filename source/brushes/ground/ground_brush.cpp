@@ -86,15 +86,30 @@ void GroundBrush::draw(BaseMap* map, Tile* tile, void* parameter) {
 	TerrainPlacement::placeBrushItem(*tile, id);
 }
 
+bool GroundBrush::isExcludedBrush(const BorderBlock* bb, uint32_t brushId) {
+	for (uint32_t excludedId : bb->not_to) {
+		if (excludedId == brushId) {
+			return true;
+		}
+	}
+	return false;
+}
+
 const GroundBrush::BorderBlock* GroundBrush::getBrushTo(GroundBrush* first, GroundBrush* second) {
 	if (first) {
 		if (second) {
+			uint32_t secondId = second->getID();
+			uint32_t firstId = first->getID();
 			if (first->getZ() < second->getZ() && second->hasOuterBorder()) {
 				if (first->hasInnerBorder()) {
 					for (const auto& bb : first->borders) {
 						if (bb->outer) {
 							continue;
-						} else if (bb->to == second->getID() || bb->to == 0xFFFFFFFF) {
+						}
+						if (isExcludedBrush(bb.get(), secondId)) {
+							continue;
+						}
+						if (bb->to == secondId || bb->to == 0xFFFFFFFF) {
 							return bb.get();
 						}
 					}
@@ -102,7 +117,11 @@ const GroundBrush::BorderBlock* GroundBrush::getBrushTo(GroundBrush* first, Grou
 				for (const auto& bb : second->borders) {
 					if (!bb->outer) {
 						continue;
-					} else if (bb->to == first->getID()) {
+					}
+					if (isExcludedBrush(bb.get(), firstId)) {
+						continue;
+					}
+					if (bb->to == firstId) {
 						return bb.get();
 					} else if (bb->to == 0xFFFFFFFF) {
 						return bb.get();
@@ -112,7 +131,11 @@ const GroundBrush::BorderBlock* GroundBrush::getBrushTo(GroundBrush* first, Grou
 				for (const auto& bb : first->borders) {
 					if (bb->outer) {
 						continue;
-					} else if (bb->to == second->getID()) {
+					}
+					if (isExcludedBrush(bb.get(), secondId)) {
+						continue;
+					}
+					if (bb->to == secondId) {
 						return bb.get();
 					} else if (bb->to == 0xFFFFFFFF) {
 						return bb.get();
@@ -138,6 +161,75 @@ const GroundBrush::BorderBlock* GroundBrush::getBrushTo(GroundBrush* first, Grou
 		}
 	}
 	return nullptr;
+}
+
+std::vector<const GroundBrush::BorderBlock*> GroundBrush::getBrushesTo(GroundBrush* first, GroundBrush* second) {
+	std::vector<const BorderBlock*> result;
+
+	if (first) {
+		if (second) {
+			uint32_t secondId = second->getID();
+			uint32_t firstId = first->getID();
+			if (first->getZ() < second->getZ() && second->hasOuterBorder()) {
+				if (first->hasInnerBorder()) {
+					for (const auto& bb : first->borders) {
+						if (bb->outer) {
+							continue;
+						}
+						if (isExcludedBrush(bb.get(), secondId)) {
+							continue;
+						}
+						if (bb->to == secondId || bb->to == 0xFFFFFFFF) {
+							result.push_back(bb.get());
+						}
+					}
+				}
+				for (const auto& bb : second->borders) {
+					if (!bb->outer) {
+						continue;
+					}
+					if (isExcludedBrush(bb.get(), firstId)) {
+						continue;
+					}
+					if (bb->to == firstId || bb->to == 0xFFFFFFFF) {
+						result.push_back(bb.get());
+					}
+				}
+			} else if (first->hasInnerBorder()) {
+				for (const auto& bb : first->borders) {
+					if (bb->outer) {
+						continue;
+					}
+					if (isExcludedBrush(bb.get(), secondId)) {
+						continue;
+					}
+					if (bb->to == secondId || bb->to == 0xFFFFFFFF) {
+						result.push_back(bb.get());
+					}
+				}
+			}
+		} else if (first->hasInnerZilchBorder()) {
+			for (const auto& bb : first->borders) {
+				if (bb->outer) {
+					continue;
+				}
+				if (bb->to == 0) {
+					result.push_back(bb.get());
+				}
+			}
+		}
+	} else if (second && second->hasOuterZilchBorder()) {
+		for (const auto& bb : second->borders) {
+			if (!bb->outer) {
+				continue;
+			}
+			if (bb->to == 0) {
+				result.push_back(bb.get());
+			}
+		}
+	}
+
+	return result;
 }
 
 inline GroundBrush* extractGroundBrushFromTile(BaseMap* map, uint32_t x, uint32_t y, uint32_t z) {

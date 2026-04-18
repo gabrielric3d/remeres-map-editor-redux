@@ -185,6 +185,7 @@ namespace MenuBar {
 		DEPLOY_MAP,
 		STRUCTURE_MANAGER,
 		INSTANCE_LAYOUT_GENERATOR,
+		BRUSHES_EDITOR,
 		RADIAL_WHEEL,
 		LIGHT_SOURCES,
 		SHOW_WALL_BORDERS,
@@ -373,6 +374,7 @@ public:
 	void OnDungeonGenerator(wxCommandEvent& event);
 	void OnStructureManager(wxCommandEvent& event);
 	void OnInstanceLayoutGenerator(wxCommandEvent& event);
+	void OnBrushesEditor(wxCommandEvent& event);
 	void OnDeployMap(wxCommandEvent& event);
 	void OnRadialWheel(wxCommandEvent& event);
 

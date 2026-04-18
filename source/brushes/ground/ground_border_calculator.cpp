@@ -91,6 +91,7 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 							GroundBrush::BorderCluster borderCluster;
 							borderCluster.alignment = tiledata;
 							borderCluster.z = 0x7FFFFFFF; // Above all other borders
+							borderCluster.layer_order = 0;
 							borderCluster.border = other->optional_border;
 
 							borderList.push_back(borderCluster);
@@ -100,8 +101,12 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 						}
 
 						if (!only_mountain) {
-							const GroundBrush::BorderBlock* borderBlock = GroundBrush::getBrushTo(borderBrush, other);
-							if (borderBlock) {
+							std::vector<const GroundBrush::BorderBlock*> borderBlocks = GroundBrush::getBrushesTo(borderBrush, other);
+							for (const GroundBrush::BorderBlock* borderBlock : borderBlocks) {
+								if (!borderBlock || !borderBlock->autoborder) {
+									continue;
+								}
+
 								bool found = false;
 								for (GroundBrush::BorderCluster& borderCluster : borderList) {
 									if (borderCluster.border == borderBlock->autoborder) {
@@ -123,6 +128,7 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 									GroundBrush::BorderCluster borderCluster;
 									borderCluster.alignment = tiledata;
 									borderCluster.z = other->getZ();
+									borderCluster.layer_order = borderBlock->layer_order;
 									borderCluster.border = borderBlock->autoborder;
 
 									borderList.push_back(borderCluster);
@@ -145,8 +151,11 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 				}
 
 				if (tiledata != 0) {
-					const GroundBrush::BorderBlock* borderBlock = GroundBrush::getBrushTo(borderBrush, nullptr);
-					if (borderBlock) {
+					std::vector<const GroundBrush::BorderBlock*> borderBlocks = GroundBrush::getBrushesTo(borderBrush, nullptr);
+					for (const GroundBrush::BorderBlock* borderBlock : borderBlocks) {
+						if (!borderBlock) {
+							continue;
+						}
 						if (borderBlock->autoborder) {
 							bool found = false;
 							for (GroundBrush::BorderCluster& borderCluster : borderList) {
@@ -162,6 +171,7 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 								GroundBrush::BorderCluster borderCluster;
 								borderCluster.alignment = tiledata;
 								borderCluster.z = -1000;
+								borderCluster.layer_order = borderBlock->layer_order;
 								borderCluster.border = borderBlock->autoborder;
 								borderList.push_back(borderCluster);
 							}
@@ -185,8 +195,11 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 				}
 
 				if (tiledata != 0) {
-					const GroundBrush::BorderBlock* borderBlock = GroundBrush::getBrushTo(borderBrush, nullptr);
-					if (borderBlock) {
+					std::vector<const GroundBrush::BorderBlock*> borderBlocks = GroundBrush::getBrushesTo(borderBrush, nullptr);
+					for (const GroundBrush::BorderBlock* borderBlock : borderBlocks) {
+						if (!borderBlock) {
+							continue;
+						}
 						if (borderBlock->autoborder) {
 							bool found = false;
 							for (GroundBrush::BorderCluster& borderCluster : borderList) {
@@ -202,6 +215,7 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 								GroundBrush::BorderCluster borderCluster;
 								borderCluster.alignment = tiledata;
 								borderCluster.z = -1000;
+								borderCluster.layer_order = borderBlock->layer_order;
 								borderCluster.border = borderBlock->autoborder;
 								borderList.push_back(borderCluster);
 							}
@@ -225,8 +239,11 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 			}
 
 			if (tiledata != 0) {
-				const GroundBrush::BorderBlock* borderBlock = GroundBrush::getBrushTo(nullptr, other);
-				if (borderBlock) {
+				std::vector<const GroundBrush::BorderBlock*> borderBlocks = GroundBrush::getBrushesTo(nullptr, other);
+				for (const GroundBrush::BorderBlock* borderBlock : borderBlocks) {
+					if (!borderBlock) {
+						continue;
+					}
 					if (borderBlock->autoborder) {
 						bool found = false;
 						for (GroundBrush::BorderCluster& borderCluster : borderList) {
@@ -244,6 +261,7 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 							GroundBrush::BorderCluster borderCluster;
 							borderCluster.alignment = tiledata;
 							borderCluster.z = other->getZ();
+							borderCluster.layer_order = borderBlock->layer_order;
 							borderCluster.border = borderBlock->autoborder;
 							borderList.push_back(borderCluster);
 						}
@@ -259,6 +277,7 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 					GroundBrush::BorderCluster borderCluster;
 					borderCluster.alignment = tiledata;
 					borderCluster.z = 0x7FFFFFFF; // Above all other borders
+					borderCluster.layer_order = 0;
 					borderCluster.border = other->optional_border;
 
 					borderList.push_back(borderCluster);
@@ -276,9 +295,12 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 		return item->isBorder();
 	});
 
-	// Sort borders based on z-order
+	// Sort borders based on z-order, then layer_order (for multi-border layering)
 	std::ranges::sort(borderList, [](const GroundBrush::BorderCluster& a, const GroundBrush::BorderCluster& b) {
-		return a.z < b.z;
+		if (a.z != b.z) {
+			return a.z < b.z;
+		}
+		return a.layer_order < b.layer_order;
 	});
 
 	std::ranges::sort(specificList);

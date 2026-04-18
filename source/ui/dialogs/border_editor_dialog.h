@@ -17,6 +17,7 @@
 #include <wx/panel.h>
 #include <wx/checkbox.h>
 #include <wx/combobox.h>
+#include <wx/choice.h>
 #include <wx/notebook.h>
 #include <wx/listbox.h>
 #include <wx/dnd.h>
@@ -27,6 +28,9 @@ class BorderGridPanel;
 class BorderPreviewPanel;
 class BorderEditorDialog;
 class EdgeItemsPanel;
+class GroundItemsPanel;
+class BorderNorthPreview;
+class GroundBordersPanel;
 
 // Drop target for the border grid - accepts item drags from palette
 class BorderGridDropTarget : public wxTextDropTarget {
@@ -35,6 +39,15 @@ public:
 	bool OnDropText(wxCoord x, wxCoord y, const wxString& data) override;
 private:
 	BorderGridPanel* m_grid;
+};
+
+// Drop target for the ground items panel - accepts item drags from palette
+class GroundItemsDropTarget : public wxTextDropTarget {
+public:
+	explicit GroundItemsDropTarget(GroundItemsPanel* panel);
+	bool OnDropText(wxCoord x, wxCoord y, const wxString& data) override;
+private:
+	GroundItemsPanel* m_panel;
 };
 
 enum BorderEdgePosition {
@@ -83,6 +96,17 @@ struct GroundItem {
 	GroundItem(uint16_t id, int c) : itemId(id), chance(c) { }
 };
 
+// A reference to a border used by a ground brush: <border align="..." to="..." id="..."/>
+struct GroundBorderRef {
+	std::string align;   // "outer" or "inner"
+	std::string to;      // "" (unset/any), "none", or a brush name
+	int borderId;
+	bool enabled;        // false => serialized with enabled="false" and ignored by loader
+
+	GroundBorderRef() : align("outer"), to(""), borderId(0), enabled(true) { }
+	GroundBorderRef(const std::string& a, const std::string& t, int id) : align(a), to(t), borderId(id), enabled(true) { }
+};
+
 // Visual panel that displays edge items as sprite cells with X button
 class EdgeItemsPanel : public wxPanel {
 public:
@@ -115,9 +139,101 @@ private:
 	DECLARE_EVENT_TABLE()
 };
 
-class BorderEditorDialog : public wxDialog {
+// Visual panel for ground items: wrapping grid of sprite cells with chance and X button
+class GroundItemsPanel : public wxPanel {
 public:
-	BorderEditorDialog(wxWindow* parent, const wxString& title);
+	GroundItemsPanel(wxWindow* parent, wxWindowID id = wxID_ANY);
+
+	void SetItems(const std::vector<GroundItem>& items);
+	void Clear();
+	int GetSelectedIndex() const { return m_selectedIndex; }
+
+	// Called by drop target when an item is dropped on the panel
+	void AddItemFromDrop(uint16_t itemId);
+
+	void OnPaint(wxPaintEvent& event);
+	void OnMouseClick(wxMouseEvent& event);
+	void OnSize(wxSizeEvent& event);
+
+private:
+	struct CellRect {
+		wxRect bounds;
+		wxRect closeBtn;
+		int index;
+	};
+
+	std::vector<GroundItem> m_items;
+	std::vector<CellRect> m_cells;
+	int m_selectedIndex = -1;
+
+	static constexpr int CELL_SIZE = 56;
+	static constexpr int CELL_MARGIN = 4;
+	static constexpr int CLOSE_BTN_SIZE = 14;
+
+	void RecalcLayout();
+
+	DECLARE_EVENT_TABLE()
+};
+
+// Visual panel for ground border references: wrapping grid of cells with sprite + label + X
+class GroundBordersPanel : public wxPanel {
+public:
+	GroundBordersPanel(wxWindow* parent, wxWindowID id = wxID_ANY);
+
+	void SetItems(const std::vector<GroundBorderRef>& items);
+	const std::vector<GroundBorderRef>& GetItems() const { return m_items; }
+	void Clear();
+	int GetSelectedIndex() const { return m_selectedIndex; }
+	void SetSelectedIndex(int idx);
+
+	void OnPaint(wxPaintEvent& event);
+	void OnMouseClick(wxMouseEvent& event);
+	void OnSize(wxSizeEvent& event);
+
+private:
+	struct CellRect {
+		wxRect bounds;
+		wxRect closeBtn;
+		wxRect enableBtn;
+		int index;
+	};
+
+	std::vector<GroundBorderRef> m_items;
+	std::vector<uint16_t> m_northItemIds;
+	std::vector<CellRect> m_cells;
+	int m_selectedIndex = -1;
+
+	static constexpr int CELL_SIZE = 64;
+	static constexpr int CELL_MARGIN = 4;
+	static constexpr int CLOSE_BTN_SIZE = 14;
+
+	void RecalcLayout();
+	void RecalcNorthSprites();
+
+	DECLARE_EVENT_TABLE()
+};
+
+// Small single-cell preview that shows the "north" edge sprite of a border id
+class BorderNorthPreview : public wxPanel {
+public:
+	BorderNorthPreview(wxWindow* parent, wxWindowID id = wxID_ANY);
+
+	void SetItemId(uint16_t itemId);
+	void Clear();
+
+	void OnPaint(wxPaintEvent& event);
+
+private:
+	uint16_t m_itemId = 0;
+
+	DECLARE_EVENT_TABLE()
+};
+
+// Embedded panel containing the Border + Ground sub-editor.
+// Hosted inside BrushesEditorDialog as one of its tabs.
+class BorderEditorDialog : public wxPanel {
+public:
+	BorderEditorDialog(wxWindow* parent);
 	~BorderEditorDialog();
 
 	void OnPositionSelected(wxCommandEvent& event);
@@ -126,14 +242,26 @@ public:
 	void OnUpdateChance(wxCommandEvent& event);
 	void OnClear(wxCommandEvent& event);
 	void OnSave(wxCommandEvent& event);
-	void OnClose(wxCommandEvent& event);
 	void OnBrowse(wxCommandEvent& event);
 	void OnLoadBorder(wxCommandEvent& event);
 	void OnPageChanged(wxBookCtrlEvent& event);
 	void OnAddGroundItem(wxCommandEvent& event);
-	void OnRemoveGroundItem(wxCommandEvent& event);
+	void OnRemoveGroundItem(int index);
+	void OnUpdateGroundChance(wxCommandEvent& event);
 	void OnLoadGroundBrush(wxCommandEvent& event);
 	void OnGroundBrowse(wxCommandEvent& event);
+	void OnFindBorderByItemId(wxCommandEvent& event);
+	void OnFindGroundByItemId(wxCommandEvent& event);
+	void AddGroundItemById(uint16_t itemId);
+	void OnAddGroundBorder(wxCommandEvent& event);
+	void OnRemoveGroundBorder(wxCommandEvent& event);
+	void OnMoveGroundBorderUp(wxCommandEvent& event);
+	void OnMoveGroundBorderDown(wxCommandEvent& event);
+	void RefreshGroundBordersList(int selectAt = -1);
+	void OnGroundBorderIdChanged(wxCommandEvent& event);
+	uint16_t LookupNorthItemId(int borderId);
+	void OnAddGroundToTileset(wxCommandEvent& event);
+	void LoadExistingTilesets();
 	void ApplyItemToPosition(BorderEdgePosition pos, uint16_t itemId);
 	void UpdatePreview();
 	void UpdateEdgeItemsList();
@@ -160,6 +288,7 @@ public:
 	// Border Tab
 	wxPanel* m_borderPanel;
 	wxComboBox* m_existingBordersCombo;
+	wxSpinCtrl* m_findBorderItemIdCtrl;
 	wxCheckBox* m_isOptionalCheck;
 	wxCheckBox* m_isGroundCheck;
 	wxSpinCtrl* m_groupCtrl;
@@ -171,19 +300,36 @@ public:
 	// Ground Tab
 	wxPanel* m_groundPanel;
 	wxComboBox* m_existingGroundBrushesCombo;
+	wxSpinCtrl* m_findGroundItemIdCtrl;
 	wxSpinCtrl* m_serverLookIdCtrl;
 	wxSpinCtrl* m_zOrderCtrl;
 	wxSpinCtrl* m_groundItemIdCtrl;
 	wxSpinCtrl* m_groundItemChanceCtrl;
-	wxListBox* m_groundItemsList;
+	GroundItemsPanel* m_groundItemsPanel;
 	wxButton* m_addGroundItemButton;
-	wxButton* m_removeGroundItemButton;
+	wxButton* m_updateGroundItemButton;
+
+	// Border references for the Ground brush
+	GroundBordersPanel* m_groundBordersList;
+	wxChoice* m_groundBorderAlignCtrl;
+	wxComboBox* m_groundBorderIdCtrl;
+	BorderNorthPreview* m_groundBorderPreview;
+	wxComboBox* m_groundBorderToCtrl;
+	wxButton* m_addGroundBorderButton;
+	wxButton* m_removeGroundBorderButton;
+
+	// Tileset assignment
+	wxComboBox* m_tilesetCombo;
+	wxButton* m_addToTilesetButton;
 
 	// Border items: multiple items per direction with chance
 	std::map<BorderEdgePosition, std::vector<BorderEdgeItem>> m_borderItems;
 
 	// Ground items
 	std::vector<GroundItem> m_groundItems;
+
+	// Ground border references
+	std::vector<GroundBorderRef> m_groundBorders;
 
 	// Border grid
 	BorderGridPanel* m_gridPanel;
@@ -194,6 +340,7 @@ public:
 private:
 	int m_nextBorderId;
 	int m_activeTab;
+	bool m_groundTabLoaded = false;
 
 	DECLARE_EVENT_TABLE()
 };

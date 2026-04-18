@@ -259,6 +259,8 @@
 	</menu>
 	-->
 	<menu name="Tools">
+		<item name="Brushes Editor..." action="BRUSHES_EDITOR" help="Edit borders, grounds, doodads, walls and tilesets in one unified editor."/>
+		<separator/>
 		<item name="Area Decoration" action="AREA_DECORATION" help="Opens the area decoration tool for placing decorative items in regions."/>
 		<item name="Dungeon Generator" action="DUNGEON_GENERATOR" help="Generate procedural dungeons with rooms, corridors, walls and decorations."/>
 		<item name="Structure Manager" action="STRUCTURE_MANAGER" help="Manage and paste reusable map structures."/>

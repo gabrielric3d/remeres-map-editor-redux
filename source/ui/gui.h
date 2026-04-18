@@ -391,6 +391,7 @@ public:
 	StructureManagerDialog* structure_manager_dialog = nullptr;
 	class DungeonGeneratorDialog* dungeon_generator_dialog = nullptr;
 	InstanceLayoutDialog* instance_layout_dialog = nullptr;
+	class BrushesEditorDialog* brushes_editor_dialog = nullptr;
 
 	void ShowAreaDecorationDialog();
 	void DestroyAreaDecorationDialog();
@@ -401,6 +402,8 @@ public:
 	void DestroyStructureManagerDialog();
 	void ShowInstanceLayoutDialog();
 	void DestroyInstanceLayoutDialog();
+	void ShowBrushesEditorDialog();
+	void DestroyBrushesEditorDialog();
 
 	// Rectangle pick mode for area decoration dialog
 	using RectanglePickComplete = std::function<void(const Position&, const Position&)>;

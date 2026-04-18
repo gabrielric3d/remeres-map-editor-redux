@@ -39,6 +39,7 @@
 class DoodadGridPanel;
 class DoodadPreviewPanel;
 class DoodadListPanel;
+class DoodadSingleItemsPanel;
 
 // Grid size constants
 const int DOODAD_GRID_SIZE = 10;      // 10x10 grid
@@ -90,10 +91,11 @@ struct DoodadBrushInfo {
     DoodadBrushInfo(const wxString& n, int cc, int sc) : name(n), compositeCount(cc), singleCount(sc) {}
 };
 
-// Main dialog for doodad brush configuration
-class DoodadEditorDialog : public wxDialog {
+// Embedded panel containing the Doodad sub-editor.
+// Hosted inside BrushesEditorDialog as one of its tabs.
+class DoodadEditorDialog : public wxPanel {
 public:
-    DoodadEditorDialog(wxWindow* parent, const wxString& title);
+    DoodadEditorDialog(wxWindow* parent);
     virtual ~DoodadEditorDialog();
 
     // Event handlers
@@ -107,7 +109,6 @@ public:
     void OnClearGrid(wxCommandEvent& event);
     void OnSave(wxCommandEvent& event);
     void OnSaveToFile(wxCommandEvent& event);
-    void OnClose(wxCommandEvent& event);
     void OnBrowseGridItem(wxCommandEvent& event);
     void OnGridItemIdChanged(wxSpinEvent& event);
     void OnPageChanged(wxBookCtrlEvent& event);
@@ -117,7 +118,8 @@ public:
     void OnPrevPage(wxCommandEvent& event);
     void OnNextPage(wxCommandEvent& event);
     void OnCreateNew(wxCommandEvent& event);
-    void OnCloseWindow(wxCloseEvent& event);
+    void OnAddToTileset(wxCommandEvent& event);
+    void AddSingleItemById(uint16_t itemId);
 
     // Public methods for grid panel to access
     void ApplyItemToGridPosition(int gridX, int gridY, uint16_t itemId);
@@ -125,6 +127,8 @@ public:
     void UpdateGridFromComposite();
     uint16_t GetCurrentItemId() const;
     void LoadDoodadBrush(const wxString& brushName);
+    void RemoveSingleItemAt(int index);
+    void SelectSingleItemAt(int index);
 
 protected:
     void CreateGUIControls();
@@ -138,6 +142,7 @@ protected:
     void ClearAll();
     void ClearEditor();
     wxString GenerateXML();
+    void LoadExistingTilesets();
 
 public:
     // UI Elements - public for access from other components
@@ -165,7 +170,7 @@ public:
 
     // Single Items Tab
     wxPanel* m_singlePanel;
-    wxListBox* m_singleItemsList;
+    DoodadSingleItemsPanel* m_singleItemsList;
     wxSpinCtrl* m_singleItemIdCtrl;
     wxSpinCtrl* m_singleItemChanceCtrl;
 
@@ -180,6 +185,10 @@ public:
 
     // Preview panel
     DoodadPreviewPanel* m_previewPanel;
+
+    // Tileset assignment
+    wxComboBox* m_tilesetCombo;
+    wxButton* m_addToTilesetButton;
 
     // Data
     std::vector<DoodadSingleItem> m_singleItems;
@@ -250,6 +259,43 @@ public:
 
 private:
     std::vector<DoodadTileItem> m_items;
+
+    DECLARE_EVENT_TABLE()
+};
+
+// Visual panel for Single Items (non-composite doodad entries).
+// Wrapping grid of sprite cells with a chance label and X button — same style as GroundItemsPanel.
+class DoodadSingleItemsPanel : public wxPanel {
+public:
+    DoodadSingleItemsPanel(wxWindow* parent, wxWindowID id = wxID_ANY);
+
+    void SetItems(const std::vector<DoodadSingleItem>& items);
+    void Clear();
+    int GetSelectedIndex() const { return m_selectedIndex; }
+    void SetSelectedIndex(int idx);
+
+    void AddItemFromDrop(uint16_t itemId); // for drop target compatibility
+
+    void OnPaint(wxPaintEvent& event);
+    void OnMouseClick(wxMouseEvent& event);
+    void OnSize(wxSizeEvent& event);
+
+private:
+    struct CellRect {
+        wxRect bounds;
+        wxRect closeBtn;
+        int index;
+    };
+
+    std::vector<DoodadSingleItem> m_items;
+    std::vector<CellRect> m_cells;
+    int m_selectedIndex = -1;
+
+    static constexpr int CELL_SIZE = 56;
+    static constexpr int CELL_MARGIN = 4;
+    static constexpr int CLOSE_BTN_SIZE = 14;
+
+    void RecalcLayout();
 
     DECLARE_EVENT_TABLE()
 };
