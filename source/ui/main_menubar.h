@@ -40,6 +40,7 @@ namespace MenuBar {
 		IMPORT_MONSTERS_JSON,
 		IMPORT_MINIMAP,
 
+		EXPORT_MINIMAP,
 		EXPORT_TILESETS,
 		RELOAD_DATA,
 		RELOAD_BRUSHES,
@@ -263,6 +264,7 @@ public:
 	void OnImportMonsterJSON(wxCommandEvent& event);
 	void OnImportMinimap(wxCommandEvent& event);
 
+	void OnExportMinimap(wxCommandEvent& event);
 	void OnExportTilesets(wxCommandEvent& event);
 	void OnReloadDataFiles(wxCommandEvent& event); // RELOAD_DATA
 	void OnReloadBrushes(wxCommandEvent& event); // RELOAD_BRUSHES

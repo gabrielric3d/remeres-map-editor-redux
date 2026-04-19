@@ -3,6 +3,7 @@
 #include "app/main.h"
 #include "ui/gui.h"
 #include "ui/map/export_tilesets_window.h"
+#include "ui/map/export_minimap_window.h"
 
 #include "ui/map/import_map_window.h"
 #include "ui/dialog_util.h"
@@ -78,11 +79,13 @@ void FileMenuHandler::OnImportMonsterJSON(wxCommandEvent& WXUNUSED(event)) {
 	if (dlg.ShowModal() == wxID_OK) {
 		wxArrayString paths;
 		dlg.GetPaths(paths);
+		bool anyImported = false;
 		for (uint32_t i = 0; i < paths.GetCount(); ++i) {
 			wxString error;
 			std::vector<std::string> warnings;
 			bool ok = g_creatures.loadFromJSON(FileName(paths[i]), false, error, warnings);
 			if (ok) {
+				anyImported = true;
 				if (!warnings.empty()) {
 					DialogUtil::ListDialog("Monster JSON loader warnings", warnings);
 				} else {
@@ -92,11 +95,22 @@ void FileMenuHandler::OnImportMonsterJSON(wxCommandEvent& WXUNUSED(event)) {
 				wxMessageBox("Error loading JSON monster file \"" + paths[i] + "\".\n" + error, "Error", wxOK | wxICON_ERROR, g_gui.root);
 			}
 		}
+		if (anyImported) {
+			g_gui.RefreshView();
+		}
 	}
 }
 
 void FileMenuHandler::OnImportMinimap(wxCommandEvent& WXUNUSED(event)) {
 	ASSERT(g_gui.IsEditorOpen());
+}
+
+void FileMenuHandler::OnExportMinimap(wxCommandEvent& WXUNUSED(event)) {
+	if (g_gui.GetCurrentEditor()) {
+		ExportMinimapWindow dlg(frame, *g_gui.GetCurrentEditor());
+		dlg.ShowModal();
+		dlg.Destroy();
+	}
 }
 
 void FileMenuHandler::OnExportTilesets(wxCommandEvent& WXUNUSED(event)) {

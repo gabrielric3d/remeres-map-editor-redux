@@ -31,6 +31,7 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(IMPORT_MONSTERS_JSON, wxITEM_NORMAL, OnImportMonsterJSON);
 	MAKE_ACTION(IMPORT_MINIMAP, wxITEM_NORMAL, OnImportMinimap);
 
+	MAKE_ACTION(EXPORT_MINIMAP, wxITEM_NORMAL, OnExportMinimap);
 	MAKE_ACTION(EXPORT_TILESETS, wxITEM_NORMAL, OnExportTilesets);
 
 	MAKE_ACTION(RELOAD_DATA, wxITEM_NORMAL, OnReloadDataFiles);
@@ -249,6 +250,7 @@ void MenuBarActionManager::UpdateState(MainMenuBar* mb) {
 	mb->EnableItem(IMPORT_MONSTERS_JSON, is_local);
 	mb->EnableItem(IMPORT_MINIMAP, false);
 
+	mb->EnableItem(EXPORT_MINIMAP, has_map);
 	mb->EnableItem(EXPORT_TILESETS, loaded);
 	mb->EnableItem(RELOAD_BRUSHES, loaded);
 
