@@ -91,6 +91,7 @@ std::unique_ptr<Item> Item::deepCopy() const {
 	std::unique_ptr<Item> copy = Create(id, subtype);
 	if (copy) {
 		copy->selected = selected;
+		copy->autoPlaced = autoPlaced;
 		if (invalidOtbmData) {
 			copy->invalidOtbmData = std::make_unique<InvalidOTBMItemData>(*invalidOtbmData);
 		}

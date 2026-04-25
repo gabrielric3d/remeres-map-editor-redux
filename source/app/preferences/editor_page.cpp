@@ -95,6 +95,19 @@ EditorPage::EditorPage(wxWindow* parent) : ScrollablePreferencesPage(parent) {
 	);
 	page_sizer->Add(merge_section, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
 
+	auto* automagic_section = new PreferencesSectionPanel(
+		GetScrollWindow(),
+		"Auto Borders",
+		"Control how the auto-magic border generator interacts with hand-placed borders."
+	);
+	preserve_manual_borders_chkbox = PreferencesLayout::AddCheckBoxRow(
+		automagic_section,
+		"Preserve manual borders during auto-magic",
+		"Keep border items placed by RAW brush, paste, or other manual tools when auto-magic regenerates borders. Auto-generated borders will stack above the manual ones. Turn off to restore the legacy behavior of wiping all borders before each pass.",
+		g_settings.getBoolean(Config::PRESERVE_MANUAL_BORDERS)
+	);
+	page_sizer->Add(automagic_section, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
+
 	FinishLayout();
 }
 
@@ -109,4 +122,5 @@ void EditorPage::Apply() {
 	g_settings.setInteger(Config::RAW_LIKE_SIMONE, allow_multiple_orderitems_chkbox->GetValue());
 	g_settings.setInteger(Config::MERGE_MOVE, merge_move_chkbox->GetValue());
 	g_settings.setInteger(Config::MERGE_PASTE, merge_paste_chkbox->GetValue());
+	g_settings.setInteger(Config::PRESERVE_MANUAL_BORDERS, preserve_manual_borders_chkbox->GetValue());
 }

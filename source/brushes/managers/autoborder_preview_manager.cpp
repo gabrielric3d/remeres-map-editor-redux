@@ -115,7 +115,11 @@ void AutoborderPreviewManager::SimulateBrush(Editor& editor, const Position& pos
 		if (is_wall) {
 			TileOperations::cleanWalls(tile);
 		} else if (is_ground) {
-			TileOperations::cleanBorders(tile);
+			if (g_settings.getBoolean(Config::PRESERVE_MANUAL_BORDERS)) {
+				TileOperations::cleanAutoBorders(tile);
+			} else {
+				TileOperations::cleanBorders(tile);
+			}
 		}
 
 		// Draw the brush

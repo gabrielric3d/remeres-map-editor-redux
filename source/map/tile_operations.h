@@ -17,6 +17,10 @@ class House;
 namespace TileOperations {
 	void borderize(Tile* tile, BaseMap* map);
 	void cleanBorders(Tile* tile);
+	// Removes only borders flagged as auto-placed by the border calculator, leaving
+	// user-placed borders intact. Call this path when re-running auto-magic so the
+	// user's manual borders survive.
+	void cleanAutoBorders(Tile* tile);
 
 	void wallize(Tile* tile, BaseMap* map);
 	void cleanWalls(Tile* tile);

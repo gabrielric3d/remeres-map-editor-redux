@@ -9,6 +9,7 @@
 #include "map/tile.h"
 #include "map/tile_operations.h"
 #include "game/item.h"
+#include "app/settings.h"
 #include <array>
 #include <algorithm>
 
@@ -109,7 +110,7 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 
 								bool found = false;
 								for (GroundBrush::BorderCluster& borderCluster : borderList) {
-									if (borderCluster.border == borderBlock->autoborder) {
+									if (borderCluster.border == borderBlock->autoborder && borderCluster.to == borderBlock->to) {
 										borderCluster.alignment |= tiledata;
 										if (borderCluster.z < other->getZ()) {
 											borderCluster.z = other->getZ();
@@ -130,6 +131,7 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 									borderCluster.z = other->getZ();
 									borderCluster.layer_order = borderBlock->layer_order;
 									borderCluster.border = borderBlock->autoborder;
+									borderCluster.to = borderBlock->to;
 
 									borderList.push_back(borderCluster);
 									if (!borderBlock->specific_cases.empty()) {
@@ -159,7 +161,7 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 						if (borderBlock->autoborder) {
 							bool found = false;
 							for (GroundBrush::BorderCluster& borderCluster : borderList) {
-								if (borderCluster.border == borderBlock->autoborder) {
+								if (borderCluster.border == borderBlock->autoborder && borderCluster.to == borderBlock->to) {
 									borderCluster.alignment |= tiledata;
 									borderCluster.z = -1000;
 									found = true;
@@ -173,6 +175,7 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 								borderCluster.z = -1000;
 								borderCluster.layer_order = borderBlock->layer_order;
 								borderCluster.border = borderBlock->autoborder;
+								borderCluster.to = borderBlock->to;
 								borderList.push_back(borderCluster);
 							}
 						}
@@ -203,7 +206,7 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 						if (borderBlock->autoborder) {
 							bool found = false;
 							for (GroundBrush::BorderCluster& borderCluster : borderList) {
-								if (borderCluster.border == borderBlock->autoborder) {
+								if (borderCluster.border == borderBlock->autoborder && borderCluster.to == borderBlock->to) {
 									borderCluster.alignment |= tiledata;
 									borderCluster.z = -1000;
 									found = true;
@@ -217,6 +220,7 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 								borderCluster.z = -1000;
 								borderCluster.layer_order = borderBlock->layer_order;
 								borderCluster.border = borderBlock->autoborder;
+								borderCluster.to = borderBlock->to;
 								borderList.push_back(borderCluster);
 							}
 						}
@@ -247,7 +251,7 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 					if (borderBlock->autoborder) {
 						bool found = false;
 						for (GroundBrush::BorderCluster& borderCluster : borderList) {
-							if (borderCluster.border == borderBlock->autoborder) {
+							if (borderCluster.border == borderBlock->autoborder && borderCluster.to == borderBlock->to) {
 								borderCluster.alignment |= tiledata;
 								if (borderCluster.z < other->getZ()) {
 									borderCluster.z = other->getZ();
@@ -263,6 +267,7 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 							borderCluster.z = other->getZ();
 							borderCluster.layer_order = borderBlock->layer_order;
 							borderCluster.border = borderBlock->autoborder;
+							borderCluster.to = borderBlock->to;
 							borderList.push_back(borderCluster);
 						}
 					}
@@ -290,9 +295,13 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 		visited = true;
 	}
 
-	// Clean current borders
-	std::erase_if(tile->items, [](const std::unique_ptr<Item>& item) {
-		return item->isBorder();
+	// Clean borders before recomputing. If the user opted in to preserving manual
+	// borders (the default), only auto-placed borders are wiped; otherwise we fall
+	// back to the legacy behavior of clearing everything flagged as a border.
+	const bool preserveManual = g_settings.getBoolean(Config::PRESERVE_MANUAL_BORDERS);
+	std::erase_if(tile->items, [preserveManual](const std::unique_ptr<Item>& item) {
+		if (!item->isBorder()) return false;
+		return preserveManual ? item->isAutoPlaced() : true;
 	});
 
 	// Sort borders based on z-order, then layer_order (for multi-border layering)
@@ -307,7 +316,11 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 	auto [first, last] = std::ranges::unique(specificList);
 	specificList.erase(first, last);
 
-	TileOperations::cleanBorders(tile);
+	if (preserveManual) {
+		TileOperations::cleanAutoBorders(tile);
+	} else {
+		TileOperations::cleanBorders(tile);
+	}
 
 	while (!borderList.empty()) {
 		GroundBrush::BorderCluster& borderCluster = borderList.back();

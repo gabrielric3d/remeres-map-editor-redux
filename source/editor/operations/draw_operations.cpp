@@ -164,7 +164,11 @@ namespace {
 			if (tile) {
 				std::unique_ptr<Tile> new_tile = TileOperations::deepCopy(tile, editor.map);
 				if (g_settings.getInteger(Config::USE_AUTOMAGIC)) {
-					TileOperations::cleanBorders(new_tile.get());
+					if (g_settings.getBoolean(Config::PRESERVE_MANUAL_BORDERS)) {
+						TileOperations::cleanAutoBorders(new_tile.get());
+					} else {
+						TileOperations::cleanBorders(new_tile.get());
+					}
 				}
 
 				if (dodraw) {

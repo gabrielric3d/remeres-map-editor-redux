@@ -21,6 +21,7 @@ private:
 	wxCheckBox* allow_multiple_orderitems_chkbox = nullptr;
 	wxCheckBox* merge_move_chkbox = nullptr;
 	wxCheckBox* merge_paste_chkbox = nullptr;
+	wxCheckBox* preserve_manual_borders_chkbox = nullptr;
 };
 
 #endif

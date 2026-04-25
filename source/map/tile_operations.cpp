@@ -92,6 +92,11 @@ namespace TileOperations {
 		TileOperations::update(tile);
 	}
 
+	void cleanAutoBorders(Tile* tile) {
+		cleanItems(tile, [](const auto& item) { return item->isBorder() && item->isAutoPlaced(); });
+		TileOperations::update(tile);
+	}
+
 	void wallize(Tile* tile, BaseMap* map) {
 		WallBrush::doWalls(map, tile);
 	}
@@ -400,7 +405,23 @@ namespace TileOperations {
 			return;
 		}
 		ASSERT(item->isBorder());
-		tile->items.insert(tile->items.begin(), std::move(item));
+		if (g_settings.getBoolean(Config::PRESERVE_MANUAL_BORDERS)) {
+			// Tag as auto-placed so a later auto-magic pass can wipe it without touching
+			// user-placed borders. Insert right after the last user-placed border: stops
+			// at the first non-border OR the first already-auto-placed border. Keeps
+			// auto-borders stacked above manual ones while preserving the calculator's
+			// z-order among autos (which processes high-z first, pushing later autos to
+			// higher indices).
+			item->setAutoPlaced(true);
+			auto it = std::ranges::find_if(tile->items, [](const std::unique_ptr<Item>& i) {
+				return !i->isBorder() || i->isAutoPlaced();
+			});
+			tile->items.insert(it, std::move(item));
+		} else {
+			// Legacy behavior: insert at the beginning so the calculator's high-z-first
+			// processing leaves the highest-z border at the highest border index.
+			tile->items.insert(tile->items.begin(), std::move(item));
+		}
 		TileOperations::update(tile);
 	}
 
@@ -435,7 +456,12 @@ namespace TileOperations {
 
 	void update(Tile* tile) {
 		const bool wasSelected = tile->isSelected();
-		tile->statflags &= TILESTATE_MODIFIED;
+		// Clear MODIFIED and the re-derived SELECTED bit. Without clearing SELECTED,
+		// a stale flag copied via TileOperations::deepCopy (which preserves statflags
+		// wholesale) would persist even after all child items had been deselected or
+		// moved away — manifesting as "phantom" selected neighbor tiles after a drag,
+		// which blocked normal click-to-select from clearing the previous selection.
+		tile->statflags &= ~(TILESTATE_MODIFIED | TILESTATE_SELECTED);
 
 		if (tile->spawn && tile->spawn->isSelected()) {
 			tile->statflags |= TILESTATE_SELECTED;
@@ -444,8 +470,13 @@ namespace TileOperations {
 			tile->statflags |= TILESTATE_SELECTED;
 		}
 
-		tile->minimapColor = 0; // Reset to "no color" (valid)
+		// Invalidate cached minimap color; Tile::getMiniMapColor() will recompute lazily.
+		// Keeping a single source of truth avoids divergence between the eager path here
+		// and the lazy fallback, which caused "black streaks" on the minimap when the
+		// eager path cached 0 despite items/ground having a valid color.
+		tile->minimapColor = INVALID_MINIMAP_COLOR;
 
+		uint8_t discardedColor = 0;
 		if (tile->ground) {
 			if (tile->ground->isSelected()) {
 				tile->statflags |= TILESTATE_SELECTED;
@@ -456,16 +487,13 @@ namespace TileOperations {
 			if (tile->ground->getUniqueID() != 0) {
 				tile->statflags |= TILESTATE_UNIQUE;
 			}
-			if (tile->ground->getMiniMapColor() != 0) {
-				tile->minimapColor = tile->ground->getMiniMapColor();
-			}
 			if (tile->ground->hasLight()) {
 				tile->statflags |= TILESTATE_HAS_LIGHT;
 			}
 		}
 
 		std::ranges::for_each(tile->items, [&](const auto& i) {
-			UpdateItemFlags(i.get(), tile->statflags, tile->minimapColor);
+			UpdateItemFlags(i.get(), tile->statflags, discardedColor);
 		});
 
 		if ((tile->statflags & TILESTATE_BLOCKING) == 0) {

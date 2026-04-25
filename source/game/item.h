@@ -420,6 +420,17 @@ public:
 		selected = !selected;
 	}
 
+	// Auto-placed marker: true when this border item was created by the auto-border
+	// calculator. Used so a later auto-magic pass can wipe and regenerate only its own
+	// borders, leaving user-placed (RAW brush, paste, etc.) borders untouched. Runtime
+	// only — never persisted to OTBM, so borders reload as "manual".
+	bool isAutoPlaced() const {
+		return autoPlaced;
+	}
+	void setAutoPlaced(bool value) {
+		autoPlaced = value;
+	}
+
 	// Item properties!
 	virtual bool isComplex() const {
 		return attributes && attributes->size();
@@ -462,6 +473,7 @@ protected:
 	// Subtype is either fluid type, count, subtype or charges
 	uint16_t subtype;
 	bool selected;
+	bool autoPlaced = false;
 	std::unique_ptr<InvalidOTBMItemData> invalidOtbmData;
 
 private:
