@@ -26,6 +26,8 @@
 #include <sstream>
 #include <algorithm>
 #include <set>
+#include <vector>
+#include <string>
 
 #define BORDER_PREVIEW_SIZE 192
 #define ID_BORDER_GRID_SELECT wxID_HIGHEST + 1
@@ -94,6 +96,62 @@ static uint16_t GetItemIDFromBrush(Brush* brush) {
 	if (lookId > 0) return static_cast<uint16_t>(lookId);
 
 	return 0;
+}
+
+static std::string TrimWhitespace(const std::string& s) {
+	size_t start = s.find_first_not_of(" \t\r\n");
+	if (start == std::string::npos) return "";
+	size_t end = s.find_last_not_of(" \t\r\n");
+	return s.substr(start, end - start + 1);
+}
+
+static std::string ExtractLegacyBorderName(const std::string& pcdataValue) {
+	// Legacy files store the border name as Lua-style `-- name --` PCDATA inside
+	// <border>. Recover that name so we can promote it to a real XML comment and
+	// strip the dead text from inside the element.
+	std::string trimmed = TrimWhitespace(pcdataValue);
+	if (trimmed.size() < 4) return "";
+	if (trimmed.substr(0, 2) != "--") return "";
+	if (trimmed.substr(trimmed.size() - 2) != "--") return "";
+	return TrimWhitespace(trimmed.substr(2, trimmed.size() - 4));
+}
+
+// Cleans PCDATA accumulation and legacy `-- name --` text from every <border>
+// in `materials`. Without this, pugixml re-emits the preserved PCDATA (plus a
+// fresh indent prefix) on every save, so each round trip multiplies the blank
+// lines inside the border.
+static void NormalizeBordersDocument(pugi::xml_node materials) {
+	if (!materials) return;
+
+	for (pugi::xml_node borderNode = materials.child("border"); borderNode; borderNode = borderNode.next_sibling("border")) {
+		std::vector<pugi::xml_node> pcdataChildren;
+		std::string extractedName;
+
+		for (pugi::xml_node child = borderNode.first_child(); child; child = child.next_sibling()) {
+			if (child.type() == pugi::node_pcdata || child.type() == pugi::node_cdata) {
+				pcdataChildren.push_back(child);
+				if (extractedName.empty()) {
+					std::string name = ExtractLegacyBorderName(child.value());
+					if (!name.empty()) extractedName = name;
+				}
+			}
+		}
+
+		if (pcdataChildren.empty()) continue;
+
+		if (!extractedName.empty()) {
+			pugi::xml_node prev = borderNode.previous_sibling();
+			bool hasComment = (prev && prev.type() == pugi::node_comment);
+			if (!hasComment) {
+				pugi::xml_node newComment = materials.insert_child_before(pugi::node_comment, borderNode);
+				newComment.set_value((" " + extractedName + " ").c_str());
+			}
+		}
+
+		for (pugi::xml_node& pc : pcdataChildren) {
+			borderNode.remove_child(pc);
+		}
+	}
 }
 
 // ============================================================================
@@ -1150,6 +1208,11 @@ void BorderEditorDialog::SaveBorder() {
 			}
 		}
 	}
+
+	// Strip legacy `-- name --` PCDATA and blank-line accumulation from every
+	// border before writing, otherwise pugixml's indenter would multiply the
+	// whitespace on every save.
+	NormalizeBordersDocument(materials);
 
 	// Save the file
 	if (!doc.save_file(bordersFile.ToStdString().c_str())) {
