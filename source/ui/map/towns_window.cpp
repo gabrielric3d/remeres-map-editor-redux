@@ -29,7 +29,9 @@ EditTownsDialog::EditTownsDialog(wxWindow* parent, Editor& editor) :
 	}
 
 	// Town list
-	town_listbox = newd wxListBox(this, EDIT_TOWNS_LISTBOX, wxDefaultPosition, FROM_DIP(this, wxSize(240, 100)));
+	town_listbox = newd wxListCtrl(this, EDIT_TOWNS_LISTBOX, wxDefaultPosition, FROM_DIP(this, wxSize(240, 100)), wxLC_REPORT | wxLC_SINGLE_SEL);
+	town_listbox->InsertColumn(0, "Town", wxLIST_FORMAT_LEFT, FROM_DIP(this, 165));
+	town_listbox->InsertColumn(1, "ID", wxLIST_FORMAT_LEFT, FROM_DIP(this, 55));
 	sizer->Add(town_listbox, 1, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, 10);
 
 	tmpsizer = newd wxBoxSizer(wxHORIZONTAL);
@@ -50,8 +52,7 @@ EditTownsDialog::EditTownsDialog(wxWindow* parent, Editor& editor) :
 	staticSizer->Add(name_field, 2, wxEXPAND | wxLEFT | wxBOTTOM, 5);
 
 	id_field = newd wxTextCtrl(staticSizer->GetStaticBox(), wxID_ANY, "", wxDefaultPosition, FROM_DIP(this, wxSize(40, 20)), 0, wxTextValidator(wxFILTER_NUMERIC, &town_id));
-	id_field->SetToolTip("Town ID");
-	id_field->Enable(false);
+	id_field->SetToolTip("Town ID (any houses associated with this town will be updated automatically)");
 	staticSizer->Add(id_field, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 	sizer->Add(staticSizer, 0, wxEXPAND | wxALL, 10);
 
@@ -79,7 +80,7 @@ EditTownsDialog::EditTownsDialog(wxWindow* parent, Editor& editor) :
 	Centre(wxBOTH);
 	BuildListBox(true);
 
-	town_listbox->Bind(wxEVT_LISTBOX, &EditTownsDialog::OnListBoxChange, this);
+	town_listbox->Bind(wxEVT_LIST_ITEM_SELECTED, &EditTownsDialog::OnListBoxChange, this);
 	addBtn->Bind(wxEVT_BUTTON, &EditTownsDialog::OnClickAdd, this);
 	remove_button->Bind(wxEVT_BUTTON, &EditTownsDialog::OnClickRemove, this);
 	select_position_button->Bind(wxEVT_BUTTON, &EditTownsDialog::OnClickSelectTemplePosition, this);
@@ -91,10 +92,71 @@ EditTownsDialog::EditTownsDialog(wxWindow* parent, Editor& editor) :
 
 EditTownsDialog::~EditTownsDialog() = default;
 
+bool EditTownsDialog::ApplyEdits(uint32_t old_town_id, bool* out_name_changed) {
+	if (out_name_changed) {
+		*out_name_changed = false;
+	}
+
+	Town* old_town = nullptr;
+	for (auto& town : town_list) {
+		if (old_town_id == town->getID()) {
+			old_town = town.get();
+			break;
+		}
+	}
+	if (!old_town) {
+		return true;
+	}
+
+	// Parse and validate the (possibly edited) ID
+	unsigned long new_id_ul = 0;
+	if (!id_field->GetValue().ToULong(&new_id_ul) || new_id_ul == 0) {
+		DialogUtil::PopupDialog(this, "Error", "Town ID must be a positive number.", wxOK);
+		id_field->SetValue(wxString::Format("%lu", static_cast<unsigned long>(old_town_id)));
+		return false;
+	}
+	uint32_t new_town_id = static_cast<uint32_t>(new_id_ul);
+
+	if (new_town_id != old_town_id) {
+		for (const auto& town : town_list) {
+			if (town.get() != old_town && town->getID() == new_town_id) {
+				DialogUtil::PopupDialog(this, "Error", "Another town already uses that ID.", wxOK);
+				id_field->SetValue(wxString::Format("%lu", static_cast<unsigned long>(old_town_id)));
+				return false;
+			}
+		}
+
+		// Propagate ID change to all houses pointing at the old ID
+		for (const auto& [id, house] : editor.map.houses) {
+			if (house->townid == old_town_id) {
+				house->townid = new_town_id;
+			}
+		}
+
+		old_town->setID(new_town_id);
+		if (max_town_id < new_town_id) {
+			max_town_id = new_town_id;
+		}
+	}
+
+	editor.map.getOrCreateTile(old_town->getTemplePosition())->getLocation()->decreaseTownCount();
+	Position templePos = temple_position->GetPosition();
+	editor.map.getOrCreateTile(templePos)->getLocation()->increaseTownCount();
+	old_town->setTemplePosition(templePos);
+
+	wxString new_name = name_field->GetValue();
+	wxString old_name = wxstr(old_town->getName());
+	old_town->setName(nstr(new_name));
+	if (out_name_changed) {
+		*out_name_changed = (new_name != old_name);
+	}
+
+	return true;
+}
+
 void EditTownsDialog::BuildListBox(bool doselect) {
 	long tmplong = 0;
 	max_town_id = 0;
-	std::vector<std::string> town_name_list;
 	uint32_t selection_before = 0;
 
 	if (doselect && id_field->GetValue().ToLong(&tmplong)) {
@@ -108,18 +170,17 @@ void EditTownsDialog::BuildListBox(bool doselect) {
 		}
 	}
 
+	town_listbox->DeleteAllItems();
+	long row = 0;
 	for (const auto& town : town_list) {
-		town_name_list.push_back(town->getName());
+		town_listbox->InsertItem(row, wxstr(town->getName()));
+		town_listbox->SetItem(row, 1, wxString::Format("%u", town->getID()));
 		if (max_town_id < town->getID()) {
 			max_town_id = town->getID();
 		}
+		++row;
 	}
-
-	town_listbox->Clear();
-	for (const auto& name : town_name_list) {
-		town_listbox->Append(name);
-	}
-	remove_button->Enable(town_listbox->GetCount() != 0);
+	remove_button->Enable(town_listbox->GetItemCount() != 0);
 	select_position_button->Enable(false);
 
 	if (doselect) {
@@ -127,7 +188,7 @@ void EditTownsDialog::BuildListBox(bool doselect) {
 			int i = 0;
 			for (const auto& town : town_list) {
 				if (selection_before == town->getID()) {
-					town_listbox->SetSelection(i);
+					SelectListItem(i);
 					return;
 				}
 				++i;
@@ -138,40 +199,20 @@ void EditTownsDialog::BuildListBox(bool doselect) {
 }
 
 void EditTownsDialog::UpdateSelection(int new_selection) {
-	long tmplong;
-
-	// Save old values
-	if (!town_list.empty()) {
-		if (id_field->GetValue().ToLong(&tmplong)) {
-			uint32_t old_town_id = tmplong;
-
-			Town* old_town = nullptr;
-
-			for (auto& town : town_list) {
-				if (old_town_id == town->getID()) {
-					old_town = town.get();
-					break;
-				}
-			}
-
-			if (old_town) {
-				editor.map.getOrCreateTile(old_town->getTemplePosition())->getLocation()->decreaseTownCount();
-
-				Position templePos = temple_position->GetPosition();
-
-				editor.map.getOrCreateTile(templePos)->getLocation()->increaseTownCount();
-
-				old_town->setTemplePosition(templePos);
-
-				wxString new_name = name_field->GetValue();
-				wxString old_name = wxstr(old_town->getName());
-
-				old_town->setName(nstr(new_name));
-				if (new_name != old_name) {
-					// Name has changed, update list
-					BuildListBox(false);
-				}
-			}
+	// Save edits to the previously selected town. We track the previous selection
+	// in `prev_selection` because by the time wxEVT_LISTBOX fires, the listbox's
+	// own selection has already moved to `new_selection`.
+	if (!town_list.empty() && prev_selection != wxNOT_FOUND
+		&& static_cast<size_t>(prev_selection) < town_list.size()) {
+		uint32_t old_town_id = town_list[prev_selection]->getID();
+		bool name_changed = false;
+		if (!ApplyEdits(old_town_id, &name_changed)) {
+			// Validation failed; revert the listbox to the previous selection
+			SelectListItem(prev_selection);
+			return;
+		}
+		if (name_changed) {
+			BuildListBox(false);
 		}
 	}
 
@@ -181,6 +222,7 @@ void EditTownsDialog::UpdateSelection(int new_selection) {
 
 	if (town_list.size() > size_t(new_selection)) {
 		name_field->Enable(true);
+		id_field->Enable(true);
 		temple_position->Enable(true);
 		select_position_button->Enable(true);
 
@@ -193,17 +235,36 @@ void EditTownsDialog::UpdateSelection(int new_selection) {
 		town_id << long(town->getID());
 		id_field->SetValue(town_id);
 		temple_position->SetPosition(town->getTemplePosition());
-		town_listbox->SetSelection(new_selection);
+		SelectListItem(new_selection);
+		prev_selection = new_selection;
 	} else {
 		name_field->Enable(false);
+		id_field->Enable(false);
 		temple_position->Enable(false);
 		select_position_button->Enable(false);
+		prev_selection = wxNOT_FOUND;
 	}
 	Refresh();
 }
 
-void EditTownsDialog::OnListBoxChange(wxCommandEvent& event) {
-	UpdateSelection(event.GetSelection());
+void EditTownsDialog::OnListBoxChange(wxListEvent& event) {
+	if (suppress_list_select) {
+		return;
+	}
+	UpdateSelection(event.GetIndex());
+}
+
+void EditTownsDialog::SelectListItem(long index) {
+	if (index < 0 || index >= town_listbox->GetItemCount()) {
+		return;
+	}
+	// SetItemState fires wxEVT_LIST_ITEM_SELECTED; suppress it so this behaves
+	// like the old wxListBox::SetSelection (silent, no re-entrant UpdateSelection).
+	suppress_list_select = true;
+	town_listbox->SetItemState(index, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED,
+		wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED);
+	town_listbox->EnsureVisible(index);
+	suppress_list_select = false;
 }
 
 void EditTownsDialog::OnClickSelectTemplePosition(wxCommandEvent& WXUNUSED(event)) {
@@ -212,6 +273,15 @@ void EditTownsDialog::OnClickSelectTemplePosition(wxCommandEvent& WXUNUSED(event
 }
 
 void EditTownsDialog::OnClickAdd(wxCommandEvent& WXUNUSED(event)) {
+	// Apply any pending edits to the currently selected town first, so the user
+	// doesn't lose unsaved changes (name/id/temple) and we can bail on validation errors.
+	if (prev_selection != wxNOT_FOUND && static_cast<size_t>(prev_selection) < town_list.size()) {
+		uint32_t old_town_id = town_list[prev_selection]->getID();
+		if (!ApplyEdits(old_town_id, nullptr)) {
+			return;
+		}
+	}
+
 	auto new_town = std::make_unique<Town>(++max_town_id);
 	new_town->setName("Unnamed Town");
 	new_town->setTemplePosition(Position(0, 0, 0));
@@ -219,84 +289,54 @@ void EditTownsDialog::OnClickAdd(wxCommandEvent& WXUNUSED(event)) {
 
 	editor.map.getOrCreateTile(Position(0, 0, 0))->getLocation()->increaseTownCount();
 
+	prev_selection = wxNOT_FOUND;
 	BuildListBox(false);
 	UpdateSelection(town_list.size() - 1);
-	town_listbox->SetSelection(town_list.size() - 1);
+	SelectListItem(static_cast<long>(town_list.size()) - 1);
+	id_field->SetFocus();
+	id_field->SelectAll();
 }
 
 void EditTownsDialog::OnClickRemove(wxCommandEvent& WXUNUSED(event)) {
-	long tmplong;
-	if (id_field->GetValue().ToLong(&tmplong)) {
-		uint32_t old_town_id = tmplong;
+	int selection_index = prev_selection;
+	if (selection_index == wxNOT_FOUND || static_cast<size_t>(selection_index) >= town_list.size()) {
+		return;
+	}
 
-		Town* town = nullptr;
-		int selection_index = 0;
+	Town* town = town_list[selection_index].get();
 
-		auto town_iter = std::ranges::find_if(town_list, [old_town_id](const std::unique_ptr<Town>& t) {
-			return t->getID() == old_town_id;
-		});
-
-		if (town_iter != town_list.end()) {
-			town = town_iter->get();
-			selection_index = static_cast<int>(std::distance(town_list.begin(), town_iter));
-		}
-
-		if (!town) {
+	Map& map = editor.map;
+	for (const auto& [id, house] : map.houses) {
+		if (house->townid == town->getID()) {
+			DialogUtil::PopupDialog(this, "Error", "You cannot delete a town which still has houses associated with it.", wxOK);
 			return;
 		}
-
-		Map& map = editor.map;
-		for (const auto& [id, house] : map.houses) {
-			if (house->townid == town->getID()) {
-				DialogUtil::PopupDialog(this, "Error", "You cannot delete a town which still has houses associated with it.", wxOK);
-				return;
-			}
-		}
-
-		// remove town flag from tile
-		editor.map.getOrCreateTile(town->getTemplePosition())->getLocation()->decreaseTownCount();
-
-		// remove town object
-		town_list.erase(town_iter);
-		BuildListBox(false);
-		UpdateSelection(selection_index - 1);
 	}
+
+	// remove town flag from tile
+	editor.map.getOrCreateTile(town->getTemplePosition())->getLocation()->decreaseTownCount();
+
+	// remove town object
+	town_list.erase(town_list.begin() + selection_index);
+	// The town that was selected is gone; clear prev_selection so UpdateSelection
+	// skips its "save old values" pass.
+	prev_selection = wxNOT_FOUND;
+	BuildListBox(false);
+	UpdateSelection(selection_index - 1);
 }
 
 void EditTownsDialog::OnClickOK(wxCommandEvent& WXUNUSED(event)) {
-	long tmplong = 0;
-
 	if (Validate() && TransferDataFromWindow()) {
-		// Save old values
-		if (!town_list.empty() && id_field->GetValue().ToLong(&tmplong)) {
-			uint32_t old_town_id = tmplong;
-
-			Town* old_town = nullptr;
-
-			for (auto& town : town_list) {
-				if (old_town_id == town->getID()) {
-					old_town = town.get();
-					break;
-				}
+		// Save edits to the currently selected town.
+		if (!town_list.empty() && prev_selection != wxNOT_FOUND
+			&& static_cast<size_t>(prev_selection) < town_list.size()) {
+			uint32_t old_town_id = town_list[prev_selection]->getID();
+			bool name_changed = false;
+			if (!ApplyEdits(old_town_id, &name_changed)) {
+				return;
 			}
-
-			if (old_town) {
-				editor.map.getOrCreateTile(old_town->getTemplePosition())->getLocation()->decreaseTownCount();
-
-				Position templePos = temple_position->GetPosition();
-
-				editor.map.getOrCreateTile(templePos)->getLocation()->increaseTownCount();
-
-				old_town->setTemplePosition(templePos);
-
-				wxString new_name = name_field->GetValue();
-				wxString old_name = wxstr(old_town->getName());
-
-				old_town->setName(nstr(new_name));
-				if (new_name != old_name) {
-					// Name has changed, update list
-					BuildListBox(true);
-				}
+			if (name_changed) {
+				BuildListBox(true);
 			}
 		}
 

@@ -3,6 +3,7 @@
 
 #include "app/main.h"
 #include <wx/wx.h>
+#include <wx/listctrl.h>
 #include <vector>
 #include <memory>
 
@@ -15,7 +16,7 @@ public:
 	EditTownsDialog(wxWindow* parent, Editor& editor);
 	virtual ~EditTownsDialog();
 
-	void OnListBoxChange(wxCommandEvent&);
+	void OnListBoxChange(wxListEvent&);
 	void OnClickSelectTemplePosition(wxCommandEvent&);
 	void OnClickAdd(wxCommandEvent&);
 	void OnClickRemove(wxCommandEvent&);
@@ -25,13 +26,20 @@ public:
 protected:
 	void BuildListBox(bool doselect);
 	void UpdateSelection(int new_selection);
+	bool ApplyEdits(uint32_t old_town_id, bool* out_name_changed = nullptr);
+
+	// Selects (and focuses/scrolls to) a row without triggering OnListBoxChange,
+	// matching the old wxListBox::SetSelection behaviour the logic relies on.
+	void SelectListItem(long index);
 
 	Editor& editor;
 
 	std::vector<std::unique_ptr<Town>> town_list;
 	uint32_t max_town_id;
+	int prev_selection = wxNOT_FOUND;
 
-	wxListBox* town_listbox;
+	wxListCtrl* town_listbox;
+	bool suppress_list_select = false;
 	wxString town_name, town_id;
 
 	wxTextCtrl* name_field;
