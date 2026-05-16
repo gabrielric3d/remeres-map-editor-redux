@@ -316,7 +316,11 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 		} else if (unresolved_invalid_ground) {
 			// Missing-definition ground placeholders are represented by the tile-level invalid overlay.
 		} else if (options.always_show_zones && (r != 255 || g != 255 || b != 255)) {
-			item_drawer->DrawRawBrush(sprite_batch, sprite_drawer, draw_x, draw_y, SPRITE_ZONE, r, g, b, 60);
+			// Groundless tile that still carries a map flag (PZ / NoPVP / NoLogout / PVPZone).
+			// Draw a solid colored square so these "ghost zones" are clearly visible for
+			// manual cleanup. Using glBlitSquare (same path as "Show Only Colors") keeps it
+			// visible over the void and avoids depending on the SPRITE_ZONE asset.
+			sprite_drawer->glBlitSquare(sprite_batch, draw_x, draw_y, DrawColor(r, g, b, 128));
 		}
 	}
 
