@@ -197,6 +197,7 @@ enum DatFlags : uint8_t {
 	DatFlagTopEffect = 37,
 	DatFlagWings = 38,
 	DatFlagDefault = 40,
+	DatFlagBonesAnimated = 41, // Custom client flag: per-frame bone positions for hasBones outfits
 
 	DatFlagFloorChange = 252,
 	DatFlagNoMoveAnimation = 253, // 10.10: real value is 16, but we need to do this for backwards compatibility

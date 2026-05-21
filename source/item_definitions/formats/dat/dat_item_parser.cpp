@@ -199,6 +199,15 @@ namespace {
 			}
 			case DatFlagWings:
 				return file.skip(16);
+			case DatFlagBonesAnimated: {
+				// Custom client flag: 1 byte phase count, then per phase
+				// 4 directions x (U16 x, U16 y) = 16 bytes per phase.
+				uint8_t phases = 0;
+				if (!file.getU8(phases)) {
+					return false;
+				}
+				return file.skip(static_cast<size_t>(phases) * 16);
+			}
 			default:
 				error = wxString::FromUTF8(std::format("DAT catalog: unknown flag {} after {}.", static_cast<int>(flag), static_cast<int>(previous_flag)));
 				return false;
