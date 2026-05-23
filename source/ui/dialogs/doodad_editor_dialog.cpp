@@ -31,10 +31,13 @@
 #include "ext/pugixml.hpp"
 #include <wx/sizer.h>
 #include <wx/gbsizer.h>
+#include <wx/listbox.h>
+#include <wx/radiobox.h>
 #include <wx/statline.h>
 #include <wx/dcbuffer.h>
 #include <wx/dnd.h>
 #include <wx/clipbrd.h>
+#include <algorithm>
 #include <map>
 #include <set>
 #include <sstream>
@@ -59,7 +62,9 @@ enum {
     ID_NEXT_PAGE,
     ID_CREATE_NEW,
     ID_SAVE_TO_FILE,
-    ID_ADD_TO_TILESET_DOODAD
+    ID_ADD_TO_TILESET_DOODAD,
+    ID_TILESET_COMBO_DOODAD,
+    ID_TILESET_BRUSH_LIST_DOODAD
 };
 
 // Helper function to get item ID from current brush
@@ -170,6 +175,8 @@ BEGIN_EVENT_TABLE(DoodadEditorDialog, wxPanel)
     EVT_TIMER(ID_LOAD_TIMER, DoodadEditorDialog::OnLoadTimer)
     EVT_TEXT(ID_FILTER_TEXT, DoodadEditorDialog::OnFilterChanged)
     EVT_BUTTON(ID_ADD_TO_TILESET_DOODAD, DoodadEditorDialog::OnAddToTileset)
+    EVT_COMBOBOX(ID_TILESET_COMBO_DOODAD, DoodadEditorDialog::OnTilesetSelectionChanged)
+    EVT_TEXT(ID_TILESET_COMBO_DOODAD, DoodadEditorDialog::OnTilesetSelectionChanged)
 END_EVENT_TABLE()
 
 BEGIN_EVENT_TABLE(DoodadGridPanel, wxPanel)
@@ -194,6 +201,11 @@ DoodadEditorDialog::DoodadEditorDialog(wxWindow* parent) :
     m_isLoading(true),
     m_currentPage(0),
     m_totalPages(0) {
+
+    // Compact font (-1pt) cascades to every child control. Matches the Border editor.
+    wxFont compactFont = GetFont();
+    compactFont.SetPointSize(std::max(6, compactFont.GetPointSize() - 1));
+    SetFont(compactFont);
 
     CreateGUIControls();
     LoadExistingTilesets();
@@ -431,21 +443,36 @@ void DoodadEditorDialog::CreateGUIControls() {
     rightSizer->Add(m_notebook, 1, wxEXPAND | wxALL, 5);
 
     // === Assign to Tileset ===
-    wxStaticBoxSizer* tilesetAssignSizer = new wxStaticBoxSizer(wxHORIZONTAL, rightPanel, "Assign to Tileset");
+    wxStaticBoxSizer* tilesetAssignSizer = new wxStaticBoxSizer(wxVERTICAL, rightPanel, "Assign to Tileset");
 
-    wxBoxSizer* tilesetComboSizer = new wxBoxSizer(wxVERTICAL);
-    tilesetComboSizer->Add(new wxStaticText(rightPanel, wxID_ANY, "Tileset:"), 0);
-    m_tilesetCombo = new wxComboBox(rightPanel, wxID_ANY, "", wxDefaultPosition, wxSize(200, -1), 0, nullptr, wxCB_DROPDOWN);
-    m_tilesetCombo->SetToolTip("Type to search, or pick from the list of tilesets defined in tilesets.xml.");
-    tilesetComboSizer->Add(m_tilesetCombo, 0, wxEXPAND | wxTOP, 2);
-    tilesetAssignSizer->Add(tilesetComboSizer, 1, wxEXPAND | wxRIGHT, 5);
+    // Row 1: Tileset combobox
+    wxBoxSizer* tilesetRow = new wxBoxSizer(wxHORIZONTAL);
+    tilesetRow->Add(new wxStaticText(rightPanel, wxID_ANY, "Tileset:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+    m_tilesetCombo = new wxComboBox(rightPanel, ID_TILESET_COMBO_DOODAD, "", wxDefaultPosition, wxSize(220, -1), 0, nullptr, wxCB_DROPDOWN);
+    m_tilesetCombo->SetToolTip("Pick a tileset. The (Doodad) suffix shows where the brush will be inserted.");
+    tilesetRow->Add(m_tilesetCombo, 1, wxEXPAND);
+    tilesetAssignSizer->Add(tilesetRow, 0, wxEXPAND | wxALL, 5);
 
-    wxBoxSizer* tilesetBtnSizer = new wxBoxSizer(wxVERTICAL);
-    tilesetBtnSizer->AddStretchSpacer();
-    m_addToTilesetButton = new wxButton(rightPanel, ID_ADD_TO_TILESET_DOODAD, "Add brush to Tileset", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-    m_addToTilesetButton->SetToolTip("Adds the current doodad brush (by name) to the selected tileset in tilesets.xml.");
-    tilesetBtnSizer->Add(m_addToTilesetButton, 0);
-    tilesetAssignSizer->Add(tilesetBtnSizer, 0, wxEXPAND);
+    // Row 2: Existing brushes list
+    tilesetAssignSizer->Add(new wxStaticText(rightPanel, wxID_ANY, "Existing brushes in this tileset (Doodad):"), 0, wxLEFT | wxRIGHT, 5);
+    m_tilesetBrushList = new wxListBox(rightPanel, ID_TILESET_BRUSH_LIST_DOODAD, wxDefaultPosition, wxSize(-1, 110));
+    m_tilesetBrushList->SetToolTip("Select a brush to use as reference for the 'After selected' insert option.");
+    tilesetAssignSizer->Add(m_tilesetBrushList, 1, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 5);
+
+    // Row 3: Insert position radio
+    wxString positions[] = { "At start", "After selected", "At end" };
+    m_tilesetInsertPosition = new wxRadioBox(rightPanel, wxID_ANY, "Insert position",
+        wxDefaultPosition, wxDefaultSize, 3, positions, 3, wxRA_SPECIFY_COLS);
+    m_tilesetInsertPosition->SetSelection(2); // default: At end
+    tilesetAssignSizer->Add(m_tilesetInsertPosition, 0, wxEXPAND | wxALL, 5);
+
+    // Row 4: Add button
+    wxBoxSizer* tilesetBtnRow = new wxBoxSizer(wxHORIZONTAL);
+    tilesetBtnRow->AddStretchSpacer();
+    m_addToTilesetButton = new wxButton(rightPanel, ID_ADD_TO_TILESET_DOODAD, "Add brush to Tileset");
+    m_addToTilesetButton->SetToolTip("Adds the current doodad brush to the selected tileset's <doodad> section at the chosen position.");
+    tilesetBtnRow->Add(m_addToTilesetButton, 0);
+    tilesetAssignSizer->Add(tilesetBtnRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 
     rightSizer->Add(tilesetAssignSizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 
@@ -986,6 +1013,18 @@ bool DoodadEditorDialog::ValidateDoodad() {
     return true;
 }
 
+// Strips the " (Doodad)" / " (Doodad - new)" suffix from a combobox label, returning
+// the bare tileset name. Returns the input unchanged if no recognized suffix is present.
+static wxString StripDoodadSuffix(const wxString& label) {
+    wxString trimmed = label;
+    trimmed.Trim(true).Trim(false);
+    size_t parenIdx = trimmed.rfind(" (Doodad");
+    if (parenIdx != wxString::npos) {
+        return wxString(trimmed.Mid(0, parenIdx)).Trim(true).Trim(false);
+    }
+    return trimmed;
+}
+
 void DoodadEditorDialog::LoadExistingTilesets() {
     if (!m_tilesetCombo) return;
     m_tilesetCombo->Clear();
@@ -1002,15 +1041,66 @@ void DoodadEditorDialog::LoadExistingTilesets() {
     pugi::xml_node materials = doc.child("materials");
     if (!materials) return;
 
-    std::set<std::string> seen;
+    // A tileset name can appear in multiple <tileset> blocks (terrain block,
+    // doodad block, etc.). Aggregate them and tag each with whether any block
+    // already has a <doodad> section.
+    std::map<std::string, bool> nameHasDoodad;
+    std::vector<std::string> orderedNames;
     for (pugi::xml_node tilesetNode = materials.child("tileset"); tilesetNode; tilesetNode = tilesetNode.next_sibling("tileset")) {
         pugi::xml_attribute nameAttr = tilesetNode.attribute("name");
         if (!nameAttr) continue;
         std::string name = nameAttr.as_string();
-        if (seen.insert(name).second) {
-            m_tilesetCombo->Append(wxString(name));
+        bool hasDoodad = static_cast<bool>(tilesetNode.child("doodad"));
+        auto it = nameHasDoodad.find(name);
+        if (it == nameHasDoodad.end()) {
+            nameHasDoodad[name] = hasDoodad;
+            orderedNames.push_back(name);
+        } else if (hasDoodad) {
+            it->second = true;
         }
     }
+
+    for (const std::string& name : orderedNames) {
+        wxString label = wxString(name);
+        label += nameHasDoodad[name] ? " (Doodad)" : " (Doodad - new)";
+        m_tilesetCombo->Append(label);
+    }
+
+    if (m_tilesetBrushList) m_tilesetBrushList->Clear();
+}
+
+void DoodadEditorDialog::RefreshTilesetBrushList() {
+    if (!m_tilesetBrushList) return;
+    m_tilesetBrushList->Clear();
+
+    wxString tilesetName = StripDoodadSuffix(m_tilesetCombo->GetValue());
+    if (tilesetName.IsEmpty()) return;
+
+    ClientVersion* version = g_version.getLoadedVersion();
+    if (!version) return;
+
+    wxFileName tilesetsFile(version->getDataPath().GetFullPath(), "tilesets.xml");
+    if (!tilesetsFile.FileExists()) return;
+
+    pugi::xml_document doc;
+    if (!doc.load_file(tilesetsFile.GetFullPath().ToStdString().c_str())) return;
+    pugi::xml_node materials = doc.child("materials");
+    if (!materials) return;
+
+    for (pugi::xml_node tilesetNode = materials.child("tileset"); tilesetNode; tilesetNode = tilesetNode.next_sibling("tileset")) {
+        pugi::xml_attribute nameAttr = tilesetNode.attribute("name");
+        if (!nameAttr || wxString(nameAttr.as_string()) != tilesetName) continue;
+        pugi::xml_node doodad = tilesetNode.child("doodad");
+        if (!doodad) continue;
+        for (pugi::xml_node brushNode = doodad.child("brush"); brushNode; brushNode = brushNode.next_sibling("brush")) {
+            pugi::xml_attribute bn = brushNode.attribute("name");
+            if (bn) m_tilesetBrushList->Append(wxString(bn.as_string()));
+        }
+    }
+}
+
+void DoodadEditorDialog::OnTilesetSelectionChanged(wxCommandEvent& WXUNUSED(event)) {
+    RefreshTilesetBrushList();
 }
 
 void DoodadEditorDialog::OnAddToTileset(wxCommandEvent& WXUNUSED(event)) {
@@ -1020,10 +1110,23 @@ void DoodadEditorDialog::OnAddToTileset(wxCommandEvent& WXUNUSED(event)) {
         return;
     }
 
-    wxString tilesetName = m_tilesetCombo->GetValue().Trim(true).Trim(false);
+    wxString tilesetName = StripDoodadSuffix(m_tilesetCombo->GetValue());
     if (tilesetName.IsEmpty()) {
         wxMessageBox("Please select or type a tileset name.", "Error", wxOK | wxICON_ERROR);
         return;
+    }
+
+    int insertMode = m_tilesetInsertPosition ? m_tilesetInsertPosition->GetSelection() : 2;
+    wxString afterBrushName;
+    if (insertMode == 1) { // After selected
+        int sel = m_tilesetBrushList ? m_tilesetBrushList->GetSelection() : wxNOT_FOUND;
+        if (sel == wxNOT_FOUND) {
+            wxMessageBox("'After selected' was chosen but no brush is selected in the list.\n"
+                "Pick a reference brush, or switch to 'At start' / 'At end'.",
+                "Error", wxOK | wxICON_ERROR);
+            return;
+        }
+        afterBrushName = m_tilesetBrushList->GetString(sel);
     }
 
     ClientVersion* version = g_version.getLoadedVersion();
@@ -1054,15 +1157,20 @@ void DoodadEditorDialog::OnAddToTileset(wxCommandEvent& WXUNUSED(event)) {
         return;
     }
 
-    // Find or create the target tileset
+    // Prefer a tileset block that already has <doodad>; otherwise fall back to
+    // the first block with the matching name (so we can append a <doodad> to it).
     pugi::xml_node targetTileset;
+    pugi::xml_node fallbackTileset;
     for (pugi::xml_node tilesetNode = materials.child("tileset"); tilesetNode; tilesetNode = tilesetNode.next_sibling("tileset")) {
         pugi::xml_attribute nameAttr = tilesetNode.attribute("name");
-        if (nameAttr && wxString(nameAttr.as_string()) == tilesetName) {
+        if (!nameAttr || wxString(nameAttr.as_string()) != tilesetName) continue;
+        if (!fallbackTileset) fallbackTileset = tilesetNode;
+        if (tilesetNode.child("doodad")) {
             targetTileset = tilesetNode;
             break;
         }
     }
+    if (!targetTileset) targetTileset = fallbackTileset;
 
     if (!targetTileset) {
         if (wxMessageBox("Tileset '" + tilesetName + "' does not exist. Create it?",
@@ -1089,8 +1197,27 @@ void DoodadEditorDialog::OnAddToTileset(wxCommandEvent& WXUNUSED(event)) {
         }
     }
 
-    // Append and save
-    pugi::xml_node newBrush = doodad.append_child("brush");
+    // Insert at the chosen position.
+    pugi::xml_node newBrush;
+    if (insertMode == 0) { // At start
+        newBrush = doodad.prepend_child("brush");
+    } else if (insertMode == 1) { // After selected
+        pugi::xml_node anchor;
+        for (pugi::xml_node brushNode = doodad.child("brush"); brushNode; brushNode = brushNode.next_sibling("brush")) {
+            pugi::xml_attribute nameAttr = brushNode.attribute("name");
+            if (nameAttr && wxString(nameAttr.as_string()) == afterBrushName) {
+                anchor = brushNode;
+                break;
+            }
+        }
+        if (anchor) {
+            newBrush = doodad.insert_child_after("brush", anchor);
+        } else {
+            newBrush = doodad.append_child("brush");
+        }
+    } else { // At end (default)
+        newBrush = doodad.append_child("brush");
+    }
     newBrush.append_attribute("name").set_value(brushName.ToStdString().c_str());
 
     if (!doc.save_file(filePath.c_str())) {
@@ -1103,7 +1230,8 @@ void DoodadEditorDialog::OnAddToTileset(wxCommandEvent& WXUNUSED(event)) {
         "Success", wxOK | wxICON_INFORMATION);
 
     LoadExistingTilesets();
-    m_tilesetCombo->SetValue(tilesetName);
+    m_tilesetCombo->SetValue(tilesetName + " (Doodad)");
+    RefreshTilesetBrushList();
 }
 
 void DoodadEditorDialog::SaveDoodad() {

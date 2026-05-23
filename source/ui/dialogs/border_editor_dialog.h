@@ -20,6 +20,7 @@
 #include <wx/choice.h>
 #include <wx/notebook.h>
 #include <wx/listbox.h>
+#include <wx/radiobox.h>
 #include <wx/dnd.h>
 #include <vector>
 #include <map>
@@ -261,7 +262,9 @@ public:
 	void OnGroundBorderIdChanged(wxCommandEvent& event);
 	uint16_t LookupNorthItemId(int borderId);
 	void OnAddGroundToTileset(wxCommandEvent& event);
+	void OnTilesetSelectionChanged(wxCommandEvent& event);
 	void LoadExistingTilesets();
+	void RefreshTilesetBrushList();
 	void ApplyItemToPosition(BorderEdgePosition pos, uint16_t itemId);
 	void UpdatePreview();
 	void UpdateEdgeItemsList();
@@ -309,6 +312,10 @@ public:
 	wxButton* m_addGroundItemButton;
 	wxButton* m_updateGroundItemButton;
 
+	// Shared action bar (panel-level, below Common Properties)
+	wxButton* m_clearButton = nullptr;
+	wxButton* m_saveButton = nullptr;
+
 	// Border references for the Ground brush
 	GroundBordersPanel* m_groundBordersList;
 	wxChoice* m_groundBorderAlignCtrl;
@@ -320,6 +327,8 @@ public:
 
 	// Tileset assignment
 	wxComboBox* m_tilesetCombo;
+	wxListBox* m_tilesetBrushList;
+	wxRadioBox* m_tilesetInsertPosition;
 	wxButton* m_addToTilesetButton;
 
 	// Border items: multiple items per direction with chance

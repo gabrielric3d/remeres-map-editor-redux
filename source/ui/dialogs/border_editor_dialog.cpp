@@ -20,9 +20,12 @@
 
 #include <wx/sizer.h>
 #include <wx/gbsizer.h>
+#include <wx/listbox.h>
+#include <wx/radiobox.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcmemory.h>
 #include <wx/dnd.h>
+#include <wx/statline.h>
 #include <sstream>
 #include <algorithm>
 #include <set>
@@ -44,6 +47,33 @@
 #define ID_MOVE_GROUND_BORDER_DOWN wxID_HIGHEST + 12
 #define ID_FIND_BORDER_BY_ITEM_ID wxID_HIGHEST + 13
 #define ID_FIND_GROUND_BY_ITEM_ID wxID_HIGHEST + 14
+#define ID_TILESET_COMBO wxID_HIGHEST + 15
+#define ID_TILESET_BRUSH_LIST wxID_HIGHEST + 16
+
+// ============================================================================
+// Local layout helpers
+// ============================================================================
+
+namespace {
+
+// Minimalist section header: bold accent-colored "▸ TITLE", no box.
+// Followed in callers by a thin horizontal separator for visual structure.
+wxStaticText* MakeSectionHeader(wxWindow* parent, const wxString& title) {
+	wxStaticText* h = newd wxStaticText(parent, wxID_ANY, wxString(wxT("▸ ")) + title.Upper());
+	wxFont f = h->GetFont();
+	f.SetWeight(wxFONTWEIGHT_BOLD);
+	h->SetFont(f);
+	h->SetForegroundColour(Theme::Get(Theme::Role::Accent));
+	return h;
+}
+
+// Adds a header + thin separator pair to a vertical sizer.
+void AddSectionHeader(wxBoxSizer* sizer, wxWindow* parent, const wxString& title) {
+	sizer->Add(MakeSectionHeader(parent, title), 0, wxLEFT | wxRIGHT | wxTOP, 6);
+	sizer->Add(newd wxStaticLine(parent), 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 4);
+}
+
+} // namespace
 
 // ============================================================================
 // Utility functions
@@ -252,6 +282,8 @@ BEGIN_EVENT_TABLE(BorderEditorDialog, wxPanel)
 	EVT_COMBOBOX(ID_GROUND_BORDER_ID_COMBO, BorderEditorDialog::OnGroundBorderIdChanged)
 	EVT_TEXT(ID_GROUND_BORDER_ID_COMBO, BorderEditorDialog::OnGroundBorderIdChanged)
 	EVT_BUTTON(ID_ADD_TO_TILESET, BorderEditorDialog::OnAddGroundToTileset)
+	EVT_COMBOBOX(ID_TILESET_COMBO, BorderEditorDialog::OnTilesetSelectionChanged)
+	EVT_TEXT(ID_TILESET_COMBO, BorderEditorDialog::OnTilesetSelectionChanged)
 	EVT_BUTTON(ID_MOVE_GROUND_BORDER_UP, BorderEditorDialog::OnMoveGroundBorderUp)
 	EVT_BUTTON(ID_MOVE_GROUND_BORDER_DOWN, BorderEditorDialog::OnMoveGroundBorderDown)
 	EVT_BUTTON(ID_FIND_BORDER_BY_ITEM_ID, BorderEditorDialog::OnFindBorderByItemId)
@@ -301,6 +333,12 @@ BorderEditorDialog::BorderEditorDialog(wxWindow* parent) :
 
 	SetBackgroundColour(Theme::Get(Theme::Role::Surface));
 
+	// Compact font (-1pt) cascades to every child control unless they override it.
+	// Keeps the dialog manageable when users have many panels open behind it.
+	wxFont compactFont = GetFont();
+	compactFont.SetPointSize(std::max(6, compactFont.GetPointSize() - 1));
+	SetFont(compactFont);
+
 	CreateGUIControls();
 	LoadExistingBorders();
 	// Ground tab data (grounds.xml + tilesets.xml) is loaded lazily on first tab switch —
@@ -324,356 +362,326 @@ wxString BorderEditorDialog::GetVersionDataDirectory() {
 void BorderEditorDialog::CreateGUIControls() {
 	wxBoxSizer* topSizer = newd wxBoxSizer(wxVERTICAL);
 
-	// Common properties
-	wxStaticBoxSizer* commonPropertiesSizer = newd wxStaticBoxSizer(wxVERTICAL, this, "Common Properties");
-	wxBoxSizer* commonPropertiesHorizSizer = newd wxBoxSizer(wxHORIZONTAL);
-
-	// Name field
-	wxBoxSizer* nameSizer = newd wxBoxSizer(wxVERTICAL);
-	nameSizer->Add(newd wxStaticText(this, wxID_ANY, "Name:"), 0);
-	m_nameCtrl = newd wxTextCtrl(this, wxID_ANY);
-	m_nameCtrl->SetToolTip("Descriptive name for the border");
-	nameSizer->Add(m_nameCtrl, 0, wxEXPAND | wxTOP, 2);
-	commonPropertiesHorizSizer->Add(nameSizer, 1, wxEXPAND | wxRIGHT, 10);
-
-	// ID field
-	wxBoxSizer* idSizer = newd wxBoxSizer(wxVERTICAL);
-	idSizer->Add(newd wxStaticText(this, wxID_ANY, "ID:"), 0);
-	m_idCtrl = newd wxSpinCtrl(this, wxID_ANY, "1", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 65535);
-	m_idCtrl->SetToolTip("Unique identifier for this border");
-	idSizer->Add(m_idCtrl, 0, wxEXPAND | wxTOP, 2);
-	commonPropertiesHorizSizer->Add(idSizer, 0, wxEXPAND);
-
-	commonPropertiesSizer->Add(commonPropertiesHorizSizer, 0, wxEXPAND | wxALL, 5);
-	// NOTE: commonPropertiesSizer is added to topSizer AFTER the notebook, so that
-	// the Border/Ground tab bar sits at the very top of the dialog.
-
-	// Create notebook with Border and Ground tabs.
-	// Bigger font on the tab labels makes it obvious the user must pick one of the two modes.
+	// ============================================================================
+	// Inner notebook (Border / Ground sub-tabs)
+	// ============================================================================
 	m_notebook = newd wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNB_TOP);
 	wxFont tabFont = m_notebook->GetFont();
 	tabFont.SetPointSize(tabFont.GetPointSize() + 3);
 	tabFont.SetWeight(wxFONTWEIGHT_BOLD);
 	m_notebook->SetFont(tabFont);
-	// Extra horizontal/vertical padding inside each tab header
 	m_notebook->SetPadding(wxSize(16, 8));
 
-	// ========== BORDER TAB ==========
+	// ============================================================================
+	// BORDER TAB — 2-column layout (Grid 60% / Edge Items 40%)
+	// ============================================================================
 	m_borderPanel = newd wxPanel(m_notebook);
 	wxBoxSizer* borderSizer = newd wxBoxSizer(wxVERTICAL);
 
-	// Border Properties
-	wxStaticBoxSizer* borderPropertiesSizer = newd wxStaticBoxSizer(wxVERTICAL, m_borderPanel, "Border Properties");
-	wxBoxSizer* borderPropsHorizSizer = newd wxBoxSizer(wxHORIZONTAL);
+	// --- Properties bar (single row, no box) ---
+	wxBoxSizer* borderPropsRow = newd wxBoxSizer(wxHORIZONTAL);
 
-	// Left column - Group and Type
-	wxBoxSizer* leftColSizer = newd wxBoxSizer(wxVERTICAL);
-
-	wxBoxSizer* groupSizer = newd wxBoxSizer(wxVERTICAL);
-	groupSizer->Add(newd wxStaticText(m_borderPanel, wxID_ANY, "Group:"), 0);
-	m_groupCtrl = newd wxSpinCtrl(m_borderPanel, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 65535);
+	borderPropsRow->Add(newd wxStaticText(m_borderPanel, wxID_ANY, "Group:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_groupCtrl = newd wxSpinCtrl(m_borderPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(60, -1), wxSP_ARROW_KEYS, 0, 65535);
 	m_groupCtrl->SetToolTip("Optional group identifier (0 = no group)");
-	groupSizer->Add(m_groupCtrl, 0, wxEXPAND | wxTOP, 2);
-	leftColSizer->Add(groupSizer, 0, wxEXPAND | wxBOTTOM, 5);
+	borderPropsRow->Add(m_groupCtrl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 12);
 
-	wxBoxSizer* typeSizer = newd wxBoxSizer(wxVERTICAL);
-	typeSizer->Add(newd wxStaticText(m_borderPanel, wxID_ANY, "Type:"), 0);
-	wxBoxSizer* checkboxSizer = newd wxBoxSizer(wxHORIZONTAL);
 	m_isOptionalCheck = newd wxCheckBox(m_borderPanel, wxID_ANY, "Optional");
 	m_isOptionalCheck->SetToolTip("Marks this border as optional");
+	borderPropsRow->Add(m_isOptionalCheck, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+
 	m_isGroundCheck = newd wxCheckBox(m_borderPanel, wxID_ANY, "Ground");
 	m_isGroundCheck->SetToolTip("Marks this border as a ground border");
-	checkboxSizer->Add(m_isOptionalCheck, 0, wxRIGHT, 10);
-	checkboxSizer->Add(m_isGroundCheck, 0);
-	typeSizer->Add(checkboxSizer, 0, wxEXPAND | wxTOP, 2);
-	leftColSizer->Add(typeSizer, 0, wxEXPAND);
+	borderPropsRow->Add(m_isGroundCheck, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 16);
 
-	borderPropsHorizSizer->Add(leftColSizer, 1, wxEXPAND | wxRIGHT, 10);
-
-	// Right column - Load Existing
-	wxBoxSizer* rightColSizer = newd wxBoxSizer(wxVERTICAL);
-	rightColSizer->Add(newd wxStaticText(m_borderPanel, wxID_ANY, "Load Existing:"), 0);
+	borderPropsRow->Add(newd wxStaticText(m_borderPanel, wxID_ANY, "Load:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 	m_existingBordersCombo = newd wxComboBox(m_borderPanel, ID_EXISTING_BORDERS_COMBO, "", wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY | wxCB_DROPDOWN);
 	m_existingBordersCombo->SetToolTip("Load an existing border as template");
-	rightColSizer->Add(m_existingBordersCombo, 0, wxEXPAND | wxTOP, 2);
+	borderPropsRow->Add(m_existingBordersCombo, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 12);
 
-	// Find border by item ID (searches any edge for an item match)
-	wxBoxSizer* findBorderSizer = newd wxBoxSizer(wxHORIZONTAL);
-	findBorderSizer->Add(newd wxStaticText(m_borderPanel, wxID_ANY, "Find by Item ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
-	m_findBorderItemIdCtrl = newd wxSpinCtrl(m_borderPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 0, 65535);
+	borderPropsRow->Add(newd wxStaticText(m_borderPanel, wxID_ANY, "Find ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_findBorderItemIdCtrl = newd wxSpinCtrl(m_borderPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 0, 65535);
 	m_findBorderItemIdCtrl->SetToolTip("Enter an item ID to locate the border that uses it");
-	findBorderSizer->Add(m_findBorderItemIdCtrl, 0, wxRIGHT, 5);
+	borderPropsRow->Add(m_findBorderItemIdCtrl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 	wxButton* findBorderButton = newd wxButton(m_borderPanel, ID_FIND_BORDER_BY_ITEM_ID, "Find", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	findBorderButton->SetToolTip("Find and load the border that uses this item ID");
-	findBorderSizer->Add(findBorderButton, 0);
-	rightColSizer->Add(findBorderSizer, 0, wxEXPAND | wxTOP, 4);
+	borderPropsRow->Add(findBorderButton, 0, wxALIGN_CENTER_VERTICAL);
 
-	borderPropsHorizSizer->Add(rightColSizer, 1, wxEXPAND);
-	borderPropertiesSizer->Add(borderPropsHorizSizer, 0, wxEXPAND | wxALL, 5);
-	borderSizer->Add(borderPropertiesSizer, 0, wxEXPAND | wxALL, 5);
+	borderSizer->Add(borderPropsRow, 0, wxEXPAND | wxALL, 8);
 
-	// Border Grid + Preview (unified panel)
-	wxStaticBoxSizer* gridSizer = newd wxStaticBoxSizer(wxVERTICAL, m_borderPanel, "Border Grid");
+	// --- Two columns: Grid (left 60%) | Edge Items (right 40%) ---
+	wxBoxSizer* borderColsRow = newd wxBoxSizer(wxHORIZONTAL);
+
+	// LEFT — Border Grid (canvas)
+	wxBoxSizer* borderLeftCol = newd wxBoxSizer(wxVERTICAL);
+	AddSectionHeader(borderLeftCol, m_borderPanel, "Border Grid");
+
 	m_gridPanel = newd BorderGridPanel(m_borderPanel);
 	m_gridPanel->SetDropTarget(new BorderGridDropTarget(m_gridPanel));
-	gridSizer->Add(m_gridPanel, 1, wxEXPAND | wxALL, 5);
+	borderLeftCol->Add(m_gridPanel, 1, wxEXPAND | wxLEFT | wxRIGHT, 6);
 
-	// Hidden preview panel (used internally for data, drawn inside the grid)
+	// Hidden preview panel (data carrier only)
 	m_previewPanel = newd BorderPreviewPanel(m_borderPanel);
 	m_previewPanel->Hide();
 
 	wxStaticText* instructions = newd wxStaticText(m_borderPanel, wxID_ANY,
 		"Click to place brush | Right-click to remove | Drag item from palette");
-	instructions->SetForegroundColour(Theme::Get(Theme::Role::Accent));
-	gridSizer->Add(instructions, 0, wxEXPAND | wxLEFT | wxRIGHT, 5);
+	instructions->SetForegroundColour(Theme::Get(Theme::Role::TextSubtle));
+	borderLeftCol->Add(instructions, 0, wxEXPAND | wxALL, 6);
 
-	// Edge items visual panel for the selected direction
+	borderColsRow->Add(borderLeftCol, 60, wxEXPAND | wxRIGHT, 8);
+
+	// RIGHT — Edge Items for selected direction
+	wxBoxSizer* borderRightCol = newd wxBoxSizer(wxVERTICAL);
+	AddSectionHeader(borderRightCol, m_borderPanel, "Edge Items");
+
 	m_edgeItemsLabel = newd wxStaticText(m_borderPanel, wxID_ANY, "Items for selected direction:");
-	gridSizer->Add(m_edgeItemsLabel, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 5);
+	borderRightCol->Add(m_edgeItemsLabel, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
 
 	m_edgeItemsPanel = newd EdgeItemsPanel(m_borderPanel);
-	gridSizer->Add(m_edgeItemsPanel, 0, wxEXPAND | wxLEFT | wxRIGHT, 5);
+	borderRightCol->Add(m_edgeItemsPanel, 1, wxEXPAND | wxLEFT | wxRIGHT, 6);
 
-	// Current selected item controls
-	wxBoxSizer* itemSizer = newd wxBoxSizer(wxHORIZONTAL);
-	itemSizer->Add(newd wxStaticText(m_borderPanel, wxID_ANY, "Item ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
-	m_itemIdCtrl = newd wxSpinCtrl(m_borderPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 0, 65535);
+	// Item ID/Chance row
+	wxBoxSizer* edgeIdRow = newd wxBoxSizer(wxHORIZONTAL);
+	edgeIdRow->Add(newd wxStaticText(m_borderPanel, wxID_ANY, "Item ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_itemIdCtrl = newd wxSpinCtrl(m_borderPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 0, 65535);
 	m_itemIdCtrl->SetToolTip("Enter an item ID manually");
-	itemSizer->Add(m_itemIdCtrl, 0, wxRIGHT, 5);
+	edgeIdRow->Add(m_itemIdCtrl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
 
-	itemSizer->Add(newd wxStaticText(m_borderPanel, wxID_ANY, "Chance:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+	edgeIdRow->Add(newd wxStaticText(m_borderPanel, wxID_ANY, "Chance:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 	m_itemChanceCtrl = newd wxSpinCtrl(m_borderPanel, wxID_ANY, "100", wxDefaultPosition, wxSize(60, -1), wxSP_ARROW_KEYS, 1, 10000);
 	m_itemChanceCtrl->SetToolTip("Chance weight for this item variant");
-	itemSizer->Add(m_itemChanceCtrl, 0, wxRIGHT, 5);
+	edgeIdRow->Add(m_itemChanceCtrl, 0, wxALIGN_CENTER_VERTICAL);
 
+	borderRightCol->Add(edgeIdRow, 0, wxEXPAND | wxALL, 6);
+
+	// Edge buttons row
+	wxBoxSizer* edgeBtnRow = newd wxBoxSizer(wxHORIZONTAL);
 	wxButton* browseButton = newd wxButton(m_borderPanel, wxID_FIND, "Browse...", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	browseButton->SetToolTip("Browse for an item");
-	itemSizer->Add(browseButton, 0, wxRIGHT, 5);
-	wxButton* addButton = newd wxButton(m_borderPanel, wxID_ADD, "Add", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+	edgeBtnRow->Add(browseButton, 0, wxRIGHT, 4);
+	wxButton* addButton = newd wxButton(m_borderPanel, wxID_ADD, "+ Add", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	addButton->SetToolTip("Add the item to the currently selected direction");
-	itemSizer->Add(addButton, 0, wxRIGHT, 5);
+	edgeBtnRow->Add(addButton, 0, wxRIGHT, 4);
 	wxButton* updateChanceButton = newd wxButton(m_borderPanel, ID_UPDATE_CHANCE, "Set Chance", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	updateChanceButton->SetToolTip("Update the chance of the selected item");
-	itemSizer->Add(updateChanceButton, 0);
+	edgeBtnRow->Add(updateChanceButton, 0);
+	borderRightCol->Add(edgeBtnRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
 
-	gridSizer->Add(itemSizer, 0, wxEXPAND | wxALL, 5);
-	borderSizer->Add(gridSizer, 1, wxEXPAND | wxALL, 5);
+	borderColsRow->Add(borderRightCol, 40, wxEXPAND);
 
-	// Bottom buttons for border tab
-	wxBoxSizer* borderButtonSizer = newd wxBoxSizer(wxHORIZONTAL);
-	borderButtonSizer->Add(newd wxButton(m_borderPanel, wxID_CLEAR, "Clear"), 0, wxRIGHT, 5);
-	borderButtonSizer->Add(newd wxButton(m_borderPanel, wxID_SAVE, "Save Border"), 0, wxRIGHT, 5);
-	borderButtonSizer->AddStretchSpacer(1);
-
-	borderSizer->Add(borderButtonSizer, 0, wxEXPAND | wxALL, 5);
+	borderSizer->Add(borderColsRow, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
 	m_borderPanel->SetSizer(borderSizer);
 
-	// ========== GROUND TAB ==========
+	// ============================================================================
+	// GROUND TAB — 2-column layout (Items 60% / Borders+Tileset 40%)
+	// ============================================================================
 	m_groundPanel = newd wxPanel(m_notebook);
 	wxBoxSizer* groundSizer = newd wxBoxSizer(wxVERTICAL);
 
-	// Ground Brush Properties
-	wxStaticBoxSizer* groundPropertiesSizer = newd wxStaticBoxSizer(wxVERTICAL, m_groundPanel, "Ground Brush Properties");
+	// --- Properties bar (single row, no box) ---
+	wxBoxSizer* groundPropsRow = newd wxBoxSizer(wxHORIZONTAL);
 
-	wxBoxSizer* topRowSizer = newd wxBoxSizer(wxHORIZONTAL);
-
-	// Server Look ID
-	wxBoxSizer* serverIdSizer = newd wxBoxSizer(wxVERTICAL);
-	serverIdSizer->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Server Look ID:"), 0);
-	m_serverLookIdCtrl = newd wxSpinCtrl(m_groundPanel, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 65535);
+	groundPropsRow->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Look ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_serverLookIdCtrl = newd wxSpinCtrl(m_groundPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 0, 65535);
 	m_serverLookIdCtrl->SetToolTip("Server-side item ID");
-	serverIdSizer->Add(m_serverLookIdCtrl, 0, wxEXPAND | wxTOP, 2);
-	topRowSizer->Add(serverIdSizer, 1, wxEXPAND | wxRIGHT, 10);
+	groundPropsRow->Add(m_serverLookIdCtrl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 12);
 
-	// Z-Order
-	wxBoxSizer* zOrderSizer = newd wxBoxSizer(wxVERTICAL);
-	zOrderSizer->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Z-Order:"), 0);
-	m_zOrderCtrl = newd wxSpinCtrl(m_groundPanel, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 10000);
+	groundPropsRow->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Z-Order:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_zOrderCtrl = newd wxSpinCtrl(m_groundPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 0, 10000);
 	m_zOrderCtrl->SetToolTip("Z-Order for display");
-	zOrderSizer->Add(m_zOrderCtrl, 0, wxEXPAND | wxTOP, 2);
-	topRowSizer->Add(zOrderSizer, 1, wxEXPAND | wxRIGHT, 10);
+	groundPropsRow->Add(m_zOrderCtrl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 16);
 
-	// Existing ground brushes dropdown
-	wxBoxSizer* existingSizer = newd wxBoxSizer(wxVERTICAL);
-	existingSizer->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Load Existing:"), 0);
+	groundPropsRow->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Load:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 	m_existingGroundBrushesCombo = newd wxComboBox(m_groundPanel, ID_EXISTING_GROUNDS_COMBO, "", wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_DROPDOWN | wxTE_PROCESS_ENTER);
 	m_existingGroundBrushesCombo->SetToolTip("Type to search, or pick from the list. Press Enter or select to load.");
-	existingSizer->Add(m_existingGroundBrushesCombo, 0, wxEXPAND | wxTOP, 2);
+	groundPropsRow->Add(m_existingGroundBrushesCombo, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 12);
 
-	// Find ground brush by item ID (searches <item id="..."/> inside each ground brush)
-	wxBoxSizer* findGroundSizer = newd wxBoxSizer(wxHORIZONTAL);
-	findGroundSizer->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Find by Item ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
-	m_findGroundItemIdCtrl = newd wxSpinCtrl(m_groundPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 0, 65535);
+	groundPropsRow->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Find ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_findGroundItemIdCtrl = newd wxSpinCtrl(m_groundPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 0, 65535);
 	m_findGroundItemIdCtrl->SetToolTip("Enter an item ID to locate the ground brush that uses it");
-	findGroundSizer->Add(m_findGroundItemIdCtrl, 0, wxRIGHT, 5);
+	groundPropsRow->Add(m_findGroundItemIdCtrl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 	wxButton* findGroundButton = newd wxButton(m_groundPanel, ID_FIND_GROUND_BY_ITEM_ID, "Find", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	findGroundButton->SetToolTip("Find and load the ground brush that uses this item ID");
-	findGroundSizer->Add(findGroundButton, 0);
-	existingSizer->Add(findGroundSizer, 0, wxEXPAND | wxTOP, 4);
+	groundPropsRow->Add(findGroundButton, 0, wxALIGN_CENTER_VERTICAL);
 
-	topRowSizer->Add(existingSizer, 1, wxEXPAND);
+	groundSizer->Add(groundPropsRow, 0, wxEXPAND | wxALL, 8);
 
-	groundPropertiesSizer->Add(topRowSizer, 0, wxEXPAND | wxALL, 5);
-	groundSizer->Add(groundPropertiesSizer, 0, wxEXPAND | wxALL, 5);
+	// --- Two columns: Items (left 60%) | Borders+Tileset (right 40%) ---
+	wxBoxSizer* groundColsRow = newd wxBoxSizer(wxHORIZONTAL);
 
-	// Ground Items
-	wxStaticBoxSizer* groundItemsSizer = newd wxStaticBoxSizer(wxVERTICAL, m_groundPanel, "Ground Items");
+	// LEFT — Ground Items (canvas)
+	wxBoxSizer* groundLeftCol = newd wxBoxSizer(wxVERTICAL);
+	AddSectionHeader(groundLeftCol, m_groundPanel, "Ground Items");
 
 	m_groundItemsPanel = newd GroundItemsPanel(m_groundPanel);
 	m_groundItemsPanel->SetDropTarget(new GroundItemsDropTarget(m_groundItemsPanel));
 	m_groundItemsPanel->SetToolTip("Drag items here from the palette, or use the Add button below.");
-	groundItemsSizer->Add(m_groundItemsPanel, 1, wxEXPAND | wxALL, 5);
+	groundLeftCol->Add(m_groundItemsPanel, 1, wxEXPAND | wxLEFT | wxRIGHT, 6);
 
-	wxBoxSizer* groundItemRowSizer = newd wxBoxSizer(wxHORIZONTAL);
-
-	wxBoxSizer* itemDetailsSizer = newd wxBoxSizer(wxHORIZONTAL);
-
-	wxBoxSizer* itemIdSizer2 = newd wxBoxSizer(wxVERTICAL);
-	itemIdSizer2->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Item ID:"), 0);
-	m_groundItemIdCtrl = newd wxSpinCtrl(m_groundPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 0, 65535);
+	// Ground item controls row (ID + Chance)
+	wxBoxSizer* groundItemIdRow = newd wxBoxSizer(wxHORIZONTAL);
+	groundItemIdRow->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Item ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_groundItemIdCtrl = newd wxSpinCtrl(m_groundPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 0, 65535);
 	m_groundItemIdCtrl->SetToolTip("ID of the item to add");
-	itemIdSizer2->Add(m_groundItemIdCtrl, 0, wxEXPAND | wxTOP, 2);
-	itemDetailsSizer->Add(itemIdSizer2, 0, wxEXPAND | wxRIGHT, 5);
+	groundItemIdRow->Add(m_groundItemIdCtrl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
 
-	wxBoxSizer* chanceSizer = newd wxBoxSizer(wxVERTICAL);
-	chanceSizer->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Chance:"), 0);
+	groundItemIdRow->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Chance:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 	m_groundItemChanceCtrl = newd wxSpinCtrl(m_groundPanel, wxID_ANY, "10", wxDefaultPosition, wxSize(60, -1), wxSP_ARROW_KEYS, 1, 10000);
 	m_groundItemChanceCtrl->SetToolTip("Chance of this item appearing");
-	chanceSizer->Add(m_groundItemChanceCtrl, 0, wxEXPAND | wxTOP, 2);
-	itemDetailsSizer->Add(chanceSizer, 0, wxEXPAND);
+	groundItemIdRow->Add(m_groundItemChanceCtrl, 0, wxALIGN_CENTER_VERTICAL);
+	groundLeftCol->Add(groundItemIdRow, 0, wxEXPAND | wxALL, 6);
 
-	groundItemRowSizer->Add(itemDetailsSizer, 1, wxEXPAND | wxRIGHT, 10);
-
-	wxBoxSizer* itemButtonsSizer = newd wxBoxSizer(wxVERTICAL);
-	itemButtonsSizer->AddStretchSpacer();
-
-	wxBoxSizer* buttonsSizer = newd wxBoxSizer(wxHORIZONTAL);
+	// Ground item buttons row
+	wxBoxSizer* groundItemBtnRow = newd wxBoxSizer(wxHORIZONTAL);
 	wxButton* groundBrowseButton = newd wxButton(m_groundPanel, wxID_FIND + 100, "Browse...", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	groundBrowseButton->SetToolTip("Browse for an item");
-	buttonsSizer->Add(groundBrowseButton, 0, wxRIGHT, 5);
+	groundItemBtnRow->Add(groundBrowseButton, 0, wxRIGHT, 4);
 
-	m_addGroundItemButton = newd wxButton(m_groundPanel, wxID_ADD + 100, "Add", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+	m_addGroundItemButton = newd wxButton(m_groundPanel, wxID_ADD + 100, "+ Add", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	m_addGroundItemButton->SetToolTip("Add this item to the list");
-	buttonsSizer->Add(m_addGroundItemButton, 0, wxRIGHT, 5);
+	groundItemBtnRow->Add(m_addGroundItemButton, 0, wxRIGHT, 4);
 
 	m_updateGroundItemButton = newd wxButton(m_groundPanel, ID_UPDATE_GROUND_CHANCE, "Update Chance", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	m_updateGroundItemButton->SetToolTip("Update the chance of the selected item");
-	buttonsSizer->Add(m_updateGroundItemButton, 0);
+	groundItemBtnRow->Add(m_updateGroundItemButton, 0);
+	groundLeftCol->Add(groundItemBtnRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
 
-	itemButtonsSizer->Add(buttonsSizer, 0, wxEXPAND);
-	groundItemRowSizer->Add(itemButtonsSizer, 0, wxEXPAND);
+	groundColsRow->Add(groundLeftCol, 60, wxEXPAND | wxRIGHT, 8);
 
-	groundItemsSizer->Add(groundItemRowSizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
-	groundSizer->Add(groundItemsSizer, 1, wxEXPAND | wxALL, 5);
+	// RIGHT — Borders (top) + Tileset (bottom)
+	wxBoxSizer* groundRightCol = newd wxBoxSizer(wxVERTICAL);
 
-	// Borders
-	wxStaticBoxSizer* groundBordersSizer = newd wxStaticBoxSizer(wxVERTICAL, m_groundPanel, "Borders");
+	// ▸ BORDERS
+	AddSectionHeader(groundRightCol, m_groundPanel, "Borders");
 
 	wxBoxSizer* groundBordersListRow = newd wxBoxSizer(wxHORIZONTAL);
 	m_groundBordersList = newd GroundBordersPanel(m_groundPanel);
 	m_groundBordersList->SetToolTip("Borders used by this ground brush. Order matters: earlier entries are applied first. Click the X to remove.");
-	groundBordersListRow->Add(m_groundBordersList, 1, wxEXPAND | wxRIGHT, 5);
+	groundBordersListRow->Add(m_groundBordersList, 1, wxEXPAND | wxRIGHT, 4);
 
 	wxBoxSizer* orderBtnsSizer = newd wxBoxSizer(wxVERTICAL);
-	wxButton* moveUpBtn = newd wxButton(m_groundPanel, ID_MOVE_GROUND_BORDER_UP, "Up", wxDefaultPosition, wxSize(40, -1), wxBU_EXACTFIT);
+	wxButton* moveUpBtn = newd wxButton(m_groundPanel, ID_MOVE_GROUND_BORDER_UP, wxT("▲"), wxDefaultPosition, wxSize(32, -1), wxBU_EXACTFIT);
 	moveUpBtn->SetToolTip("Move the selected border up in the list.");
-	orderBtnsSizer->Add(moveUpBtn, 0, wxBOTTOM, 3);
-	wxButton* moveDownBtn = newd wxButton(m_groundPanel, ID_MOVE_GROUND_BORDER_DOWN, "Down", wxDefaultPosition, wxSize(40, -1), wxBU_EXACTFIT);
+	orderBtnsSizer->Add(moveUpBtn, 0, wxBOTTOM, 2);
+	wxButton* moveDownBtn = newd wxButton(m_groundPanel, ID_MOVE_GROUND_BORDER_DOWN, wxT("▼"), wxDefaultPosition, wxSize(32, -1), wxBU_EXACTFIT);
 	moveDownBtn->SetToolTip("Move the selected border down in the list.");
 	orderBtnsSizer->Add(moveDownBtn, 0);
 	groundBordersListRow->Add(orderBtnsSizer, 0, wxALIGN_CENTER_VERTICAL);
 
-	groundBordersSizer->Add(groundBordersListRow, 0, wxEXPAND | wxALL, 5);
+	groundRightCol->Add(groundBordersListRow, 1, wxEXPAND | wxLEFT | wxRIGHT, 6);
 
-	wxBoxSizer* borderRowSizer = newd wxBoxSizer(wxHORIZONTAL);
-
-	// Align
-	wxBoxSizer* alignSizer = newd wxBoxSizer(wxVERTICAL);
-	alignSizer->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Align:"), 0);
+	// Border config row 1: Align + To
+	wxBoxSizer* borderCfgRow1 = newd wxBoxSizer(wxHORIZONTAL);
+	borderCfgRow1->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Align:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 	wxString alignChoices[] = { "outer", "inner" };
-	m_groundBorderAlignCtrl = newd wxChoice(m_groundPanel, wxID_ANY, wxDefaultPosition, wxSize(80, -1), 2, alignChoices);
+	m_groundBorderAlignCtrl = newd wxChoice(m_groundPanel, wxID_ANY, wxDefaultPosition, wxSize(70, -1), 2, alignChoices);
 	m_groundBorderAlignCtrl->SetSelection(0);
 	m_groundBorderAlignCtrl->SetToolTip("outer: when ground touches another type.\ninner: when ground touches empty (to=none) or specific brush.");
-	alignSizer->Add(m_groundBorderAlignCtrl, 0, wxEXPAND | wxTOP, 2);
-	borderRowSizer->Add(alignSizer, 0, wxEXPAND | wxRIGHT, 5);
+	borderCfgRow1->Add(m_groundBorderAlignCtrl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
 
-	// Border id combo + preview
-	wxBoxSizer* borderIdSizer = newd wxBoxSizer(wxVERTICAL);
-	borderIdSizer->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Border:"), 0);
-	wxBoxSizer* borderIdRow = newd wxBoxSizer(wxHORIZONTAL);
-	m_groundBorderIdCtrl = newd wxComboBox(m_groundPanel, ID_GROUND_BORDER_ID_COMBO, "", wxDefaultPosition, wxSize(200, -1), 0, nullptr, wxCB_DROPDOWN);
+	borderCfgRow1->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "To:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_groundBorderToCtrl = newd wxComboBox(m_groundPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_DROPDOWN);
+	m_groundBorderToCtrl->SetToolTip("Target: leave empty for default, 'none' for empty tile, or a brush name.");
+	borderCfgRow1->Add(m_groundBorderToCtrl, 1, wxALIGN_CENTER_VERTICAL);
+	groundRightCol->Add(borderCfgRow1, 0, wxEXPAND | wxALL, 6);
+
+	// Border config row 2: Border combo + preview
+	wxBoxSizer* borderCfgRow2 = newd wxBoxSizer(wxHORIZONTAL);
+	borderCfgRow2->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Border:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_groundBorderIdCtrl = newd wxComboBox(m_groundPanel, ID_GROUND_BORDER_ID_COMBO, "", wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_DROPDOWN);
 	m_groundBorderIdCtrl->SetToolTip("Select an existing border, or type a numeric ID.");
-	borderIdRow->Add(m_groundBorderIdCtrl, 1, wxEXPAND | wxRIGHT, 5);
+	borderCfgRow2->Add(m_groundBorderIdCtrl, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 	m_groundBorderPreview = newd BorderNorthPreview(m_groundPanel);
 	m_groundBorderPreview->SetToolTip("Preview: north-facing edge of the selected border.");
-	borderIdRow->Add(m_groundBorderPreview, 0, wxALIGN_CENTER_VERTICAL);
-	borderIdSizer->Add(borderIdRow, 0, wxEXPAND | wxTOP, 2);
-	borderRowSizer->Add(borderIdSizer, 1, wxEXPAND | wxRIGHT, 5);
+	borderCfgRow2->Add(m_groundBorderPreview, 0, wxALIGN_CENTER_VERTICAL);
+	groundRightCol->Add(borderCfgRow2, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
 
-	// To combo (none / any / ground names)
-	wxBoxSizer* toSizer = newd wxBoxSizer(wxVERTICAL);
-	toSizer->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "To:"), 0);
-	m_groundBorderToCtrl = newd wxComboBox(m_groundPanel, wxID_ANY, "", wxDefaultPosition, wxSize(160, -1), 0, nullptr, wxCB_DROPDOWN);
-	m_groundBorderToCtrl->SetToolTip("Target: leave empty for default, 'none' for empty tile, or a brush name.");
-	toSizer->Add(m_groundBorderToCtrl, 0, wxEXPAND | wxTOP, 2);
-	borderRowSizer->Add(toSizer, 1, wxEXPAND | wxRIGHT, 5);
+	// Border add/remove buttons
+	wxBoxSizer* borderAddRow = newd wxBoxSizer(wxHORIZONTAL);
+	m_addGroundBorderButton = newd wxButton(m_groundPanel, ID_ADD_GROUND_BORDER, "+ Add", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+	borderAddRow->Add(m_addGroundBorderButton, 0, wxRIGHT, 4);
+	m_removeGroundBorderButton = newd wxButton(m_groundPanel, ID_REMOVE_GROUND_BORDER, wxT("− Remove"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+	borderAddRow->Add(m_removeGroundBorderButton, 0);
+	groundRightCol->Add(borderAddRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
 
-	// Buttons
-	wxBoxSizer* borderBtnSizer = newd wxBoxSizer(wxVERTICAL);
-	borderBtnSizer->AddStretchSpacer();
-	wxBoxSizer* borderBtnRow = newd wxBoxSizer(wxHORIZONTAL);
-	m_addGroundBorderButton = newd wxButton(m_groundPanel, ID_ADD_GROUND_BORDER, "Add", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-	borderBtnRow->Add(m_addGroundBorderButton, 0, wxRIGHT, 5);
-	m_removeGroundBorderButton = newd wxButton(m_groundPanel, ID_REMOVE_GROUND_BORDER, "Remove", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-	borderBtnRow->Add(m_removeGroundBorderButton, 0);
-	borderBtnSizer->Add(borderBtnRow, 0, wxEXPAND);
-	borderRowSizer->Add(borderBtnSizer, 0, wxEXPAND);
+	// ▸ TILESET (publish)
+	AddSectionHeader(groundRightCol, m_groundPanel, "Tileset (publish)");
 
-	groundBordersSizer->Add(borderRowSizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
-	groundSizer->Add(groundBordersSizer, 0, wxEXPAND | wxALL, 5);
+	wxBoxSizer* tilesetRow = newd wxBoxSizer(wxHORIZONTAL);
+	tilesetRow->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Tileset:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_tilesetCombo = newd wxComboBox(m_groundPanel, ID_TILESET_COMBO, "", wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_DROPDOWN);
+	m_tilesetCombo->SetToolTip("Pick a tileset. Only tilesets that contain (or can contain) Terrain brushes are listed.");
+	tilesetRow->Add(m_tilesetCombo, 1, wxALIGN_CENTER_VERTICAL);
+	groundRightCol->Add(tilesetRow, 0, wxEXPAND | wxALL, 6);
 
-	// Add to Tileset
-	wxStaticBoxSizer* tilesetAssignSizer = newd wxStaticBoxSizer(wxHORIZONTAL, m_groundPanel, "Assign to Tileset");
+	groundRightCol->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Existing brushes (Terrain):"), 0, wxLEFT | wxRIGHT, 6);
+	m_tilesetBrushList = newd wxListBox(m_groundPanel, ID_TILESET_BRUSH_LIST, wxDefaultPosition, wxSize(-1, 80));
+	m_tilesetBrushList->SetToolTip("Select a brush to use as reference for the 'After selected' insert option.");
+	groundRightCol->Add(m_tilesetBrushList, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 6);
 
-	wxBoxSizer* tilesetComboSizer = newd wxBoxSizer(wxVERTICAL);
-	tilesetComboSizer->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Tileset:"), 0);
-	m_tilesetCombo = newd wxComboBox(m_groundPanel, wxID_ANY, "", wxDefaultPosition, wxSize(200, -1), 0, nullptr, wxCB_DROPDOWN);
-	m_tilesetCombo->SetToolTip("Type to search, or pick from the list of tilesets defined in tilesets.xml.");
-	tilesetComboSizer->Add(m_tilesetCombo, 0, wxEXPAND | wxTOP, 2);
-	tilesetAssignSizer->Add(tilesetComboSizer, 1, wxEXPAND | wxRIGHT, 5);
+	wxString positions[] = { "At start", "After selected", "At end" };
+	m_tilesetInsertPosition = newd wxRadioBox(m_groundPanel, wxID_ANY, "Insert position",
+		wxDefaultPosition, wxDefaultSize, 3, positions, 1, wxRA_SPECIFY_ROWS);
+	m_tilesetInsertPosition->SetSelection(2); // default: At end
+	groundRightCol->Add(m_tilesetInsertPosition, 0, wxEXPAND | wxALL, 6);
 
-	wxBoxSizer* tilesetBtnSizer = newd wxBoxSizer(wxVERTICAL);
-	tilesetBtnSizer->AddStretchSpacer();
-	m_addToTilesetButton = newd wxButton(m_groundPanel, ID_ADD_TO_TILESET, "Add brush to Tileset", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-	m_addToTilesetButton->SetToolTip("Adds the current ground brush (by name) to the selected tileset in tilesets.xml.");
-	tilesetBtnSizer->Add(m_addToTilesetButton, 0);
-	tilesetAssignSizer->Add(tilesetBtnSizer, 0, wxEXPAND);
+	m_addToTilesetButton = newd wxButton(m_groundPanel, ID_ADD_TO_TILESET, "+ Add brush to Tileset");
+	m_addToTilesetButton->SetToolTip("Adds the current ground brush to the selected tileset's <terrain> section at the chosen position.");
+	groundRightCol->Add(m_addToTilesetButton, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
 
-	groundSizer->Add(tilesetAssignSizer, 0, wxEXPAND | wxALL, 5);
+	groundColsRow->Add(groundRightCol, 40, wxEXPAND);
 
-	// Info label
-	wxStaticText* gridInstructions = newd wxStaticText(m_groundPanel, wxID_ANY,
-		"Tip: drag items from the palette directly onto the list above. "
-		"Click an item to edit its chance. Use the grid in the Border tab to define borders.");
-	gridInstructions->SetForegroundColour(Theme::Get(Theme::Role::Accent));
-	groundSizer->Add(gridInstructions, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
-
-	// Bottom buttons for ground tab
-	wxBoxSizer* groundButtonSizer = newd wxBoxSizer(wxHORIZONTAL);
-	groundButtonSizer->Add(newd wxButton(m_groundPanel, wxID_CLEAR, "Clear"), 0, wxRIGHT, 5);
-	groundButtonSizer->Add(newd wxButton(m_groundPanel, wxID_SAVE, "Save Ground"), 0, wxRIGHT, 5);
-	groundButtonSizer->AddStretchSpacer(1);
-
-	groundSizer->Add(groundButtonSizer, 0, wxEXPAND | wxALL, 5);
+	groundSizer->Add(groundColsRow, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
 	m_groundPanel->SetSizer(groundSizer);
 
-	// Add tabs to notebook
+	// ============================================================================
+	// Assemble notebook
+	// ============================================================================
 	m_notebook->AddPage(m_borderPanel, "  Border  ");
 	m_notebook->AddPage(m_groundPanel, "  Ground  ");
-
-	// Final layout: notebook (with its tab bar) at the very top, then Common Properties below.
 	topSizer->Add(m_notebook, 1, wxEXPAND | wxALL, 5);
-	topSizer->Add(commonPropertiesSizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+
+	// ============================================================================
+	// Common Properties (shared across tabs) — single compact row
+	// ============================================================================
+	wxBoxSizer* commonRow = newd wxBoxSizer(wxHORIZONTAL);
+	commonRow->Add(newd wxStaticText(this, wxID_ANY, "Name:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_nameCtrl = newd wxTextCtrl(this, wxID_ANY);
+	m_nameCtrl->SetToolTip("Descriptive name for the border");
+	commonRow->Add(m_nameCtrl, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 12);
+
+	commonRow->Add(newd wxStaticText(this, wxID_ANY, "ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_idCtrl = newd wxSpinCtrl(this, wxID_ANY, "1", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 1, 65535);
+	m_idCtrl->SetToolTip("Unique identifier for this border");
+	commonRow->Add(m_idCtrl, 0, wxALIGN_CENTER_VERTICAL);
+
+	topSizer->Add(commonRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 8);
+
+	// Separator above the action bar
+	topSizer->Add(newd wxStaticLine(this), 0, wxEXPAND | wxTOP | wxBOTTOM, 6);
+
+	// ============================================================================
+	// Action bar — Clear (secondary, left) + Save (primary green, right)
+	// ============================================================================
+	wxBoxSizer* actionBar = newd wxBoxSizer(wxHORIZONTAL);
+
+	m_clearButton = newd wxButton(this, wxID_CLEAR, wxT("✕ Clear"));
+	m_clearButton->SetToolTip("Clear the current form");
+	actionBar->Add(m_clearButton, 0, wxALIGN_CENTER_VERTICAL);
+
+	actionBar->AddStretchSpacer(1);
+
+	m_saveButton = newd wxButton(this, wxID_SAVE, wxT("✓ Save Border"));
+	m_saveButton->SetBackgroundColour(Theme::Get(Theme::Role::Success));
+	m_saveButton->SetForegroundColour(Theme::Get(Theme::Role::TextOnAccent));
+	wxFont saveFont = m_saveButton->GetFont();
+	saveFont.SetWeight(wxFONTWEIGHT_BOLD);
+	m_saveButton->SetFont(saveFont);
+	m_saveButton->SetToolTip("Save the border or ground brush currently being edited");
+	actionBar->Add(m_saveButton, 0, wxALIGN_CENTER_VERTICAL);
+
+	topSizer->Add(actionBar, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
 
 	SetSizer(topSizer);
 	Layout();
@@ -1244,6 +1252,11 @@ void BorderEditorDialog::OnPageChanged(wxBookCtrlEvent& event) {
 
 	m_activeTab = event.GetSelection();
 
+	// Update the shared Save button label to reflect the active sub-tab.
+	if (m_saveButton) {
+		m_saveButton->SetLabel(m_activeTab == 1 ? wxT("✓ Save Ground") : wxT("✓ Save Border"));
+	}
+
 	// Lazy-load Ground tab data on first activation (Ground tab index is 1)
 	if (m_activeTab == 1 && !m_groundTabLoaded) {
 		m_groundTabLoaded = true;
@@ -1426,6 +1439,19 @@ void BorderEditorDialog::RefreshGroundBordersList(int selectAt) {
 	}
 }
 
+// Strips the " (Terrain)" / " (Terrain - new)" suffix from a combobox label, returning
+// the bare tileset name. Returns the input unchanged if no recognized suffix is present
+// (the user may have typed a fresh name).
+static wxString StripTerrainSuffix(const wxString& label) {
+	wxString trimmed = label;
+	trimmed.Trim(true).Trim(false);
+	size_t parenIdx = trimmed.rfind(" (Terrain");
+	if (parenIdx != wxString::npos) {
+		return wxString(trimmed.Mid(0, parenIdx)).Trim(true).Trim(false);
+	}
+	return trimmed;
+}
+
 void BorderEditorDialog::LoadExistingTilesets() {
 	if (!m_tilesetCombo) return;
 	m_tilesetCombo->Clear();
@@ -1442,15 +1468,65 @@ void BorderEditorDialog::LoadExistingTilesets() {
 	pugi::xml_node materials = doc.child("materials");
 	if (!materials) return;
 
-	std::set<std::string> seen;
+	// First pass: collapse duplicate tileset entries — a tileset name can appear
+	// in multiple <tileset name="X"> blocks (one with <terrain>, another with
+	// <doodad>, etc.). We only care whether any of them has a <terrain> section.
+	std::map<std::string, bool> nameHasTerrain;
+	std::vector<std::string> orderedNames;
 	for (pugi::xml_node tilesetNode = materials.child("tileset"); tilesetNode; tilesetNode = tilesetNode.next_sibling("tileset")) {
 		pugi::xml_attribute nameAttr = tilesetNode.attribute("name");
 		if (!nameAttr) continue;
 		std::string name = nameAttr.as_string();
-		if (seen.insert(name).second) {
-			m_tilesetCombo->Append(wxString(name));
+		bool hasTerrain = static_cast<bool>(tilesetNode.child("terrain"));
+		auto it = nameHasTerrain.find(name);
+		if (it == nameHasTerrain.end()) {
+			nameHasTerrain[name] = hasTerrain;
+			orderedNames.push_back(name);
+		} else if (hasTerrain) {
+			it->second = true;
 		}
 	}
+
+	for (const std::string& name : orderedNames) {
+		wxString label = wxString(name);
+		label += nameHasTerrain[name] ? " (Terrain)" : " (Terrain - new)";
+		m_tilesetCombo->Append(label);
+	}
+
+	if (m_tilesetBrushList) m_tilesetBrushList->Clear();
+}
+
+void BorderEditorDialog::RefreshTilesetBrushList() {
+	if (!m_tilesetBrushList) return;
+	m_tilesetBrushList->Clear();
+
+	wxString tilesetName = StripTerrainSuffix(m_tilesetCombo->GetValue());
+	if (tilesetName.IsEmpty()) return;
+
+	wxString dataDir = GetVersionDataDirectory();
+	if (dataDir.IsEmpty()) return;
+	wxString tilesetsFile = dataDir + "tilesets.xml";
+	if (!wxFileExists(tilesetsFile)) return;
+
+	pugi::xml_document doc;
+	if (!doc.load_file(tilesetsFile.ToStdString().c_str())) return;
+	pugi::xml_node materials = doc.child("materials");
+	if (!materials) return;
+
+	for (pugi::xml_node tilesetNode = materials.child("tileset"); tilesetNode; tilesetNode = tilesetNode.next_sibling("tileset")) {
+		pugi::xml_attribute nameAttr = tilesetNode.attribute("name");
+		if (!nameAttr || wxString(nameAttr.as_string()) != tilesetName) continue;
+		pugi::xml_node terrain = tilesetNode.child("terrain");
+		if (!terrain) continue;
+		for (pugi::xml_node brushNode = terrain.child("brush"); brushNode; brushNode = brushNode.next_sibling("brush")) {
+			pugi::xml_attribute bn = brushNode.attribute("name");
+			if (bn) m_tilesetBrushList->Append(wxString(bn.as_string()));
+		}
+	}
+}
+
+void BorderEditorDialog::OnTilesetSelectionChanged(wxCommandEvent& WXUNUSED(event)) {
+	RefreshTilesetBrushList();
 }
 
 void BorderEditorDialog::OnAddGroundToTileset(wxCommandEvent& event) {
@@ -1460,10 +1536,24 @@ void BorderEditorDialog::OnAddGroundToTileset(wxCommandEvent& event) {
 		return;
 	}
 
-	wxString tilesetName = m_tilesetCombo->GetValue().Trim(true).Trim(false);
+	wxString tilesetName = StripTerrainSuffix(m_tilesetCombo->GetValue());
 	if (tilesetName.IsEmpty()) {
 		wxMessageBox("Please select or type a tileset name.", "Error", wxICON_ERROR);
 		return;
+	}
+
+	// Capture insertion intent before we touch the XML.
+	int insertMode = m_tilesetInsertPosition ? m_tilesetInsertPosition->GetSelection() : 2;
+	wxString afterBrushName;
+	if (insertMode == 1) { // After selected
+		int sel = m_tilesetBrushList ? m_tilesetBrushList->GetSelection() : wxNOT_FOUND;
+		if (sel == wxNOT_FOUND) {
+			wxMessageBox("'After selected' was chosen but no brush is selected in the list.\n"
+				"Pick a reference brush, or switch to 'At start' / 'At end'.",
+				"Error", wxICON_ERROR);
+			return;
+		}
+		afterBrushName = m_tilesetBrushList->GetString(sel);
 	}
 
 	wxString dataDir = GetVersionDataDirectory();
@@ -1487,15 +1577,20 @@ void BorderEditorDialog::OnAddGroundToTileset(wxCommandEvent& event) {
 		return;
 	}
 
-	// Find or create the target tileset
+	// Prefer a tileset block that already has <terrain>; otherwise fall back to
+	// the first block with the matching name (so we can append a <terrain> to it).
 	pugi::xml_node targetTileset;
+	pugi::xml_node fallbackTileset;
 	for (pugi::xml_node tilesetNode = materials.child("tileset"); tilesetNode; tilesetNode = tilesetNode.next_sibling("tileset")) {
 		pugi::xml_attribute nameAttr = tilesetNode.attribute("name");
-		if (nameAttr && wxString(nameAttr.as_string()) == tilesetName) {
+		if (!nameAttr || wxString(nameAttr.as_string()) != tilesetName) continue;
+		if (!fallbackTileset) fallbackTileset = tilesetNode;
+		if (tilesetNode.child("terrain")) {
 			targetTileset = tilesetNode;
 			break;
 		}
 	}
+	if (!targetTileset) targetTileset = fallbackTileset;
 
 	if (!targetTileset) {
 		if (wxMessageBox("Tileset '" + tilesetName + "' does not exist. Create it?",
@@ -1522,8 +1617,28 @@ void BorderEditorDialog::OnAddGroundToTileset(wxCommandEvent& event) {
 		}
 	}
 
-	// Append and save
-	pugi::xml_node newBrush = terrain.append_child("brush");
+	// Insert at the chosen position.
+	pugi::xml_node newBrush;
+	if (insertMode == 0) { // At start
+		newBrush = terrain.prepend_child("brush");
+	} else if (insertMode == 1) { // After selected
+		pugi::xml_node anchor;
+		for (pugi::xml_node brushNode = terrain.child("brush"); brushNode; brushNode = brushNode.next_sibling("brush")) {
+			pugi::xml_attribute nameAttr = brushNode.attribute("name");
+			if (nameAttr && wxString(nameAttr.as_string()) == afterBrushName) {
+				anchor = brushNode;
+				break;
+			}
+		}
+		if (anchor) {
+			newBrush = terrain.insert_child_after("brush", anchor);
+		} else {
+			// Anchor disappeared between refresh and click — fall back to append.
+			newBrush = terrain.append_child("brush");
+		}
+	} else { // At end (default)
+		newBrush = terrain.append_child("brush");
+	}
 	newBrush.append_attribute("name").set_value(brushName.ToStdString().c_str());
 
 	if (!doc.save_file(tilesetsFile.ToStdString().c_str())) {
@@ -1536,7 +1651,10 @@ void BorderEditorDialog::OnAddGroundToTileset(wxCommandEvent& event) {
 		"Success", wxICON_INFORMATION);
 
 	LoadExistingTilesets();
-	m_tilesetCombo->SetValue(tilesetName);
+	// Restore the "(Terrain)" suffix on the combobox so the brush list refreshes
+	// with the up-to-date contents.
+	m_tilesetCombo->SetValue(tilesetName + " (Terrain)");
+	RefreshTilesetBrushList();
 }
 
 void BorderEditorDialog::OnLoadGroundBrush(wxCommandEvent& event) {

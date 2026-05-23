@@ -26,6 +26,7 @@
 #include <wx/button.h>
 #include <wx/listbox.h>
 #include <wx/listctrl.h>
+#include <wx/radiobox.h>
 #include <wx/spinctrl.h>
 #include <wx/panel.h>
 #include <wx/checkbox.h>
@@ -119,6 +120,8 @@ public:
     void OnNextPage(wxCommandEvent& event);
     void OnCreateNew(wxCommandEvent& event);
     void OnAddToTileset(wxCommandEvent& event);
+    void OnTilesetSelectionChanged(wxCommandEvent& event);
+    void RefreshTilesetBrushList();
     void AddSingleItemById(uint16_t itemId);
 
     // Public methods for grid panel to access
@@ -188,6 +191,8 @@ public:
 
     // Tileset assignment
     wxComboBox* m_tilesetCombo;
+    wxListBox* m_tilesetBrushList;
+    wxRadioBox* m_tilesetInsertPosition;
     wxButton* m_addToTilesetButton;
 
     // Data

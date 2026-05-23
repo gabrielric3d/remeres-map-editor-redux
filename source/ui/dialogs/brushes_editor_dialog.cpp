@@ -30,6 +30,17 @@ BrushesEditorDialog::BrushesEditorDialog(wxWindow* parent) :
 	SetBackgroundColour(Theme::Get(Theme::Role::Surface));
 	CreateGUIControls();
 
+	// ESC closes the dialog. There's no wxID_CANCEL button to anchor the default escape
+	// behavior to, so handle the key explicitly via CHAR_HOOK (catches the event before
+	// any focused child swallows it).
+	Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& event) {
+		if (event.GetKeyCode() == WXK_ESCAPE) {
+			Close();
+			return;
+		}
+		event.Skip();
+	});
+
 	// Enforce a minimum size so the user never has to resize to see the Ground Items / Borders
 	// panels — they collapse badly when the dialog is shorter than ~800px.
 	SetMinSize(wxSize(1100, 780));
@@ -77,13 +88,8 @@ void BrushesEditorDialog::CreateGUIControls() {
 
 	topSizer->Add(m_notebook, 1, wxEXPAND | wxALL, 5);
 
-	// Dialog footer — just Close; each tab has its own Save buttons.
-	wxBoxSizer* footer = new wxBoxSizer(wxHORIZONTAL);
-	footer->AddStretchSpacer(1);
-	wxButton* closeBtn = new wxButton(this, wxID_CLOSE, "Close");
-	closeBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { Close(); });
-	footer->Add(closeBtn, 0);
-	topSizer->Add(footer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+	// No footer button row: each embedded editor (Borders, Doodads) owns its own action bar
+	// with Clear + Save. Use ESC or the window's X to close the dialog.
 
 	SetSizer(topSizer);
 	Layout();
