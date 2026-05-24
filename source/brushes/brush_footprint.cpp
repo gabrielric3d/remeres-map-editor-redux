@@ -57,7 +57,7 @@ bool BrushFootprint::containsOffset(int dx, int dy) const {
 		return false;
 	}
 
-	if (shape == BRUSHSHAPE_SQUARE) {
+	if (shape == BRUSHSHAPE_SQUARE || shape == BRUSHSHAPE_LINE) {
 		return true;
 	}
 

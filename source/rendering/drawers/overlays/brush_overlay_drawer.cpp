@@ -26,6 +26,7 @@
 #include "game/creatures.h"
 
 #include "brushes/brush.h"
+#include "brushes/brush_utility.h"
 
 #include "rendering/ui/drawing_controller.h"
 #include "brushes/doodad/doodad_brush.h"
@@ -35,6 +36,7 @@
 #include "brushes/spawn/spawn_brush.h"
 #include "brushes/wall/wall_brush.h"
 #include "brushes/carpet/carpet_brush.h"
+#include "brushes/ground/ground_brush.h"
 #include "brushes/raw/raw_brush.h"
 #include "brushes/table/table_brush.h"
 #include "brushes/waypoint/waypoint_brush.h"
@@ -129,7 +131,30 @@ void BrushOverlayDrawer::draw(SpriteBatch& sprite_batch, PrimitiveRenderer& prim
 	if (drawer->canvas->drawing_controller->IsDraggingDraw()) {
 		ASSERT(brush->canDrag());
 
-		if (brush->is<WallBrush>()) {
+		if (g_gui.GetBrushShape() == BRUSHSHAPE_LINE
+			&& (brush->is<WallBrush>() || brush->is<GroundBrush>() || brush->is<RAWBrush>())) {
+			std::vector<Position> tilestodraw;
+			Position start(drawer->canvas->last_click_map_x, drawer->canvas->last_click_map_y, view.floor);
+			Position end_pos(view.mouse_map_x, view.mouse_map_y, view.floor);
+			BrushUtility::GetLineTiles(start, end_pos, &tilestodraw, nullptr);
+
+			RAWBrush* raw_brush = brush->is<RAWBrush>() ? brush->as<RAWBrush>() : nullptr;
+			if (g_gui.gfx.ensureAtlasManager()) {
+				const AtlasManager& atlas = *g_gui.gfx.getAtlasManager();
+				for (const Position& p : tilestodraw) {
+					int cx = p.x * TILE_SIZE - view.view_scroll_x - view.getFloorAdjustment();
+					int cy = p.y * TILE_SIZE - view.view_scroll_y - view.getFloorAdjustment();
+					if (raw_brush) {
+						item_drawer->DrawRawBrush(sprite_batch, sprite_drawer, cx, cy,
+							raw_brush->getItemID(), 160, 160, 160, 160);
+					} else {
+						sprite_batch.drawRect(static_cast<float>(cx), static_cast<float>(cy),
+							static_cast<float>(TILE_SIZE), static_cast<float>(TILE_SIZE),
+							brushColor, atlas);
+					}
+				}
+			}
+		} else if (brush->is<WallBrush>()) {
 			int last_click_start_map_x = std::min(drawer->canvas->last_click_map_x, view.mouse_map_x);
 			int last_click_start_map_y = std::min(drawer->canvas->last_click_map_y, view.mouse_map_y);
 			int last_click_end_map_x = std::max(drawer->canvas->last_click_map_x, view.mouse_map_x) + 1;

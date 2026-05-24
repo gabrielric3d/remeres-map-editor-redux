@@ -20,6 +20,10 @@ class BrushUtility {
 public:
 	static void GetTilesToDraw(int mouse_map_x, int mouse_map_y, int floor, std::vector<Position>* tilestodraw, std::vector<Position>* tilestoborder, bool fill = false, const FillArea& fill_area = {});
 
+	static void GetLineTiles(const Position& a, const Position& b,
+		std::vector<Position>* tilestodraw,
+		std::vector<Position>* tilestoborder);
+
 private:
 	static bool FloodFill(Map* map, const Position& center, int x, int y, int fill_width, int fill_height, GroundBrush* brush, std::vector<Position>* positions);
 

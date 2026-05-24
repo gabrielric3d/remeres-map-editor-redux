@@ -29,6 +29,9 @@ SizeToolBar::SizeToolBar(wxWindow* parent) {
 	toolbar->SetToolBitmapSize(icon_size);
 	toolbar->AddTool(TOOLBAR_SIZES_RECTANGULAR, wxEmptyString, rectangular_bitmap, wxNullBitmap, wxITEM_CHECK, "Rectangular Brush", wxEmptyString, nullptr);
 	toolbar->AddTool(TOOLBAR_SIZES_CIRCULAR, wxEmptyString, circular_bitmap, wxNullBitmap, wxITEM_CHECK, "Circular Brush", wxEmptyString, nullptr);
+	wxBitmap line_bitmap = wxArtProvider::GetBitmap(wxART_NORMAL_FILE, wxART_TOOLBAR, icon_size);
+	// TODO: substituir por sprite proprio quando criado em data/png/line_4_small.png
+	toolbar->AddTool(TOOLBAR_SIZES_LINE, wxEmptyString, line_bitmap, wxNullBitmap, wxITEM_CHECK, "Line Brush", wxEmptyString, nullptr);
 	toolbar->AddSeparator();
 	toolbar->AddTool(TOOLBAR_SIZES_1, wxEmptyString, size1_bitmap, wxNullBitmap, wxITEM_CHECK, "Size 1", wxEmptyString, nullptr);
 	toolbar->AddTool(TOOLBAR_SIZES_2, wxEmptyString, size2_bitmap, wxNullBitmap, wxITEM_CHECK, "Size 2", wxEmptyString, nullptr);
@@ -54,6 +57,7 @@ void SizeToolBar::Update() {
 
 	toolbar->EnableTool(TOOLBAR_SIZES_CIRCULAR, has_map);
 	toolbar->EnableTool(TOOLBAR_SIZES_RECTANGULAR, has_map);
+	toolbar->EnableTool(TOOLBAR_SIZES_LINE, has_map);
 	toolbar->EnableTool(TOOLBAR_SIZES_1, has_map);
 	toolbar->EnableTool(TOOLBAR_SIZES_2, has_map);
 	toolbar->EnableTool(TOOLBAR_SIZES_3, has_map);
@@ -73,6 +77,7 @@ void SizeToolBar::UpdateBrushSize(BrushShape shape, int size) {
 	if (shape == BRUSHSHAPE_CIRCLE) {
 		toolbar->ToggleTool(TOOLBAR_SIZES_CIRCULAR, true);
 		toolbar->ToggleTool(TOOLBAR_SIZES_RECTANGULAR, false);
+		toolbar->ToggleTool(TOOLBAR_SIZES_LINE, false);
 
 		wxSize icon_size = wxSize(16, 16);
 		toolbar->SetToolBitmap(TOOLBAR_SIZES_1, IMAGE_MANAGER.GetBitmap(IMAGE_CIRCULAR_1_SMALL, icon_size));
@@ -82,9 +87,23 @@ void SizeToolBar::UpdateBrushSize(BrushShape shape, int size) {
 		toolbar->SetToolBitmap(TOOLBAR_SIZES_5, IMAGE_MANAGER.GetBitmap(IMAGE_CIRCULAR_5_SMALL, icon_size));
 		toolbar->SetToolBitmap(TOOLBAR_SIZES_6, IMAGE_MANAGER.GetBitmap(IMAGE_CIRCULAR_6_SMALL, icon_size));
 		toolbar->SetToolBitmap(TOOLBAR_SIZES_7, IMAGE_MANAGER.GetBitmap(IMAGE_CIRCULAR_7_SMALL, icon_size));
+	} else if (shape == BRUSHSHAPE_LINE) {
+		toolbar->ToggleTool(TOOLBAR_SIZES_CIRCULAR, false);
+		toolbar->ToggleTool(TOOLBAR_SIZES_RECTANGULAR, false);
+		toolbar->ToggleTool(TOOLBAR_SIZES_LINE, true);
+
+		wxSize icon_size = wxSize(16, 16);
+		toolbar->SetToolBitmap(TOOLBAR_SIZES_1, IMAGE_MANAGER.GetBitmap(IMAGE_RECTANGULAR_1_SMALL, icon_size));
+		toolbar->SetToolBitmap(TOOLBAR_SIZES_2, IMAGE_MANAGER.GetBitmap(IMAGE_RECTANGULAR_2_SMALL, icon_size));
+		toolbar->SetToolBitmap(TOOLBAR_SIZES_3, IMAGE_MANAGER.GetBitmap(IMAGE_RECTANGULAR_3_SMALL, icon_size));
+		toolbar->SetToolBitmap(TOOLBAR_SIZES_4, IMAGE_MANAGER.GetBitmap(IMAGE_RECTANGULAR_4_SMALL, icon_size));
+		toolbar->SetToolBitmap(TOOLBAR_SIZES_5, IMAGE_MANAGER.GetBitmap(IMAGE_RECTANGULAR_5_SMALL, icon_size));
+		toolbar->SetToolBitmap(TOOLBAR_SIZES_6, IMAGE_MANAGER.GetBitmap(IMAGE_RECTANGULAR_6_SMALL, icon_size));
+		toolbar->SetToolBitmap(TOOLBAR_SIZES_7, IMAGE_MANAGER.GetBitmap(IMAGE_RECTANGULAR_7_SMALL, icon_size));
 	} else {
 		toolbar->ToggleTool(TOOLBAR_SIZES_CIRCULAR, false);
 		toolbar->ToggleTool(TOOLBAR_SIZES_RECTANGULAR, true);
+		toolbar->ToggleTool(TOOLBAR_SIZES_LINE, false);
 
 		wxSize icon_size = wxSize(16, 16);
 		toolbar->SetToolBitmap(TOOLBAR_SIZES_1, IMAGE_MANAGER.GetBitmap(IMAGE_RECTANGULAR_1_SMALL, icon_size));
@@ -118,6 +137,9 @@ void SizeToolBar::OnToolbarClick(wxCommandEvent& event) {
 			break;
 		case TOOLBAR_SIZES_RECTANGULAR:
 			g_gui.SetBrushShape(BRUSHSHAPE_SQUARE);
+			break;
+		case TOOLBAR_SIZES_LINE:
+			g_gui.SetBrushShape(BRUSHSHAPE_LINE);
 			break;
 		case TOOLBAR_SIZES_1:
 			g_gui.SetBrushSize(0);

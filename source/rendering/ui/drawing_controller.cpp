@@ -302,7 +302,23 @@ void DrawingController::HandleRelease(const Position& mouse_map_pos, bool shift_
 	if (dragging_draw) {
 		Brush* brush = g_gui.GetCurrentBrush();
 		if (brush) {
-			if (brush->is<SpawnBrush>()) {
+			if (g_gui.GetBrushShape() == BRUSHSHAPE_LINE
+				&& (brush->is<WallBrush>() || brush->is<GroundBrush>() || brush->is<RAWBrush>())) {
+				// Phase 1 of Line Tool: only Wall, Ground, and RAW brushes are supported.
+				// Other brushes (carpet, table, doodad, spawn) continue using the existing
+				// rectangle/circle release semantics.
+				PositionVector tilestodraw;
+				PositionVector tilestoborder;
+				Position start(canvas->last_click_map_x, canvas->last_click_map_y, mouse_map_pos.z);
+				BrushUtility::GetLineTiles(start, mouse_map_pos, &tilestodraw, &tilestoborder);
+				bool ground_replace_release = brush->is<GroundBrush>()
+					&& IsGroundReplaceModifier(shift_down, ctrl_down, alt_down);
+				if (ctrl_down) {
+					editor.undraw(tilestodraw, tilestoborder, ground_replace_release);
+				} else {
+					editor.draw(tilestodraw, tilestoborder, ground_replace_release);
+				}
+			} else if (brush->is<SpawnBrush>()) {
 				int start_map_x = std::min(canvas->last_click_map_x, mouse_map_pos.x);
 				int start_map_y = std::min(canvas->last_click_map_y, mouse_map_pos.y);
 				int end_map_x = std::max(canvas->last_click_map_x, mouse_map_pos.x);

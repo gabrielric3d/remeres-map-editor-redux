@@ -12,7 +12,10 @@
 #include "map/map.h"
 #include "map/tile.h"
 
+#include <cmath>
+#include <cstdint>
 #include <stack>
+#include <unordered_set>
 
 std::vector<bool> BrushUtility::processed;
 int BrushUtility::countMaxFills = 0;
@@ -136,4 +139,75 @@ bool BrushUtility::FloodFill(Map* map, const Position& center, int start_x, int 
 	}
 
 	return false;
+}
+
+void BrushUtility::GetLineTiles(const Position& a, const Position& b,
+	std::vector<Position>* tilestodraw,
+	std::vector<Position>* tilestoborder) {
+	const BrushFootprint footprint = g_gui.GetBrushFootprint();
+	const int floor = a.z;
+
+	std::unordered_set<int64_t> draw_seen;
+	std::unordered_set<int64_t> border_seen;
+
+	const auto makeKey = [](int x, int y) -> int64_t {
+		return (static_cast<int64_t>(static_cast<uint32_t>(y)) << 32) | static_cast<uint32_t>(x);
+	};
+
+	const auto applyFootprintAt = [&](int px, int py) {
+		for (int y = footprint.min_offset_y - 1; y <= footprint.max_offset_y + 1; ++y) {
+			for (int x = footprint.min_offset_x - 1; x <= footprint.max_offset_x + 1; ++x) {
+				if (footprint.containsOffset(x, y)) {
+					if (tilestodraw) {
+						const int64_t key = makeKey(px + x, py + y);
+						if (draw_seen.insert(key).second) {
+							tilestodraw->push_back(Position(px + x, py + y, floor));
+						}
+					}
+				}
+
+				for (int check_y = y - 1; check_y <= y + 1; ++check_y) {
+					for (int check_x = x - 1; check_x <= x + 1; ++check_x) {
+						if (!footprint.containsOffset(check_x, check_y)) {
+							continue;
+						}
+						if (tilestoborder) {
+							const int64_t key = makeKey(px + x, py + y);
+							if (border_seen.insert(key).second) {
+								tilestoborder->push_back(Position(px + x, py + y, floor));
+							}
+						}
+						check_y = y + 2;
+						break;
+					}
+				}
+			}
+		}
+	};
+
+	int x0 = a.x;
+	int y0 = a.y;
+	const int x1 = b.x;
+	const int y1 = b.y;
+	int dx = std::abs(x1 - x0);
+	int sx = x0 < x1 ? 1 : -1;
+	int dy = -std::abs(y1 - y0);
+	int sy = y0 < y1 ? 1 : -1;
+	int err = dx + dy;
+
+	while (true) {
+		applyFootprintAt(x0, y0);
+		if (x0 == x1 && y0 == y1) {
+			break;
+		}
+		int e2 = 2 * err;
+		if (e2 >= dy) {
+			err += dy;
+			x0 += sx;
+		}
+		if (e2 <= dx) {
+			err += dx;
+			y0 += sy;
+		}
+	}
 }

@@ -21,6 +21,7 @@
 enum BrushShape {
 	BRUSHSHAPE_CIRCLE,
 	BRUSHSHAPE_SQUARE,
+	BRUSHSHAPE_LINE,
 };
 
 enum TilesetCategoryType {

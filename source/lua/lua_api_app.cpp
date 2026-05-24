@@ -712,7 +712,14 @@ namespace LuaAPI {
 			} else if (key == "brushSize") {
 				return sol::make_object(lua, g_gui.GetBrushSize());
 			} else if (key == "brushShape") {
-				return sol::make_object(lua, g_gui.GetBrushShape() == BRUSHSHAPE_CIRCLE ? "circle" : "square");
+				BrushShape bs = g_gui.GetBrushShape();
+				const char* s = "square";
+				if (bs == BRUSHSHAPE_CIRCLE) {
+					s = "circle";
+				} else if (bs == BRUSHSHAPE_LINE) {
+					s = "line";
+				}
+				return sol::make_object(lua, s);
 			} else if (key == "brushVariation") {
 				return sol::make_object(lua, g_gui.GetBrushVariation());
 			} else if (key == "spawnTime") {
@@ -738,6 +745,8 @@ namespace LuaAPI {
 						g_gui.SetBrushShape(BRUSHSHAPE_CIRCLE);
 					} else if (s == "square") {
 						g_gui.SetBrushShape(BRUSHSHAPE_SQUARE);
+					} else if (s == "line") {
+						g_gui.SetBrushShape(BRUSHSHAPE_LINE);
 					}
 				}
 			} else if (key == "brushVariation") {
