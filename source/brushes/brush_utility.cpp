@@ -201,11 +201,16 @@ void BrushUtility::GetLineTiles(const Position& a, const Position& b,
 			break;
 		}
 		int e2 = 2 * err;
-		if (e2 >= dy) {
+		const bool step_x = e2 >= dy;
+		const bool step_y = e2 <= dx;
+		if (step_x) {
 			err += dy;
 			x0 += sx;
 		}
-		if (e2 <= dx) {
+		if (step_x && step_y) {
+			applyFootprintAt(x0, y0);
+		}
+		if (step_y) {
 			err += dx;
 			y0 += sy;
 		}
