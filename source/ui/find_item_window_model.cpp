@@ -303,6 +303,15 @@ namespace {
 		if (definition.group() == ITEM_GROUP_RUNE) {
 			mask |= advancedFinderBit(AdvancedFinderTypeFilter::Rune);
 		}
+		if (definition.isGroundTile()) {
+			mask |= advancedFinderBit(AdvancedFinderTypeFilter::Ground);
+		}
+		if (definition.isFluidContainer()) {
+			mask |= advancedFinderBit(AdvancedFinderTypeFilter::FluidContainer);
+		}
+		if (definition.isSplash()) {
+			mask |= advancedFinderBit(AdvancedFinderTypeFilter::Splash);
+		}
 
 		return mask;
 	}
@@ -330,6 +339,20 @@ namespace {
 		if (definition.hasFlag(ItemFlag::FullTile)) {
 			mask |= advancedFinderBit(AdvancedFinderPropertyFilter::FullTile);
 		}
+		const auto top_order = definition.attribute(ItemAttributeKey::AlwaysOnTopOrder);
+		if (definition.hasFlag(ItemFlag::AlwaysOnBottom) && top_order == 1) {
+			mask |= advancedFinderBit(AdvancedFinderPropertyFilter::GroundBorder);
+		}
+		if (definition.hasFlag(ItemFlag::AlwaysOnBottom) && top_order == 2) {
+			mask |= advancedFinderBit(AdvancedFinderPropertyFilter::OnBottom);
+		}
+		if (definition.hasFlag(ItemFlag::AlwaysOnBottom) && top_order == 3) {
+			mask |= advancedFinderBit(AdvancedFinderPropertyFilter::OnTop);
+		}
+		const auto slot_position = static_cast<uint16_t>(definition.attribute(ItemAttributeKey::SlotPosition));
+		if (slot_position != 0 && slot_position != SLOTP_WHEREEVER) {
+			mask |= advancedFinderBit(AdvancedFinderPropertyFilter::Equipable);
+		}
 		return mask;
 	}
 
@@ -344,8 +367,11 @@ namespace {
 		if (definition.hasFlag(ItemFlag::Pickupable)) {
 			mask |= advancedFinderBit(AdvancedFinderInteractionFilter::Pickupable);
 		}
-		if (definition.hasFlag(ItemFlag::ForceUse) || definition.hasFlag(ItemFlag::MultiUse)) {
+		if (definition.hasFlag(ItemFlag::ForceUse)) {
 			mask |= advancedFinderBit(AdvancedFinderInteractionFilter::ForceUse);
+		}
+		if (definition.hasFlag(ItemFlag::MultiUse)) {
+			mask |= advancedFinderBit(AdvancedFinderInteractionFilter::MultiUse);
 		}
 		if (definition.hasFlag(ItemFlag::AllowDistRead)) {
 			mask |= advancedFinderBit(AdvancedFinderInteractionFilter::DistRead);
@@ -355,6 +381,15 @@ namespace {
 		}
 		if (definition.hasFlag(ItemFlag::IsHangable)) {
 			mask |= advancedFinderBit(AdvancedFinderInteractionFilter::Hangable);
+		}
+		if (definition.hasFlag(ItemFlag::HookEast)) {
+			mask |= advancedFinderBit(AdvancedFinderInteractionFilter::HookEast);
+		}
+		if (definition.hasFlag(ItemFlag::HookSouth)) {
+			mask |= advancedFinderBit(AdvancedFinderInteractionFilter::HookSouth);
+		}
+		if (definition.hasFlag(ItemFlag::Stackable)) {
+			mask |= advancedFinderBit(AdvancedFinderInteractionFilter::Stackable);
 		}
 		return mask;
 	}
@@ -386,6 +421,12 @@ namespace {
 		}
 		if (definition.attribute(ItemAttributeKey::WaySpeed) != 100) {
 			mask |= advancedFinderBit(AdvancedFinderVisualFilter::HasSpeed);
+		}
+		if (sprite && sprite->minimap_color != 0) {
+			mask |= advancedFinderBit(AdvancedFinderVisualFilter::HasMinimapColor);
+		}
+		if (sprite && (sprite->drawoffset_x != 0 || sprite->drawoffset_y != 0)) {
+			mask |= advancedFinderBit(AdvancedFinderVisualFilter::HasOffset);
 		}
 		return mask;
 	}

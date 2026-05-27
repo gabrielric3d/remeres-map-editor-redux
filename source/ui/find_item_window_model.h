@@ -41,6 +41,9 @@ enum class AdvancedFinderTypeFilter : uint8_t {
 	Armor,
 	Rune,
 	Creature,
+	Ground,
+	FluidContainer,
+	Splash,
 	Count,
 };
 
@@ -52,6 +55,10 @@ enum class AdvancedFinderPropertyFilter : uint8_t {
 	HasElevation,
 	FloorChange,
 	FullTile,
+	GroundBorder,
+	OnBottom,
+	OnTop,
+	Equipable,
 	Count,
 };
 
@@ -60,9 +67,13 @@ enum class AdvancedFinderInteractionFilter : uint8_t {
 	Writeable,
 	Pickupable,
 	ForceUse,
+	MultiUse,
 	DistRead,
 	Rotatable,
 	Hangable,
+	HookEast,
+	HookSouth,
+	Stackable,
 	Count,
 };
 
@@ -75,6 +86,8 @@ enum class AdvancedFinderVisualFilter : uint8_t {
 	ClientCharges,
 	Decays,
 	HasSpeed,
+	HasMinimapColor,
+	HasOffset,
 	Count,
 };
 
