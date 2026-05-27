@@ -95,12 +95,27 @@ InterfacePage::InterfacePage(wxWindow* parent) : ScrollablePreferencesPage(paren
 	zoom_panel_sizer->Add(zoom_speed_value_label, 0, wxALIGN_CENTER_VERTICAL);
 	zoom_panel->SetSizer(zoom_panel_sizer);
 	PreferencesLayout::AddControlRow(navigation_section, "Zoom speed", "How quickly the view zooms in and out when using the mouse wheel.", zoom_panel, true);
+
+	auto* palette_scroll_panel = new wxPanel(navigation_section, wxID_ANY);
+	palette_scroll_panel->SetBackgroundColour(navigation_section->GetBackgroundColour());
+	auto* palette_scroll_panel_sizer = new wxBoxSizer(wxHORIZONTAL);
+	auto true_palette_scrollspeed = static_cast<int>(g_settings.getFloat(Config::PALETTE_SCROLL_SPEED) * 10);
+	palette_scroll_speed_slider = new wxSlider(palette_scroll_panel, wxID_ANY, true_palette_scrollspeed, 1, std::max(true_palette_scrollspeed, 100));
+	palette_scroll_panel_sizer->Add(palette_scroll_speed_slider, 1, wxEXPAND | wxRIGHT, FromDIP(10));
+	palette_scroll_speed_value_label = PreferencesLayout::CreateBodyText(palette_scroll_panel, FormatSpeedLabel(true_palette_scrollspeed), true);
+	palette_scroll_panel_sizer->Add(palette_scroll_speed_value_label, 0, wxALIGN_CENTER_VERTICAL);
+	palette_scroll_panel->SetSizer(palette_scroll_panel_sizer);
+	PreferencesLayout::AddControlRow(navigation_section, "Palette scroll speed", "How fast the brush palettes scroll when using the mouse wheel.", palette_scroll_panel, true);
+
 	page_sizer->Add(navigation_section, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
 
 	scroll_speed_slider->Bind(wxEVT_SLIDER, [this](wxCommandEvent&) {
 		UpdateSpeedLabels();
 	});
 	zoom_speed_slider->Bind(wxEVT_SLIDER, [this](wxCommandEvent&) {
+		UpdateSpeedLabels();
+	});
+	palette_scroll_speed_slider->Bind(wxEVT_SLIDER, [this](wxCommandEvent&) {
 		UpdateSpeedLabels();
 	});
 	UpdateSpeedLabels();
@@ -114,6 +129,9 @@ void InterfacePage::UpdateSpeedLabels() {
 	}
 	if (zoom_speed_value_label) {
 		zoom_speed_value_label->SetLabel(FormatSpeedLabel(zoom_speed_slider->GetValue()));
+	}
+	if (palette_scroll_speed_value_label) {
+		palette_scroll_speed_value_label->SetLabel(FormatSpeedLabel(palette_scroll_speed_slider->GetValue()));
 	}
 }
 
@@ -215,6 +233,7 @@ void InterfacePage::Apply() {
 	float scroll_mul = inversed_scroll_chkbox->GetValue() ? -1.0f : 1.0f;
 	g_settings.setFloat(Config::SCROLL_SPEED, scroll_mul * scroll_speed_slider->GetValue() / 10.f);
 	g_settings.setFloat(Config::ZOOM_SPEED, zoom_speed_slider->GetValue() / 10.f);
+	g_settings.setFloat(Config::PALETTE_SCROLL_SPEED, palette_scroll_speed_slider->GetValue() / 10.f);
 
 	if (palette_update_needed) {
 		g_gui.RebuildPalettes();

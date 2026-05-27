@@ -41,8 +41,10 @@ private:
 
 	wxSlider* scroll_speed_slider = nullptr;
 	wxSlider* zoom_speed_slider = nullptr;
+	wxSlider* palette_scroll_speed_slider = nullptr;
 	wxStaticText* scroll_speed_value_label = nullptr;
 	wxStaticText* zoom_speed_value_label = nullptr;
+	wxStaticText* palette_scroll_speed_value_label = nullptr;
 };
 
 #endif

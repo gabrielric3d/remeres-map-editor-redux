@@ -274,6 +274,7 @@ void OpenMapDialog::SaveFavorites(const std::vector<wxString>& favorites) const 
 		stream << favorites[i].ToStdString(wxConvUTF8);
 	}
 	g_settings.setString(Config::FAVORITE_FILES, stream.str());
+	g_settings.save();
 }
 
 bool OpenMapDialog::IsFavorite(const std::vector<wxString>& favorites, const wxString& path) const {

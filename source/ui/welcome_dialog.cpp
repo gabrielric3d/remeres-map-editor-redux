@@ -824,6 +824,7 @@ void WelcomeDialog::SaveFavoritesToSettings() const {
 		stream << m_favorite_maps[i].path.ToStdString(wxConvUTF8);
 	}
 	g_settings.setString(Config::FAVORITE_FILES, stream.str());
+	g_settings.save();
 }
 
 void WelcomeDialog::ToggleFavoriteByPath(const wxString& path) {
