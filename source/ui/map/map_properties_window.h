@@ -2,6 +2,7 @@
 #define RME_UI_MAP_MAP_PROPERTIES_WINDOW_H_
 
 #include "app/main.h"
+#include "map/position.h"
 #include <wx/wx.h>
 #include <wx/spinctrl.h>
 
@@ -14,6 +15,10 @@ public:
 	virtual ~MapPropertiesWindow();
 
 	bool ShouldCreateFromSelection() const;
+	bool ShouldCopyFromMap() const;
+	Editor* GetCopySourceEditor() const;
+	Position GetCopyFromPosition() const;
+	Position GetCopyToPosition() const;
 
 	void OnChangeVersion(wxCommandEvent&);
 	void OnToggleSyncExternalFiles(wxCommandEvent&);
@@ -22,6 +27,7 @@ public:
 	void OnSizePresetChanged(wxCommandEvent&);
 	void OnDimensionsChanged(wxCommandEvent&);
 	void OnDimensionsChangedSpin(wxSpinEvent&);
+	void OnCopyFromMapChanged(wxCommandEvent&);
 
 	void OnClickOK(wxCommandEvent&);
 	void OnClickCancel(wxCommandEvent&);
@@ -30,6 +36,7 @@ protected:
 	void UpdateProtocolList();
 	void UpdateExternalFilenameControls();
 	void UpdateAutoExternalFilenames();
+	void UpdateCopyFromMapControls();
 	void SyncSizePresetSelectionFromDimensions();
 
 	MapTab* view;
@@ -48,6 +55,13 @@ protected:
 	wxTextCtrl* house_filename_ctrl;
 	wxTextCtrl* spawn_filename_ctrl;
 	wxTextCtrl* waypoint_filename_ctrl;
+	wxChoice* copy_from_map_choice;
+	wxSpinCtrl* from_x_spin;
+	wxSpinCtrl* from_y_spin;
+	wxSpinCtrl* from_z_spin;
+	wxSpinCtrl* to_x_spin;
+	wxSpinCtrl* to_y_spin;
+	wxSpinCtrl* to_z_spin;
 	std::string default_house_filename;
 	std::string default_spawn_filename;
 	std::string default_waypoint_filename;

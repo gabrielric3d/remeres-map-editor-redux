@@ -3,6 +3,8 @@
 #include "editor/editor.h"
 #include "map/map.h"
 #include "editor/operations/map_version_changer.h"
+#include "editor/managers/editor_manager.h"
+#include "editor/editor_tabs.h"
 #include "ui/gui.h"
 #include "app/managers/version_manager.h"
 #include "ui/dialog_util.h"
@@ -104,6 +106,13 @@ MapPropertiesWindow::MapPropertiesWindow(wxWindow* parent, MapTab* view, Editor&
 	house_filename_ctrl(nullptr),
 	spawn_filename_ctrl(nullptr),
 	waypoint_filename_ctrl(nullptr),
+	copy_from_map_choice(nullptr),
+	from_x_spin(nullptr),
+	from_y_spin(nullptr),
+	from_z_spin(nullptr),
+	to_x_spin(nullptr),
+	to_y_spin(nullptr),
+	to_z_spin(nullptr),
 	updating_dimensions(false) {
 	// Setup data variables
 	Map& map = editor.map;
@@ -273,6 +282,69 @@ MapPropertiesWindow::MapPropertiesWindow(wxWindow* parent, MapTab* view, Editor&
 	waypoint_filename_ctrl->SetToolTip("External waypoint XML file (leave empty for internal)");
 	grid_sizer->Add(waypoint_filename_ctrl, 1, wxEXPAND);
 
+	// Copy From Existing Map
+	grid_sizer->Add(newd wxStaticText(this, wxID_ANY, "Copy From Map"));
+	copy_from_map_choice = newd wxChoice(this, MAP_PROPERTIES_COPY_FROM_MAP);
+	copy_from_map_choice->SetToolTip("Copy a region of another open map into the new map, preserving positions");
+	copy_from_map_choice->Append("(None)", static_cast<void*>(nullptr));
+	for (int i = 0; i < g_editors.GetTabCount(); ++i) {
+		EditorTab* tab = g_editors.GetTab(i);
+		if (!tab) {
+			continue;
+		}
+		MapTab* map_tab = dynamic_cast<MapTab*>(tab);
+		if (!map_tab) {
+			continue;
+		}
+		Editor* other_editor = map_tab->GetEditor();
+		if (!other_editor || other_editor == &editor) {
+			continue;
+		}
+		wxString label = map_tab->GetTitle();
+		if (label.empty()) {
+			label = wxstr(other_editor->map.getName());
+		}
+		if (label.empty()) {
+			label = wxString::Format("Map %d", i + 1);
+		}
+		copy_from_map_choice->Append(label, static_cast<void*>(other_editor));
+	}
+	copy_from_map_choice->SetSelection(0);
+	copy_from_map_choice->Bind(wxEVT_CHOICE, &MapPropertiesWindow::OnCopyFromMapChanged, this);
+	grid_sizer->Add(copy_from_map_choice, wxSizerFlags(1).Expand());
+
+	// From Position (X / Y / Z)
+	grid_sizer->Add(newd wxStaticText(this, wxID_ANY, "From Position"));
+	{
+		wxSizer* from_sizer = newd wxBoxSizer(wxHORIZONTAL);
+		from_x_spin = newd wxSpinCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, MAP_MAX_WIDTH - 1, 0);
+		from_x_spin->SetToolTip("Source map X (inclusive)");
+		from_sizer->Add(from_x_spin, wxSizerFlags(1).Expand());
+		from_y_spin = newd wxSpinCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, MAP_MAX_HEIGHT - 1, 0);
+		from_y_spin->SetToolTip("Source map Y (inclusive)");
+		from_sizer->Add(from_y_spin, wxSizerFlags(1).Expand());
+		from_z_spin = newd wxSpinCtrl(this, wxID_ANY, "7", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, MAP_MAX_LAYER, 7);
+		from_z_spin->SetToolTip("Source map Z (inclusive)");
+		from_sizer->Add(from_z_spin, wxSizerFlags(1).Expand());
+		grid_sizer->Add(from_sizer, 1, wxEXPAND);
+	}
+
+	// To Position (X / Y / Z)
+	grid_sizer->Add(newd wxStaticText(this, wxID_ANY, "To Position"));
+	{
+		wxSizer* to_sizer = newd wxBoxSizer(wxHORIZONTAL);
+		to_x_spin = newd wxSpinCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, MAP_MAX_WIDTH - 1, 0);
+		to_x_spin->SetToolTip("Source map X (inclusive)");
+		to_sizer->Add(to_x_spin, wxSizerFlags(1).Expand());
+		to_y_spin = newd wxSpinCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, MAP_MAX_HEIGHT - 1, 0);
+		to_y_spin->SetToolTip("Source map Y (inclusive)");
+		to_sizer->Add(to_y_spin, wxSizerFlags(1).Expand());
+		to_z_spin = newd wxSpinCtrl(this, wxID_ANY, "7", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, MAP_MAX_LAYER, 7);
+		to_z_spin->SetToolTip("Source map Z (inclusive)");
+		to_sizer->Add(to_z_spin, wxSizerFlags(1).Expand());
+		grid_sizer->Add(to_sizer, 1, wxEXPAND);
+	}
+
 	topsizer->Add(grid_sizer, wxSizerFlags(1).Expand().Border(wxALL, 20));
 
 	// OK / Cancel buttons
@@ -305,6 +377,7 @@ MapPropertiesWindow::MapPropertiesWindow(wxWindow* parent, MapTab* view, Editor&
 
 	SyncSizePresetSelectionFromDimensions();
 	UpdateExternalFilenameControls();
+	UpdateCopyFromMapControls();
 }
 
 void MapPropertiesWindow::UpdateProtocolList() {
@@ -434,6 +507,21 @@ void MapPropertiesWindow::UpdateAutoExternalFilenames() {
 void MapPropertiesWindow::OnClickOK(wxCommandEvent& WXUNUSED(event)) {
 	Map& map = editor.map;
 
+	if (ShouldCopyFromMap()) {
+		const Position from_pos = GetCopyFromPosition();
+		const Position to_pos = GetCopyToPosition();
+		if (to_pos.x < from_pos.x || to_pos.y < from_pos.y || to_pos.z < from_pos.z) {
+			DialogUtil::PopupDialog(this, "Error", "Invalid copy region: 'To Position' must be greater than or equal to 'From Position' on every axis.", wxOK);
+			return;
+		}
+		const int new_map_width = width_spin->GetValue();
+		const int new_map_height = height_spin->GetValue();
+		if (to_pos.x >= new_map_width || to_pos.y >= new_map_height) {
+			DialogUtil::PopupDialog(this, "Error", "The copy region does not fit inside the new map dimensions. Increase Map Dimensions or reduce 'To Position'.", wxOK);
+			return;
+		}
+	}
+
 	MapVersion old_ver = map.getVersion();
 	MapVersion new_ver;
 
@@ -544,4 +632,65 @@ MapPropertiesWindow::~MapPropertiesWindow() = default;
 
 bool MapPropertiesWindow::ShouldCreateFromSelection() const {
 	return create_from_selection_checkbox && create_from_selection_checkbox->GetValue();
+}
+
+bool MapPropertiesWindow::ShouldCopyFromMap() const {
+	return GetCopySourceEditor() != nullptr;
+}
+
+Editor* MapPropertiesWindow::GetCopySourceEditor() const {
+	if (!copy_from_map_choice) {
+		return nullptr;
+	}
+	int selection = copy_from_map_choice->GetSelection();
+	if (selection == wxNOT_FOUND) {
+		return nullptr;
+	}
+	return static_cast<Editor*>(copy_from_map_choice->GetClientData(selection));
+}
+
+Position MapPropertiesWindow::GetCopyFromPosition() const {
+	if (!from_x_spin || !from_y_spin || !from_z_spin) {
+		return Position(0, 0, 0);
+	}
+	return Position(from_x_spin->GetValue(), from_y_spin->GetValue(), from_z_spin->GetValue());
+}
+
+Position MapPropertiesWindow::GetCopyToPosition() const {
+	if (!to_x_spin || !to_y_spin || !to_z_spin) {
+		return Position(0, 0, 0);
+	}
+	return Position(to_x_spin->GetValue(), to_y_spin->GetValue(), to_z_spin->GetValue());
+}
+
+void MapPropertiesWindow::OnCopyFromMapChanged(wxCommandEvent&) {
+	UpdateCopyFromMapControls();
+}
+
+void MapPropertiesWindow::UpdateCopyFromMapControls() {
+	const bool enabled = ShouldCopyFromMap();
+	if (from_x_spin) {
+		from_x_spin->Enable(enabled);
+	}
+	if (from_y_spin) {
+		from_y_spin->Enable(enabled);
+	}
+	if (from_z_spin) {
+		from_z_spin->Enable(enabled);
+	}
+	if (to_x_spin) {
+		to_x_spin->Enable(enabled);
+	}
+	if (to_y_spin) {
+		to_y_spin->Enable(enabled);
+	}
+	if (to_z_spin) {
+		to_z_spin->Enable(enabled);
+	}
+	if (create_from_selection_checkbox && enabled) {
+		create_from_selection_checkbox->SetValue(false);
+		create_from_selection_checkbox->Enable(false);
+	} else if (create_from_selection_checkbox) {
+		create_from_selection_checkbox->Enable(true);
+	}
 }
