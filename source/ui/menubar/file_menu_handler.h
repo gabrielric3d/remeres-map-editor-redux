@@ -22,6 +22,7 @@ public:
 	void OnImportMap(wxCommandEvent& event);
 	void OnImportMonsterData(wxCommandEvent& event);
 	void OnImportMonsterJSON(wxCommandEvent& event);
+	void OnImportCreaturesSpawn(wxCommandEvent& event);
 	void OnImportMinimap(wxCommandEvent& event);
 
 	void OnExportMinimap(wxCommandEvent& event);

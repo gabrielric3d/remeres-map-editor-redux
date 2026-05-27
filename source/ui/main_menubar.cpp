@@ -332,6 +332,10 @@ void MainMenuBar::OnImportMonsterJSON(wxCommandEvent& event) {
 	fileMenuHandler->OnImportMonsterJSON(event);
 }
 
+void MainMenuBar::OnImportCreaturesSpawn(wxCommandEvent& event) {
+	fileMenuHandler->OnImportCreaturesSpawn(event);
+}
+
 void MainMenuBar::LoadScriptsMenu() const {
 	if (scriptMenuHandler) {
 		wxMenu* parentMenu = nullptr;

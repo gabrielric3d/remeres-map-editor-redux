@@ -15,6 +15,9 @@
 #include "game/creatures.h"
 #include "app/managers/version_manager.h"
 #include "ui/controls/sortable_list_box.h"
+#include "editor/editor.h"
+#include "io/map_xml_io.h"
+#include "map/map.h"
 
 FileMenuHandler::FileMenuHandler(MainFrame* frame, MainMenuBar* menubar) :
 	frame(frame), menubar(menubar) {
@@ -99,6 +102,56 @@ void FileMenuHandler::OnImportMonsterJSON(wxCommandEvent& WXUNUSED(event)) {
 		if (anyImported) {
 			g_gui.RefreshView();
 		}
+	}
+}
+
+void FileMenuHandler::OnImportCreaturesSpawn(wxCommandEvent& WXUNUSED(event)) {
+	Editor* editor = g_gui.GetCurrentEditor();
+	if (!editor) {
+		return;
+	}
+
+	wxFileDialog dlg(g_gui.root, "Force Import Creatures Spawn", "", "", "Spawn XML (*.xml)|*.xml", wxFD_OPEN | wxFD_MULTIPLE | wxFD_FILE_MUST_EXIST);
+	if (dlg.ShowModal() != wxID_OK) {
+		return;
+	}
+
+	wxArrayString paths;
+	dlg.GetPaths(paths);
+	if (paths.IsEmpty()) {
+		return;
+	}
+
+	int total_loaded = 0;
+	std::vector<std::string> failures;
+
+	for (uint32_t i = 0; i < paths.GetCount(); ++i) {
+		const wxString& path = paths[i];
+		pugi::xml_document doc;
+		pugi::xml_parse_result result = doc.load_file(nstr(path).c_str());
+		if (!result) {
+			failures.push_back(nstr(path) + ": " + result.description());
+			continue;
+		}
+
+		if (!MapXMLIO::loadSpawns(editor->map, doc)) {
+			failures.push_back(nstr(path) + ": file is not a valid spawn XML (missing <spawns> root)");
+			continue;
+		}
+
+		++total_loaded;
+	}
+
+	if (total_loaded > 0) {
+		editor->map.doChange();
+		g_gui.RefreshView();
+		g_gui.RefreshPalettes();
+	}
+
+	if (!failures.empty()) {
+		DialogUtil::ListDialog("Force Import Creatures Spawn - Errors", failures);
+	} else {
+		DialogUtil::PopupDialog("Success", "Spawns imported successfully from " + i2ws(total_loaded) + " file(s).", wxOK);
 	}
 }
 

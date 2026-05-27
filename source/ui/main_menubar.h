@@ -38,6 +38,7 @@ namespace MenuBar {
 		IMPORT_MAP,
 		IMPORT_MONSTERS,
 		IMPORT_MONSTERS_JSON,
+		IMPORT_CREATURES_SPAWN,
 		IMPORT_MINIMAP,
 
 		EXPORT_MINIMAP,
@@ -263,6 +264,7 @@ public:
 	void OnImportMap(wxCommandEvent& event);
 	void OnImportMonsterData(wxCommandEvent& event);
 	void OnImportMonsterJSON(wxCommandEvent& event);
+	void OnImportCreaturesSpawn(wxCommandEvent& event);
 	void OnImportMinimap(wxCommandEvent& event);
 
 	void OnExportMinimap(wxCommandEvent& event);
