@@ -331,12 +331,14 @@ void Tile::setGround(std::unique_ptr<Item> item) {
 	if (!item) {
 		ground.reset();
 		TileOperations::update(this);
+		modify();
 		return;
 	}
 
 	ASSERT(item->isGroundTile());
 	ground = std::move(item);
 	TileOperations::update(this);
+	modify();
 }
 
 void Tile::addItem(std::unique_ptr<Item> item) {
@@ -366,6 +368,7 @@ void Tile::addItem(std::unique_ptr<Item> item) {
 
 	items.insert(it, std::move(item));
 	TileOperations::update(this);
+	modify();
 }
 
 uint8_t Tile::getMiniMapColor() const {

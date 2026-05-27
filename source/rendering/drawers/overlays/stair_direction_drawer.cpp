@@ -4,6 +4,7 @@
 #include "editor/editor.h"
 #include "map/tile.h"
 #include "game/item.h"
+#include "game/stair_overlays.h"
 #include "item_definitions/core/item_definition_store.h"
 
 namespace {
@@ -14,10 +15,25 @@ constexpr float BODY_WIDTH = 14.0f;
 constexpr float HEAD_LENGTH = 16.0f;
 constexpr float HEAD_WIDTH = 26.0f;
 
+// Direction codes: 0=N, 1=S, 2=E, 3=W, 4=Down, 5=UpDouble, 6=DownDouble
 struct StairInfo {
 	float cx, cy;
-	int direction; // 0=N, 1=S, 2=E, 3=W, 4=Down
+	int direction;
 };
+
+int resolveDirection(const Item* item) {
+	if (!item) return -1;
+	const uint16_t id = item->getID();
+	auto def = g_item_definitions.get(id);
+	if (def && def.isFloorChange()) {
+		if (def.hasFlag(ItemFlag::FloorChangeNorth)) return 0;
+		if (def.hasFlag(ItemFlag::FloorChangeSouth)) return 1;
+		if (def.hasFlag(ItemFlag::FloorChangeEast))  return 2;
+		if (def.hasFlag(ItemFlag::FloorChangeWest))  return 3;
+		if (def.hasFlag(ItemFlag::FloorChangeDown))  return 4;
+	}
+	return g_stair_overlays.getDirection(id);
+}
 
 void drawArrow(NVGcontext* vg, float cx, float cy, int direction, float scale, float outlineGrow) {
 	float bl = (BODY_LENGTH + outlineGrow) * scale;
@@ -92,6 +108,64 @@ void drawArrow(NVGcontext* vg, float cx, float cy, int direction, float scale, f
 			nvgClosePath(vg);
 			nvgFill(vg);
 			break;
+
+		case 5: { // Up double (normal stairs that go up a floor)
+			// Compact body + two stacked arrowheads pointing north.
+			float shortBody = bl * 0.45f;
+			float headGap = hl * 0.95f;
+			// Body (bottom half of the tile)
+			nvgMoveTo(vg, cx - bw, cy + start);
+			nvgLineTo(vg, cx + bw, cy + start);
+			nvgLineTo(vg, cx + bw, cy + start - shortBody);
+			nvgLineTo(vg, cx - bw, cy + start - shortBody);
+			nvgClosePath(vg);
+			nvgFill(vg);
+			// First head (lower)
+			nvgBeginPath(vg);
+			nvgMoveTo(vg, cx, cy + start - shortBody - hl);
+			nvgLineTo(vg, cx - hw, cy + start - shortBody);
+			nvgLineTo(vg, cx + hw, cy + start - shortBody);
+			nvgClosePath(vg);
+			nvgFill(vg);
+			// Second head (upper, offset up)
+			float h2Bottom = cy + start - shortBody - headGap;
+			nvgBeginPath(vg);
+			nvgMoveTo(vg, cx, h2Bottom - hl);
+			nvgLineTo(vg, cx - hw, h2Bottom);
+			nvgLineTo(vg, cx + hw, h2Bottom);
+			nvgClosePath(vg);
+			nvgFill(vg);
+			break;
+		}
+
+		case 6: { // Down double (normal stairs that go down a floor)
+			// Compact body + two stacked arrowheads pointing south.
+			float shortBody = bl * 0.45f;
+			float headGap = hl * 0.95f;
+			// Body
+			nvgMoveTo(vg, cx - bw, cy - start);
+			nvgLineTo(vg, cx + bw, cy - start);
+			nvgLineTo(vg, cx + bw, cy - start + shortBody);
+			nvgLineTo(vg, cx - bw, cy - start + shortBody);
+			nvgClosePath(vg);
+			nvgFill(vg);
+			// First head (upper)
+			nvgBeginPath(vg);
+			nvgMoveTo(vg, cx, cy - start + shortBody + hl);
+			nvgLineTo(vg, cx - hw, cy - start + shortBody);
+			nvgLineTo(vg, cx + hw, cy - start + shortBody);
+			nvgClosePath(vg);
+			nvgFill(vg);
+			// Second head (lower, offset down)
+			float h2Top = cy - start + shortBody + headGap;
+			nvgBeginPath(vg);
+			nvgMoveTo(vg, cx, h2Top + hl);
+			nvgLineTo(vg, cx - hw, h2Top);
+			nvgLineTo(vg, cx + hw, h2Top);
+			nvgClosePath(vg);
+			nvgFill(vg);
+			break;
+		}
 	}
 }
 
@@ -116,30 +190,23 @@ void StairDirectionDrawer::draw(NVGcontext* vg, const RenderView& view, Editor& 
 			Tile* tile = editor.map.getTile(x, y, view.floor);
 			if (!tile) continue;
 
-			for (const auto& item : tile->items) {
-				if (!item) continue;
-
-				auto def = g_item_definitions.get(item->getID());
-				if (!def || !def.isFloorChange()) continue;
-
-				int ux, uy;
-				if (!view.IsTileVisible(x, y, view.floor, ux, uy)) break;
-
-				float sx = ux / zoom;
-				float sy = uy / zoom;
-
-				int direction = -1;
-				if (def.hasFlag(ItemFlag::FloorChangeNorth)) direction = 0;
-				else if (def.hasFlag(ItemFlag::FloorChangeSouth)) direction = 1;
-				else if (def.hasFlag(ItemFlag::FloorChangeEast)) direction = 2;
-				else if (def.hasFlag(ItemFlag::FloorChangeWest)) direction = 3;
-				else if (def.hasFlag(ItemFlag::FloorChangeDown)) direction = 4;
-
-				if (direction >= 0) {
-					stairs.push_back({ sx + halfTile, sy + halfTile, direction });
+			int direction = resolveDirection(tile->ground.get());
+			if (direction < 0) {
+				for (const auto& item : tile->items) {
+					direction = resolveDirection(item.get());
+					if (direction >= 0) break;
 				}
-				break; // Only one arrow per tile
 			}
+
+			if (direction < 0) continue;
+
+			int ux, uy;
+			if (!view.IsTileVisible(x, y, view.floor, ux, uy)) continue;
+
+			float sx = ux / zoom;
+			float sy = uy / zoom;
+
+			stairs.push_back({ sx + halfTile, sy + halfTile, direction });
 		}
 	}
 
@@ -149,9 +216,10 @@ void StairDirectionDrawer::draw(NVGcontext* vg, const RenderView& view, Editor& 
 		drawArrow(vg, stair.cx, stair.cy, stair.direction, scale, 3.0f);
 	}
 
-	// Draw red fill on top
-	nvgFillColor(vg, nvgRGBA(220, 50, 50, 255));
+	// Fill: red for auto floor-change (directions 0..4), blue for normal stairs (5/6)
 	for (const auto& stair : stairs) {
+		const bool isNormalStair = stair.direction >= 5;
+		nvgFillColor(vg, isNormalStair ? nvgRGBA(60, 140, 230, 255) : nvgRGBA(220, 50, 50, 255));
 		drawArrow(vg, stair.cx, stair.cy, stair.direction, scale, 0.0f);
 	}
 

@@ -456,12 +456,14 @@ namespace TileOperations {
 
 	void update(Tile* tile) {
 		const bool wasSelected = tile->isSelected();
-		// Clear MODIFIED and the re-derived SELECTED bit. Without clearing SELECTED,
-		// a stale flag copied via TileOperations::deepCopy (which preserves statflags
-		// wholesale) would persist even after all child items had been deselected or
-		// moved away — manifesting as "phantom" selected neighbor tiles after a drag,
-		// which blocked normal click-to-select from clearing the previous selection.
-		tile->statflags &= ~(TILESTATE_MODIFIED | TILESTATE_SELECTED);
+		// Clear every bit we are about to re-derive from ground/items below. The OR-only
+		// recomputation that follows would otherwise leave stale flags set after the
+		// underlying item is removed — e.g. erasing the only unpassable item left
+		// TILESTATE_BLOCKING on, so "Show pathing" kept highlighting the tile.
+		tile->statflags &= ~(TILESTATE_MODIFIED | TILESTATE_SELECTED | TILESTATE_UNIQUE
+			| TILESTATE_BLOCKING | TILESTATE_OP_BORDER | TILESTATE_HAS_TABLE
+			| TILESTATE_HAS_CARPET | TILESTATE_HOOK_SOUTH | TILESTATE_HOOK_EAST
+			| TILESTATE_HAS_LIGHT);
 
 		if (tile->spawn && tile->spawn->isSelected()) {
 			tile->statflags |= TILESTATE_SELECTED;

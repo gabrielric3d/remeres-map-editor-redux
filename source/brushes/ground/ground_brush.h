@@ -146,6 +146,10 @@ protected: // Members
 		int32_t z;
 		int32_t layer_order = 0; // Order within same z-level
 		const AutoBorder* border;
+		// Target brush id this cluster is bordering against. Part of the dedup key together
+		// with `border`, so the same AutoBorder reused in <border to="X"> and <border to="Y">
+		// keeps its direction bitmasks separate instead of merging into one broken alignment.
+		uint32_t to = 0xFFFFFFFF;
 
 		bool operator<(const BorderCluster& other) const {
 			if (z != other.z) {
