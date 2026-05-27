@@ -330,6 +330,7 @@ set(rme_H
 
     ${CMAKE_CURRENT_LIST_DIR}/ui/map/export_tilesets_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/map/export_minimap_window.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/map/merge_maps_minimap_window.h
     ${CMAKE_CURRENT_LIST_DIR}/io/iominimap.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/gui.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/gui_ids.h
@@ -751,6 +752,7 @@ set(rme_SRC
 
     ${CMAKE_CURRENT_LIST_DIR}/ui/map/export_tilesets_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/map/export_minimap_window.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/map/merge_maps_minimap_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/io/iominimap.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/gui.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/gui_autoborder_ext.cpp

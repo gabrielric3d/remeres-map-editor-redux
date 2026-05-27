@@ -41,6 +41,7 @@ namespace MenuBar {
 		IMPORT_MINIMAP,
 
 		EXPORT_MINIMAP,
+		MERGE_MAPS_MINIMAP,
 		EXPORT_TILESETS,
 		RELOAD_DATA,
 		RELOAD_BRUSHES,
@@ -265,6 +266,7 @@ public:
 	void OnImportMinimap(wxCommandEvent& event);
 
 	void OnExportMinimap(wxCommandEvent& event);
+	void OnMergeMapsMinimap(wxCommandEvent& event);
 	void OnExportTilesets(wxCommandEvent& event);
 	void OnReloadDataFiles(wxCommandEvent& event); // RELOAD_DATA
 	void OnReloadBrushes(wxCommandEvent& event); // RELOAD_BRUSHES

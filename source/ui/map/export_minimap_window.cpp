@@ -74,10 +74,12 @@ ExportMinimapWindow::ExportMinimapWindow(wxWindow* parent, Editor& editor) :
 	tmpsizer->Add(file_name_text_field, 1, wxALL, 5);
 
 	wxArrayString format_choices;
+	format_choices.Add(".otmm (Client Minimap)");
 	format_choices.Add(".png (PNG Image)");
 	format_choices.Add(".bmp (Bitmap Image)");
 	format_options = newd wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, format_choices);
 	format_options->SetSelection(0);
+	format_options->Bind(wxEVT_CHOICE, &ExportMinimapWindow::OnFormatChange, this);
 	tmpsizer->Add(format_options, 1, wxALL, 5);
 	sizer->Add(tmpsizer, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, 5);
 
@@ -182,9 +184,10 @@ void ExportMinimapWindow::OnFileNameChanged(wxKeyEvent& event) {
 }
 
 void ExportMinimapWindow::OnExportTypeChange(wxCommandEvent& WXUNUSED(event)) {
+	bool isOtmm = format_options->GetSelection() == 0;
 	wxString selected = floor_options->GetStringSelection();
 	floor_number->Enable(selected == "Specific Floor");
-	bool isAreaView = selected == "Area View";
+	bool isAreaView = !isOtmm && selected == "Area View";
 	from_x_spin->Enable(isAreaView);
 	from_y_spin->Enable(isAreaView);
 	to_x_spin->Enable(isAreaView);
@@ -195,13 +198,40 @@ void ExportMinimapWindow::OnExportTypeChange(wxCommandEvent& WXUNUSED(event)) {
 	}
 }
 
+void ExportMinimapWindow::OnFormatChange(wxCommandEvent& WXUNUSED(event)) {
+	// The .otmm format always serializes raw minimap tiles into a single
+	// binary file. The "Area View" 2D projection and the image-only stacking
+	// options do not apply to it, so disable them while OTMM is selected.
+	bool isOtmm = format_options->GetSelection() == 0;
+	uniform_bounds_checkbox->Enable(!isOtmm);
+	if (isOtmm) {
+		uniform_bounds_checkbox->SetValue(false);
+		if (floor_options->GetStringSelection() == "Area View") {
+			floor_options->SetSelection(0);
+		}
+	}
+	wxCommandEvent dummy;
+	OnExportTypeChange(dummy);
+}
+
 void ExportMinimapWindow::OnClickOK(wxCommandEvent& WXUNUSED(event)) {
 	g_settings.setString(Config::MINIMAP_EXPORT_DIR, directory_text_field->GetValue().ToStdString());
 
 	std::string directory = directory_text_field->GetValue().ToStdString();
 	std::string filename = file_name_text_field->GetValue().ToStdString();
 
-	MinimapExportFormat format = format_options->GetSelection() == 0 ? MinimapExportFormat::Png : MinimapExportFormat::Bmp;
+	MinimapExportFormat format = MinimapExportFormat::Otmm;
+	switch (format_options->GetSelection()) {
+		case 0:
+			format = MinimapExportFormat::Otmm;
+			break;
+		case 1:
+			format = MinimapExportFormat::Png;
+			break;
+		case 2:
+			format = MinimapExportFormat::Bmp;
+			break;
+	}
 
 	wxString modeStr = floor_options->GetStringSelection();
 	MinimapExportMode mode = MinimapExportMode::AllFloors;

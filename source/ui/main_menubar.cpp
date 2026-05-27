@@ -360,6 +360,10 @@ void MainMenuBar::OnExportMinimap(wxCommandEvent& event) {
 	fileMenuHandler->OnExportMinimap(event);
 }
 
+void MainMenuBar::OnMergeMapsMinimap(wxCommandEvent& event) {
+	fileMenuHandler->OnMergeMapsMinimap(event);
+}
+
 void MainMenuBar::OnExportTilesets(wxCommandEvent& event) {
 	fileMenuHandler->OnExportTilesets(event);
 }

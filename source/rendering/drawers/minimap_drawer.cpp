@@ -175,8 +175,8 @@ void MinimapDrawer::Draw(const wxSize& size, Editor& editor, MapCanvas& canvas, 
 		renderer->invalidateAll();
 	}
 	for (int floor = 0; floor < MAP_LAYERS; ++floor) {
-		if (pending.floor_rects[floor].has_value()) {
-			renderer->markDirty(floor, *pending.floor_rects[floor]);
+		for (const auto& rect : pending.floor_rects[floor]) {
+			renderer->markDirty(floor, rect);
 		}
 	}
 

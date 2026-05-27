@@ -4,6 +4,7 @@
 #include "ui/gui.h"
 #include "ui/map/export_tilesets_window.h"
 #include "ui/map/export_minimap_window.h"
+#include "ui/map/merge_maps_minimap_window.h"
 
 #include "ui/map/import_map_window.h"
 #include "ui/dialog_util.h"
@@ -111,6 +112,12 @@ void FileMenuHandler::OnExportMinimap(wxCommandEvent& WXUNUSED(event)) {
 		dlg.ShowModal();
 		dlg.Destroy();
 	}
+}
+
+void FileMenuHandler::OnMergeMapsMinimap(wxCommandEvent& WXUNUSED(event)) {
+	MergeMapsMinimapWindow dlg(frame);
+	dlg.ShowModal();
+	dlg.Destroy();
 }
 
 void FileMenuHandler::OnExportTilesets(wxCommandEvent& WXUNUSED(event)) {

@@ -15,53 +15,46 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#ifndef RME_UI_MAP_EXPORT_MINIMAP_WINDOW_H_
-#define RME_UI_MAP_EXPORT_MINIMAP_WINDOW_H_
+#ifndef RME_UI_MAP_MERGE_MAPS_MINIMAP_WINDOW_H_
+#define RME_UI_MAP_MERGE_MAPS_MINIMAP_WINDOW_H_
 
 #include "app/main.h"
 
 #include <wx/dialog.h>
 
-class Editor;
 class wxStaticText;
 class wxTextCtrl;
 class wxButton;
-class wxChoice;
-class wxSpinCtrl;
-class wxCheckBox;
+class wxListBox;
 
-class ExportMinimapWindow : public wxDialog {
+// Merges several .otbm map files into a single .otmm client minimap. Maps keep
+// their absolute X/Y/Z coordinates; tiles sharing a position are overwritten
+// by whichever map appears later in the list. This dialog does not require an
+// open editor — each map is loaded standalone.
+class MergeMapsMinimapWindow : public wxDialog {
 public:
-	ExportMinimapWindow(wxWindow* parent, Editor& editor);
-	virtual ~ExportMinimapWindow();
+	explicit MergeMapsMinimapWindow(wxWindow* parent);
+	virtual ~MergeMapsMinimapWindow();
 
+	void OnClickAddMaps(wxCommandEvent&);
+	void OnClickRemoveMap(wxCommandEvent&);
+	void OnClickMoveUp(wxCommandEvent&);
+	void OnClickMoveDown(wxCommandEvent&);
 	void OnClickBrowse(wxCommandEvent&);
 	void OnDirectoryChanged(wxKeyEvent&);
 	void OnFileNameChanged(wxKeyEvent&);
 	void OnClickOK(wxCommandEvent&);
 	void OnClickCancel(wxCommandEvent&);
-	void OnExportTypeChange(wxCommandEvent&);
-	void OnFormatChange(wxCommandEvent&);
 
 protected:
 	void CheckValues();
+	void SwapSelected(int delta);
 
-	Editor& editor;
-
-	wxChoice* format_options;
 	wxStaticText* error_field;
+	wxListBox* maps_list;
 	wxTextCtrl* directory_text_field;
 	wxTextCtrl* file_name_text_field;
-	wxChoice* floor_options;
-	wxSpinCtrl* floor_number;
 	wxButton* ok_button;
-
-	wxSpinCtrl* from_x_spin;
-	wxSpinCtrl* from_y_spin;
-	wxSpinCtrl* to_x_spin;
-	wxSpinCtrl* to_y_spin;
-	wxCheckBox* merge_floors_checkbox;
-	wxCheckBox* uniform_bounds_checkbox;
 };
 
 #endif

@@ -25,6 +25,7 @@ public:
 	void OnImportMinimap(wxCommandEvent& event);
 
 	void OnExportMinimap(wxCommandEvent& event);
+	void OnMergeMapsMinimap(wxCommandEvent& event);
 	void OnExportTilesets(wxCommandEvent& event);
 
 	void OnReloadDataFiles(wxCommandEvent& event);

@@ -19,15 +19,23 @@
 #include "io/iominimap.h"
 
 #include "map/tile.h"
+#include "map/map.h"
+#include "game/item.h"
+#include "game/items.h"
 #include "editor/editor.h"
 #include "editor/selection.h"
+#include "io/filehandle.h"
+#include "io/iomap_otbm.h"
 #include "ui/gui.h"
 #include "app/definitions.h"
 
 #include <wx/image.h>
 #include <wx/filename.h>
 #include <algorithm>
+#include <cmath>
 #include <cstring>
+#include <vector>
+#include <zlib.h>
 
 IOMinimap::IOMinimap(Editor* editor, MinimapExportFormat format, MinimapExportMode mode, bool updateLoadbar) :
 	m_editor(editor),
@@ -50,6 +58,10 @@ bool IOMinimap::saveMinimap(const std::string& directory, const std::string& nam
 	m_floor = floor;
 
 	try {
+		if (m_format == MinimapExportFormat::Otmm) {
+			return saveOtmm(wxFileName(directory, name + ".otmm"));
+		}
+
 		switch (m_mode) {
 			case MinimapExportMode::AllFloors:
 			case MinimapExportMode::GroundFloor:
@@ -422,4 +434,217 @@ bool IOMinimap::exportSelection(const std::string& directory, const std::string&
 
 	delete[] pixels;
 	return true;
+}
+
+void IOMinimap::readBlocks() {
+	if (m_mode == MinimapExportMode::SelectedArea && (!m_editor || !m_editor->hasSelection())) {
+		return;
+	}
+
+	bool selectionOnly = m_mode == MinimapExportMode::SelectedArea;
+	readBlocksFromMap(m_editor->map, selectionOnly, 0, 90);
+}
+
+void IOMinimap::readBlocksFromMap(Map& map, bool selectionOnly, int progressBase, int progressSpan) {
+	int tiles_iterated = 0;
+	int total_tiles = static_cast<int>(map.size());
+
+	for (auto it = map.begin(); it != map.end(); ++it) {
+		auto tile = (*it).get();
+
+		if (m_updateLoadbar) {
+			++tiles_iterated;
+			if (tiles_iterated % 8192 == 0 && total_tiles > 0) {
+				int local = static_cast<int>(tiles_iterated / double(total_tiles) * progressSpan);
+				g_gui.SetLoadDone(std::min(progressBase + local, progressBase + progressSpan));
+			}
+		}
+
+		if (!tile || (!tile->ground && tile->items.empty())) {
+			continue;
+		}
+
+		const auto& position = tile->getPosition();
+		if (position.z < 0 || position.z > MAP_MAX_LAYER) {
+			continue;
+		}
+
+		if (selectionOnly) {
+			if (!tile->isSelected()) {
+				continue;
+			}
+		} else if (m_floor != -1 && position.z != m_floor) {
+			continue;
+		}
+
+		MinimapTile minimapTile;
+		minimapTile.color = tile->getMiniMapColor();
+		minimapTile.flags |= MinimapTileWasSeen;
+		if (tile->isBlocking()) {
+			minimapTile.flags |= MinimapTileNotWalkable;
+		}
+
+		uint16_t way_speed = 100;
+		if (tile->ground) {
+			way_speed = static_cast<uint16_t>(tile->ground->getDefinition().attribute(ItemAttributeKey::WaySpeed));
+		}
+		minimapTile.speed = static_cast<uint8_t>(std::min<int>(static_cast<int>(std::ceil(way_speed / 10.f)), 0xFF));
+
+		auto& blocks = m_blocks[position.z];
+		uint32_t index = getBlockIndex(position);
+		auto inserted = blocks.try_emplace(index);
+		MinimapBlock& block = inserted.first->second;
+		// Later maps overwrite tiles that share an absolute position.
+		block.updateTile(position.x, position.y, minimapTile);
+	}
+}
+
+bool IOMinimap::saveOtmm(const wxFileName& file) {
+	readBlocks();
+	return writeOtmmFile(file);
+}
+
+bool IOMinimap::writeOtmmFile(const wxFileName& file) {
+	try {
+		FileWriteHandle writer(file.GetFullPath().ToStdString());
+		if (!writer.isOk()) {
+			m_error = "Could not open the OTMM file for writing.";
+			return false;
+		}
+
+		uint32_t flags = 0;
+
+		// The "OTMM 1.0" description string is serialized as a U16 length prefix
+		// (2 bytes) followed by the 8 raw bytes. The full header therefore has a
+		// fixed, deterministic size, so the data-start offset can be written
+		// directly instead of seeking back to patch it (FileWriteHandle has no
+		// seek support, unlike the original implementation).
+		const std::string description = "OTMM 1.0";
+		const uint16_t dataStart = static_cast<uint16_t>(4 + 2 + 2 + 4 + 2 + description.size());
+
+		// header
+		writer.addU32(OTMM_SIGNATURE);
+		writer.addU16(dataStart);
+		writer.addU16(OTMM_VERSION);
+		writer.addU32(flags);
+
+		// version 1 header
+		writer.addString(description);
+
+		const unsigned long blockSize = MMBLOCK_SIZE * MMBLOCK_SIZE * sizeof(MinimapTile);
+		std::vector<uint8_t> buffer(compressBound(blockSize));
+		constexpr int COMPRESS_LEVEL = 3;
+
+		for (uint8_t z = 0; z <= MAP_MAX_LAYER; ++z) {
+			for (auto& it : m_blocks[z]) {
+				uint32_t index = it.first;
+				auto& block = it.second;
+
+				// write index pos
+				uint16_t x = static_cast<uint16_t>((index % (65536 / MMBLOCK_SIZE)) * MMBLOCK_SIZE);
+				uint16_t y = static_cast<uint16_t>((index / (65536 / MMBLOCK_SIZE)) * MMBLOCK_SIZE);
+				writer.addU16(x);
+				writer.addU16(y);
+				writer.addU8(z);
+
+				unsigned long len = buffer.size();
+				int ret = compress2(buffer.data(), &len, reinterpret_cast<const uint8_t*>(block.getTiles().data()), blockSize, COMPRESS_LEVEL);
+				if (ret != Z_OK) {
+					m_error = "Failed to compress minimap block data.";
+					return false;
+				}
+				writer.addU16(static_cast<uint16_t>(len));
+				writer.addRAW(buffer.data(), len);
+			}
+			m_blocks[z].clear();
+		}
+
+		// end of file is an invalid pos
+		writer.addU16(65535);
+		writer.addU16(65535);
+		writer.addU8(255);
+
+		if (!writer.isOk()) {
+			m_error = "An error occurred while writing the OTMM file.";
+			return false;
+		}
+
+		writer.close();
+	} catch (std::exception& e) {
+		m_error = std::string("Failed to save OTMM minimap: ") + e.what();
+		return false;
+	}
+
+	return true;
+}
+
+bool IOMinimap::mergeMaps(const std::vector<std::string>& otbm_files, const std::string& directory, const std::string& name) {
+	if (otbm_files.empty()) {
+		m_error = "No maps were selected.";
+		return false;
+	}
+
+	// .otmm stores absolute coordinates; merging only makes sense across all
+	// floors, ignoring any single-floor / selection / area-view filtering.
+	m_floor = -1;
+
+	const int total = static_cast<int>(otbm_files.size());
+	// The progress bar runs 0..100. Reserve the final slice for compressing
+	// and writing the .otmm file; the rest is split evenly across the maps,
+	// and each map's slice is split between loading and block extraction.
+	const int loadSpan = 92;
+
+	for (int i = 0; i < total; ++i) {
+		const std::string& file_path = otbm_files[i];
+
+		wxFileName fn(wxString(file_path.c_str(), wxConvUTF8));
+
+		MapVersion ver;
+		if (!IOMapOTBM::getVersionInfo(fn, ver)) {
+			m_error = "Could not read the OTBM header of: " + file_path;
+			if (m_updateLoadbar) {
+				g_gui.SetLoadScale(0, 100);
+			}
+			return false;
+		}
+
+		// Map i owns the global progress slice [slotBegin, slotEnd]; the first
+		// half covers the OTBM load (which drives SetLoadDone internally), the
+		// second half covers extracting the tiles into minimap blocks.
+		int slotBegin = static_cast<int>(i / double(total) * loadSpan);
+		int slotEnd = static_cast<int>((i + 1) / double(total) * loadSpan);
+		int slotMid = slotBegin + (slotEnd - slotBegin) / 2;
+
+		// Each map is loaded into its own standalone instance so the editor's
+		// currently-open map is never touched. The instance is destroyed at
+		// the end of the iteration, keeping peak memory to one map at a time.
+		Map standalone;
+		IOMapOTBM loader(ver);
+
+		if (m_updateLoadbar) {
+			// Confine the loader's internal 0..100 progress to this map's
+			// load half of the global bar.
+			g_gui.SetLoadScale(slotBegin, slotMid);
+		}
+
+		if (!loader.loadMap(standalone, fn)) {
+			m_error = "Failed to load \"" + file_path + "\": " + loader.getError().ToStdString();
+			if (m_updateLoadbar) {
+				g_gui.SetLoadScale(0, 100);
+			}
+			return false;
+		}
+
+		if (m_updateLoadbar) {
+			g_gui.SetLoadScale(0, 100);
+		}
+
+		readBlocksFromMap(standalone, false, slotMid, slotEnd - slotMid);
+	}
+
+	if (m_updateLoadbar) {
+		g_gui.SetLoadDone(loadSpan);
+	}
+
+	return writeOtmmFile(wxFileName(directory, name + ".otmm"));
 }

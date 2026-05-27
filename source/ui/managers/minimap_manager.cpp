@@ -101,7 +101,7 @@ void MinimapManager::InvalidateAll(const Map& map) {
 	auto& pending = pending_invalidations_[makeKey(map)];
 	pending.invalidate_all = true;
 	for (auto& floor_rects : pending.floor_rects) {
-		floor_rects.reset();
+		floor_rects.clear();
 	}
 }
 
@@ -115,15 +115,12 @@ void MinimapManager::MarkTileDirty(const Map& map, const Position& position) {
 		return;
 	}
 
-	const MinimapDirtyRect tile_rect = {
+	pending.floor_rects[position.z].push_back(MinimapDirtyRect {
 		.x = position.x,
 		.y = position.y,
 		.width = 1,
 		.height = 1,
-	};
-
-	auto& floor_rect = pending.floor_rects[position.z];
-	floor_rect = floor_rect ? UnionMinimapRects(*floor_rect, tile_rect) : tile_rect;
+	});
 }
 
 PendingMinimapInvalidation MinimapManager::TakePendingInvalidation(const Map& map) {

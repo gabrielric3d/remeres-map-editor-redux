@@ -11,6 +11,7 @@
 #include <array>
 #include <optional>
 #include <unordered_map>
+#include <vector>
 
 class MinimapWindow;
 class Map;
@@ -18,7 +19,11 @@ class Position;
 
 struct PendingMinimapInvalidation {
 	bool invalidate_all = false;
-	std::array<std::optional<MinimapDirtyRect>, MAP_LAYERS> floor_rects;
+	// One rect per tile modification; we intentionally do not union them into a
+	// bounding box because the uploader would then re-write every tile inside
+	// the box (including empty ones) with color 0, which previously produced
+	// visible black streaks between distant painted points.
+	std::array<std::vector<MinimapDirtyRect>, MAP_LAYERS> floor_rects;
 };
 
 class MinimapManager {
