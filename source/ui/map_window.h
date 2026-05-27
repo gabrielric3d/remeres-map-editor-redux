@@ -119,6 +119,7 @@ protected:
 
 private:
 	std::unique_ptr<ReplaceToolWindow, ReplaceToolWindowDeleter> replaceItemsDialog;
+	bool replaceItemsDialogUserClosed = false;
 	MinimapViewportState minimap_viewport_state;
 	Position previous_position;
 

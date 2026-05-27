@@ -88,6 +88,7 @@ MapWindow::~MapWindow() {
 }
 
 void MapWindow::ShowReplaceItemsDialog(bool selectionOnly) {
+	replaceItemsDialogUserClosed = false;
 	if (replaceItemsDialog) {
 		replaceItemsDialog->Show();
 		replaceItemsDialog->Raise();
@@ -100,6 +101,7 @@ void MapWindow::ShowReplaceItemsDialog(bool selectionOnly) {
 }
 
 void MapWindow::ShowAdvancedReplaceForSelection(const std::vector<uint16_t>& ids) {
+	replaceItemsDialogUserClosed = false;
 	if (replaceItemsDialog) {
 		replaceItemsDialog->InitializeWithIDs(ids);
 		replaceItemsDialog->Show();
@@ -114,6 +116,7 @@ void MapWindow::ShowAdvancedReplaceForSelection(const std::vector<uint16_t>& ids
 }
 
 void MapWindow::ApplyItemToReplaceOriginal(uint16_t itemId) {
+	replaceItemsDialogUserClosed = false;
 	if (!replaceItemsDialog) {
 		replaceItemsDialog.reset(new ReplaceToolWindow(this, &editor));
 		replaceItemsDialog->Bind(wxEVT_CLOSE_WINDOW, &MapWindow::OnReplaceItemsDialogClose, this);
@@ -125,6 +128,7 @@ void MapWindow::ApplyItemToReplaceOriginal(uint16_t itemId) {
 }
 
 void MapWindow::ApplyItemToReplaceReplacement(uint16_t itemId) {
+	replaceItemsDialogUserClosed = false;
 	if (!replaceItemsDialog) {
 		replaceItemsDialog.reset(new ReplaceToolWindow(this, &editor));
 		replaceItemsDialog->Bind(wxEVT_CLOSE_WINDOW, &MapWindow::OnReplaceItemsDialogClose, this);
@@ -140,12 +144,14 @@ void MapWindow::CloseReplaceItemsDialog() {
 		replaceItemsDialog->Unbind(wxEVT_CLOSE_WINDOW, &MapWindow::OnReplaceItemsDialogClose, this);
 		replaceItemsDialog.reset(); // Actually destroy via deleter
 	}
+	replaceItemsDialogUserClosed = false;
 }
 
 void MapWindow::OnReplaceItemsDialogClose(wxCloseEvent& event) {
 	if (replaceItemsDialog) {
 		// Just hide instead of destroying — preserves state until map is closed
 		replaceItemsDialog->Hide();
+		replaceItemsDialogUserClosed = true;
 		event.Veto(); // Prevent actual destruction
 	}
 }
@@ -173,6 +179,10 @@ void MapWindow::UpdateScrollbars(int nx, int ny) {
 
 void MapWindow::UpdateDialogs(bool show) {
 	if (replaceItemsDialog) {
+		// Don't reopen the dialog on tab switch if the user closed it intentionally
+		if (show && replaceItemsDialogUserClosed) {
+			return;
+		}
 		replaceItemsDialog->Show(show);
 	}
 }
