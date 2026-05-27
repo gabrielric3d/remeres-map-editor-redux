@@ -62,6 +62,7 @@ namespace ShaderNames {
 	constexpr const char* SCANLINE = "Scanline";
 	constexpr const char* XBRZ = "4xBRZ";
 	constexpr const char* NEVASCA = "Nevasca";
+	constexpr const char* CEMETERY = "Cemetery";
 }
 
 #endif
