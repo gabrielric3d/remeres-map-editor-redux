@@ -57,7 +57,31 @@ void BrushUtility::GetTilesToDraw(int mouse_map_x, int mouse_map_y, int floor, s
 		fill_height = fill_area.height;
 		processed.assign(fill_width * fill_height, false);
 		countMaxFills = 0;
+		const size_t draw_size_before = tilestodraw ? tilestodraw->size() : 0;
 		FloodFill(&g_gui.GetCurrentMap(), position, fill_width / 2, fill_height / 2, fill_width, fill_height, oldBrush, tilestodraw);
+
+		// Auto-magic borders need the perimeter of the filled region to recompute neighbours
+		// (mountain/grass/water borders, etc.). The non-fill branch builds this naturally
+		// from the footprint loop; for flood-fill we expand each filled tile by its 3x3
+		// neighbourhood with dedup.
+		if (tilestoborder && tilestodraw) {
+			std::unordered_set<int64_t> border_seen;
+			const auto borderKey = [](int x, int y) -> int64_t {
+				return (static_cast<int64_t>(static_cast<uint32_t>(y)) << 32) | static_cast<uint32_t>(x);
+			};
+			for (size_t i = draw_size_before; i < tilestodraw->size(); ++i) {
+				const Position& p = (*tilestodraw)[i];
+				for (int dy = -1; dy <= 1; ++dy) {
+					for (int dx = -1; dx <= 1; ++dx) {
+						const int nx = p.x + dx;
+						const int ny = p.y + dy;
+						if (border_seen.insert(borderKey(nx, ny)).second) {
+							tilestoborder->push_back(Position(nx, ny, floor));
+						}
+					}
+				}
+			}
+		}
 
 	} else {
 		const BrushFootprint footprint = g_gui.GetBrushFootprint();
