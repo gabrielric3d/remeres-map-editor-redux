@@ -22,8 +22,10 @@ bool ForcedLightZone::contains(const Position& pos) const {
 		int dy = pos.y - center.y;
 		return (dx * dx + dy * dy) <= (radius * radius);
 	} else {
-		// Rectangular
-		return pos.z == fromPos.z
+		// Rectangular — z range is inclusive between fromPos.z and toPos.z (either order)
+		int zMin = std::min(fromPos.z, toPos.z);
+		int zMax = std::max(fromPos.z, toPos.z);
+		return pos.z >= zMin && pos.z <= zMax
 			&& pos.x >= fromPos.x && pos.x <= toPos.x
 			&& pos.y >= fromPos.y && pos.y <= toPos.y;
 	}
@@ -159,7 +161,9 @@ std::vector<const ForcedLightZone*> ForcedLightZoneManager::getZonesInArea(
 				continue;
 			}
 		} else {
-			if (zone.fromPos.z != floor) {
+			int zMin = std::min(zone.fromPos.z, zone.toPos.z);
+			int zMax = std::max(zone.fromPos.z, zone.toPos.z);
+			if (floor < zMin || floor > zMax) {
 				continue;
 			}
 		}
