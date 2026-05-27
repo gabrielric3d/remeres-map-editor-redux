@@ -415,6 +415,8 @@ void Settings::IO(IOMode mode) {
 	Bool(SELECTION_LASSO, false);
 	String(CREATURE_FAVORITES, "");
 	String(CREATURES_JSON_PATH, "");
+	Bool(CREATURES_AUTO_LOAD_ENABLED, false);
+	String(CREATURES_AUTO_LOAD_DIR, "");
 	String(FAVORITE_FILES, "");
 	Bool(SHOW_TOAST_NOTIFICATIONS, true);
 	Bool(SHOW_WALL_BORDERS, false);

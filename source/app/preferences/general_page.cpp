@@ -161,6 +161,27 @@ GeneralPage::GeneralPage(wxWindow* parent) : ScrollablePreferencesPage(parent) {
 		"Path to a creatures.json file to always load on startup. Leave empty to disable.",
 		creatures_json_picker
 	);
+
+	creatures_auto_load_chkbox = newd wxCheckBox(creature_section, wxID_ANY, "Auto-load missing creatures from directory");
+	creatures_auto_load_chkbox->SetValue(g_settings.getBoolean(Config::CREATURES_AUTO_LOAD_ENABLED));
+	PreferencesLayout::AddControlRow(
+		creature_section,
+		"Auto-load on map open",
+		"When loading a map with missing creatures, scan the directory below for monster/npc files instead of prompting.",
+		creatures_auto_load_chkbox
+	);
+
+	creatures_auto_load_dir_picker = newd wxDirPickerCtrl(creature_section, wxID_ANY,
+		wxstr(g_settings.getString(Config::CREATURES_AUTO_LOAD_DIR)),
+		"Select creatures directory", wxDefaultPosition, wxDefaultSize,
+		wxDIRP_DEFAULT_STYLE | wxDIRP_USE_TEXTCTRL);
+	PreferencesLayout::AddControlRow(
+		creature_section,
+		"Creatures directory",
+		"Directory scanned recursively for .xml and .json monster/npc files when auto-load is enabled.",
+		creatures_auto_load_dir_picker
+	);
+
 	page_sizer->Add(creature_section, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
 
 	FinishLayout();
@@ -191,4 +212,6 @@ void GeneralPage::Apply() {
 	g_settings.setInteger(Config::SHOW_TILESET_EDITOR, enable_tileset_editing_chkbox->GetValue());
 
 	g_settings.setString(Config::CREATURES_JSON_PATH, nstr(creatures_json_picker->GetPath()));
+	g_settings.setInteger(Config::CREATURES_AUTO_LOAD_ENABLED, creatures_auto_load_chkbox->GetValue());
+	g_settings.setString(Config::CREATURES_AUTO_LOAD_DIR, nstr(creatures_auto_load_dir_picker->GetPath()));
 }

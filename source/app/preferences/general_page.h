@@ -33,6 +33,8 @@ private:
 	wxStaticText* position_preview_label = nullptr;
 
 	wxFilePickerCtrl* creatures_json_picker = nullptr;
+	wxCheckBox* creatures_auto_load_chkbox = nullptr;
+	wxDirPickerCtrl* creatures_auto_load_dir_picker = nullptr;
 };
 
 #endif

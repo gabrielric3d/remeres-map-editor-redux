@@ -20,6 +20,7 @@ public:
 	bool DoQuerySave(bool doclose = true);
 	bool DoQuerySaveTileset(bool doclose = true);
 	bool DoQueryImportCreatures();
+	bool AutoLoadCreaturesFromDirectory(const wxString& directory);
 	bool LoadMap(FileName name);
 
 	void AddRecentFile(const FileName& file);

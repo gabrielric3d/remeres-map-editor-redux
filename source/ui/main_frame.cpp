@@ -27,11 +27,16 @@
 #include "ui/tile_properties/tile_properties_panel.h"
 #include <wx/stattext.h>
 #include <wx/slider.h>
+#include <wx/dir.h>
+#include <wx/filename.h>
 
+#include "app/settings.h"
+#include "ui/gui.h"
 #include "game/materials.h"
 #include "map/map.h"
 #include "game/complexitem.h"
 #include "game/creature.h"
+#include "game/creatures.h"
 
 #include <spdlog/spdlog.h>
 #include "../brushes/icon/editor_icon.xpm"
@@ -303,31 +308,139 @@ bool MainFrame::DoQuerySave(bool doclose) {
 
 bool MainFrame::DoQueryImportCreatures() {
 	if (g_creatures.hasMissing()) {
-		long ret = DialogUtil::PopupDialog("Missing creatures", "There are missing creatures and/or NPC in the editor, do you want to load them from an OT monster/npc file?", wxYES | wxNO);
-		if (ret == wxID_YES) {
-			do {
-				wxFileDialog dlg(g_gui.root, "Import monster/npc file", "", "", "*.xml", wxFD_OPEN | wxFD_MULTIPLE | wxFD_FILE_MUST_EXIST);
-				if (dlg.ShowModal() == wxID_OK) {
-					wxArrayString paths;
-					dlg.GetPaths(paths);
-					for (uint32_t i = 0; i < paths.GetCount(); ++i) {
-						wxString error;
-						std::vector<std::string> warnings;
-						bool ok = g_creatures.importXMLFromOT(FileName(paths[i]), error, warnings);
-						if (ok) {
-							DialogUtil::ListDialog("Monster loader errors", warnings);
-						} else {
-							wxMessageBox("Error OT data file \"" + paths[i] + "\".\n" + error, "Error", wxOK | wxICON_INFORMATION, g_gui.root);
+		// Try auto-load from configured directory first
+		if (g_settings.getBoolean(Config::CREATURES_AUTO_LOAD_ENABLED)) {
+			wxString auto_dir = wxstr(g_settings.getString(Config::CREATURES_AUTO_LOAD_DIR));
+			if (!auto_dir.IsEmpty() && wxFileName::DirExists(auto_dir)) {
+				AutoLoadCreaturesFromDirectory(auto_dir);
+			}
+		}
+
+		// If still missing (auto-load disabled, dir invalid, or didn't resolve all), prompt
+		if (g_creatures.hasMissing()) {
+			long ret = DialogUtil::PopupDialog("Missing creatures", "There are missing creatures and/or NPC in the editor, do you want to load them from an OT monster/npc file?", wxYES | wxNO);
+			if (ret == wxID_YES) {
+				do {
+					wxFileDialog dlg(g_gui.root, "Import monster/npc file", "", "", "*.xml", wxFD_OPEN | wxFD_MULTIPLE | wxFD_FILE_MUST_EXIST);
+					if (dlg.ShowModal() == wxID_OK) {
+						wxArrayString paths;
+						dlg.GetPaths(paths);
+						for (uint32_t i = 0; i < paths.GetCount(); ++i) {
+							wxString error;
+							std::vector<std::string> warnings;
+							bool ok = g_creatures.importXMLFromOT(FileName(paths[i]), error, warnings);
+							if (ok) {
+								DialogUtil::ListDialog("Monster loader errors", warnings);
+							} else {
+								wxMessageBox("Error OT data file \"" + paths[i] + "\".\n" + error, "Error", wxOK | wxICON_INFORMATION, g_gui.root);
+							}
 						}
+					} else {
+						break;
 					}
-				} else {
-					break;
-				}
-			} while (g_creatures.hasMissing());
+				} while (g_creatures.hasMissing());
+			}
 		}
 	}
 	g_gui.RefreshPalettes();
 	return true;
+}
+
+bool MainFrame::AutoLoadCreaturesFromDirectory(const wxString& directory) {
+	wxDir dir(directory);
+	if (!dir.IsOpened()) {
+		spdlog::warn("Auto-load creatures: cannot open directory '{}'", directory.ToStdString());
+		return false;
+	}
+
+	// Recursively collect all .xml and .json files
+	wxArrayString files;
+	wxDir::GetAllFiles(directory, &files, "*.xml", wxDIR_FILES | wxDIR_DIRS);
+	wxDir::GetAllFiles(directory, &files, "*.json", wxDIR_FILES | wxDIR_DIRS);
+
+	if (files.IsEmpty()) {
+		wxMessageBox(
+			wxString::Format("No .xml or .json files found in:\n%s", directory),
+			"Auto-load creatures",
+			wxOK | wxICON_INFORMATION,
+			g_gui.root
+		);
+		return false;
+	}
+
+	const size_t missing_before = g_creatures.countMissing();
+	const size_t total_before = g_creatures.size();
+
+	g_gui.CreateLoadBar("Loading creatures from directory...");
+
+	std::vector<std::string> all_warnings;
+	std::vector<wxString> failed_files;
+	size_t processed = 0;
+
+	for (size_t i = 0; i < files.GetCount(); ++i) {
+		const wxString& path = files[i];
+		const int percent = static_cast<int>((i * 100) / files.GetCount());
+		g_gui.SetLoadDone(percent, wxString::Format("Loading %zu of %zu: %s", i + 1, (size_t)files.GetCount(), wxFileName(path).GetFullName()));
+
+		wxString error;
+		std::vector<std::string> warnings;
+		const wxString ext = wxFileName(path).GetExt().Lower();
+
+		bool ok = false;
+		if (ext == "json") {
+			ok = g_creatures.loadFromJSON(FileName(path), false, error, warnings);
+		} else if (ext == "xml") {
+			ok = g_creatures.importXMLFromOT(FileName(path), error, warnings);
+		} else {
+			continue;
+		}
+
+		if (ok) {
+			++processed;
+			for (const auto& w : warnings) {
+				all_warnings.push_back(w);
+			}
+		} else {
+			failed_files.push_back(path + ": " + error);
+		}
+	}
+
+	g_gui.SetLoadDone(100, "Done");
+	g_gui.DestroyLoadBar();
+
+	const size_t missing_after = g_creatures.countMissing();
+	const size_t total_after = g_creatures.size();
+	const size_t added = total_after > total_before ? total_after - total_before : 0;
+	const size_t resolved = missing_before > missing_after ? missing_before - missing_after : 0;
+
+	wxString summary;
+	summary << "Files scanned: " << files.GetCount() << "\n";
+	summary << "Files loaded successfully: " << processed << "\n";
+	summary << "Files failed: " << failed_files.size() << "\n\n";
+	summary << "New creatures added: " << added << "\n";
+	summary << "Missing creatures resolved: " << resolved << " of " << missing_before << "\n";
+	summary << "Still missing: " << missing_after;
+
+	if (!failed_files.empty()) {
+		summary << "\n\nFailed files:";
+		for (size_t i = 0; i < failed_files.size() && i < 10; ++i) {
+			summary << "\n  - " << failed_files[i];
+		}
+		if (failed_files.size() > 10) {
+			summary << wxString::Format("\n  ... and %zu more", failed_files.size() - 10);
+		}
+	}
+
+	wxMessageBox(summary, "Auto-load creatures - Result", wxOK | wxICON_INFORMATION, g_gui.root);
+
+	if (!all_warnings.empty()) {
+		DialogUtil::ListDialog("Monster loader warnings", all_warnings);
+	}
+
+	spdlog::info("Auto-load creatures: scanned={}, loaded={}, failed={}, added={}, resolved={}/{}",
+		files.GetCount(), processed, failed_files.size(), added, resolved, missing_before);
+
+	return missing_after == 0;
 }
 
 void MainFrame::UpdateFloorMenu() {

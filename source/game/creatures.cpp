@@ -299,6 +299,12 @@ bool CreatureDatabase::hasMissing() const {
 	});
 }
 
+size_t CreatureDatabase::countMissing() const {
+	return std::ranges::count_if(creature_map, [](const auto& pair) {
+		return pair.second->missing;
+	});
+}
+
 bool CreatureDatabase::loadFromXML(const FileName& filename, bool standard, wxString& error, std::vector<std::string>& warnings) {
 	pugi::xml_document doc;
 	pugi::xml_parse_result result = doc.load_file(filename.GetFullPath().mb_str());
@@ -495,9 +501,11 @@ bool CreatureDatabase::loadFromJSON(const FileName& filename, bool standard, wxS
 			if (outfit.contains("lookMountFeet")) creatureType->outfit.lookMountFeet = outfit["lookMountFeet"];
 		}
 
-		if ((*this)[creatureType->name]) {
-			warnings.push_back((wxString("Duplicate creature name \"") + wxstr(creatureType->name) + "\"! Discarding...").ToStdString());
+		CreatureType* current = (*this)[creatureType->name];
+		if (current) {
+			CreatureType::preserve_assign_creature_fields(current, *creatureType);
 			delete creatureType;
+			ensureCreatureBrush(current);
 			continue;
 		}
 

@@ -49,6 +49,8 @@ public:
 	CreatureType* addCreatureType(const std::string& name, bool isNpc, const Outfit& outfit);
 
 	bool hasMissing() const;
+	size_t countMissing() const;
+	size_t size() const { return creature_map.size(); }
 	iterator begin() {
 		return creature_map.begin();
 	}
