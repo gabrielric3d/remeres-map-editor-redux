@@ -7,6 +7,7 @@
 
 #include <wx/wx.h>
 #include <wx/aui/auibar.h>
+#include <wx/spinctrl.h>
 #include "brushes/brush_enums.h"
 
 class SizeToolBar : public wxEvtHandler {
@@ -21,11 +22,13 @@ public:
 	void Update();
 	void UpdateBrushSize(BrushShape shape, int size);
 	void OnToolbarClick(wxCommandEvent& event);
+	void OnHollowThicknessChanged(wxSpinEvent& event);
 
 	static const wxString PANE_NAME;
 
 private:
 	wxAuiToolBar* toolbar;
+	wxSpinCtrl* hollow_thickness_spin = nullptr;
 };
 
 #endif

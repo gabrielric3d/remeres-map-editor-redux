@@ -32,6 +32,15 @@ SizeToolBar::SizeToolBar(wxWindow* parent) {
 	wxBitmap line_bitmap = wxArtProvider::GetBitmap(wxART_NORMAL_FILE, wxART_TOOLBAR, icon_size);
 	// TODO: substituir por sprite proprio quando criado em data/png/line_4_small.png
 	toolbar->AddTool(TOOLBAR_SIZES_LINE, wxEmptyString, line_bitmap, wxNullBitmap, wxITEM_CHECK, "Line Brush", wxEmptyString, nullptr);
+	wxBitmap line_hollow_bitmap = wxArtProvider::GetBitmap(wxART_NEW_DIR, wxART_TOOLBAR, icon_size);
+	// TODO: substituir por sprite proprio (corredor/linha oca)
+	toolbar->AddTool(TOOLBAR_SIZES_LINE_HOLLOW, wxEmptyString, line_hollow_bitmap, wxNullBitmap, wxITEM_CHECK, "Hollow Line (corridor — only walls, empty middle)", wxEmptyString, nullptr);
+
+	// Wall thickness spinner for hollow line (ignored on WallBrush — walls are always 1 tile)
+	hollow_thickness_spin = newd wxSpinCtrl(toolbar, TOOLBAR_SIZES_HOLLOW_THICKNESS, wxString::Format("%d", 1),
+		wxDefaultPosition, FROM_DIP(parent, wxSize(48, -1)), wxSP_ARROW_KEYS, 1, 20, 1);
+	hollow_thickness_spin->SetToolTip("Hollow line wall thickness (in tiles). Wall brushes ignore this and always use 1.");
+	toolbar->AddControl(hollow_thickness_spin);
 	toolbar->AddSeparator();
 	toolbar->AddTool(TOOLBAR_SIZES_1, wxEmptyString, size1_bitmap, wxNullBitmap, wxITEM_CHECK, "Size 1", wxEmptyString, nullptr);
 	toolbar->AddTool(TOOLBAR_SIZES_2, wxEmptyString, size2_bitmap, wxNullBitmap, wxITEM_CHECK, "Size 2", wxEmptyString, nullptr);
@@ -45,10 +54,19 @@ SizeToolBar::SizeToolBar(wxWindow* parent) {
 	toolbar->ToggleTool(TOOLBAR_SIZES_1, true);
 
 	toolbar->Bind(wxEVT_COMMAND_MENU_SELECTED, &SizeToolBar::OnToolbarClick, this);
+	hollow_thickness_spin->Bind(wxEVT_SPINCTRL, &SizeToolBar::OnHollowThicknessChanged, this);
 }
 
 SizeToolBar::~SizeToolBar() {
 	toolbar->Unbind(wxEVT_COMMAND_MENU_SELECTED, &SizeToolBar::OnToolbarClick, this);
+	if (hollow_thickness_spin) {
+		hollow_thickness_spin->Unbind(wxEVT_SPINCTRL, &SizeToolBar::OnHollowThicknessChanged, this);
+	}
+}
+
+void SizeToolBar::OnHollowThicknessChanged(wxSpinEvent& event) {
+	g_gui.SetHollowWallThickness(event.GetPosition());
+	g_gui.RefreshView();
 }
 
 void SizeToolBar::Update() {
@@ -58,6 +76,12 @@ void SizeToolBar::Update() {
 	toolbar->EnableTool(TOOLBAR_SIZES_CIRCULAR, has_map);
 	toolbar->EnableTool(TOOLBAR_SIZES_RECTANGULAR, has_map);
 	toolbar->EnableTool(TOOLBAR_SIZES_LINE, has_map);
+	toolbar->EnableTool(TOOLBAR_SIZES_LINE_HOLLOW, has_map && g_gui.GetBrushShape() == BRUSHSHAPE_LINE);
+	toolbar->ToggleTool(TOOLBAR_SIZES_LINE_HOLLOW, g_gui.IsHollowLine());
+	if (hollow_thickness_spin) {
+		hollow_thickness_spin->Enable(has_map && g_gui.GetBrushShape() == BRUSHSHAPE_LINE && g_gui.IsHollowLine());
+		hollow_thickness_spin->SetValue(g_gui.GetHollowWallThickness());
+	}
 	toolbar->EnableTool(TOOLBAR_SIZES_1, has_map);
 	toolbar->EnableTool(TOOLBAR_SIZES_2, has_map);
 	toolbar->EnableTool(TOOLBAR_SIZES_3, has_map);
@@ -123,6 +147,14 @@ void SizeToolBar::UpdateBrushSize(BrushShape shape, int size) {
 	toolbar->ToggleTool(TOOLBAR_SIZES_6, legacy_size == 8);
 	toolbar->ToggleTool(TOOLBAR_SIZES_7, legacy_size == 11);
 
+	// Hollow only makes sense when shape == LINE — disable the toggle otherwise
+	toolbar->EnableTool(TOOLBAR_SIZES_LINE_HOLLOW, shape == BRUSHSHAPE_LINE);
+	toolbar->ToggleTool(TOOLBAR_SIZES_LINE_HOLLOW, g_gui.IsHollowLine());
+	if (hollow_thickness_spin) {
+		hollow_thickness_spin->Enable(shape == BRUSHSHAPE_LINE && g_gui.IsHollowLine());
+		hollow_thickness_spin->SetValue(g_gui.GetHollowWallThickness());
+	}
+
 	g_gui.GetAuiManager()->Update();
 }
 
@@ -140,6 +172,14 @@ void SizeToolBar::OnToolbarClick(wxCommandEvent& event) {
 			break;
 		case TOOLBAR_SIZES_LINE:
 			g_gui.SetBrushShape(BRUSHSHAPE_LINE);
+			break;
+		case TOOLBAR_SIZES_LINE_HOLLOW:
+			g_gui.SetHollowLine(!g_gui.IsHollowLine());
+			if (hollow_thickness_spin) {
+				hollow_thickness_spin->Enable(g_gui.GetBrushShape() == BRUSHSHAPE_LINE && g_gui.IsHollowLine());
+			}
+			// Repaint preview overlay if the user is mid-drag with shape=LINE
+			g_gui.RefreshView();
 			break;
 		case TOOLBAR_SIZES_1:
 			g_gui.SetBrushSize(0);

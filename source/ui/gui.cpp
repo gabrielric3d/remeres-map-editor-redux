@@ -531,6 +531,18 @@ void GUI::SetDoorLocked(bool on) {
 bool GUI::HasDoorLocked() {
 	return g_brush_manager.HasDoorLocked();
 }
+void GUI::SetHollowLine(bool on) {
+	g_brush_manager.SetHollowLine(on);
+}
+bool GUI::IsHollowLine() const {
+	return g_brush_manager.IsHollowLine();
+}
+void GUI::SetHollowWallThickness(int t) {
+	g_brush_manager.SetHollowWallThickness(t);
+}
+int GUI::GetHollowWallThickness() const {
+	return g_brush_manager.GetHollowWallThickness();
+}
 
 EditorTab* GUI::GetCurrentTab() {
 	return g_editors.GetCurrentTab();
@@ -997,6 +1009,15 @@ void GUI::ShowBrushesEditorDialog() {
 		brushes_editor_dialog->Raise();
 	} else {
 		brushes_editor_dialog = newd BrushesEditorDialog(root);
+		// Clear our cached pointer once wxWidgets finishes the async Destroy()
+		// triggered in BrushesEditorDialog::OnCloseWindow — otherwise the next
+		// ShowBrushesEditorDialog() would Show() a dangling pointer and crash.
+		brushes_editor_dialog->Bind(wxEVT_DESTROY, [this](wxWindowDestroyEvent& event) {
+			if (event.GetEventObject() == brushes_editor_dialog) {
+				brushes_editor_dialog = nullptr;
+			}
+			event.Skip();
+		});
 		brushes_editor_dialog->Show();
 	}
 }

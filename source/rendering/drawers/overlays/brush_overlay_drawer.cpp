@@ -136,7 +136,11 @@ void BrushOverlayDrawer::draw(SpriteBatch& sprite_batch, PrimitiveRenderer& prim
 			std::vector<Position> tilestodraw;
 			Position start(drawer->canvas->last_click_map_x, drawer->canvas->last_click_map_y, view.floor);
 			Position end_pos(view.mouse_map_x, view.mouse_map_y, view.floor);
-			BrushUtility::GetLineTiles(start, end_pos, &tilestodraw, nullptr);
+			int line_wall_thickness = 0;
+			if (g_gui.IsHollowLine()) {
+				line_wall_thickness = brush->is<WallBrush>() ? 1 : g_gui.GetHollowWallThickness();
+			}
+			BrushUtility::GetLineTiles(start, end_pos, &tilestodraw, nullptr, line_wall_thickness);
 
 			RAWBrush* raw_brush = brush->is<RAWBrush>() ? brush->as<RAWBrush>() : nullptr;
 			if (g_gui.gfx.ensureAtlasManager()) {

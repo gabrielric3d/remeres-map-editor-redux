@@ -267,6 +267,12 @@ public:
 	void SetDoorLocked(bool on);
 	bool HasDoorLocked();
 
+	// Line tool: hollow mode
+	void SetHollowLine(bool on);
+	bool IsHollowLine() const;
+	void SetHollowWallThickness(int t);
+	int GetHollowWallThickness() const;
+
 	// Centers current view on position
 	void SetScreenCenterPosition(Position pos);
 	// Camera paths

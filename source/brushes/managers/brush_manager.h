@@ -9,6 +9,7 @@
 #include "brushes/brush_enums.h"
 #include "brushes/brush_footprint.h"
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -118,6 +119,24 @@ public:
 		return draw_locked_doors;
 	}
 
+	// Line tool: hollow mode (only walls of the line, empty middle — useful for corridors)
+	void SetHollowLine(bool on) {
+		hollow_line = on;
+	}
+	[[nodiscard]] bool IsHollowLine() const {
+		return hollow_line;
+	}
+
+	// User-configured wall thickness for hollow line on non-wall brushes
+	// (wall brushes are always forced to 1 by the callsite — walls are walls).
+	// Clamp at write time so callers always see a sane positive value.
+	void SetHollowWallThickness(int t) {
+		hollow_wall_thickness = std::max(1, t);
+	}
+	[[nodiscard]] int GetHollowWallThickness() const {
+		return hollow_wall_thickness;
+	}
+
 	[[nodiscard]] float GetCustomThicknessMod() const {
 		return custom_thickness_mod;
 	}
@@ -174,6 +193,8 @@ private:
 	[[nodiscard]] bool HasResizableDoodadBrush() const;
 
 	bool draw_locked_doors;
+	bool hollow_line = false;
+	int hollow_wall_thickness = 1;
 	bool use_custom_thickness;
 	float custom_thickness_mod;
 	float light_intensity;

@@ -143,9 +143,41 @@ bool BrushUtility::FloodFill(Map* map, const Position& center, int start_x, int 
 
 void BrushUtility::GetLineTiles(const Position& a, const Position& b,
 	std::vector<Position>* tilestodraw,
-	std::vector<Position>* tilestoborder) {
+	std::vector<Position>* tilestoborder,
+	int wall_thickness) {
 	const BrushFootprint footprint = g_gui.GetBrushFootprint();
 	const int floor = a.z;
+
+	// Hollow mode: keep only the two outermost bands of the footprint perpendicular to
+	// the true line direction. Uses floating-point perpendicular projection so the
+	// gap stays perpendicular and the wall thickness stays consistent at ANY angle
+	// (no orientation-bucket transitions that thicken the wall as the angle changes).
+	const int radius_x = footprint.max_offset_x;
+	const int radius_y = footprint.max_offset_y;
+	const int max_radius = std::max(radius_x, radius_y);
+	const int dx_raw = b.x - a.x;
+	const int dy_raw = b.y - a.y;
+	const bool zero_length = (dx_raw == 0 && dy_raw == 0);
+	const bool hollow_active = !zero_length && wall_thickness >= 1 && max_radius >= 1;
+
+	// Perpendicular unit vector to the line.
+	const double line_length = std::sqrt(static_cast<double>(dx_raw) * dx_raw
+		+ static_cast<double>(dy_raw) * dy_raw);
+	const double nx = line_length > 0.0 ? -static_cast<double>(dy_raw) / line_length : 0.0;
+	const double ny = line_length > 0.0 ?  static_cast<double>(dx_raw) / line_length : 0.0;
+	// Max perpendicular projection of any footprint-bbox corner.
+	const double radius_perp = (std::abs(nx) + std::abs(ny)) * max_radius;
+	const int t_eff = std::min(std::max(1, wall_thickness), std::max(1, max_radius));
+
+	const auto offsetAllowed = [&](int ox, int oy) -> bool {
+		if (!hollow_active) {
+			return true;
+		}
+		const double perp_dist = ox * nx + oy * ny;
+		// thickness=1 keeps only the outermost projection band; each extra unit
+		// peels one band inward.
+		return std::abs(perp_dist) >= radius_perp - (t_eff - 1);
+	};
 
 	std::unordered_set<int64_t> draw_seen;
 	std::unordered_set<int64_t> border_seen;
@@ -157,7 +189,7 @@ void BrushUtility::GetLineTiles(const Position& a, const Position& b,
 	const auto applyFootprintAt = [&](int px, int py) {
 		for (int y = footprint.min_offset_y - 1; y <= footprint.max_offset_y + 1; ++y) {
 			for (int x = footprint.min_offset_x - 1; x <= footprint.max_offset_x + 1; ++x) {
-				if (footprint.containsOffset(x, y)) {
+				if (footprint.containsOffset(x, y) && offsetAllowed(x, y)) {
 					if (tilestodraw) {
 						const int64_t key = makeKey(px + x, py + y);
 						if (draw_seen.insert(key).second) {
@@ -169,6 +201,9 @@ void BrushUtility::GetLineTiles(const Position& a, const Position& b,
 				for (int check_y = y - 1; check_y <= y + 1; ++check_y) {
 					for (int check_x = x - 1; check_x <= x + 1; ++check_x) {
 						if (!footprint.containsOffset(check_x, check_y)) {
+							continue;
+						}
+						if (!offsetAllowed(check_x, check_y)) {
 							continue;
 						}
 						if (tilestoborder) {
