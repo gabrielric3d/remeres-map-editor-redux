@@ -29,9 +29,11 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(IMPORT_MAP, wxITEM_NORMAL, OnImportMap);
 	MAKE_ACTION(IMPORT_MONSTERS, wxITEM_NORMAL, OnImportMonsterData);
 	MAKE_ACTION(IMPORT_MONSTERS_JSON, wxITEM_NORMAL, OnImportMonsterJSON);
+	MAKE_ACTION(IMPORT_CREATURES_SPAWN, wxITEM_NORMAL, OnImportCreaturesSpawn);
 	MAKE_ACTION(IMPORT_MINIMAP, wxITEM_NORMAL, OnImportMinimap);
 
 	MAKE_ACTION(EXPORT_MINIMAP, wxITEM_NORMAL, OnExportMinimap);
+	MAKE_ACTION(MERGE_MAPS_MINIMAP, wxITEM_NORMAL, OnMergeMapsMinimap);
 	MAKE_ACTION(EXPORT_TILESETS, wxITEM_NORMAL, OnExportTilesets);
 
 	MAKE_ACTION(RELOAD_DATA, wxITEM_NORMAL, OnReloadDataFiles);
@@ -248,9 +250,13 @@ void MenuBarActionManager::UpdateState(MainMenuBar* mb) {
 	mb->EnableItem(IMPORT_MAP, is_local);
 	mb->EnableItem(IMPORT_MONSTERS, is_local);
 	mb->EnableItem(IMPORT_MONSTERS_JSON, is_local);
+	mb->EnableItem(IMPORT_CREATURES_SPAWN, is_local);
 	mb->EnableItem(IMPORT_MINIMAP, false);
 
 	mb->EnableItem(EXPORT_MINIMAP, has_map);
+	// Merging .otbm files into one .otmm does not need an open map, but it
+	// does need item definitions loaded (for minimap colors / ground speed).
+	mb->EnableItem(MERGE_MAPS_MINIMAP, loaded);
 	mb->EnableItem(EXPORT_TILESETS, loaded);
 	mb->EnableItem(RELOAD_BRUSHES, loaded);
 

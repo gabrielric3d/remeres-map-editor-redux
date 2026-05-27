@@ -15,6 +15,7 @@
 
 #include <wx/dcclient.h>
 #include <algorithm>
+#include <cmath>
 #include <span>
 #include <ranges>
 
@@ -127,7 +128,9 @@ void NanoVGCanvas::OnSize(wxSizeEvent& evt) {
 
 void NanoVGCanvas::OnMouseWheel(wxMouseEvent& evt) {
 	int rotation = evt.GetWheelRotation();
-	m_scrollPos -= (rotation / 120) * m_scrollStep;
+	float speed = std::max(0.1f, g_settings.getFloat(Config::PALETTE_SCROLL_SPEED));
+	int step = std::max(1, static_cast<int>(std::lround(m_scrollStep * speed)));
+	m_scrollPos -= (rotation / 120) * step;
 
 	int maxScroll = std::max(0, m_contentHeight - GetClientSize().y);
 	m_scrollPos = std::clamp(m_scrollPos, 0, maxScroll);

@@ -28,6 +28,9 @@
 #include "ui/main_frame.h"
 #include "ui/map/map_properties_window.h"
 #include "editor/copybuffer.h"
+#include "editor/action.h"
+#include "map/tile_operations.h"
+#include "map/tile.h"
 
 #include <set>
 #include <sstream>
@@ -299,6 +302,10 @@ bool EditorManager::NewMap() {
 	MapPropertiesWindow properties(g_gui.root, nullptr, *editor, has_selection_snapshot);
 	int result = properties.ShowModal();
 	bool create_from_selection = properties.ShouldCreateFromSelection();
+	bool copy_from_map = properties.ShouldCopyFromMap();
+	Editor* copy_source_editor = properties.GetCopySourceEditor();
+	Position copy_from_pos = properties.GetCopyFromPosition();
+	Position copy_to_pos = properties.GetCopyToPosition();
 
 	if (result != wxID_OK) {
 		// User cancelled - editor is automatically cleaned up by unique_ptr
@@ -310,7 +317,32 @@ bool EditorManager::NewMap() {
 	mapTab->OnSwitchEditorMode(SELECTION_MODE);
 
 	// Paste selection if requested
-	if (create_from_selection && selection_snapshot && selection_snapshot->canPaste()) {
+	if (copy_from_map && copy_source_editor) {
+		Editor* dest_editor = mapTab->GetEditor();
+		Map& source_map = copy_source_editor->map;
+		Map& dest_map = dest_editor->map;
+
+		auto batch = dest_editor->actionQueue->createBatch(ACTION_PASTE_TILES);
+		auto action = dest_editor->actionQueue->createAction(batch.get());
+		int copied_tiles = 0;
+		for (int z = copy_from_pos.z; z <= copy_to_pos.z; ++z) {
+			for (int y = copy_from_pos.y; y <= copy_to_pos.y; ++y) {
+				for (int x = copy_from_pos.x; x <= copy_to_pos.x; ++x) {
+					Tile* src_tile = source_map.getTile(x, y, z);
+					if (!src_tile) {
+						continue;
+					}
+					std::unique_ptr<Tile> copy_tile = TileOperations::deepCopy(src_tile, dest_map);
+					action->addChange(std::make_unique<Change>(std::move(copy_tile)));
+					++copied_tiles;
+				}
+			}
+		}
+		batch->addAndCommitAction(std::move(action));
+		dest_editor->addBatch(std::move(batch));
+
+		spdlog::info("EditorManager::NewMap - Copied {} tile(s) from \"{}\" region ({},{},{})..({},{},{})", copied_tiles, source_map.getName(), copy_from_pos.x, copy_from_pos.y, copy_from_pos.z, copy_to_pos.x, copy_to_pos.y, copy_to_pos.z);
+	} else if (create_from_selection && selection_snapshot && selection_snapshot->canPaste()) {
 		selection_snapshot->paste(*mapTab->GetEditor(), Position(0, 0, 7));
 	} else {
 		mapTab->GetMap()->clearChanges();

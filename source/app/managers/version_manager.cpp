@@ -13,6 +13,7 @@
 #include "game/sprites.h"
 #include "game/creatures.h"
 #include "game/materials.h"
+#include "game/stair_overlays.h"
 #include "brushes/brush.h"
 #include "brushes/managers/brush_manager.h"
 #include "ui/managers/loading_manager.h"
@@ -147,6 +148,11 @@ bool VersionManager::LoadDataFiles(wxString& error, std::vector<std::string>& wa
 		}
 	}
 
+	g_loading.SetLoadDone(49, "Loading stair_overlays.xml ...");
+	if (!g_stair_overlays.load(FileName(base_data_path + "stair_overlays.xml"), error, warnings)) {
+		warnings.push_back("Couldn't load stair_overlays.xml: " + std::string(error.mb_str()));
+	}
+
 	g_loading.SetLoadDone(50, "Loading materials.xml ...");
 	if (!g_materials.loadMaterials(base_data_path + "materials.xml", error, warnings)) {
 		warnings.push_back("Couldn't load materials.xml: " + std::string(error.mb_str()));
@@ -217,6 +223,10 @@ bool VersionManager::ReloadBrushes(wxString& error, std::vector<std::string>& wa
 	// Reload materials.xml and all included files
 	FileName data_path = getLoadedVersion()->getDataPath();
 	wxString base_data_path = data_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
+
+	if (!g_stair_overlays.load(FileName(base_data_path + "stair_overlays.xml"), error, warnings)) {
+		warnings.push_back("Couldn't reload stair_overlays.xml: " + std::string(error.mb_str()));
+	}
 
 	if (!g_materials.loadMaterials(base_data_path + "materials.xml", error, warnings)) {
 		warnings.push_back("Couldn't reload materials.xml: " + std::string(error.mb_str()));
