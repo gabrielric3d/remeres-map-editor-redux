@@ -1156,6 +1156,16 @@ bool DecorationEngine::buildPlacementItems(const Position& basePos, const ItemEn
 				}
 			}
 
+			// Reject the whole cluster if any target tile already has items stacked
+			// on the ground — we only overwrite bare ground, never existing borders
+			// or decorations placed by the user.
+			if (!m_virtualPreview && m_editor) {
+				Tile* mapTile = m_editor->map.getTile(pos);
+				if (mapTile && !mapTile->items.empty()) {
+					return false;
+				}
+			}
+
 			uint16_t validateId = 0;
 			for (uint16_t id : tile.itemIds) {
 				if (id > 0) {
