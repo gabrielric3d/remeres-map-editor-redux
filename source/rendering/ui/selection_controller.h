@@ -49,6 +49,7 @@ public:
 	void Reset() {
 		dragging = false;
 		boundbox_selection = false;
+		boundbox_select_creatures = false;
 		ClearLassoSelection();
 	}
 
@@ -59,8 +60,8 @@ public:
 	const std::vector<wxPoint>& GetLassoMapPoints() const { return lasso_map_points; }
 
 private:
-	void ExecuteBoundboxSelection(const Position& start_pos, const Position& end_pos, int floor);
-	void ExecuteLassoSelection(int floor);
+	void ExecuteBoundboxSelection(const Position& start_pos, const Position& end_pos, int floor, bool creatures_only = false);
+	void ExecuteLassoSelection(int floor, bool creatures_only = false);
 
 	// Lasso helpers
 	void ClearLassoSelection();
@@ -72,6 +73,7 @@ private:
 
 	bool dragging;
 	bool boundbox_selection;
+	bool boundbox_select_creatures;
 	bool lasso_active;
 
 	Position drag_start_pos;

@@ -20,15 +20,19 @@
 #include "editor/selection_thread.h"
 #include "editor/editor.h"
 #include "map/map.h"
+#include "map/tile.h"
+#include "game/creature.h"
+#include "game/spawn.h"
 #include "app/settings.h"
 #include "editor/action.h"
 
-SelectionThread::SelectionThread(Editor& editor, Position start, Position end) :
+SelectionThread::SelectionThread(Editor& editor, Position start, Position end, bool creatures_only) :
 	editor(editor),
 	start(start),
 	end(end),
 	selection(editor),
-	result(nullptr) {
+	result(nullptr),
+	creatures_only(creatures_only) {
 	////
 }
 
@@ -56,7 +60,16 @@ void SelectionThread::Work() {
 					continue;
 				}
 
-				selection.add(tile);
+				if (creatures_only) {
+					if (tile->spawn && g_settings.getInteger(Config::SHOW_SPAWNS) && (!tile->creature || !g_settings.getInteger(Config::SHOW_CREATURES))) {
+						selection.add(tile, tile->spawn.get());
+					}
+					if (tile->creature && g_settings.getInteger(Config::SHOW_CREATURES)) {
+						selection.add(tile, tile->creature.get());
+					}
+				} else {
+					selection.add(tile);
+				}
 			}
 		}
 		if (z <= GROUND_LAYER && g_settings.getInteger(Config::COMPENSATED_SELECT)) {

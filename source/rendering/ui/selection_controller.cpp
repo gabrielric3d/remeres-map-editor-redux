@@ -50,6 +50,7 @@ SelectionController::SelectionController(MapCanvas* canvas, Editor& editor) :
 	editor(editor),
 	dragging(false),
 	boundbox_selection(false),
+	boundbox_select_creatures(false),
 	lasso_active(false),
 	drag_start_pos(Position()) {
 }
@@ -127,8 +128,10 @@ void SelectionController::HandleClick(const Position& mouse_map_pos, bool shift_
 			}
 		} else {
 			boundbox_selection = false;
+			boundbox_select_creatures = false;
 			if (shift_down) {
 				boundbox_selection = true;
+				boundbox_select_creatures = alt_down && !ctrl_down;
 
 				if (IsLassoEnabled()) {
 					int screen_x = canvas->cursor_x;
@@ -136,7 +139,7 @@ void SelectionController::HandleClick(const Position& mouse_map_pos, bool shift_
 					StartLassoSelection(screen_x, screen_y, mouse_map_pos.x, mouse_map_pos.y);
 				}
 
-				if (!ctrl_down) {
+				if (!ctrl_down && !alt_down) {
 					editor.selection.start(); // Start selection session
 					editor.selection.clear(); // Clear out selection
 					editor.selection.finish(); // End selection session
@@ -268,7 +271,7 @@ void SelectionController::HandleRelease(const Position& mouse_map_pos, bool shif
 					AddLassoPoint(canvas->cursor_x, canvas->cursor_y, mouse_map_pos.x, mouse_map_pos.y);
 
 					if (lasso_map_points.size() >= 3) {
-						ExecuteLassoSelection(mouse_map_pos.z);
+						ExecuteLassoSelection(mouse_map_pos.z, boundbox_select_creatures);
 					}
 					ClearLassoSelection();
 				} else if (mouse_map_pos.x == canvas->last_click_map_x && mouse_map_pos.y == canvas->last_click_map_y && ctrl_down) {
@@ -285,7 +288,7 @@ void SelectionController::HandleRelease(const Position& mouse_map_pos, bool shif
 						editor.selection.updateSelectionCount();
 					}
 				} else {
-					ExecuteBoundboxSelection(Position(canvas->last_click_map_x, canvas->last_click_map_y, canvas->last_click_map_z), mouse_map_pos, mouse_map_pos.z);
+					ExecuteBoundboxSelection(Position(canvas->last_click_map_x, canvas->last_click_map_y, canvas->last_click_map_z), mouse_map_pos, mouse_map_pos.z, boundbox_select_creatures);
 				}
 			} else if (ctrl_down) {
 				////
@@ -322,6 +325,7 @@ void SelectionController::HandleRelease(const Position& mouse_map_pos, bool shif
 		editor.actionQueue->resetTimer();
 		dragging = false;
 		boundbox_selection = false;
+		boundbox_select_creatures = false;
 	}
 }
 
@@ -335,8 +339,10 @@ void SelectionController::HandlePropertiesClick(const Position& mouse_map_pos, b
 	canvas->EndPasting();
 
 	boundbox_selection = false;
+	boundbox_select_creatures = false;
 	if (shift_down) {
 		boundbox_selection = true;
+		boundbox_select_creatures = alt_down && !ctrl_down;
 
 		if (IsLassoEnabled()) {
 			int screen_x = canvas->cursor_x;
@@ -344,7 +350,7 @@ void SelectionController::HandlePropertiesClick(const Position& mouse_map_pos, b
 			StartLassoSelection(screen_x, screen_y, mouse_map_pos.x, mouse_map_pos.y);
 		}
 
-		if (!ctrl_down) {
+		if (!ctrl_down && !alt_down) {
 			editor.selection.start(); // Start selection session
 			editor.selection.clear(); // Clear out selection
 			editor.selection.finish(); // End selection session
@@ -386,7 +392,7 @@ void SelectionController::HandlePropertiesRelease(const Position& mouse_map_pos,
 			AddLassoPoint(canvas->cursor_x, canvas->cursor_y, mouse_map_pos.x, mouse_map_pos.y);
 
 			if (lasso_map_points.size() >= 3) {
-				ExecuteLassoSelection(mouse_map_pos.z);
+				ExecuteLassoSelection(mouse_map_pos.z, boundbox_select_creatures);
 			}
 			ClearLassoSelection();
 		} else if (mouse_map_pos.x == canvas->last_click_map_x && mouse_map_pos.y == canvas->last_click_map_y && ctrl_down) {
@@ -403,7 +409,7 @@ void SelectionController::HandlePropertiesRelease(const Position& mouse_map_pos,
 				editor.selection.updateSelectionCount();
 			}
 		} else {
-			ExecuteBoundboxSelection(Position(canvas->last_click_map_x, canvas->last_click_map_y, canvas->last_click_map_z), mouse_map_pos, mouse_map_pos.z);
+			ExecuteBoundboxSelection(Position(canvas->last_click_map_x, canvas->last_click_map_y, canvas->last_click_map_z), mouse_map_pos, mouse_map_pos.z, boundbox_select_creatures);
 		}
 	} else if (ctrl_down) {
 		// Nothing
@@ -412,6 +418,7 @@ void SelectionController::HandlePropertiesRelease(const Position& mouse_map_pos,
 	editor.actionQueue->resetTimer();
 	dragging = false;
 	boundbox_selection = false;
+	boundbox_select_creatures = false;
 }
 
 void SelectionController::HandleDoubleClick(const Position& mouse_map_pos) {
@@ -423,7 +430,7 @@ void SelectionController::HandleDoubleClick(const Position& mouse_map_pos) {
 	}
 }
 
-void SelectionController::ExecuteBoundboxSelection(const Position& start_pos, const Position& end_pos, int floor) {
+void SelectionController::ExecuteBoundboxSelection(const Position& start_pos, const Position& end_pos, int floor, bool creatures_only) {
 	int start_x = start_pos.x;
 	int start_y = start_pos.y;
 	int end_x = end_pos.x;
@@ -508,7 +515,7 @@ void SelectionController::ExecuteBoundboxSelection(const Position& start_pos, co
 	int cleared = 0;
 	std::vector<std::unique_ptr<SelectionThread>> threads;
 	if (width == 0) {
-		threads.push_back(std::make_unique<SelectionThread>(editor, Position(s_x, s_y, s_z), Position(s_x, e_y, e_z)));
+		threads.push_back(std::make_unique<SelectionThread>(editor, Position(s_x, s_y, s_z), Position(s_x, e_y, e_z), creatures_only));
 	} else {
 		for (int i = 0; i < threadcount; ++i) {
 			int chunksize = width / threadcount;
@@ -516,7 +523,7 @@ void SelectionController::ExecuteBoundboxSelection(const Position& start_pos, co
 			if (i == threadcount - 1) {
 				chunksize = remainder;
 			}
-			threads.push_back(std::make_unique<SelectionThread>(editor, Position(s_x + cleared, s_y, s_z), Position(s_x + cleared + chunksize, e_y, e_z)));
+			threads.push_back(std::make_unique<SelectionThread>(editor, Position(s_x + cleared, s_y, s_z), Position(s_x + cleared + chunksize, e_y, e_z), creatures_only));
 			cleared += chunksize;
 			remainder -= chunksize;
 		}
@@ -535,7 +542,7 @@ void SelectionController::ExecuteBoundboxSelection(const Position& start_pos, co
 	editor.selection.updateSelectionCount();
 }
 
-void SelectionController::ExecuteLassoSelection(int floor) {
+void SelectionController::ExecuteLassoSelection(int floor, bool creatures_only) {
 	if (lasso_map_points.size() < 3) {
 		return;
 	}
@@ -597,7 +604,16 @@ void SelectionController::ExecuteLassoSelection(int floor) {
 				if (IsPointInPolygon(lasso_map_points, px - offset, py - offset)) {
 					Tile* tile = editor.map.getTile(x, y, z);
 					if (tile) {
-						editor.selection.add(tile);
+						if (creatures_only) {
+							if (tile->spawn && g_settings.getInteger(Config::SHOW_SPAWNS) && (!tile->creature || !g_settings.getInteger(Config::SHOW_CREATURES))) {
+								editor.selection.add(tile, tile->spawn.get());
+							}
+							if (tile->creature && g_settings.getInteger(Config::SHOW_CREATURES)) {
+								editor.selection.add(tile, tile->creature.get());
+							}
+						} else {
+							editor.selection.add(tile);
+						}
 					}
 				}
 			}

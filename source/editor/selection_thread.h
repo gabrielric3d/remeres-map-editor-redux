@@ -28,7 +28,7 @@ class Action;
 
 class SelectionThread {
 public:
-	SelectionThread(Editor& editor, Position start, Position end);
+	SelectionThread(Editor& editor, Position start, Position end, bool creatures_only = false);
 	virtual ~SelectionThread();
 
 	void Start();
@@ -42,6 +42,7 @@ protected:
 	Position start, end;
 	Selection selection;
 	std::unique_ptr<Action> result;
+	bool creatures_only;
 
 	friend class Selection;
 };
