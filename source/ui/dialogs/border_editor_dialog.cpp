@@ -49,6 +49,8 @@
 #define ID_FIND_GROUND_BY_ITEM_ID wxID_HIGHEST + 14
 #define ID_TILESET_COMBO wxID_HIGHEST + 15
 #define ID_TILESET_BRUSH_LIST wxID_HIGHEST + 16
+#define ID_GROUND_BORDER_TO_COMBO wxID_HIGHEST + 17
+#define ID_MODIFY_GROUND_BORDER wxID_HIGHEST + 18
 
 // ============================================================================
 // Local layout helpers
@@ -277,7 +279,11 @@ BEGIN_EVENT_TABLE(BorderEditorDialog, wxPanel)
 	EVT_BUTTON(wxID_FIND + 100, BorderEditorDialog::OnGroundBrowse)
 	EVT_COMBOBOX(ID_EXISTING_GROUNDS_COMBO, BorderEditorDialog::OnLoadGroundBrush)
 	EVT_TEXT_ENTER(ID_EXISTING_GROUNDS_COMBO, BorderEditorDialog::OnLoadGroundBrush)
+	EVT_TEXT(ID_EXISTING_GROUNDS_COMBO, BorderEditorDialog::OnGroundLoadTextChanged)
+	EVT_COMBOBOX(ID_GROUND_BORDER_TO_COMBO, BorderEditorDialog::OnGroundBorderToChanged)
+	EVT_TEXT(ID_GROUND_BORDER_TO_COMBO, BorderEditorDialog::OnGroundBorderToChanged)
 	EVT_BUTTON(ID_ADD_GROUND_BORDER, BorderEditorDialog::OnAddGroundBorder)
+	EVT_BUTTON(ID_MODIFY_GROUND_BORDER, BorderEditorDialog::OnModifyGroundBorder)
 	EVT_BUTTON(ID_REMOVE_GROUND_BORDER, BorderEditorDialog::OnRemoveGroundBorder)
 	EVT_COMBOBOX(ID_GROUND_BORDER_ID_COMBO, BorderEditorDialog::OnGroundBorderIdChanged)
 	EVT_TEXT(ID_GROUND_BORDER_ID_COMBO, BorderEditorDialog::OnGroundBorderIdChanged)
@@ -319,6 +325,7 @@ END_EVENT_TABLE()
 BEGIN_EVENT_TABLE(GroundBordersPanel, wxPanel)
 	EVT_PAINT(GroundBordersPanel::OnPaint)
 	EVT_LEFT_UP(GroundBordersPanel::OnMouseClick)
+	EVT_LEFT_DCLICK(GroundBordersPanel::OnMouseDClick)
 	EVT_SIZE(GroundBordersPanel::OnSize)
 END_EVENT_TABLE()
 
@@ -495,7 +502,10 @@ void BorderEditorDialog::CreateGUIControls() {
 	groundPropsRow->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Load:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 	m_existingGroundBrushesCombo = newd wxComboBox(m_groundPanel, ID_EXISTING_GROUNDS_COMBO, "", wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_DROPDOWN | wxTE_PROCESS_ENTER);
 	m_existingGroundBrushesCombo->SetToolTip("Type to search, or pick from the list. Press Enter or select to load.");
-	groundPropsRow->Add(m_existingGroundBrushesCombo, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 12);
+	groundPropsRow->Add(m_existingGroundBrushesCombo, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_groundLoadPreview = newd BorderNorthPreview(m_groundPanel);
+	m_groundLoadPreview->SetToolTip("Preview: look item of the selected ground brush.");
+	groundPropsRow->Add(m_groundLoadPreview, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 12);
 
 	groundPropsRow->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Find ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 	m_findGroundItemIdCtrl = newd wxSpinCtrl(m_groundPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 0, 65535);
@@ -557,7 +567,7 @@ void BorderEditorDialog::CreateGUIControls() {
 
 	wxBoxSizer* groundBordersListRow = newd wxBoxSizer(wxHORIZONTAL);
 	m_groundBordersList = newd GroundBordersPanel(m_groundPanel);
-	m_groundBordersList->SetToolTip("Borders used by this ground brush. Order matters: earlier entries are applied first. Click the X to remove.");
+	m_groundBordersList->SetToolTip("Borders used by this ground brush. Order matters: earlier entries are applied first.\nDouble-click an entry to edit it in the fields below, click the X to remove.");
 	groundBordersListRow->Add(m_groundBordersList, 1, wxEXPAND | wxRIGHT, 4);
 
 	wxBoxSizer* orderBtnsSizer = newd wxBoxSizer(wxVERTICAL);
@@ -581,9 +591,12 @@ void BorderEditorDialog::CreateGUIControls() {
 	borderCfgRow1->Add(m_groundBorderAlignCtrl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
 
 	borderCfgRow1->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "To:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
-	m_groundBorderToCtrl = newd wxComboBox(m_groundPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_DROPDOWN);
+	m_groundBorderToCtrl = newd wxComboBox(m_groundPanel, ID_GROUND_BORDER_TO_COMBO, "", wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_DROPDOWN);
 	m_groundBorderToCtrl->SetToolTip("Target: leave empty for default, 'none' for empty tile, or a brush name.");
-	borderCfgRow1->Add(m_groundBorderToCtrl, 1, wxALIGN_CENTER_VERTICAL);
+	borderCfgRow1->Add(m_groundBorderToCtrl, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_groundToPreview = newd BorderNorthPreview(m_groundPanel);
+	m_groundToPreview->SetToolTip("Preview: look item of the target ground brush.");
+	borderCfgRow1->Add(m_groundToPreview, 0, wxALIGN_CENTER_VERTICAL);
 	groundRightCol->Add(borderCfgRow1, 0, wxEXPAND | wxALL, 6);
 
 	// Border config row 2: Border combo + preview
@@ -601,6 +614,9 @@ void BorderEditorDialog::CreateGUIControls() {
 	wxBoxSizer* borderAddRow = newd wxBoxSizer(wxHORIZONTAL);
 	m_addGroundBorderButton = newd wxButton(m_groundPanel, ID_ADD_GROUND_BORDER, "+ Add", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	borderAddRow->Add(m_addGroundBorderButton, 0, wxRIGHT, 4);
+	m_modifyGroundBorderButton = newd wxButton(m_groundPanel, ID_MODIFY_GROUND_BORDER, wxT("✎ Modify"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+	m_modifyGroundBorderButton->SetToolTip("Apply the Align/To/Border fields to the selected entry. Double-click an entry to load it into the fields.");
+	borderAddRow->Add(m_modifyGroundBorderButton, 0, wxRIGHT, 4);
 	m_removeGroundBorderButton = newd wxButton(m_groundPanel, ID_REMOVE_GROUND_BORDER, wxT("− Remove"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	borderAddRow->Add(m_removeGroundBorderButton, 0);
 	groundRightCol->Add(borderAddRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
@@ -787,6 +803,7 @@ void BorderEditorDialog::LoadExistingGroundBrushes() {
 	m_existingGroundBrushesCombo->Clear();
 	m_existingGroundBrushesCombo->Append("<Create New>");
 	m_existingGroundBrushesCombo->SetSelection(0);
+	m_groundLookIds.clear();
 
 	if (m_groundBorderToCtrl) {
 		m_groundBorderToCtrl->Clear();
@@ -825,6 +842,7 @@ void BorderEditorDialog::LoadExistingGroundBrushes() {
 
 		brushNames.Add(wxString(nameAttr.as_string()));
 		serverIds.push_back(serverLookIdAttr.as_int());
+		m_groundLookIds[wxString(nameAttr.as_string()).Lower()] = static_cast<uint16_t>(serverLookIdAttr.as_uint());
 	}
 
 	for (size_t i = 0; i < brushNames.GetCount(); ++i) {
@@ -832,6 +850,17 @@ void BorderEditorDialog::LoadExistingGroundBrushes() {
 		if (m_groundBorderToCtrl) {
 			m_groundBorderToCtrl->Append(brushNames[i]);
 		}
+	}
+
+	// Inline autocomplete while typing a brush name (native on MSW).
+	m_existingGroundBrushesCombo->AutoComplete(brushNames);
+	if (m_groundBorderToCtrl) {
+		wxArrayString toNames;
+		toNames.Add("none");
+		for (size_t i = 0; i < brushNames.GetCount(); ++i) {
+			toNames.Add(brushNames[i]);
+		}
+		m_groundBorderToCtrl->AutoComplete(toNames);
 	}
 
 	cleanup();
@@ -1311,27 +1340,32 @@ void BorderEditorDialog::OnUpdateGroundChance(wxCommandEvent& event) {
 	UpdateGroundItemsList();
 }
 
-void BorderEditorDialog::OnAddGroundBorder(wxCommandEvent& event) {
+// Resolves the border id from the Border combo: selected item's client data first,
+// then the text parsed as a number. Returns 0 if neither yields a valid id.
+static int ResolveBorderIdFromCombo(wxComboBox* combo) {
 	int borderId = 0;
 
-	// Try to resolve from selected item (client data) first
-	int sel = m_groundBorderIdCtrl->GetSelection();
+	int sel = combo->GetSelection();
 	if (sel != wxNOT_FOUND) {
-		wxStringClientData* data = static_cast<wxStringClientData*>(m_groundBorderIdCtrl->GetClientObject(sel));
+		wxStringClientData* data = static_cast<wxStringClientData*>(combo->GetClientObject(sel));
 		if (data) {
 			borderId = wxAtoi(data->GetData());
 		}
 	}
 
-	// Fall back to parsing the text as a number
 	if (borderId <= 0) {
-		wxString txt = m_groundBorderIdCtrl->GetValue();
+		wxString txt = combo->GetValue();
 		long v = 0;
 		if (txt.ToLong(&v) && v > 0) {
 			borderId = static_cast<int>(v);
 		}
 	}
 
+	return borderId;
+}
+
+void BorderEditorDialog::OnAddGroundBorder(wxCommandEvent& event) {
+	int borderId = ResolveBorderIdFromCombo(m_groundBorderIdCtrl);
 	if (borderId <= 0) {
 		wxMessageBox("Please select or type a valid border ID.", "Error", wxICON_ERROR);
 		return;
@@ -1342,6 +1376,75 @@ void BorderEditorDialog::OnAddGroundBorder(wxCommandEvent& event) {
 
 	m_groundBorders.push_back(GroundBorderRef(align, to, borderId));
 	RefreshGroundBordersList(static_cast<int>(m_groundBorders.size()) - 1);
+}
+
+void BorderEditorDialog::OnModifyGroundBorder(wxCommandEvent& event) {
+	int selection = m_groundBordersList ? m_groundBordersList->GetSelectedIndex() : -1;
+	if (selection < 0 || selection >= static_cast<int>(m_groundBorders.size())) {
+		wxMessageBox("Select a border entry to modify (double-click loads it into the fields).", "Error", wxICON_ERROR);
+		return;
+	}
+
+	int borderId = ResolveBorderIdFromCombo(m_groundBorderIdCtrl);
+	if (borderId <= 0) {
+		wxMessageBox("Please select or type a valid border ID.", "Error", wxICON_ERROR);
+		return;
+	}
+
+	GroundBorderRef& ref = m_groundBorders[selection];
+	ref.align = m_groundBorderAlignCtrl->GetSelection() == 1 ? "inner" : "outer";
+	ref.to = m_groundBorderToCtrl->GetValue().ToStdString();
+	ref.borderId = borderId;
+	// 'enabled' is intentionally preserved — toggled via the checkmark on the cell.
+
+	RefreshGroundBordersList(selection);
+}
+
+void BorderEditorDialog::EditGroundBorder(int index) {
+	if (index < 0 || index >= static_cast<int>(m_groundBorders.size())) return;
+	const GroundBorderRef& ref = m_groundBorders[index];
+
+	m_groundBorderAlignCtrl->SetSelection(ref.align == "inner" ? 1 : 0);
+	m_groundBorderToCtrl->SetValue(wxString(ref.to)); // fires EVT_TEXT -> To preview updates
+
+	// Prefer the combo entry whose client data matches the id (shows the full label);
+	// fall back to the bare number for ids not present in borders.xml.
+	bool found = false;
+	for (unsigned int i = 0; i < m_groundBorderIdCtrl->GetCount(); ++i) {
+		wxStringClientData* data = static_cast<wxStringClientData*>(m_groundBorderIdCtrl->GetClientObject(i));
+		if (data && wxAtoi(data->GetData()) == ref.borderId) {
+			m_groundBorderIdCtrl->SetSelection(i);
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		m_groundBorderIdCtrl->SetValue(wxString::Format("%d", ref.borderId));
+	}
+
+	// Programmatic SetSelection doesn't fire EVT_COMBOBOX — refresh the preview directly.
+	if (m_groundBorderPreview) {
+		m_groundBorderPreview->SetItemId(LookupNorthItemId(ref.borderId));
+	}
+}
+
+uint16_t BorderEditorDialog::LookupGroundLookId(const wxString& brushName) const {
+	wxString name = brushName;
+	name.Trim(true).Trim(false);
+	if (name.IsEmpty() || name == "none" || name == "<Create New>") return 0;
+
+	auto it = m_groundLookIds.find(name.Lower());
+	return it != m_groundLookIds.end() ? it->second : 0;
+}
+
+void BorderEditorDialog::OnGroundLoadTextChanged(wxCommandEvent& event) {
+	if (!m_groundLoadPreview || !m_existingGroundBrushesCombo) return;
+	m_groundLoadPreview->SetItemId(LookupGroundLookId(m_existingGroundBrushesCombo->GetValue()));
+}
+
+void BorderEditorDialog::OnGroundBorderToChanged(wxCommandEvent& event) {
+	if (!m_groundToPreview || !m_groundBorderToCtrl) return;
+	m_groundToPreview->SetItemId(LookupGroundLookId(m_groundBorderToCtrl->GetValue()));
 }
 
 uint16_t BorderEditorDialog::LookupNorthItemId(int borderId) {
@@ -1666,6 +1769,37 @@ void BorderEditorDialog::OnLoadGroundBrush(wxCommandEvent& event) {
 		wantedName = m_existingGroundBrushesCombo->GetString(selection);
 	} else {
 		wantedName = m_existingGroundBrushesCombo->GetValue().Trim(true).Trim(false);
+
+		// Typed text doesn't need to be the full name: accept an exact match,
+		// otherwise a unique prefix, otherwise a unique substring.
+		if (!wantedName.IsEmpty()) {
+			wxString typedLower = wantedName.Lower();
+			wxString prefixMatch, substringMatch;
+			int prefixCount = 0, substringCount = 0;
+			bool exact = false;
+			for (unsigned int i = 1; i < m_existingGroundBrushesCombo->GetCount(); ++i) {
+				wxString itemName = m_existingGroundBrushesCombo->GetString(i);
+				wxString itemLower = itemName.Lower();
+				if (itemLower == typedLower) {
+					exact = true;
+					break;
+				}
+				if (itemLower.StartsWith(typedLower)) {
+					prefixMatch = itemName;
+					++prefixCount;
+				} else if (itemLower.Contains(typedLower)) {
+					substringMatch = itemName;
+					++substringCount;
+				}
+			}
+			if (!exact) {
+				if (prefixCount == 1) {
+					wantedName = prefixMatch;
+				} else if (prefixCount == 0 && substringCount == 1) {
+					wantedName = substringMatch;
+				}
+			}
+		}
 	}
 
 	if (wantedName.IsEmpty() || wantedName == "<Create New>") {
@@ -1943,6 +2077,9 @@ void BorderEditorDialog::ClearGroundItems() {
 	m_groundItemChanceCtrl->SetValue(10);
 	if (m_groundBordersList) {
 		m_groundBordersList->Clear();
+	}
+	if (m_groundLoadPreview) {
+		m_groundLoadPreview->Clear();
 	}
 	UpdateGroundItemsList();
 }
@@ -3275,6 +3412,33 @@ void GroundBordersPanel::OnMouseClick(wxMouseEvent& event) {
 
 	m_selectedIndex = -1;
 	Refresh();
+}
+
+void GroundBordersPanel::OnMouseDClick(wxMouseEvent& event) {
+	int mx = event.GetX();
+	int my = event.GetY();
+
+	wxWindow* parent = GetParent();
+	while (parent && !dynamic_cast<BorderEditorDialog*>(parent)) {
+		parent = parent->GetParent();
+	}
+	BorderEditorDialog* dialog = dynamic_cast<BorderEditorDialog*>(parent);
+
+	for (const auto& cell : m_cells) {
+		// The X and enable buttons keep their single-click behavior
+		if (cell.closeBtn.Contains(mx, my) || cell.enableBtn.Contains(mx, my)) {
+			return;
+		}
+
+		if (cell.bounds.Contains(mx, my)) {
+			m_selectedIndex = cell.index;
+			Refresh();
+			if (dialog) {
+				dialog->EditGroundBorder(cell.index);
+			}
+			return;
+		}
+	}
 }
 
 // ============================================================================

@@ -189,6 +189,7 @@ public:
 
 	void OnPaint(wxPaintEvent& event);
 	void OnMouseClick(wxMouseEvent& event);
+	void OnMouseDClick(wxMouseEvent& event);
 	void OnSize(wxSizeEvent& event);
 
 private:
@@ -255,12 +256,17 @@ public:
 	void OnFindGroundByItemId(wxCommandEvent& event);
 	void AddGroundItemById(uint16_t itemId);
 	void OnAddGroundBorder(wxCommandEvent& event);
+	void OnModifyGroundBorder(wxCommandEvent& event);
 	void OnRemoveGroundBorder(wxCommandEvent& event);
+	void EditGroundBorder(int index);
 	void OnMoveGroundBorderUp(wxCommandEvent& event);
 	void OnMoveGroundBorderDown(wxCommandEvent& event);
 	void RefreshGroundBordersList(int selectAt = -1);
 	void OnGroundBorderIdChanged(wxCommandEvent& event);
+	void OnGroundLoadTextChanged(wxCommandEvent& event);
+	void OnGroundBorderToChanged(wxCommandEvent& event);
 	uint16_t LookupNorthItemId(int borderId);
+	uint16_t LookupGroundLookId(const wxString& brushName) const;
 	void OnAddGroundToTileset(wxCommandEvent& event);
 	void OnTilesetSelectionChanged(wxCommandEvent& event);
 	void LoadExistingTilesets();
@@ -303,6 +309,7 @@ public:
 	// Ground Tab
 	wxPanel* m_groundPanel;
 	wxComboBox* m_existingGroundBrushesCombo;
+	BorderNorthPreview* m_groundLoadPreview = nullptr;
 	wxSpinCtrl* m_findGroundItemIdCtrl;
 	wxSpinCtrl* m_serverLookIdCtrl;
 	wxSpinCtrl* m_zOrderCtrl;
@@ -322,7 +329,9 @@ public:
 	wxComboBox* m_groundBorderIdCtrl;
 	BorderNorthPreview* m_groundBorderPreview;
 	wxComboBox* m_groundBorderToCtrl;
+	BorderNorthPreview* m_groundToPreview = nullptr;
 	wxButton* m_addGroundBorderButton;
+	wxButton* m_modifyGroundBorderButton = nullptr;
 	wxButton* m_removeGroundBorderButton;
 
 	// Tileset assignment
@@ -339,6 +348,9 @@ public:
 
 	// Ground border references
 	std::vector<GroundBorderRef> m_groundBorders;
+
+	// Lowercased ground brush name -> server_lookid, for the name-combo previews
+	std::map<wxString, uint16_t> m_groundLookIds;
 
 	// Border grid
 	BorderGridPanel* m_gridPanel;
