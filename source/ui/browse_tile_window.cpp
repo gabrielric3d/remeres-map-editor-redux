@@ -104,11 +104,12 @@ int BrowseTileListBox::OnMeasureItem(size_t n) const {
 }
 
 Item* BrowseTileListBox::GetSelectedItem() {
-	if (GetItemCount() == 0 || GetSelectedCount() == 0) {
+	const int index = GetSelection();
+	if (index < 0 || (size_t)index >= items.size()) {
 		return nullptr;
 	}
 
-	return TileOperations::getTopSelectedItem(edit_tile);
+	return items[index];
 }
 
 void BrowseTileListBox::RemoveSelected() {
