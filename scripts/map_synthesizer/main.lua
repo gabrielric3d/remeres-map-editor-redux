@@ -2010,13 +2010,23 @@ buildDialog = function(selectedName)
 	dlg:box({ orient = "vertical", label = "3) Gerar" })
 
 	-- icone de sprite no inicio da primeira linha de cada grupo
-	local function groupIcon(itemId)
-		dlg:image({ itemid = itemId, width = 20, height = 20, smooth = false, valign = "center" })
+	-- icones dos assets do editor (requer rebuild); fallback: sprite de item
+	local function groupIcon(assetPath, fallbackItemId)
+		if Image.fromAsset then
+			local ok, img = pcall(function()
+				return Image.fromAsset(assetPath, 16, 224, 224, 224)
+			end)
+			if ok and img and img.valid then
+				dlg:image({ image = img, valign = "center" })
+				return
+			end
+		end
+		dlg:image({ itemid = fallbackItemId, width = 20, height = 20, smooth = false, valign = "center" })
 	end
 
 	dlg:box({ orient = "vertical", label = "Estilo" })
 	dlg:wrap({})
-	groupIcon(4526) -- grama
+	groupIcon("svg/solid/wand-magic-sparkles.svg", 4526)
 	dlg:combobox({
 		id = "mode",
 		label = "Modo",
@@ -2036,7 +2046,7 @@ buildDialog = function(selectedName)
 
 	dlg:box({ orient = "vertical", label = "Tamanho e contorno" })
 	dlg:wrap({})
-	groupIcon(2554) -- pa
+	groupIcon("svg/solid/ruler-combined.svg", 2554)
 	dlg:number({
 		id = "sizePct",
 		label = "Tamanho (%)",
@@ -2066,7 +2076,7 @@ buildDialog = function(selectedName)
 
 	dlg:box({ orient = "vertical", label = "Quantidade e distribuicao" })
 	dlg:wrap({})
-	groupIcon(2148) -- moedas
+	groupIcon("svg/solid/shuffle.svg", 2148)
 	dlg:number({
 		id = "shapes",
 		label = "Quantidade (0 = preencher)",
@@ -2088,7 +2098,7 @@ buildDialog = function(selectedName)
 
 	dlg:box({ orient = "vertical", label = "Conteudo dos tiles" })
 	dlg:wrap({})
-	groupIcon(2785) -- arbusto
+	groupIcon("svg/solid/tree.svg", 2785)
 	dlg:check({
 		id = "borderize",
 		text = "Auto-border",
@@ -2120,7 +2130,7 @@ buildDialog = function(selectedName)
 
 	dlg:box({ orient = "vertical", label = "Avancado" })
 	dlg:wrap({})
-	groupIcon(2553) -- picareta
+	groupIcon("svg/solid/sliders.svg", 2553)
 	dlg:number({
 		id = "seed",
 		label = "Seed (0 = aleatoria)",

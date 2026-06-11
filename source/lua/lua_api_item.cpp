@@ -104,6 +104,7 @@ namespace LuaAPI {
 			"isBlocking", sol::property(&Item::isBlocking),
 			"isGroundTile", sol::property(&Item::isGroundTile),
 			"isBorder", sol::property(&Item::isBorder),
+			"isAlwaysOnBottom", sol::property(&Item::isAlwaysOnBottom),
 			"isWall", sol::property(&Item::isWall),
 			"isDoor", sol::property(&Item::isDoor),
 			"isTable", sol::property(&Item::isTable),

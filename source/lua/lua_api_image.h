@@ -72,6 +72,10 @@ namespace LuaAPI {
 		static LuaImage blank(int width, int height, int r = 0, int g = 0, int b = 0);
 		void blit(const LuaImage& other, int x, int y);
 
+		// Editor asset (assets/ dir): SVG rasterized at the requested size,
+		// or PNG; optional tint for monochrome icons
+		static LuaImage fromAsset(const std::string& path, int size, const wxColour& tint);
+
 		// Get the underlying wxImage (for internal use)
 		const wxImage& getWxImage() const {
 			return image;

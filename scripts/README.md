@@ -135,6 +135,8 @@ The `app` table provides access to global editor state and utility functions.
 | `app.brushShape` | string | Current brush shape ("circle" or "square"). |
 | `app.spawnTime` | number | Default spawn time for creatures. |
 | `app.getDataDirectory()` | function | Returns the absolute path to the data directory. |
+| `app.readFile(path)` | function | Reads a text file (max 4 MB). Paths are sandboxed to the script package dir, scripts dir and data dir. Returns `content, nil` or `nil, error`. |
+| `app.listFiles(path)` | function | Lists a sandboxed directory (non-recursive). Returns an array of names (directories end with `/`), or `nil`. |
 | `app.hasMap()` | function | Returns `true` if a map is currently open. |
 | `app.refresh()` | function | Refreshes the map view. |
 | `app.copy()` | function | Copies current selection to internal clipboard. |
@@ -383,6 +385,7 @@ local img = Image.fromFile(SCRIPT_DIR .. "/my_image.png")
 | Function | Description |
 | :--- | :--- |
 | `Image.blank(width, height, [r], [g], [b])` | Creates a new solid-color image (default black). Max 4096x4096. |
+| `Image.fromAsset(path, [size], [r, g, b])` | Loads an editor asset (relative to `assets/`, e.g. `"svg/solid/dice.svg"`). SVGs are rasterized at `size` (default 16); optional RGB tint recolors monochrome icons. |
 
 **Scaling Modes:**
 *   `smooth = true` (default): Uses bilinear interpolation. Good for photos, may look blurry on pixel art.

@@ -22,6 +22,7 @@
 #include "rendering/core/game_sprite.h"
 #include "rendering/core/normal_image.h"
 #include "game/items.h"
+#include "util/image_manager.h"
 #include <filesystem>
 #include <algorithm>
 #include <cstring>
@@ -312,6 +313,21 @@ namespace LuaAPI {
 		return result;
 	}
 
+	LuaImage LuaImage::fromAsset(const std::string& path, int size, const wxColour& tint) {
+		LuaImage result;
+		if (path.empty() || path.find("..") != std::string::npos) {
+			return result;
+		}
+		if (size <= 0 || size > 512) {
+			return result;
+		}
+		wxBitmap bmp = IMAGE_MANAGER.GetBitmap(path, wxSize(size, size), tint);
+		if (bmp.IsOk()) {
+			result.image = bmp.ConvertToImage();
+		}
+		return result;
+	}
+
 	LuaImage LuaImage::blank(int width, int height, int r, int g, int b) {
 		LuaImage result;
 		if (width <= 0 || height <= 0 || width > 4096 || height > 4096) {
@@ -399,6 +415,13 @@ namespace LuaAPI {
 			"fromSprite", &LuaImage::loadFromSprite,
 			"blank", [](int w, int h, sol::optional<int> r, sol::optional<int> g, sol::optional<int> b) {
 				return LuaImage::blank(w, h, r.value_or(0), g.value_or(0), b.value_or(0));
+			},
+			"fromAsset", [](const std::string& path, sol::optional<int> size, sol::optional<int> r, sol::optional<int> g, sol::optional<int> b) {
+				wxColour tint = wxNullColour;
+				if (r && g && b) {
+					tint = wxColour(*r, *g, *b);
+				}
+				return LuaImage::fromAsset(path, size.value_or(16), tint);
 			},
 
 			// Properties (read-only)

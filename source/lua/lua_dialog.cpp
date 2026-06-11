@@ -962,8 +962,11 @@ LuaDialog* LuaDialog::radio(sol::table options) {
 	std::string id = options.get_or(std::string("id"), "radio_"s + std::to_string(widgets.size()));
 	std::string text = options.get_or(std::string("text"), ""s);
 	bool selected = options.get_or(std::string("selected"), false);
+	// group = true starts a new radio group (wxRB_GROUP); without it all the
+	// dialog's radio buttons would form a single mutually-exclusive set
+	bool group = options.get_or(std::string("group"), false);
 
-	wxRadioButton* radio = new wxRadioButton(getParentForWidget(), wxID_ANY, wxString(text));
+	wxRadioButton* radio = new wxRadioButton(getParentForWidget(), wxID_ANY, wxString(text), wxDefaultPosition, wxDefaultSize, group ? wxRB_GROUP : 0);
 	radio->SetValue(selected);
 	currentRowSizer->Add(radio, 0, getSizerFlags(options, wxALIGN_CENTER_VERTICAL | wxRIGHT, currentRowSizer), getSizerBorder(options));
 

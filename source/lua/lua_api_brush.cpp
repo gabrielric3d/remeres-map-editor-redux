@@ -18,6 +18,7 @@
 #include "app/main.h"
 #include "lua_api_brush.h"
 #include "map/map.h"
+#include "game/item.h"
 #include "brushes/brush.h"
 #include "brushes/raw/raw_brush.h"
 #include "brushes/doodad/doodad_brush.h"
@@ -106,6 +107,64 @@ namespace LuaAPI {
 								// Methods
 								"canDraw", [](Brush* b, Map* map, int x, int y, int z) -> bool {
 									return b && map && b->canDraw(static_cast<BaseMap*>(map), Position(x, y, z));
+								},
+								// Composicao de um doodad brush: alternatives com
+								// singles {id, chance} e composites {chance, tiles
+								// {x, y, z, ids}}. nil para brushes nao-doodad.
+								"getDoodadItems", [](Brush* b, sol::this_state ts) -> sol::object {
+									sol::state_view lua(ts);
+									DoodadBrush* doodad = b ? b->as<DoodadBrush>() : nullptr;
+									if (!doodad) {
+										return sol::nil;
+									}
+									sol::table alts = lua.create_table();
+									int ai = 1;
+									for (const auto& alt : doodad->getItems().getAlternatives()) {
+										if (!alt) {
+											continue;
+										}
+										sol::table altT = lua.create_table();
+										sol::table singles = lua.create_table();
+										int si = 1;
+										for (const auto& single : alt->single_items) {
+											if (!single.item) {
+												continue;
+											}
+											sol::table s = lua.create_table();
+											s["id"] = single.item->getID();
+											s["chance"] = single.chance;
+											singles[si++] = s;
+										}
+										altT["singles"] = singles;
+										sol::table comps = lua.create_table();
+										int ci = 1;
+										for (const auto& comp : alt->composite_items) {
+											sol::table c = lua.create_table();
+											c["chance"] = comp.chance;
+											sol::table tiles = lua.create_table();
+											int ti = 1;
+											for (const auto& tilePair : comp.items) {
+												sol::table t = lua.create_table();
+												t["x"] = tilePair.first.x;
+												t["y"] = tilePair.first.y;
+												t["z"] = tilePair.first.z;
+												sol::table ids = lua.create_table();
+												int ii = 1;
+												for (const auto& item : tilePair.second) {
+													if (item) {
+														ids[ii++] = item->getID();
+													}
+												}
+												t["ids"] = ids;
+												tiles[ti++] = t;
+											}
+											c["tiles"] = tiles;
+											comps[ci++] = c;
+										}
+										altT["composites"] = comps;
+										alts[ai++] = altT;
+									}
+									return alts;
 								},
 								"needBorders", [](Brush* b) -> bool {
 									return b && b->needBorders();

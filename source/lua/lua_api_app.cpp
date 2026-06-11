@@ -456,6 +456,56 @@ namespace LuaAPI {
 		return FileSystem::GetDataDirectory().ToStdString();
 	}
 
+	// Resolves a script-supplied path against the allowed roots (active script
+	// package dir, scripts dir, data dir). Returns empty path when the input
+	// escapes the sandbox or does not exist.
+	static std::filesystem::path resolveSandboxedPath(sol::state_view lua, const std::string& path, bool wantDirectory) {
+		namespace fs = std::filesystem;
+		if (path.empty()) {
+			return {};
+		}
+
+		std::vector<fs::path> roots;
+		std::string activeScriptDir = lua["SCRIPT_DIR"].get_or(std::string(""));
+		if (!activeScriptDir.empty()) {
+			std::error_code ec;
+			fs::path p = fs::weakly_canonical(activeScriptDir, ec);
+			if (!ec && fs::exists(p)) {
+				roots.push_back(fs::is_regular_file(p) ? p.parent_path() : p);
+			}
+		}
+		roots.push_back(fs::weakly_canonical(LuaScriptManager::getInstance().getScriptsDirectory()));
+		roots.push_back(fs::weakly_canonical(FileSystem::GetDataDirectory().ToStdString()));
+
+		auto matchesKind = [wantDirectory](const fs::path& p) {
+			return wantDirectory ? fs::is_directory(p) : fs::is_regular_file(p);
+		};
+
+		try {
+			fs::path input(path);
+			if (input.is_absolute()) {
+				fs::path full = fs::weakly_canonical(input);
+				for (const auto& root : roots) {
+					auto rel = full.lexically_relative(root);
+					if (!rel.empty() && rel.string().find("..") == std::string::npos && matchesKind(full)) {
+						return full;
+					}
+				}
+				return {};
+			}
+			for (const auto& root : roots) {
+				fs::path candidate = fs::weakly_canonical(root / input);
+				auto rel = candidate.lexically_relative(root);
+				if (!rel.empty() && rel.string().find("..") == std::string::npos && matchesKind(candidate)) {
+					return candidate;
+				}
+			}
+		} catch (...) {
+			return {};
+		}
+		return {};
+	}
+
 	static sol::table storageForScript(sol::this_state ts, const std::string& name) {
 		sol::state_view lua(ts);
 		sol::table storage = lua.create_table();
@@ -624,6 +674,51 @@ namespace LuaAPI {
 		app["transaction"] = transaction;
 		app["setClipboard"] = setClipboard;
 		app["getDataDirectory"] = getDataDirectory;
+
+		// Sandboxed text-file read (active script dir, scripts dir or data dir
+		// only; 4 MB cap). Returns content or nil + error message.
+		app["readFile"] = [](sol::this_state ts, const std::string& path) -> std::tuple<sol::object, sol::object> {
+			sol::state_view lua(ts);
+			std::filesystem::path full = resolveSandboxedPath(lua, path, false);
+			if (full.empty()) {
+				return { sol::nil, sol::make_object(lua, std::string("readFile: path not found or outside allowed directories")) };
+			}
+			std::ifstream file(full, std::ios::binary | std::ios::ate);
+			if (!file.is_open()) {
+				return { sol::nil, sol::make_object(lua, std::string("readFile: failed to open file")) };
+			}
+			const std::streamsize size = file.tellg();
+			if (size < 0 || size > 4 * 1024 * 1024) {
+				return { sol::nil, sol::make_object(lua, std::string("readFile: file exceeds 4 MB limit")) };
+			}
+			std::string content(static_cast<size_t>(size), '\0');
+			file.seekg(0, std::ios::beg);
+			if (size > 0 && !file.read(content.data(), size)) {
+				return { sol::nil, sol::make_object(lua, std::string("readFile: failed to read file")) };
+			}
+			return { sol::make_object(lua, content), sol::nil };
+		};
+
+		// Sandboxed directory listing (non-recursive). Returns array of entry
+		// names; directories get a trailing '/'.
+		app["listFiles"] = [](sol::this_state ts, const std::string& path) -> sol::object {
+			sol::state_view lua(ts);
+			std::filesystem::path full = resolveSandboxedPath(lua, path, true);
+			if (full.empty()) {
+				return sol::nil;
+			}
+			sol::table list = lua.create_table();
+			int index = 1;
+			std::error_code ec;
+			for (const auto& entry : std::filesystem::directory_iterator(full, ec)) {
+				std::string name = entry.path().filename().string();
+				if (entry.is_directory()) {
+					name += "/";
+				}
+				list[index++] = name;
+			}
+			return list;
+		};
 		app["addContextMenu"] = [](sol::this_state ts, const std::string& label, sol::function callback) {
 			g_luaScripts.registerContextMenuItem(label, callback, ts);
 		};
