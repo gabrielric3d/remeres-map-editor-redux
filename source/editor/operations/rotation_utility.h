@@ -44,7 +44,7 @@ public:
 private:
 	BorderType rotateBorderType(BorderType type) const;
 	BorderType rotateWallAlignment(BorderType type) const;
-	const AutoBorder* getBorderForItem(uint16_t itemId, BorderType alignmentHint);
+	const AutoBorder* getBorderForItem(uint16_t itemId, BorderType currentAlignment, BorderType rotatedAlignment);
 	void ensureWallCatalogs();
 
 	int turns_;

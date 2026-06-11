@@ -223,30 +223,33 @@ Brush* Brushes::getBrush(std::string_view name) const {
 	return nullptr;
 }
 
-const AutoBorder* Brushes::findAutoBorderByBorderItem(uint16_t itemId, BorderType alignmentHint) const {
+std::vector<const AutoBorder*> Brushes::findAutoBordersByBorderItem(uint16_t itemId, BorderType alignmentHint) const {
+	std::vector<const AutoBorder*> matches;
 	if (itemId == 0) {
-		return nullptr;
+		return matches;
 	}
 
 	const int hint = static_cast<int>(alignmentHint);
 	if (hint >= 1 && hint <= 12) {
 		for (const auto& [id, border] : borders) {
 			if (border && border->containsItemInDirection(itemId, hint)) {
-				return border.get();
+				matches.push_back(border.get());
 			}
 		}
 	}
 
-	for (const auto& [id, border] : borders) {
-		if (!border) {
-			continue;
-		}
-		if (border->containsItem(itemId)) {
-			return border.get();
+	if (matches.empty()) {
+		for (const auto& [id, border] : borders) {
+			if (border && border->containsItem(itemId)) {
+				matches.push_back(border.get());
+			}
 		}
 	}
 
-	return nullptr;
+	std::sort(matches.begin(), matches.end(), [](const AutoBorder* a, const AutoBorder* b) {
+		return a->id < b->id;
+	});
+	return matches;
 }
 
 // Brush

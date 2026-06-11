@@ -91,7 +91,9 @@ public:
 		return brushes;
 	}
 
-	const AutoBorder* findAutoBorderByBorderItem(uint16_t itemId, BorderType alignmentHint = BORDER_NONE) const;
+	// All borders containing the item (hint-matching ones if any, otherwise any slot),
+	// sorted by border id so callers get a deterministic order out of the unordered map.
+	std::vector<const AutoBorder*> findAutoBordersByBorderItem(uint16_t itemId, BorderType alignmentHint = BORDER_NONE) const;
 
 	const BorderMap& getBorders() const {
 		return borders;

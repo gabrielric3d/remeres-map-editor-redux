@@ -104,15 +104,29 @@ BorderType RotationUtility::rotateWallAlignment(BorderType type) const {
 	return out;
 }
 
-const AutoBorder* RotationUtility::getBorderForItem(uint16_t itemId, BorderType alignmentHint) {
+const AutoBorder* RotationUtility::getBorderForItem(uint16_t itemId, BorderType currentAlignment, BorderType rotatedAlignment) {
 	auto it = border_for_item_id.find(itemId);
 	if (it != border_for_item_id.end()) {
 		return it->second;
 	}
 
-	const AutoBorder* border = g_brushes.findAutoBorderByBorderItem(itemId, alignmentHint);
-	border_for_item_id.emplace(itemId, border);
-	return border;
+	// An item id can belong to several border groups (some of them partial).
+	// Prefer the first group that can express the rotated edge, so a partial
+	// group never shadows a complete one and the choice stays deterministic.
+	const AutoBorder* chosen = nullptr;
+	const auto candidates = g_brushes.findAutoBordersByBorderItem(itemId, currentAlignment);
+	for (const AutoBorder* candidate : candidates) {
+		if (candidate->getTileId(rotatedAlignment) != 0) {
+			chosen = candidate;
+			break;
+		}
+	}
+	if (!chosen && !candidates.empty()) {
+		chosen = candidates.front();
+	}
+
+	border_for_item_id.emplace(itemId, chosen);
+	return chosen;
 }
 
 void RotationUtility::ensureWallCatalogs() {
@@ -194,7 +208,7 @@ void RotationUtility::rotateItem(Item* item) {
 		const BorderType rotated = rotateBorderType(current);
 
 		if (rotated != BORDER_NONE) {
-			const AutoBorder* border = getBorderForItem(item->getID(), current);
+			const AutoBorder* border = getBorderForItem(item->getID(), current, rotated);
 			if (border && border->getTileId(rotated) != 0) {
 				const uint16_t newId = static_cast<uint16_t>(border->getTileId(rotated));
 				if (newId != item->getID()) {
