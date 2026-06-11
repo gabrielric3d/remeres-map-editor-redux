@@ -254,6 +254,7 @@ public:
 	void OnGroundBrowse(wxCommandEvent& event);
 	void OnFindBorderByItemId(wxCommandEvent& event);
 	void OnFindGroundByItemId(wxCommandEvent& event);
+	void OnScanBorder(wxCommandEvent& event);
 	void AddGroundItemById(uint16_t itemId);
 	void OnAddGroundBorder(wxCommandEvent& event);
 	void OnModifyGroundBorder(wxCommandEvent& event);
@@ -305,6 +306,7 @@ public:
 	wxSpinCtrl* m_itemChanceCtrl;
 	EdgeItemsPanel* m_edgeItemsPanel;
 	wxStaticText* m_edgeItemsLabel;
+	wxButton* m_scanButton = nullptr;
 
 	// Ground Tab
 	wxPanel* m_groundPanel;

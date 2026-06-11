@@ -6,6 +6,7 @@
 
 #include "app/main.h"
 #include "ui/dialogs/border_editor_dialog.h"
+#include "ui/dialogs/border_scan_dialog.h"
 #include "ui/gui.h"
 #include "ui/theme.h"
 #include "ui/find_item_window.h"
@@ -51,6 +52,7 @@
 #define ID_TILESET_BRUSH_LIST wxID_HIGHEST + 16
 #define ID_GROUND_BORDER_TO_COMBO wxID_HIGHEST + 17
 #define ID_MODIFY_GROUND_BORDER wxID_HIGHEST + 18
+#define ID_BORDER_SCAN wxID_HIGHEST + 19
 
 // ============================================================================
 // Local layout helpers
@@ -412,7 +414,17 @@ void BorderEditorDialog::CreateGUIControls() {
 	borderPropsRow->Add(m_findBorderItemIdCtrl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 	wxButton* findBorderButton = newd wxButton(m_borderPanel, ID_FIND_BORDER_BY_ITEM_ID, "Find", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	findBorderButton->SetToolTip("Find and load the border that uses this item ID");
-	borderPropsRow->Add(findBorderButton, 0, wxALIGN_CENTER_VERTICAL);
+	borderPropsRow->Add(findBorderButton, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+
+	m_scanButton = newd wxButton(m_borderPanel, ID_BORDER_SCAN, "Scan...", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+	if (g_gui.gfx.isUnloaded()) {
+		m_scanButton->Enable(false);
+		m_scanButton->SetToolTip("Requires a loaded client (sprites)");
+	} else {
+		m_scanButton->SetToolTip("Classify candidate items into border edges by sprite shape");
+	}
+	m_scanButton->Bind(wxEVT_BUTTON, &BorderEditorDialog::OnScanBorder, this);
+	borderPropsRow->Add(m_scanButton, 0, wxALIGN_CENTER_VERTICAL);
 
 	borderSizer->Add(borderPropsRow, 0, wxEXPAND | wxALL, 8);
 
@@ -980,6 +992,31 @@ void BorderEditorDialog::OnLoadBorder(wxCommandEvent& event) {
 	UpdatePreview();
 	UpdateEdgeItemsList();
 	m_existingBordersCombo->SetSelection(selection);
+}
+
+void BorderEditorDialog::OnScanBorder(wxCommandEvent& WXUNUSED(event)) {
+	// Re-check: sprites may have been unloaded after the button was created.
+	if (g_gui.gfx.isUnloaded()) {
+		wxMessageBox("Requires a loaded client (sprites).", "Border Scan", wxICON_WARNING);
+		return;
+	}
+
+	BorderScanDialog dlg(this);
+	if (dlg.ShowModal() != wxID_OK) {
+		return;
+	}
+
+	// REPLACE semantics per returned edge: only edges present in the result are
+	// touched; every other slot keeps its current items. Saving stays in SaveBorder().
+	for (const auto& [pos, itemId] : dlg.GetEdgeAssignments()) {
+		m_borderItems[pos] = { BorderEdgeItem(itemId, 100) };
+		m_gridPanel->SetItemId(pos, itemId);
+		m_gridPanel->SetItemCount(pos, 1);
+	}
+
+	// Mirror the grid-refresh sequence at the end of OnLoadBorder.
+	UpdatePreview();
+	UpdateEdgeItemsList();
 }
 
 void BorderEditorDialog::ApplyItemToPosition(BorderEdgePosition pos, uint16_t itemId) {

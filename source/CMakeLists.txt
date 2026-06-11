@@ -37,6 +37,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/brushes/doodad/doodad_brush_loader.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/doodad/doodad_brush_types.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/ground/auto_border.h
+    ${CMAKE_CURRENT_LIST_DIR}/brushes/ground/border_classifier.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/ground/ground_border_calculator.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/ground/ground_brush.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/ground/ground_brush_loader.h
@@ -119,6 +120,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/light_source_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_editor_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_scan_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/brushes_editor_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_generator_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_preset_editor_dialog.h
@@ -472,6 +474,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/brushes/doodad/doodad_brush_loader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/eraser/eraser_brush.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/ground/auto_border.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/brushes/ground/border_classifier.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/ground/ground_border_calculator.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/ground/ground_brush.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/ground/ground_brush_arrays.cpp
@@ -546,6 +549,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/light_source_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_editor_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_scan_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/brushes_editor_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_generator_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_preset_editor_dialog.cpp
