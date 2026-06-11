@@ -408,14 +408,6 @@ void BorderEditorDialog::CreateGUIControls() {
 	m_existingBordersCombo->SetToolTip("Load an existing border as template");
 	borderPropsRow->Add(m_existingBordersCombo, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 12);
 
-	borderPropsRow->Add(newd wxStaticText(m_borderPanel, wxID_ANY, "Find ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
-	m_findBorderItemIdCtrl = newd wxSpinCtrl(m_borderPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 0, 65535);
-	m_findBorderItemIdCtrl->SetToolTip("Enter an item ID to locate the border that uses it");
-	borderPropsRow->Add(m_findBorderItemIdCtrl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
-	wxButton* findBorderButton = newd wxButton(m_borderPanel, ID_FIND_BORDER_BY_ITEM_ID, "Find", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-	findBorderButton->SetToolTip("Find and load the border that uses this item ID");
-	borderPropsRow->Add(findBorderButton, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
-
 	m_scanButton = newd wxButton(m_borderPanel, ID_BORDER_SCAN, "Scan...", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	if (g_gui.gfx.isUnloaded()) {
 		m_scanButton->Enable(false);
@@ -424,7 +416,15 @@ void BorderEditorDialog::CreateGUIControls() {
 		m_scanButton->SetToolTip("Classify candidate items into border edges by sprite shape");
 	}
 	m_scanButton->Bind(wxEVT_BUTTON, &BorderEditorDialog::OnScanBorder, this);
-	borderPropsRow->Add(m_scanButton, 0, wxALIGN_CENTER_VERTICAL);
+	borderPropsRow->Add(m_scanButton, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 16);
+
+	borderPropsRow->Add(newd wxStaticText(m_borderPanel, wxID_ANY, "Find ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_findBorderItemIdCtrl = newd wxSpinCtrl(m_borderPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 0, 65535);
+	m_findBorderItemIdCtrl->SetToolTip("Enter an item ID to locate the border that uses it");
+	borderPropsRow->Add(m_findBorderItemIdCtrl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	wxButton* findBorderButton = newd wxButton(m_borderPanel, ID_FIND_BORDER_BY_ITEM_ID, "Find", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+	findBorderButton->SetToolTip("Find and load the border that uses this item ID");
+	borderPropsRow->Add(findBorderButton, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
 
 	borderSizer->Add(borderPropsRow, 0, wxEXPAND | wxALL, 8);
 

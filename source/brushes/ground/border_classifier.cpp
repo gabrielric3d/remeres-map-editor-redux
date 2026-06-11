@@ -24,7 +24,7 @@ const std::array<std::string, BorderClassifier::EDGE_COUNT> BorderClassifier::ED
 namespace {
 
 constexpr int SPRITE_DIM = 32;
-constexpr int SPRITE_PIXELS = SPRITE_DIM * SPRITE_DIM;
+constexpr int SPRITE_PIXEL_COUNT = SPRITE_DIM * SPRITE_DIM;
 constexpr uint8_t ALPHA_THRESHOLD = 20;
 constexpr int KNN_K = 5;
 constexpr float KNN_EPSILON = 1e-4f;
@@ -36,7 +36,7 @@ constexpr float KNN_EPSILON = 1e-4f;
 // sprite onto an opaque ICON_BACKGROUND fill (alpha = 255) and picks a
 // non-zero pattern_x for some sprites - both destroy the alpha silhouette
 // this classifier depends on.
-bool getItemRGBA32(uint16_t itemId, std::array<uint8_t, SPRITE_PIXELS * 4>& out,
+bool getItemRGBA32(uint16_t itemId, std::array<uint8_t, SPRITE_PIXEL_COUNT * 4>& out,
 				   BorderScanResult::Status& failure) {
 	const auto def = g_item_definitions.get(itemId);
 	if (!def) {
@@ -69,7 +69,7 @@ bool getItemRGBA32(uint16_t itemId, std::array<uint8_t, SPRITE_PIXELS * 4>& out,
 		}
 
 		// Straight-alpha src-over blend, preserving alpha.
-		for (int p = 0; p < SPRITE_PIXELS; ++p) {
+		for (int p = 0; p < SPRITE_PIXEL_COUNT; ++p) {
 			const int o = p * 4;
 			const uint8_t srcA = data[o + 3];
 			if (srcA == 0) {
@@ -119,7 +119,7 @@ size_t BorderClassifier::groupCount() const {
 
 bool BorderClassifier::extractFeatures(uint16_t itemId, std::array<float, FEATURE_COUNT>& out,
 									   BorderScanResult::Status& failure) {
-	std::array<uint8_t, SPRITE_PIXELS * 4> rgba;
+	std::array<uint8_t, SPRITE_PIXEL_COUNT * 4> rgba;
 	if (!getItemRGBA32(itemId, rgba, failure)) {
 		return false;
 	}
@@ -168,7 +168,7 @@ bool BorderClassifier::extractFeatures(uint16_t itemId, std::array<float, FEATUR
 	out[65] = cy * 2.0f;
 
 	// [66] global density.
-	out[66] = static_cast<float>(opaqueCount) / static_cast<float>(SPRITE_PIXELS);
+	out[66] = static_cast<float>(opaqueCount) / static_cast<float>(SPRITE_PIXEL_COUNT);
 
 	// [67..70] quadrant densities (NW, NE, SW, SE), each quadrant = 16x16 pixels.
 	for (int q = 0; q < 4; ++q) {
