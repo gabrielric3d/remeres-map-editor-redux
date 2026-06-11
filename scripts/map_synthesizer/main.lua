@@ -1823,6 +1823,28 @@ local function sampleListItems(profile)
 	return items
 end
 
+-- icones dos assets do editor (requer rebuild); cache + fallback por sprite
+local assetIconCache = {}
+local function assetIconImage(p)
+	local img = assetIconCache[p]
+	if img == nil then
+		img = false
+		if Image.fromAsset then
+			local ok, a = pcall(function()
+				return Image.fromAsset(p, 16, 224, 224, 224)
+			end)
+			if ok and a and a.valid then
+				img = a
+			end
+		end
+		assetIconCache[p] = img
+	end
+	if img then
+		return img
+	end
+	return nil
+end
+
 buildDialog = function(selectedName)
 	local names = profileNames()
 	if #names == 0 then
@@ -1855,6 +1877,15 @@ buildDialog = function(selectedName)
 		end
 	end
 
+	local function groupIcon(assetPath, fallbackItemId)
+		local img = assetIconImage(assetPath)
+		if img then
+			dlg:image({ image = img, valign = "center" })
+		elseif fallbackItemId then
+			dlg:image({ itemid = fallbackItemId, width = 20, height = 20, smooth = false, valign = "center" })
+		end
+	end
+
 	local function currentProfile()
 		local name = dlg.data.profile
 		if not name or name == "" then
@@ -1876,6 +1907,8 @@ buildDialog = function(selectedName)
 	-- 1) Perfil
 	-- ------------------------------------------------------------------
 	dlg:box({ orient = "vertical", label = "1) Perfil (um por bioma/tema: blood, snow...)" })
+	dlg:wrap({})
+	groupIcon("svg/solid/folder-open.svg")
 	dlg:combobox({
 		id = "profile",
 		label = "Perfil",
@@ -1885,6 +1918,7 @@ buildDialog = function(selectedName)
 			refreshSamples()
 		end,
 	})
+	dlg:endwrap()
 	dlg:label({ id = "info", text = profileInfo(current) })
 	dlg:wrap({})
 	dlg:input({ id = "newName", label = "Novo perfil" })
@@ -1931,7 +1965,10 @@ buildDialog = function(selectedName)
 	-- 2) Areas de exemplo (o que o gerador aprende)
 	-- ------------------------------------------------------------------
 	dlg:box({ orient = "vertical", label = "2) Areas de exemplo" })
+	dlg:wrap({})
+	groupIcon("svg/solid/graduation-cap.svg")
 	dlg:label({ text = "Selecione uma area no mapa e clique em 'Aprender'. Mais areas = mais variedade." })
+	dlg:endwrap()
 	dlg:wrap({})
 	dlg:list({
 		id = "samplesList",
@@ -1963,6 +2000,7 @@ buildDialog = function(selectedName)
 	end
 	dlg:endwrap()
 	dlg:wrap({})
+	groupIcon("svg/solid/graduation-cap.svg")
 	dlg:button({
 		text = "Aprender da selecao",
 		onclick = guarded(function()
@@ -1982,6 +2020,7 @@ buildDialog = function(selectedName)
 			setStatus("Area aprendida! (" .. #profile.samples .. " no total)")
 		end),
 	})
+	groupIcon("svg/solid/trash.svg")
 	dlg:button({
 		text = "Remover area",
 		onclick = guarded(function()
@@ -2009,20 +2048,6 @@ buildDialog = function(selectedName)
 	-- ------------------------------------------------------------------
 	dlg:box({ orient = "vertical", label = "3) Gerar" })
 
-	-- icone de sprite no inicio da primeira linha de cada grupo
-	-- icones dos assets do editor (requer rebuild); fallback: sprite de item
-	local function groupIcon(assetPath, fallbackItemId)
-		if Image.fromAsset then
-			local ok, img = pcall(function()
-				return Image.fromAsset(assetPath, 16, 224, 224, 224)
-			end)
-			if ok and img and img.valid then
-				dlg:image({ image = img, valign = "center" })
-				return
-			end
-		end
-		dlg:image({ itemid = fallbackItemId, width = 20, height = 20, smooth = false, valign = "center" })
-	end
 
 	dlg:box({ orient = "vertical", label = "Estilo" })
 	dlg:wrap({})
@@ -2130,7 +2155,7 @@ buildDialog = function(selectedName)
 
 	dlg:box({ orient = "vertical", label = "Avancado" })
 	dlg:wrap({})
-	groupIcon("svg/solid/sliders.svg", 2553)
+	groupIcon("svg/solid/gear.svg", 2553)
 	dlg:number({
 		id = "seed",
 		label = "Seed (0 = aleatoria)",
@@ -2197,6 +2222,7 @@ buildDialog = function(selectedName)
 		}
 	end
 
+	groupIcon("svg/solid/play.svg")
 	dlg:button({
 		text = "Gerar na selecao",
 		tooltip = "Gera dentro da area selecionada no mapa.",
@@ -2223,6 +2249,7 @@ buildDialog = function(selectedName)
 			setStatus(msg .. " (Ctrl+Z desfaz; Reroll regera).")
 		end),
 	})
+	groupIcon("svg/solid/paste.svg")
 	dlg:button({
 		text = "Gerar p/ Paste",
 		tooltip = "Gera, copia para o clipboard e desfaz - depois e so colar com Ctrl+V onde quiser.",
@@ -2245,6 +2272,7 @@ buildDialog = function(selectedName)
 			setStatus(msg .. ") - use Ctrl+V para colar onde quiser.")
 		end),
 	})
+	groupIcon("svg/solid/rotate.svg")
 	dlg:button({
 		text = "Reroll",
 		tooltip = "Desfaz a ultima geracao e gera outra no mesmo lugar, com seed nova.",
