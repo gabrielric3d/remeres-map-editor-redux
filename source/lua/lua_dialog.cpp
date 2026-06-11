@@ -512,6 +512,18 @@ LuaDialog::LuaDialog(sol::table options, sol::this_state ts) :
 
 		info.Dockable(true).Floatable(true);
 
+		// A previous dialog with the same id may still hold its pane (close()
+		// only hides it; detach happens in the destructor, which can run after
+		// a replacement dialog is created). Detach it or AddPane asserts.
+		wxAuiPaneInfo& existing = g_gui.aui_manager->GetPane(wxString(id));
+		if (existing.IsOk()) {
+			wxWindow* oldWindow = existing.window;
+			g_gui.aui_manager->DetachPane(oldWindow);
+			if (oldWindow) {
+				oldWindow->Hide();
+			}
+		}
+
 		g_gui.aui_manager->AddPane(dockPanel, info);
 		g_gui.aui_manager->Update();
 	}
@@ -593,7 +605,11 @@ LuaDialog* LuaDialog::wrap(sol::table options) {
 	currentRowSizer = nullptr;
 
 	wxBoxSizer* sizer = new wxBoxSizer(options.get_or(std::string("orient"), "horizontal"s) == "horizontal" ? wxHORIZONTAL : wxVERTICAL);
-	getSizerForWidget()->Add(sizer, 1, wxEXPAND | wxALL, 0);
+	// Rows keep their natural height unless the script asks to stretch
+	// (expand = true); a fixed proportion of 1 made every wrap row absorb
+	// leftover vertical space, leaving odd gaps between rows.
+	int proportion = options.get_or("expand", false) ? 1 : 0;
+	getSizerForWidget()->Add(sizer, proportion, wxEXPAND | wxALL, 0);
 	sizerStack.push(sizer);
 
 	return this;
@@ -3212,7 +3228,7 @@ namespace LuaAPI {
 									"show", &LuaDialog::show, "close", &LuaDialog::close, "modify", &LuaDialog::modify, "repaint", &LuaDialog::repaint, "clear", &LuaDialog::clear, "layout", &LuaDialog::layout,
 
 									// Properties
-									"data", sol::property(&LuaDialog::getData, &LuaDialog::setData), "bounds", sol::property(&LuaDialog::getBounds, &LuaDialog::setBounds), "dockable", sol::property(&LuaDialog::isDockable), "activeTab", sol::property(&LuaDialog::getActiveTab),
+									"data", sol::property(&LuaDialog::getData, &LuaDialog::setData), "values", sol::property(&LuaDialog::getData, &LuaDialog::setData), "bounds", sol::property(&LuaDialog::getBounds, &LuaDialog::setBounds), "dockable", sol::property(&LuaDialog::isDockable), "activeTab", sol::property(&LuaDialog::getActiveTab),
 									
 									sol::meta_function::garbage_collect, sol::destructor([](LuaDialog& d) { d.Destroy(); }));
 

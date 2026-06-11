@@ -68,6 +68,10 @@ namespace LuaAPI {
 		LuaImage resize(int width, int height, bool smooth = true) const;
 		LuaImage scale(double factor, bool smooth = true) const;
 
+		// Compositing
+		static LuaImage blank(int width, int height, int r = 0, int g = 0, int b = 0);
+		void blit(const LuaImage& other, int x, int y);
+
 		// Get the underlying wxImage (for internal use)
 		const wxImage& getWxImage() const {
 			return image;

@@ -23,6 +23,7 @@
 #include "rendering/core/normal_image.h"
 #include "game/items.h"
 #include <filesystem>
+#include <algorithm>
 #include <cstring>
 #include <vector>
 #include "lua_script_manager.h"
@@ -311,6 +312,31 @@ namespace LuaAPI {
 		return result;
 	}
 
+	LuaImage LuaImage::blank(int width, int height, int r, int g, int b) {
+		LuaImage result;
+		if (width <= 0 || height <= 0 || width > 4096 || height > 4096) {
+			return result;
+		}
+		result.image.Create(width, height);
+		result.image.SetRGB(wxRect(0, 0, width, height),
+							static_cast<unsigned char>(std::clamp(r, 0, 255)),
+							static_cast<unsigned char>(std::clamp(g, 0, 255)),
+							static_cast<unsigned char>(std::clamp(b, 0, 255)));
+		return result;
+	}
+
+	void LuaImage::blit(const LuaImage& other, int x, int y) {
+		if (!image.IsOk() || !other.image.IsOk()) {
+			return;
+		}
+		// Compose respecting the source alpha channel (sprites are RGBA)
+		image.Paste(other.image, x, y, wxIMAGE_ALPHA_BLEND_COMPOSE);
+		// Composited images no longer represent a single source
+		filePath = "";
+		spriteId = 0;
+		spriteSource = false;
+	}
+
 	wxBitmap LuaImage::getBitmap() const {
 		if (!image.IsOk()) {
 			return wxNullBitmap;
@@ -371,6 +397,9 @@ namespace LuaAPI {
 			"fromFile", &LuaImage::loadFromFile,
 			"fromItemSprite", &LuaImage::loadFromItemSprite,
 			"fromSprite", &LuaImage::loadFromSprite,
+			"blank", [](int w, int h, sol::optional<int> r, sol::optional<int> g, sol::optional<int> b) {
+				return LuaImage::blank(w, h, r.value_or(0), g.value_or(0), b.value_or(0));
+			},
 
 			// Properties (read-only)
 			"width", sol::property(&LuaImage::getWidth),
@@ -383,6 +412,7 @@ namespace LuaAPI {
 			// Methods
 			"resize", [](const LuaImage& img, int w, int h, sol::optional<bool> smooth) { return img.resize(w, h, smooth.value_or(true)); },
 			"scale", [](const LuaImage& img, double factor, sol::optional<bool> smooth) { return img.scale(factor, smooth.value_or(true)); },
+			"blit", &LuaImage::blit,
 
 			// Equality comparison
 			sol::meta_function::equal_to, &LuaImage::operator==,

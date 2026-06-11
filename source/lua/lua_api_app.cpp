@@ -20,6 +20,7 @@
 #include "lua_script_manager.h"
 #include "ui/gui.h"
 #include "editor/editor.h"
+#include "editor/copybuffer.h"
 #include "editor/action_queue.h"
 #include "map/map.h"
 #include "brushes/brush.h"
@@ -777,9 +778,23 @@ namespace LuaAPI {
 		app["keyboard"] = keyboard;
 
 		// Clipboard / Edit operations
-		app["copy"] = []() { g_gui.DoCopy(); };
+		// Copies directly via the copybuffer instead of GUI::DoCopy: script
+		// copies are deliberate, so they must work in drawing mode too (DoCopy
+		// silently no-ops unless the editor is in selection mode).
+		app["copy"] = []() {
+			Editor* editor = g_gui.GetCurrentEditor();
+			if (!editor) {
+				return;
+			}
+			editor->copybuffer.copy(*editor, g_gui.GetCurrentFloor());
+			g_gui.RefreshView();
+		};
 		app["cut"] = []() { g_gui.DoCut(); };
 		app["paste"] = []() { g_gui.DoPaste(); };
+		app["canPaste"] = []() -> bool {
+			Editor* editor = g_gui.GetCurrentEditor();
+			return editor && editor->copybuffer.canPaste();
+		};
 
 		// Map overlay system
 		sol::table mapView = lua.create_table();

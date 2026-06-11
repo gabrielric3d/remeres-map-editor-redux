@@ -260,6 +260,7 @@ A `Tile` represents a specific coordinate (x, y, z) on the map.
 | `position` | Returns `{x, y, z}` table. |
 | `x`, `y`, `z` | Coordinate properties. |
 | `ground` | The ground [Item](#item) (read/write). |
+| `groundBrush` | The ground's [Brush](#brushes) object, or `nil` if the ground has no associated brush (read-only). |
 | `items` | Lua table of all items on the tile (excluding ground). |
 | `itemCount` | Number of items on the tile. |
 | `creature` | The [Creature](#creature--spawn) on the tile (or nil). |
@@ -375,6 +376,13 @@ local img = Image.fromFile(SCRIPT_DIR .. "/my_image.png")
 | :--- | :--- |
 | `resize(width, height, [smooth])` | Returns a new resized image. `smooth` defaults to `true`. Set to `false` for pixel-perfect scaling. |
 | `scale(factor, [smooth])` | Returns a new scaled image by the given factor. |
+| `blit(other, x, y)` | Draws `other` onto this image at (x, y), compositing with the source alpha channel. Useful for building tile previews. |
+
+#### Static Factories
+
+| Function | Description |
+| :--- | :--- |
+| `Image.blank(width, height, [r], [g], [b])` | Creates a new solid-color image (default black). Max 4096x4096. |
 
 **Scaling Modes:**
 *   `smooth = true` (default): Uses bilinear interpolation. Good for photos, may look blurry on pixel art.
@@ -439,7 +447,7 @@ All widget methods return the `Dialog` object itself, allowing for method chaini
 | :--- | :--- | :--- |
 | `box(options)` | `{orient="vertical"\|"horizontal", label="Title"}` | Starts a container box. If `label` is provided, draws a border with a title. |
 | `endbox()` | - | Ends the current box. |
-| `wrap()` | - | Starts a horizontal wrapper. Elements will be placed side-by-side. |
+| `wrap(options)` | `{orient="horizontal"\|"vertical", expand=false}` | Starts a horizontal wrapper. Elements will be placed side-by-side. Pass `expand=true` to let the row absorb leftover vertical space (default keeps natural height). |
 | `endwrap()` | - | Ends the wrapper. |
 | `newrow()` | - | Forces the next widget to start on a new line (in default layout). |
 | `separator()` | - | Draws a horizontal line separator. |

@@ -388,6 +388,9 @@ namespace LuaAPI {
 				GroundBrush* brush = tile->getGroundBrush();
 				return brush ? brush->getZ() : 0;
 			}),
+			"groundBrush", sol::property([](Tile* tile) -> Brush* {
+				return tile ? static_cast<Brush*>(tile->getGroundBrush()) : nullptr;
+			}),
 			"isNoPvp", sol::property([](Tile* tile) { return tile && (tile->getMapFlags() & TILESTATE_NOPVP); }),
 			"isNoLogout", sol::property([](Tile* tile) { return tile && (tile->getMapFlags() & TILESTATE_NOLOGOUT); }),
 			"isPvpZone", sol::property([](Tile* tile) { return tile && (tile->getMapFlags() & TILESTATE_PVPZONE); }),
