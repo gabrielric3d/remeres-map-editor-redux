@@ -32,6 +32,9 @@ public:
 
 	void OnGotoDestination(wxCommandEvent& event);
 	void OnRotateItem(wxCommandEvent& event);
+	void OnRotateSelectionCW(wxCommandEvent& event);
+	void OnRotateSelectionCCW(wxCommandEvent& event);
+	void OnRotateSelection180(wxCommandEvent& event);
 	void OnSwitchDoor(wxCommandEvent& event);
 
 	void OnSelectRAWBrush(wxCommandEvent& event);

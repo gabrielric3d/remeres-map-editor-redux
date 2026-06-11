@@ -76,6 +76,9 @@ namespace MenuBar {
 		BORDERIZE_MAP,
 		RANDOMIZE_SELECTION,
 		RANDOMIZE_MAP,
+		ROTATE_SELECTION_CW,
+		ROTATE_SELECTION_CCW,
+		ROTATE_SELECTION_180,
 		GOTO_PREVIOUS_POSITION,
 		GOTO_POSITION,
 		JUMP_TO_BRUSH,
@@ -313,6 +316,9 @@ public:
 	void OnBorderizeMap(wxCommandEvent& event);
 	void OnRandomizeSelection(wxCommandEvent& event);
 	void OnRandomizeMap(wxCommandEvent& event);
+	void OnRotateSelectionCW(wxCommandEvent& event);
+	void OnRotateSelectionCCW(wxCommandEvent& event);
+	void OnRotateSelection180(wxCommandEvent& event);
 
 	void OnGotoPreviousPosition(wxCommandEvent& event);
 	void OnGotoPosition(wxCommandEvent& event);

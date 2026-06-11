@@ -30,6 +30,7 @@ class Tile;
 class PopupActionHandler {
 public:
 	static void RotateItem(Editor& editor);
+	static void RotateSelection(Editor& editor, int quarterTurns);
 	static void GotoDestination(Editor& editor);
 	static void SwitchDoor(Editor& editor);
 	static void BrowseTile(Editor& editor, int cursor_x, int cursor_y);

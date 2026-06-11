@@ -66,6 +66,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/editor/operations/copy_operations.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/operations/draw_operations.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/operations/selection_operations.h
+    ${CMAKE_CURRENT_LIST_DIR}/editor/operations/rotation_utility.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/operations/map_version_changer.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/persistence/editor_persistence.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/persistence/map_load_options.h
@@ -501,6 +502,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/editor/operations/copy_operations.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/operations/draw_operations.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/operations/selection_operations.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/editor/operations/rotation_utility.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/operations/map_version_changer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/persistence/editor_persistence.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/persistence/tileset_exporter.cpp

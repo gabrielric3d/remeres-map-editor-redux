@@ -7,6 +7,7 @@
 #include "editor/action_queue.h"
 #include "app/preferences.h"
 #include "ui/managers/recent_files_manager.h"
+#include "ui/dialogs/structure_manager_window.h"
 #include "util/image_manager.h"
 
 void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<std::string, std::unique_ptr<MenuBar::Action>>& actions) {
@@ -73,6 +74,9 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(BORDERIZE_MAP, wxITEM_NORMAL, OnBorderizeMap);
 	MAKE_ACTION(RANDOMIZE_SELECTION, wxITEM_NORMAL, OnRandomizeSelection);
 	MAKE_ACTION(RANDOMIZE_MAP, wxITEM_NORMAL, OnRandomizeMap);
+	MAKE_ACTION(ROTATE_SELECTION_CW, wxITEM_NORMAL, OnRotateSelectionCW);
+	MAKE_ACTION(ROTATE_SELECTION_CCW, wxITEM_NORMAL, OnRotateSelectionCCW);
+	MAKE_ACTION(ROTATE_SELECTION_180, wxITEM_NORMAL, OnRotateSelection180);
 	MAKE_ACTION(GOTO_PREVIOUS_POSITION, wxITEM_NORMAL, OnGotoPreviousPosition);
 	MAKE_ACTION(GOTO_POSITION, wxITEM_NORMAL, OnGotoPosition);
 	MAKE_ACTION(JUMP_TO_BRUSH, wxITEM_NORMAL, OnJumpToBrush);
@@ -283,6 +287,12 @@ void MenuBarActionManager::UpdateState(MainMenuBar* mb) {
 	mb->EnableItem(BORDERIZE_MAP, is_local);
 	mb->EnableItem(RANDOMIZE_SELECTION, has_map && has_selection);
 	mb->EnableItem(RANDOMIZE_MAP, is_local);
+
+	bool canRotateSelection = has_map && has_selection && editor->selection.size() >= 2;
+	bool structurePasteActive = StructureManagerDialog::CanRotatePaste();
+	mb->EnableItem(ROTATE_SELECTION_CW, canRotateSelection || structurePasteActive);
+	mb->EnableItem(ROTATE_SELECTION_CCW, canRotateSelection);
+	mb->EnableItem(ROTATE_SELECTION_180, canRotateSelection);
 
 	mb->EnableItem(GOTO_PREVIOUS_POSITION, has_map);
 	mb->EnableItem(GOTO_POSITION, has_map);

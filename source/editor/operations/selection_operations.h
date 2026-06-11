@@ -11,6 +11,7 @@ class DoodadBrush;
 class SelectionOperations {
 public:
 	static void moveSelection(Editor& editor, Position offset);
+	static void rotateSelection(Editor& editor, int quarterTurns);
 	static void destroySelection(Editor& editor);
 	static void borderizeSelection(Editor& editor);
 	static void randomizeSelection(Editor& editor);

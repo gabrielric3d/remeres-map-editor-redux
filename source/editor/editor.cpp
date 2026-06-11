@@ -130,6 +130,10 @@ void Editor::moveSelection(Position offset) {
 	SelectionOperations::moveSelection(*this, offset);
 }
 
+void Editor::rotateSelection(int quarterTurns) {
+	SelectionOperations::rotateSelection(*this, quarterTurns);
+}
+
 void Editor::destroySelection() {
 	SelectionOperations::destroySelection(*this);
 }

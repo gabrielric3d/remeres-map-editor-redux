@@ -2,6 +2,7 @@
 #include "ui/gui.h"
 #include "ui/dialog_util.h"
 #include "ui/find_item_window.h"
+#include "ui/dialogs/structure_manager_window.h"
 #include "editor/editor.h"
 #include "editor/operations/clean_operations.h"
 #include "editor/operations/search_operations.h"
@@ -194,6 +195,53 @@ void MapActionsHandler::OnRandomizeMap(wxCommandEvent& WXUNUSED(event)) {
 		g_gui.GetCurrentEditor()->randomizeMap(true);
 	}
 
+	g_gui.RefreshView();
+}
+
+void MapActionsHandler::OnRotateSelectionCW(wxCommandEvent& WXUNUSED(event)) {
+	// If the Structure Manager paste preview is active, rotate the paste instead
+	if (StructureManagerDialog::RotatePaste()) {
+		return;
+	}
+
+	if (!g_gui.IsEditorOpen()) {
+		return;
+	}
+
+	Editor* editor = g_gui.GetCurrentEditor();
+	if (!editor || editor->selection.size() < 2) {
+		return;
+	}
+
+	editor->rotateSelection(1);
+	g_gui.RefreshView();
+}
+
+void MapActionsHandler::OnRotateSelectionCCW(wxCommandEvent& WXUNUSED(event)) {
+	if (!g_gui.IsEditorOpen()) {
+		return;
+	}
+
+	Editor* editor = g_gui.GetCurrentEditor();
+	if (!editor || editor->selection.size() < 2) {
+		return;
+	}
+
+	editor->rotateSelection(3);
+	g_gui.RefreshView();
+}
+
+void MapActionsHandler::OnRotateSelection180(wxCommandEvent& WXUNUSED(event)) {
+	if (!g_gui.IsEditorOpen()) {
+		return;
+	}
+
+	Editor* editor = g_gui.GetCurrentEditor();
+	if (!editor || editor->selection.size() < 2) {
+		return;
+	}
+
+	editor->rotateSelection(2);
 	g_gui.RefreshView();
 }
 

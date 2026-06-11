@@ -48,6 +48,15 @@ void PopupActionHandler::RotateItem(Editor& editor) {
 	g_gui.RefreshView();
 }
 
+void PopupActionHandler::RotateSelection(Editor& editor, int quarterTurns) {
+	if (editor.selection.size() < 2) {
+		return;
+	}
+
+	editor.rotateSelection(quarterTurns);
+	g_gui.RefreshView();
+}
+
 void PopupActionHandler::GotoDestination(Editor& editor) {
 	Tile* tile = editor.selection.getSelectedTile();
 	ItemVector selected_items = TileOperations::getSelectedItems(tile);

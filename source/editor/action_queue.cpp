@@ -72,6 +72,7 @@ std::string ActionQueue::getActionName(size_t index) const {
 		case ACTION_REPLACE_ITEMS: return "Replace Items";
 		case ACTION_CHANGE_PROPERTIES: return "Change Properties";
 		case ACTION_LUA_SCRIPT: return "Lua Script";
+		case ACTION_ROTATE_SELECTION: return "Rotate Selection";
 		default: return "Unknown";
 	}
 }

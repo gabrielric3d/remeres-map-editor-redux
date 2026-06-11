@@ -42,6 +42,9 @@ void MapMenuHandler::BindEvents() {
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnCopyName, this, MAP_POPUP_MENU_COPY_NAME);
 
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnRotateItem, this, MAP_POPUP_MENU_ROTATE);
+	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnRotateSelectionCW, this, MAP_POPUP_MENU_ROTATE_SELECTION_CW);
+	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnRotateSelectionCCW, this, MAP_POPUP_MENU_ROTATE_SELECTION_CCW);
+	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnRotateSelection180, this, MAP_POPUP_MENU_ROTATE_SELECTION_180);
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnGotoDestination, this, MAP_POPUP_MENU_GOTO);
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnSwitchDoor, this, MAP_POPUP_MENU_SWITCH_DOOR);
 
@@ -141,6 +144,18 @@ void MapMenuHandler::OnScriptMenu(wxCommandEvent& event) {
 
 void MapMenuHandler::OnRotateItem(wxCommandEvent& WXUNUSED(event)) {
 	PopupActionHandler::RotateItem(editor);
+}
+
+void MapMenuHandler::OnRotateSelectionCW(wxCommandEvent& WXUNUSED(event)) {
+	PopupActionHandler::RotateSelection(editor, 1);
+}
+
+void MapMenuHandler::OnRotateSelectionCCW(wxCommandEvent& WXUNUSED(event)) {
+	PopupActionHandler::RotateSelection(editor, 3);
+}
+
+void MapMenuHandler::OnRotateSelection180(wxCommandEvent& WXUNUSED(event)) {
+	PopupActionHandler::RotateSelection(editor, 2);
 }
 
 void MapMenuHandler::OnGotoDestination(wxCommandEvent& WXUNUSED(event)) {

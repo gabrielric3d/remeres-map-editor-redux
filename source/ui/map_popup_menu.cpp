@@ -45,8 +45,8 @@ void MapPopupMenu::Update() {
 	// Clear the menu of all items
 	while (GetMenuItemCount() != 0) {
 		wxMenuItem* m_item = FindItemByPosition(0);
-		// If you add a submenu, this won't delete it.
-		Delete(m_item);
+		// Destroy() also deletes attached submenus (Delete() would leak them).
+		Destroy(m_item);
 	}
 
 	bool anything_selected = editor.selection.size() != 0;
@@ -257,6 +257,15 @@ void MapPopupMenu::Update() {
 					}
 				}
 			}
+		} else {
+			// selection.size() >= 2
+			AppendSeparator();
+			wxMenu* rotate_menu = newd wxMenu();
+			rotate_menu->Append(MAP_POPUP_MENU_ROTATE_SELECTION_CW, "Rotate selection clockwise", "Rotate the selection 90 degrees clockwise");
+			rotate_menu->Append(MAP_POPUP_MENU_ROTATE_SELECTION_CCW, "Rotate selection counterclockwise", "Rotate the selection 90 degrees counterclockwise");
+			rotate_menu->Append(MAP_POPUP_MENU_ROTATE_SELECTION_180, "Rotate selection 180", "Rotate the selection 180 degrees");
+			wxMenuItem* rotateSubMenu = AppendSubMenu(rotate_menu, "Rotate selection");
+			rotateSubMenu->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_ROTATE, wxSize(16, 16)));
 		}
 	}
 }

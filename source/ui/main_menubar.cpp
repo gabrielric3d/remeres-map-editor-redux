@@ -514,6 +514,18 @@ void MainMenuBar::OnRandomizeMap(wxCommandEvent& event) {
 	mapActionsHandler->OnRandomizeMap(event);
 }
 
+void MainMenuBar::OnRotateSelectionCW(wxCommandEvent& event) {
+	mapActionsHandler->OnRotateSelectionCW(event);
+}
+
+void MainMenuBar::OnRotateSelectionCCW(wxCommandEvent& event) {
+	mapActionsHandler->OnRotateSelectionCCW(event);
+}
+
+void MainMenuBar::OnRotateSelection180(wxCommandEvent& event) {
+	mapActionsHandler->OnRotateSelection180(event);
+}
+
 void MainMenuBar::OnJumpToBrush(wxCommandEvent& event) {
 	navigationMenuHandler->OnJumpToBrush(event);
 }
