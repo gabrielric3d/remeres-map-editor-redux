@@ -254,6 +254,12 @@ public:
 	void OnGroundBrowse(wxCommandEvent& event);
 	void OnFindBorderByItemId(wxCommandEvent& event);
 	void OnFindGroundByItemId(wxCommandEvent& event);
+
+	// Entry point for the map context menu ("Open in Brushes Editor"): finds the
+	// border or ground brush that uses the item and loads it in the matching tab.
+	// preferGround controls which file is searched first when the item exists in both.
+	// Returns false if no border or ground brush uses the item.
+	bool OpenItemInEditor(uint16_t itemId, bool preferGround);
 	void OnScanBorder(wxCommandEvent& event);
 	void AddGroundItemById(uint16_t itemId);
 	void OnAddGroundBorder(wxCommandEvent& event);
@@ -281,6 +287,11 @@ protected:
 	void CreateGUIControls();
 	void LoadExistingBorders();
 	void LoadExistingGroundBrushes();
+	int FindBorderIdByItemId(uint16_t wantedId);
+	wxString FindGroundBrushNameByItemId(uint16_t wantedId);
+	bool LoadBorderById(int borderId);
+	void LoadGroundBrushByName(const wxString& name);
+	void EnsureGroundTabLoaded();
 	void SaveBorder();
 	void SaveGroundBrush();
 	bool ValidateBorder();

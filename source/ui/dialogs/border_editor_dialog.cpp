@@ -1324,11 +1324,8 @@ void BorderEditorDialog::OnPageChanged(wxBookCtrlEvent& event) {
 	}
 
 	// Lazy-load Ground tab data on first activation (Ground tab index is 1)
-	if (m_activeTab == 1 && !m_groundTabLoaded) {
-		m_groundTabLoaded = true;
-		wxBusyCursor busy;
-		LoadExistingGroundBrushes();
-		LoadExistingTilesets();
+	if (m_activeTab == 1) {
+		EnsureGroundTabLoaded();
 	}
 }
 
@@ -1967,6 +1964,149 @@ void BorderEditorDialog::OnGroundBrowse(wxCommandEvent& event) {
 	}
 }
 
+int BorderEditorDialog::FindBorderIdByItemId(uint16_t wantedId) {
+	wxString dataDir = GetVersionDataDirectory();
+	if (dataDir.IsEmpty()) return -1;
+
+	wxString bordersFile = dataDir + "borders.xml";
+	if (!wxFileExists(bordersFile)) return -1;
+
+	pugi::xml_document doc;
+	pugi::xml_parse_result result = doc.load_file(bordersFile.ToStdString().c_str());
+	if (!result) return -1;
+
+	pugi::xml_node materials = doc.child("materials");
+	for (pugi::xml_node borderNode = materials.child("border"); borderNode; borderNode = borderNode.next_sibling("border")) {
+		pugi::xml_attribute idAttr = borderNode.attribute("id");
+		if (!idAttr) continue;
+
+		for (pugi::xml_node itemNode = borderNode.child("borderitem"); itemNode; itemNode = itemNode.next_sibling("borderitem")) {
+			// New format: <borderitem edge="n"><item id="..." .../>...</borderitem>
+			for (pugi::xml_node subItem = itemNode.child("item"); subItem; subItem = subItem.next_sibling("item")) {
+				pugi::xml_attribute subIdAttr = subItem.attribute("id");
+				if (subIdAttr && subIdAttr.as_uint() == wantedId) {
+					return idAttr.as_int();
+				}
+			}
+
+			// Legacy format: <borderitem edge="n" item="..."/>
+			pugi::xml_attribute itemAttr = itemNode.attribute("item");
+			if (itemAttr && itemAttr.as_uint() == wantedId) {
+				return idAttr.as_int();
+			}
+		}
+	}
+
+	return -1;
+}
+
+wxString BorderEditorDialog::FindGroundBrushNameByItemId(uint16_t wantedId) {
+	wxString dataDir = GetVersionDataDirectory();
+	if (dataDir.IsEmpty()) return wxString();
+
+	wxString groundsFile = dataDir + "grounds.xml";
+	if (!wxFileExists(groundsFile)) return wxString();
+
+	pugi::xml_document doc;
+	pugi::xml_parse_result result = doc.load_file(groundsFile.ToStdString().c_str());
+	if (!result) return wxString();
+
+	pugi::xml_node materials = doc.child("materials");
+	for (pugi::xml_node brushNode = materials.child("brush"); brushNode; brushNode = brushNode.next_sibling("brush")) {
+		pugi::xml_attribute typeAttr = brushNode.attribute("type");
+		if (!typeAttr || std::string(typeAttr.as_string()) != "ground") continue;
+
+		pugi::xml_attribute nameAttr = brushNode.attribute("name");
+		if (!nameAttr) continue;
+
+		// Match against server_lookid or any <item id="..."/>
+		pugi::xml_attribute serverLookIdAttr = brushNode.attribute("server_lookid");
+		if (serverLookIdAttr && serverLookIdAttr.as_uint() == wantedId) {
+			return wxString(nameAttr.as_string());
+		}
+
+		for (pugi::xml_node itemNode = brushNode.child("item"); itemNode; itemNode = itemNode.next_sibling("item")) {
+			pugi::xml_attribute idAttr = itemNode.attribute("id");
+			if (idAttr && idAttr.as_uint() == wantedId) {
+				return wxString(nameAttr.as_string());
+			}
+		}
+	}
+
+	return wxString();
+}
+
+bool BorderEditorDialog::LoadBorderById(int borderId) {
+	// Find the matching entry in the combo and select it
+	for (unsigned int i = 1; i < m_existingBordersCombo->GetCount(); ++i) {
+		wxStringClientData* data = static_cast<wxStringClientData*>(m_existingBordersCombo->GetClientObject(i));
+		if (data && wxAtoi(data->GetData()) == borderId) {
+			m_existingBordersCombo->SetSelection(i);
+			wxCommandEvent evt(wxEVT_COMBOBOX, ID_EXISTING_BORDERS_COMBO);
+			evt.SetEventObject(m_existingBordersCombo);
+			OnLoadBorder(evt);
+			return true;
+		}
+	}
+	return false;
+}
+
+void BorderEditorDialog::LoadGroundBrushByName(const wxString& name) {
+	m_existingGroundBrushesCombo->SetValue(name);
+	wxCommandEvent evt(wxEVT_COMBOBOX, ID_EXISTING_GROUNDS_COMBO);
+	evt.SetEventObject(m_existingGroundBrushesCombo);
+	OnLoadGroundBrush(evt);
+}
+
+void BorderEditorDialog::EnsureGroundTabLoaded() {
+	if (!m_groundTabLoaded) {
+		m_groundTabLoaded = true;
+		wxBusyCursor busy;
+		LoadExistingGroundBrushes();
+		LoadExistingTilesets();
+	}
+}
+
+bool BorderEditorDialog::OpenItemInEditor(uint16_t itemId, bool preferGround) {
+	if (itemId == 0) return false;
+
+	// An item can appear in both grounds.xml and borders.xml (e.g. ground borders),
+	// so the caller hints which sub-editor the user most likely wants.
+	int borderId = -1;
+	wxString groundName;
+	if (preferGround) {
+		groundName = FindGroundBrushNameByItemId(itemId);
+		if (groundName.IsEmpty()) {
+			borderId = FindBorderIdByItemId(itemId);
+		}
+	} else {
+		borderId = FindBorderIdByItemId(itemId);
+		if (borderId < 0) {
+			groundName = FindGroundBrushNameByItemId(itemId);
+		}
+	}
+
+	if (!groundName.IsEmpty()) {
+		EnsureGroundTabLoaded();
+		m_notebook->SetSelection(1);
+		if (m_findGroundItemIdCtrl) {
+			m_findGroundItemIdCtrl->SetValue(itemId);
+		}
+		LoadGroundBrushByName(groundName);
+		return true;
+	}
+
+	if (borderId >= 0) {
+		m_notebook->SetSelection(0);
+		if (m_findBorderItemIdCtrl) {
+			m_findBorderItemIdCtrl->SetValue(itemId);
+		}
+		return LoadBorderById(borderId);
+	}
+
+	return false;
+}
+
 void BorderEditorDialog::OnFindBorderByItemId(wxCommandEvent& event) {
 	if (!m_findBorderItemIdCtrl) return;
 
@@ -1976,68 +2116,17 @@ void BorderEditorDialog::OnFindBorderByItemId(wxCommandEvent& event) {
 		return;
 	}
 
-	wxString dataDir = GetVersionDataDirectory();
-	if (dataDir.IsEmpty()) return;
-
-	wxString bordersFile = dataDir + "borders.xml";
-	if (!wxFileExists(bordersFile)) {
-		wxMessageBox("Cannot find borders.xml file in the data directory.", "Error", wxICON_ERROR);
-		return;
-	}
-
-	pugi::xml_document doc;
-	pugi::xml_parse_result result = doc.load_file(bordersFile.ToStdString().c_str());
-	if (!result) {
-		wxMessageBox("Failed to load borders.xml: " + wxString(result.description()), "Error", wxICON_ERROR);
-		return;
-	}
-
-	pugi::xml_node materials = doc.child("materials");
-	int foundBorderId = -1;
-	for (pugi::xml_node borderNode = materials.child("border"); borderNode && foundBorderId < 0; borderNode = borderNode.next_sibling("border")) {
-		pugi::xml_attribute idAttr = borderNode.attribute("id");
-		if (!idAttr) continue;
-
-		for (pugi::xml_node itemNode = borderNode.child("borderitem"); itemNode; itemNode = itemNode.next_sibling("borderitem")) {
-			// New format: <borderitem edge="n"><item id="..." .../>...</borderitem>
-			for (pugi::xml_node subItem = itemNode.child("item"); subItem; subItem = subItem.next_sibling("item")) {
-				pugi::xml_attribute subIdAttr = subItem.attribute("id");
-				if (subIdAttr && subIdAttr.as_uint() == wantedId) {
-					foundBorderId = idAttr.as_int();
-					break;
-				}
-			}
-			if (foundBorderId >= 0) break;
-
-			// Legacy format: <borderitem edge="n" item="..."/>
-			pugi::xml_attribute itemAttr = itemNode.attribute("item");
-			if (itemAttr && itemAttr.as_uint() == wantedId) {
-				foundBorderId = idAttr.as_int();
-				break;
-			}
-		}
-	}
-
+	int foundBorderId = FindBorderIdByItemId(wantedId);
 	if (foundBorderId < 0) {
 		wxMessageBox(wxString::Format("No border uses item ID %u.", wantedId),
 			"Not Found", wxICON_WARNING);
 		return;
 	}
 
-	// Find the matching entry in the combo and select it
-	for (unsigned int i = 1; i < m_existingBordersCombo->GetCount(); ++i) {
-		wxStringClientData* data = static_cast<wxStringClientData*>(m_existingBordersCombo->GetClientObject(i));
-		if (data && wxAtoi(data->GetData()) == foundBorderId) {
-			m_existingBordersCombo->SetSelection(i);
-			wxCommandEvent evt(wxEVT_COMBOBOX, ID_EXISTING_BORDERS_COMBO);
-			evt.SetEventObject(m_existingBordersCombo);
-			OnLoadBorder(evt);
-			return;
-		}
+	if (!LoadBorderById(foundBorderId)) {
+		wxMessageBox(wxString::Format("Border %d uses item %u, but it is not listed in the dropdown.", foundBorderId, wantedId),
+			"Not Found", wxICON_WARNING);
 	}
-
-	wxMessageBox(wxString::Format("Border %d uses item %u, but it is not listed in the dropdown.", foundBorderId, wantedId),
-		"Not Found", wxICON_WARNING);
 }
 
 void BorderEditorDialog::OnFindGroundByItemId(wxCommandEvent& event) {
@@ -2049,58 +2138,14 @@ void BorderEditorDialog::OnFindGroundByItemId(wxCommandEvent& event) {
 		return;
 	}
 
-	wxString dataDir = GetVersionDataDirectory();
-	if (dataDir.IsEmpty()) return;
-
-	wxString groundsFile = dataDir + "grounds.xml";
-	if (!wxFileExists(groundsFile)) {
-		wxMessageBox("Cannot find grounds.xml file in the data directory.", "Error", wxICON_ERROR);
-		return;
-	}
-
-	pugi::xml_document doc;
-	pugi::xml_parse_result result = doc.load_file(groundsFile.ToStdString().c_str());
-	if (!result) {
-		wxMessageBox("Failed to load grounds.xml: " + wxString(result.description()), "Error", wxICON_ERROR);
-		return;
-	}
-
-	pugi::xml_node materials = doc.child("materials");
-	wxString foundName;
-	for (pugi::xml_node brushNode = materials.child("brush"); brushNode && foundName.IsEmpty(); brushNode = brushNode.next_sibling("brush")) {
-		pugi::xml_attribute typeAttr = brushNode.attribute("type");
-		if (!typeAttr || std::string(typeAttr.as_string()) != "ground") continue;
-
-		pugi::xml_attribute nameAttr = brushNode.attribute("name");
-		if (!nameAttr) continue;
-
-		// Match against server_lookid or any <item id="..."/>
-		pugi::xml_attribute serverLookIdAttr = brushNode.attribute("server_lookid");
-		if (serverLookIdAttr && serverLookIdAttr.as_uint() == wantedId) {
-			foundName = nameAttr.as_string();
-			break;
-		}
-
-		for (pugi::xml_node itemNode = brushNode.child("item"); itemNode; itemNode = itemNode.next_sibling("item")) {
-			pugi::xml_attribute idAttr = itemNode.attribute("id");
-			if (idAttr && idAttr.as_uint() == wantedId) {
-				foundName = nameAttr.as_string();
-				break;
-			}
-		}
-	}
-
+	wxString foundName = FindGroundBrushNameByItemId(wantedId);
 	if (foundName.IsEmpty()) {
 		wxMessageBox(wxString::Format("No ground brush uses item ID %u.", wantedId),
 			"Not Found", wxICON_WARNING);
 		return;
 	}
 
-	// Select in combo and trigger load
-	m_existingGroundBrushesCombo->SetValue(foundName);
-	wxCommandEvent evt(wxEVT_COMBOBOX, ID_EXISTING_GROUNDS_COMBO);
-	evt.SetEventObject(m_existingGroundBrushesCombo);
-	OnLoadGroundBrush(evt);
+	LoadGroundBrushByName(foundName);
 }
 
 void BorderEditorDialog::ClearGroundItems() {

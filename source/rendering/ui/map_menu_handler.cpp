@@ -17,13 +17,12 @@
 #include "ui/map_popup_menu.h"
 #include "ui/map_window.h"
 #include "map/tile.h"
+#include "map/tile_operations.h"
 #include "game/item.h"
 #include "editor/editor.h"
 #include "ui/gui_ids.h"
 #include "ui/gui.h"
 #include "ui/tile_properties/tile_properties_panel.h"
-#include "ui/dialogs/area_decoration_rule_from_selection_dialog.h"
-#include "ui/dialogs/area_decoration_dialog.h"
 #include "lua/lua_script_manager.h"
 
 MapMenuHandler::MapMenuHandler(MapCanvas* canvas, Editor& editor) :
@@ -60,12 +59,12 @@ void MapMenuHandler::BindEvents() {
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnSelectSpawnBrush, this, MAP_POPUP_MENU_SELECT_SPAWN_BRUSH);
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnSelectHouseBrush, this, MAP_POPUP_MENU_SELECT_HOUSE_BRUSH);
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnSelectMoveTo, this, MAP_POPUP_MENU_MOVE_TO_TILESET);
+	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnOpenInBrushesEditor, this, MAP_POPUP_MENU_OPEN_IN_BRUSHES_EDITOR);
 
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnProperties, this, MAP_POPUP_MENU_PROPERTIES);
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnAdvancedReplace, this, MAP_POPUP_MENU_ADVANCED_REPLACE);
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnBrowseTile, this, MAP_POPUP_MENU_BROWSE_TILE);
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnTileProperties, this, MAP_POPUP_MENU_TILE_PROPERTIES);
-	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnAddAreaDecorationRule, this, MAP_POPUP_MENU_ADD_AREA_DECORATION_RULE);
 	for (int i = MAP_POPUP_MENU_SCRIPT_FIRST; i <= MAP_POPUP_MENU_SCRIPT_LAST; ++i) {
 		canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnScriptMenu, this, i);
 	}
@@ -214,6 +213,30 @@ void MapMenuHandler::OnSelectMoveTo(wxCommandEvent& WXUNUSED(event)) {
 	PopupActionHandler::SelectMoveTo(editor);
 }
 
+void MapMenuHandler::OnOpenInBrushesEditor(wxCommandEvent& WXUNUSED(event)) {
+	Tile* tile = editor.selection.getSelectedTile();
+	if (!tile) {
+		return;
+	}
+
+	// Mirror the popup menu's target resolution: top selected item, else the ground.
+	Item* item = nullptr;
+	ItemVector selected_items = TileOperations::getSelectedItems(tile);
+	if (!selected_items.empty()) {
+		item = selected_items.back();
+	}
+	if (!item) {
+		item = tile->ground.get();
+	}
+	if (!item) {
+		return;
+	}
+
+	// Border items also appear inside ground brush definitions, so only prefer
+	// the Ground tab when the clicked item is not a border piece.
+	g_gui.OpenBrushesEditorForItem(item->getID(), !item->isBorder());
+}
+
 void MapMenuHandler::OnProperties(wxCommandEvent& WXUNUSED(event)) {
 	PopupActionHandler::OpenProperties(editor);
 }
@@ -246,16 +269,3 @@ void MapMenuHandler::OnAdvancedReplace(wxCommandEvent& WXUNUSED(event)) {
 	}
 }
 
-void MapMenuHandler::OnAddAreaDecorationRule(wxCommandEvent& WXUNUSED(event)) {
-	if (!g_gui.IsEditorOpen()) {
-		return;
-	}
-
-	AreaDecorationRuleFromSelectionDialog dialog(canvas, editor);
-	if (dialog.ShowModal() == wxID_OK && dialog.WasAccepted()) {
-		g_gui.ShowAreaDecorationDialog();
-		if (g_gui.area_decoration_dialog) {
-			g_gui.area_decoration_dialog->AddRuleFromExternal(dialog.GetGeneratedRule());
-		}
-	}
-}

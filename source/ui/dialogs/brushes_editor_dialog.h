@@ -9,6 +9,7 @@
 
 #include <wx/dialog.h>
 #include <wx/notebook.h>
+#include <cstdint>
 
 class BorderEditorDialog; // embedded panel
 class DoodadEditorDialog; // embedded panel
@@ -17,6 +18,10 @@ class BrushesEditorDialog : public wxDialog {
 public:
 	BrushesEditorDialog(wxWindow* parent);
 	~BrushesEditorDialog() override;
+
+	// Switch to the Borders & Grounds tab and load the border/ground brush that
+	// uses the given item. Returns false if no border or ground brush uses it.
+	bool OpenItemInBordersEditor(uint16_t itemId, bool preferGround);
 
 	void OnPageChanged(wxBookCtrlEvent& event);
 	void OnCloseWindow(wxCloseEvent& event);

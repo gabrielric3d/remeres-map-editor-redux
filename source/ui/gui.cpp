@@ -1029,6 +1029,14 @@ void GUI::DestroyBrushesEditorDialog() {
 	}
 }
 
+void GUI::OpenBrushesEditorForItem(uint16_t itemId, bool preferGround) {
+	ShowBrushesEditorDialog();
+	if (brushes_editor_dialog && !brushes_editor_dialog->OpenItemInBordersEditor(itemId, preferGround)) {
+		wxMessageBox(wxString::Format("Item %u is not used by any border or ground brush.", itemId),
+			"Open in Brushes Editor", wxICON_INFORMATION, brushes_editor_dialog);
+	}
+}
+
 //=============================================================================
 // Instance Layout Dialog management
 

@@ -120,6 +120,11 @@ wxPanel* BrushesEditorDialog::CreatePlaceholderPanel(const wxString& title, cons
 	return panel;
 }
 
+bool BrushesEditorDialog::OpenItemInBordersEditor(uint16_t itemId, bool preferGround) {
+	m_notebook->SetSelection(TAB_BORDERS_GROUNDS);
+	return m_bordersPanel->OpenItemInEditor(itemId, preferGround);
+}
+
 void BrushesEditorDialog::OnPageChanged(wxBookCtrlEvent& event) {
 	// Ignore nested notebook events (the Border/Ground sub-notebook inside the Borders tab).
 	if (event.GetEventObject() != m_notebook) {

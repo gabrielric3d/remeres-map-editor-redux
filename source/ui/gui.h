@@ -410,6 +410,8 @@ public:
 	void DestroyInstanceLayoutDialog();
 	void ShowBrushesEditorDialog();
 	void DestroyBrushesEditorDialog();
+	// Open the Brushes Editor with the border/ground brush that uses the item preloaded.
+	void OpenBrushesEditorForItem(uint16_t itemId, bool preferGround);
 
 	// Rectangle pick mode for area decoration dialog
 	using RectanglePickComplete = std::function<void(const Position&, const Position&)>;

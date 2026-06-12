@@ -49,10 +49,10 @@ public:
 	void OnSelectHouseBrush(wxCommandEvent& event);
 	void OnSelectCollectionBrush(wxCommandEvent& event);
 	void OnSelectMoveTo(wxCommandEvent& event);
+	void OnOpenInBrushesEditor(wxCommandEvent& event);
 
 	void OnProperties(wxCommandEvent& event);
 	void OnAdvancedReplace(wxCommandEvent& event);
-	void OnAddAreaDecorationRule(wxCommandEvent& event);
 
 private:
 	MapCanvas* canvas;

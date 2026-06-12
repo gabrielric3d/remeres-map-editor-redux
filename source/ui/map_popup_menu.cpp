@@ -72,7 +72,18 @@ void MapPopupMenu::Update() {
 
 	if (anything_selected) {
 		Append(MAP_POPUP_MENU_ADVANCED_REPLACE, "Replace tiles...", "Open Advanced Replace Tool for selected items")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_WAND_MAGIC, wxSize(16, 16)));
-		Append(MAP_POPUP_MENU_ADD_AREA_DECORATION_RULE, "Add Area Decoration Rule...", "Generate an area decoration rule from selection");
+
+		if (editor.selection.size() == 1) {
+			Tile* tile = editor.selection.getSelectedTile();
+			ItemVector selected_items = TileOperations::getSelectedItems(tile);
+			Item* target = selected_items.empty() ? nullptr : selected_items.back();
+			if (!target) {
+				target = tile->ground.get();
+			}
+			if (target && (target->isBorder() || target->isGroundTile())) {
+				Append(MAP_POPUP_MENU_OPEN_IN_BRUSHES_EDITOR, "Open in Brushes Editor", "Open this ground or border in the Brushes Editor")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_PAINTBRUSH, wxSize(16, 16)));
+			}
+		}
 	}
 
 	if (anything_selected) {
