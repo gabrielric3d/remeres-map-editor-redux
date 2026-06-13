@@ -72,6 +72,9 @@ namespace MenuBar {
 		SELECT_MODE_VISIBLE,
 		SELECT_MODE_LASSO,
 		AUTOMAGIC,
+		CARPET_LIKE_GROUND_BORDERS,
+		CARPET_FILL_BORDERS,
+		DISABLE_CARPET_INTERACTION,
 		BORDERIZE_SELECTION,
 		BORDERIZE_MAP,
 		RANDOMIZE_SELECTION,
@@ -112,6 +115,7 @@ namespace MenuBar {
 		SHOW_SHADE,
 		SHOW_ALL_FLOORS,
 		GHOST_ITEMS,
+		GHOST_GROUNDS,
 		GHOST_HIGHER_FLOORS,
 		HIGHLIGHT_ITEMS,
 		HIGHLIGHT_LOCKED_DOORS,
@@ -309,6 +313,9 @@ public:
 	void OnPaste(wxCommandEvent& event);
 
 	void OnToggleAutomagic(wxCommandEvent& event);
+	void OnToggleCarpetLikeGroundBorders(wxCommandEvent& event);
+	void OnToggleCarpetFillBorders(wxCommandEvent& event);
+	void OnToggleDisableCarpetInteraction(wxCommandEvent& event);
 	void OnToggleShowLights(wxCommandEvent& event);
 	void OnToggleScreenShader(wxCommandEvent& event);
 

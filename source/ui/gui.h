@@ -272,6 +272,10 @@ public:
 	bool IsHollowLine() const;
 	void SetHollowWallThickness(int t);
 	int GetHollowWallThickness() const;
+	void SetLineAngleSnap(bool on);
+	bool IsLineAngleSnap() const;
+	void SetLineSnapAngle(int deg);
+	int GetLineSnapAngle() const;
 
 	// Centers current view on position
 	void SetScreenCenterPosition(Position pos);

@@ -490,6 +490,18 @@ void MainMenuBar::OnToggleAutomagic(wxCommandEvent& event) {
 	viewSettingsHandler->OnToggleAutomagic(event);
 }
 
+void MainMenuBar::OnToggleCarpetLikeGroundBorders(wxCommandEvent& event) {
+	viewSettingsHandler->OnToggleCarpetLikeGroundBorders(event);
+}
+
+void MainMenuBar::OnToggleCarpetFillBorders(wxCommandEvent& event) {
+	viewSettingsHandler->OnToggleCarpetFillBorders(event);
+}
+
+void MainMenuBar::OnToggleDisableCarpetInteraction(wxCommandEvent& event) {
+	viewSettingsHandler->OnToggleDisableCarpetInteraction(event);
+}
+
 void MainMenuBar::OnToggleShowLights(wxCommandEvent& event) {
 	viewSettingsHandler->OnToggleShowLights(event);
 }

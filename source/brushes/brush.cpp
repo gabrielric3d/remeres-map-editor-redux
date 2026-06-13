@@ -67,6 +67,8 @@ Brushes::~Brushes() {
 }
 
 void Brushes::clear() {
+	GroundBrush::clearCarpetPieceOwners();
+
 	for (auto& entry : brushes) {
 		entry.second.reset();
 	}

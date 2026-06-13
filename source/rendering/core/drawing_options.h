@@ -17,6 +17,7 @@ struct DrawingOptions {
 
 	bool transparent_floors;
 	bool transparent_items;
+	bool transparent_grounds;
 	bool show_ingame_box;
 	bool show_lights;
 	bool show_light_str;

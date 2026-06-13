@@ -137,6 +137,23 @@ public:
 		return hollow_wall_thickness;
 	}
 
+	// Line tool: snap the drag end-point to the nearest multiple of the snap angle
+	void SetLineAngleSnap(bool on) {
+		line_angle_snap = on;
+	}
+	[[nodiscard]] bool IsLineAngleSnap() const {
+		return line_angle_snap;
+	}
+
+	// Snap increment in degrees (e.g. 45 => 8 directions, 90 => 4, 30 => 12).
+	// Clamped to a sane range at write time.
+	void SetLineSnapAngle(int deg) {
+		line_snap_angle = std::clamp(deg, 5, 90);
+	}
+	[[nodiscard]] int GetLineSnapAngle() const {
+		return line_snap_angle;
+	}
+
 	[[nodiscard]] float GetCustomThicknessMod() const {
 		return custom_thickness_mod;
 	}
@@ -195,6 +212,8 @@ private:
 	bool draw_locked_doors;
 	bool hollow_line = false;
 	int hollow_wall_thickness = 1;
+	bool line_angle_snap = false;
+	int line_snap_angle = 45;
 	bool use_custom_thickness;
 	float custom_thickness_mod;
 	float light_intensity;

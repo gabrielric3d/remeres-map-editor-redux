@@ -543,6 +543,18 @@ void GUI::SetHollowWallThickness(int t) {
 int GUI::GetHollowWallThickness() const {
 	return g_brush_manager.GetHollowWallThickness();
 }
+void GUI::SetLineAngleSnap(bool on) {
+	g_brush_manager.SetLineAngleSnap(on);
+}
+bool GUI::IsLineAngleSnap() const {
+	return g_brush_manager.IsLineAngleSnap();
+}
+void GUI::SetLineSnapAngle(int deg) {
+	g_brush_manager.SetLineSnapAngle(deg);
+}
+int GUI::GetLineSnapAngle() const {
+	return g_brush_manager.GetLineSnapAngle();
+}
 
 EditorTab* GUI::GetCurrentTab() {
 	return g_editors.GetCurrentTab();

@@ -17,6 +17,13 @@
 
 #include "app/main.h"
 
+#include <wx/stackwalk.h>
+#include <spdlog/spdlog.h>
+#include <exception>
+#ifdef __WXMSW__
+	#include <cstdlib>
+#endif
+
 #include "ui/theme.h"
 #include "ui/dialog_util.h"
 #include "app/application.h"
@@ -68,6 +75,87 @@ int main(int argc, char** argv) {
 
 // OnRun is implemented below
 
+// ---------------------------------------------------------------------------
+// Crash diagnostics
+//
+// The crash on closing the Structure Manager is a CRT fast-fail (exception code
+// 0xC0000409 in ucrtbase.dll) which bypasses SEH/VEH, so wxApp::OnFatalException
+// never runs. The CRT, however, invokes these hooks in NORMAL stack context just
+// before failing fast, so a stack walk here captures the offending frame.
+// ---------------------------------------------------------------------------
+#if wxUSE_STACKWALKER
+class RmeCrashStackWalker : public wxStackWalker {
+public:
+	void OnStackFrame(const wxStackFrame& frame) override {
+		spdlog::error("  #{:02} {} ({}:{}) [{}+0x{:x}]",
+			frame.GetLevel(),
+			frame.GetName().IsEmpty() ? "<unknown>" : frame.GetName().ToStdString(),
+			frame.GetFileName().IsEmpty() ? "?" : frame.GetFileName().ToStdString(),
+			frame.GetLine(),
+			frame.GetModule().IsEmpty() ? "?" : frame.GetModule().ToStdString(),
+			frame.GetOffset());
+	}
+};
+
+static void DumpCrashStack(size_t skip) {
+	RmeCrashStackWalker walker;
+	walker.Walk(skip);
+	spdlog::default_logger()->flush();
+}
+#else
+static void DumpCrashStack(size_t) {
+	spdlog::error("  (stack walker unavailable in this build)");
+	spdlog::default_logger()->flush();
+}
+#endif
+
+namespace {
+
+void RmeTerminateHandler() {
+	spdlog::error("================ std::terminate (uncaught exception / dtor throw) ================");
+	if (auto ex = std::current_exception()) {
+		try {
+			std::rethrow_exception(ex);
+		} catch (const std::exception& e) {
+			spdlog::error("  exception: {}", e.what());
+		} catch (...) {
+			spdlog::error("  exception: <non-std type>");
+		}
+	}
+	DumpCrashStack(2);
+	spdlog::error("================================================================================");
+	std::abort();
+}
+
+#ifdef __WXMSW__
+void RmePurecallHandler() {
+	spdlog::error("================ PURE VIRTUAL CALL (object used during destruction) ================");
+	DumpCrashStack(2);
+	spdlog::error("==================================================================================");
+}
+
+void RmeInvalidParameterHandler(const wchar_t* expression, const wchar_t* function,
+	const wchar_t* file, unsigned int line, uintptr_t /*pReserved*/) {
+	spdlog::error("================ CRT INVALID PARAMETER ================");
+	spdlog::error("  function:   {}", function ? wxString(function).ToStdString() : "?");
+	spdlog::error("  file:       {}:{}", file ? wxString(file).ToStdString() : "?", line);
+	spdlog::error("  expression: {}", expression ? wxString(expression).ToStdString() : "?");
+	DumpCrashStack(2);
+	spdlog::error("======================================================");
+}
+#endif
+
+} // namespace
+
+void Application::InstallCrashDiagnostics() {
+	std::set_terminate(&RmeTerminateHandler);
+#ifdef __WXMSW__
+	_set_purecall_handler(&RmePurecallHandler);
+	_set_invalid_parameter_handler(&RmeInvalidParameterHandler);
+#endif
+	spdlog::info("Crash diagnostics installed (terminate/purecall/invalid-parameter handlers).");
+}
+
 Application::~Application() {
 }
 
@@ -104,6 +192,8 @@ bool Application::OnInit() {
 		spdlog::set_default_logger(logger);
 	}
 	spdlog::info("RME starting up - logging enabled (file: rme_debug.log)");
+
+	InstallCrashDiagnostics();
 
 	spdlog::info("This is free software: you are free to change and redistribute it.");
 	spdlog::info("There is NO WARRANTY, to the extent permitted by law.");
@@ -432,7 +522,36 @@ int Application::OnRun() {
 }
 
 void Application::OnFatalException() {
+	spdlog::error("================ FATAL EXCEPTION (crash) ================");
+#if wxUSE_STACKWALKER
+	RmeCrashStackWalker walker;
+	walker.WalkFromException();
+#else
+	spdlog::error("Stack walker unavailable in this build.");
+#endif
+	spdlog::error("========================================================");
+	spdlog::default_logger()->flush();
 }
+
+#if wxDEBUG_LEVEL
+void Application::OnAssertFailure(const wxChar* file, int line, const wxChar* func,
+	const wxChar* cond, const wxChar* msg) {
+	spdlog::error("================ wxASSERT FAILURE ================");
+	spdlog::error("  {}:{} in {}", wxString(file).ToStdString(), line, wxString(func).ToStdString());
+	spdlog::error("  condition: {}", wxString(cond).ToStdString());
+	if (msg) {
+		spdlog::error("  message:   {}", wxString(msg).ToStdString());
+	}
+#if wxUSE_STACKWALKER
+	RmeCrashStackWalker walker;
+	walker.Walk(2);
+#endif
+	spdlog::error("=================================================");
+	spdlog::default_logger()->flush();
+	// Fall through to default behaviour (which may abort in debug builds).
+	wxApp::OnAssertFailure(file, line, func, cond, msg);
+}
+#endif
 
 bool Application::OnExceptionInMainLoop() {
 	try {

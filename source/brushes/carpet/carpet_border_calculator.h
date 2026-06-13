@@ -9,10 +9,14 @@
 
 class BaseMap;
 class Tile;
+class CarpetBrush;
 
 class CarpetBorderCalculator {
 public:
-	static void calculate(BaseMap* map, Tile* tile);
+	// When onlyBrush is non-null, only carpets belonging to that brush are
+	// recalculated; carpets from other brushes on the tile are left untouched
+	// (used by the "disable carpet interaction" mode).
+	static void calculate(BaseMap* map, Tile* tile, CarpetBrush* onlyBrush = nullptr);
 };
 
 #endif

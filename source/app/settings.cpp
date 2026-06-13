@@ -279,6 +279,7 @@ void Settings::IO(IOMode mode) {
 	section("View");
 	Bool(TRANSPARENT_FLOORS, false);
 	Bool(TRANSPARENT_ITEMS, false);
+	Bool(TRANSPARENT_GROUNDS, false);
 	Bool(SHOW_ALL_FLOORS, true);
 	Bool(SHOW_INGAME_BOX, false);
 	Bool(SHOW_LIGHTS, false);
@@ -350,6 +351,9 @@ void Settings::IO(IOMode mode) {
 	Bool(DOUBLECLICK_PROPERTIES, true);
 	Bool(LISTBOX_EATS_ALL_EVENTS, true);
 	Bool(BORDER_IS_GROUND, true);
+	Bool(CARPET_LIKE_GROUND_BORDERS, false);
+	Bool(CARPET_FILL_BORDERS, false);
+	Bool(DISABLE_CARPET_INTERACTION, false);
 	Bool(BORDERIZE_PASTE, true);
 	Bool(BORDERIZE_DRAG, true);
 	Int(BORDERIZE_DRAG_THRESHOLD, 6000);
@@ -379,6 +383,7 @@ void Settings::IO(IOMode mode) {
 	String(GROUND_REPLACE_MODIFIER, "Alt");
 	String(SMART_BRUSH_MODIFIER, "Ctrl+Alt");
 	String(SMART_BRUSH_MOUSE_BUTTON, "None");
+	String(ERASE_ABOVE_HOTKEY, "C");
 	Bool(MAP_PROPERTIES_REMEMBER_SAVE_LOCATION, false);
 	String(MAP_PROPERTIES_DEFAULT_SAVE_LOCATION, "");
 	UInt(ADVANCED_ITEM_FINDER_TYPE_FILTERS, 0);

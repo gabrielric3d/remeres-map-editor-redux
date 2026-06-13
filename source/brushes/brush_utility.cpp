@@ -17,6 +17,10 @@
 #include <stack>
 #include <unordered_set>
 
+#ifndef M_PI
+	#define M_PI 3.14159265358979323846
+#endif
+
 std::vector<bool> BrushUtility::processed;
 int BrushUtility::countMaxFills = 0;
 int BrushUtility::fill_width = 100;
@@ -163,6 +167,29 @@ bool BrushUtility::FloodFill(Map* map, const Position& center, int start_x, int 
 	}
 
 	return false;
+}
+
+Position BrushUtility::SnapToAngle(const Position& a, const Position& b, int snap_degrees) {
+	const int dx = b.x - a.x;
+	const int dy = b.y - a.y;
+	if (dx == 0 && dy == 0) {
+		return b;
+	}
+
+	// Snap the angle to the nearest multiple of snap_degrees.
+	const double step = std::max(1, snap_degrees) * M_PI / 180.0;
+	const double angle = std::atan2(static_cast<double>(dy), static_cast<double>(dx));
+	const double snapped = std::round(angle / step) * step;
+	const double ux = std::cos(snapped);
+	const double uy = std::sin(snapped);
+
+	// Project the raw vector onto the snapped axis so the end-point follows the
+	// mouse along the locked direction instead of using the full hypotenuse.
+	const double proj = dx * ux + dy * uy;
+	const int new_dx = static_cast<int>(std::lround(ux * proj));
+	const int new_dy = static_cast<int>(std::lround(uy * proj));
+
+	return Position(a.x + new_dx, a.y + new_dy, b.z);
 }
 
 void BrushUtility::GetLineTiles(const Position& a, const Position& b,

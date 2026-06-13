@@ -46,10 +46,20 @@ public:
 		return drag_start_pos;
 	}
 
+	// True while the user holds Shift during a selection drag (axis-locked move).
+	bool IsDragAxisConstrained() const {
+		return drag_axis_constrained;
+	}
+
+	// Zeroes the smaller of the two axes so a move is constrained to a straight
+	// horizontal or vertical line (the axis the mouse travelled more along wins).
+	static void ConstrainMoveToAxis(int& move_x, int& move_y);
+
 	void Reset() {
 		dragging = false;
 		boundbox_selection = false;
 		boundbox_select_creatures = false;
+		drag_axis_constrained = false;
 		ClearLassoSelection();
 	}
 
@@ -75,6 +85,7 @@ private:
 	bool boundbox_selection;
 	bool boundbox_select_creatures;
 	bool lasso_active;
+	bool drag_axis_constrained = false;
 
 	Position drag_start_pos;
 

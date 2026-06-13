@@ -47,6 +47,7 @@ private:
 	wxChoice* m_groundReplaceModifier = nullptr;
 	wxChoice* m_smartBrushModifier = nullptr;
 	wxChoice* m_smartBrushMouseButton = nullptr;
+	wxChoice* m_eraseAboveHotkey = nullptr;
 };
 
 #endif

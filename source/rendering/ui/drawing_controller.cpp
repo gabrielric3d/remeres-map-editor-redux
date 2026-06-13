@@ -310,11 +310,15 @@ void DrawingController::HandleRelease(const Position& mouse_map_pos, bool shift_
 				PositionVector tilestodraw;
 				PositionVector tilestoborder;
 				Position start(canvas->last_click_map_x, canvas->last_click_map_y, mouse_map_pos.z);
+				Position line_end = mouse_map_pos;
+				if (g_gui.IsLineAngleSnap()) {
+					line_end = BrushUtility::SnapToAngle(start, line_end, g_gui.GetLineSnapAngle());
+				}
 				int line_wall_thickness = 0;
 				if (g_gui.IsHollowLine()) {
 					line_wall_thickness = brush->is<WallBrush>() ? 1 : g_gui.GetHollowWallThickness();
 				}
-				BrushUtility::GetLineTiles(start, mouse_map_pos, &tilestodraw, &tilestoborder, line_wall_thickness);
+				BrushUtility::GetLineTiles(start, line_end, &tilestodraw, &tilestoborder, line_wall_thickness);
 				bool ground_replace_release = brush->is<GroundBrush>()
 					&& IsGroundReplaceModifier(shift_down, ctrl_down, alt_down);
 				if (ctrl_down) {

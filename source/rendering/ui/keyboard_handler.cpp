@@ -27,6 +27,10 @@
 #include "editor/editor.h"
 #include "brushes/brush.h"
 #include "ui/dialogs/structure_manager_window.h"
+#include "ui/dialogs/area_decoration_dialog.h"
+#include "app/settings.h"
+
+#include <cctype>
 
 void KeyboardHandler::OnKeyDown(MapCanvas* canvas, wxKeyEvent& event) {
 	// If radial wheel is open, only handle ESC (to close) - block other keys
@@ -43,6 +47,17 @@ void KeyboardHandler::OnKeyDown(MapCanvas* canvas, wxKeyEvent& event) {
 		return;
 	}
 
+	// Area Decoration rule editor: Insert adds the current map selection as a cluster
+	if (FloorRuleEditDialog::HandleGlobalHotkey(event)) {
+		return;
+	}
+
+	// Note: the configurable "erase ground on the floor above" hold-hotkey
+	// (Preferences > Hotkeys) is deliberately NOT handled here. Single-letter menu
+	// accelerators (e.g. C = Creature palette) consume WM_KEYDOWN before the canvas
+	// sees it, so MapCanvas checks the physical key state on demand via wxGetKeyState
+	// (see MapCanvas::IsEraseAboveActive); MainFrame::MSWTranslateMessage suppresses
+	// the colliding accelerator while the canvas has focus.
 	switch (event.GetKeyCode()) {
 		case WXK_NUMPAD_ADD:
 		case WXK_PAGEUP:
@@ -145,6 +160,15 @@ void KeyboardHandler::OnKeyDown(MapCanvas* canvas, wxKeyEvent& event) {
 
 void KeyboardHandler::OnKeyUp(MapCanvas* canvas, wxKeyEvent& event) {
 	canvas->keyCode = WXK_NONE;
+}
+
+int KeyboardHandler::GetEraseAboveKeyCode() {
+	const std::string key = g_settings.getString(Config::ERASE_ABOVE_HOTKEY);
+	if (key.size() != 1) {
+		return 0; // "None" (or anything unexpected) disables the feature.
+	}
+	// Key events report letters as uppercase keycodes; normalize the setting to match.
+	return std::toupper(static_cast<unsigned char>(key[0]));
 }
 
 void KeyboardHandler::HandleFloorChange(MapCanvas* canvas, int keycode) {

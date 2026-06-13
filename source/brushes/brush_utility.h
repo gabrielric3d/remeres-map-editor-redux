@@ -29,6 +29,12 @@ public:
 		std::vector<Position>* tilestoborder,
 		int wall_thickness = 0);
 
+	// Returns the end-point b snapped to the nearest multiple of snap_degrees from a
+	// (e.g. 45 => 8 directions, 90 => 4, 30 => 12). The snapped point is the
+	// projection of (b - a) onto the chosen axis, so the line length tracks the
+	// mouse instead of jumping.
+	static Position SnapToAngle(const Position& a, const Position& b, int snap_degrees = 45);
+
 private:
 	static bool FloodFill(Map* map, const Position& center, int x, int y, int fill_width, int fill_height, GroundBrush* brush, std::vector<Position>* positions);
 

@@ -171,6 +171,7 @@ private:
 	wxString m_previewPath;
 	int m_currentPasteRotationTurns = 0;
 	bool m_suppressAutoPaste = false;
+	bool m_isDestroying = false;
 	bool m_tutorialActive = false;
 	int m_tutorialStep = 0;
 	bool m_tutorialLockMove = false;

@@ -7,7 +7,7 @@
 		d - doodad palette
 		e - show zones
 		f - show creatures
-		g - ghost loose items
+		g - ghost loose items (alt+g - ghost loose grounds)
 		h - house palette
 		i - item palette
 		j - jump to brush
@@ -42,12 +42,14 @@
 			<item name="Import Map..." action="IMPORT_MAP" help="Import map data from another map file."/>
 			<item name="Import Monsters/NPC..." action="IMPORT_MONSTERS" help="Import either a monsters.xml file or a specific monster/NPC."/>
 			<item name="Import Monsters JSON..." action="IMPORT_MONSTERS_JSON" help="Import monsters from a JSON file."/>
+			<item name="Force Import Creatures Spawn..." action="IMPORT_CREATURES_SPAWN" help="Load a spawn XML into the current map even if the filename does not match."/>
 			<!-- this was never implemented
 			<item name="Import Minimap..." action="IMPORT_MINIMAP" help="Import map data from a .bmp file."/>
 			-->
 		</menu>
 		<menu name="Export">
-			<item name="Export Minimap..." action="EXPORT_MINIMAP" help="Export minimap to an image file."/>
+			<item name="Export Minimap..." action="EXPORT_MINIMAP" help="Export minimap as an .otmm client file or image."/>
+			<item name="Merge Maps to Minimap..." action="MERGE_MAPS_MINIMAP" help="Merge several .otbm maps into a single .otmm client minimap."/>
 			<item name="Export Tilesets..." action="EXPORT_TILESETS" help="Export tilesets to an xml file."/>
 		</menu>
 		<menu name="Reload">
@@ -67,6 +69,9 @@
 		<separator/>
 		<menu name="Border Options">
 			<item name="Border Automagic" hotkey="A" action="AUTOMAGIC" help="Turns on all automatic border functions."/>
+			<item name="Carpet-like Ground Borders" action="CARPET_LIKE_GROUND_BORDERS" help="Replaces full diagonal ground borders with smaller cardinal-pair borders, producing cleaner silhouettes like the carpet brush. Only affects newly painted or borderized tiles."/>
+			<item name="Carpet Fill Borders" action="CARPET_FILL_BORDERS" help="Draws border pieces inwards on the painted tiles themselves (like a carpet brush) instead of spilling outer borders onto neighbouring tiles. Only affects newly painted or borderized tiles."/>
+			<item name="Disable Carpet Interaction" action="DISABLE_CARPET_INTERACTION" help="Carpet brushes no longer remove carpets from other brushes, so different carpets can be stacked on the same tile without breaking each other."/>
 			<separator/>
 			<item name="Borderize Selection" hotkey="Ctrl+B" action="BORDERIZE_SELECTION" help="Creates automatic borders in the entire selected area."/>
 			<item name="Borderize Map" action="BORDERIZE_MAP" help="Reborders the entire map."/>
@@ -166,6 +171,7 @@
 		<item name="Show client box" hotkey="Shift+I" action="SHOW_INGAME_BOX" help="Shadows out areas not visible ingame (from the center of the screen)."/>
 		<separator/>
 		<item name="Ghost loose items" hotkey="G" action="GHOST_ITEMS" help="Ghost items (except ground)."/>
+		<item name="Ghost loose grounds" hotkey="Alt+G" action="GHOST_GROUNDS" help="Ghost grounds and borders."/>
 		<item name="Ghost higher floors" hotkey="Ctrl+L" action="GHOST_HIGHER_FLOORS" help="Ghost floors."/>
 		<item name="Show shade" hotkey="Q" action="SHOW_SHADE" help="Shade lower floors."/>
 	</menu>

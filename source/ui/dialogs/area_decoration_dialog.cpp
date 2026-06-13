@@ -203,6 +203,20 @@ bool ItemListDropTarget::OnDropText(wxCoord x, wxCoord y, const wxString& data) 
 // FloorRuleEditDialog
 //=============================================================================
 
+FloorRuleEditDialog* FloorRuleEditDialog::s_active = nullptr;
+
+bool FloorRuleEditDialog::HandleGlobalHotkey(wxKeyEvent& event) {
+	if (!s_active || !s_active->IsShown()) {
+		return false;
+	}
+	if (event.GetKeyCode() == WXK_INSERT && !event.ControlDown() && !event.ShiftDown() && !event.AltDown()) {
+		wxCommandEvent dummy;
+		s_active->OnAddClusterFromSelection(dummy);
+		return true;
+	}
+	return false;
+}
+
 wxBEGIN_EVENT_TABLE(FloorRuleEditDialog, wxDialog)
 	EVT_RADIOBUTTON(ID_FLOOR_TYPE_SINGLE, FloorRuleEditDialog::OnFloorTypeChanged)
 	EVT_RADIOBUTTON(ID_FLOOR_TYPE_RANGE, FloorRuleEditDialog::OnFloorTypeChanged)
@@ -224,6 +238,7 @@ wxBEGIN_EVENT_TABLE(FloorRuleEditDialog, wxDialog)
 	EVT_BUTTON(ID_BROWSE_ITEM, FloorRuleEditDialog::OnBrowseItem)
 	EVT_BUTTON(ID_ADD_DOODAD, FloorRuleEditDialog::OnAddDoodad)
 	EVT_BUTTON(ID_ADD_CLUSTER, FloorRuleEditDialog::OnAddClusterFromSelection)
+	EVT_MENU(ID_ADD_CLUSTER, FloorRuleEditDialog::OnAddClusterFromSelection)
 	EVT_LIST_ITEM_SELECTED(ID_ITEMS_LIST, FloorRuleEditDialog::OnItemsListSelected)
 	EVT_LIST_ITEM_ACTIVATED(ID_ITEMS_LIST, FloorRuleEditDialog::OnItemsListActivated)
 	EVT_LIST_ITEM_ACTIVATED(ID_DOODAD_LIST, FloorRuleEditDialog::OnDoodadDoubleClick)
@@ -287,6 +302,7 @@ FloorRuleEditDialog::FloorRuleEditDialog(wxWindow* parent, AreaDecoration::Floor
 	, m_pageInfoText(nullptr)
 	, m_currentPage(0)
 {
+	s_active = this;
 	CreateControls();
 	LoadDoodadList();
 	LoadRuleData();
@@ -297,6 +313,9 @@ FloorRuleEditDialog::FloorRuleEditDialog(wxWindow* parent, AreaDecoration::Floor
 }
 
 FloorRuleEditDialog::~FloorRuleEditDialog() {
+	if (s_active == this) {
+		s_active = nullptr;
+	}
 	if (m_doodadImageList) {
 		delete m_doodadImageList;
 		m_doodadImageList = nullptr;
@@ -715,9 +734,15 @@ void FloorRuleEditDialog::CreateControls() {
 
 	clusterBox->Add(clusterRow, 0, wxALL, 5);
 	wxBoxSizer* clusterBtnSizer = new wxBoxSizer(wxHORIZONTAL);
-	wxButton* addClusterBtn = new wxButton(this, ID_ADD_CLUSTER, "Add Cluster From Selection");
+	wxButton* addClusterBtn = new wxButton(this, ID_ADD_CLUSTER, "Add Cluster From Selection (Ins)");
+	addClusterBtn->SetToolTip("Add the current map selection as a cluster (shortcut: Insert)");
 	m_replaceClusterBtn = new wxButton(this, ID_REPLACE_CLUSTER, "Replace Selected Cluster");
 	m_replaceClusterBtn->Enable(false);
+
+	// Insert key triggers Add Cluster From Selection from anywhere in the dialog
+	wxAcceleratorEntry accelEntries[1];
+	accelEntries[0].Set(wxACCEL_NORMAL, WXK_INSERT, ID_ADD_CLUSTER);
+	SetAcceleratorTable(wxAcceleratorTable(1, accelEntries));
 	clusterBtnSizer->Add(addClusterBtn, 0, wxRIGHT, 5);
 	clusterBtnSizer->Add(m_replaceClusterBtn, 0);
 	clusterBox->Add(clusterBtnSizer, 0, wxALL, 5);
@@ -1648,27 +1673,18 @@ void FloorRuleEditDialog::OnAddClusterFromSelection(wxCommandEvent& event) {
 		return;
 	}
 
-	// Use a temporary FloorRule to open the preview and let user define center point
-	AreaDecoration::FloorRule tempRule;
-	tempRule.clusterTiles = std::move(clusterTiles);
-
-	ClusterPreviewWindow* preview = new ClusterPreviewWindow(this, tempRule, nullptr, "Item Cluster Preview");
-	preview->ShowModal();
-	preview->Destroy();
-
-	// Copy back the (possibly modified) cluster tiles and center point
-	clusterTiles = std::move(tempRule.clusterTiles);
-
 	int weight = m_newItemWeightSpin ? m_newItemWeightSpin->GetValue() : 100;
 	int count = m_clusterCountSpin ? m_clusterCountSpin->GetValue() : 3;
 	int radius = m_clusterRadiusSpin ? m_clusterRadiusSpin->GetValue() : 3;
 	int minDist = m_clusterMinDistanceSpin ? m_clusterMinDistanceSpin->GetValue() : 2;
 
+	// The cluster is added directly; use the Preview button to inspect it
+	// and define a center point if needed.
+	const size_t tileCount = clusterTiles.size();
 	AreaDecoration::ItemEntry newEntry = AreaDecoration::ItemEntry::MakeCluster(clusterTiles, weight, count, radius, minDist);
-	newEntry.hasCenterPoint = tempRule.hasCenterPoint;
-	newEntry.centerOffset = tempRule.centerOffset;
 	m_rule.items.push_back(std::move(newEntry));
 	UpdateItemsList();
+	g_gui.SetStatusText(wxString::Format("Cluster with %zu tile(s) added.", tileCount));
 }
 
 //=============================================================================
@@ -1900,6 +1916,12 @@ bool FloorRuleEditDialog::EditItemDialog(size_t index) {
 		wxSP_ARROW_KEYS, 1, 1000, entry.weight);
 	grid->Add(weightSpin, 0, wxALIGN_CENTER_VERTICAL);
 
+	grid->Add(new wxStaticText(&dialog, wxID_ANY, "Rotation:"), 0, wxALIGN_CENTER_VERTICAL);
+	wxCheckBox* rotationCheck = new wxCheckBox(&dialog, wxID_ANY, "Random");
+	rotationCheck->SetValue(entry.randomRotation);
+	rotationCheck->SetToolTip("Generated items have a chance to spawn rotated (uses the item rotation system)");
+	grid->Add(rotationCheck, 0, wxALIGN_CENTER_VERTICAL);
+
 	wxSpinCtrl* countSpin = nullptr;
 	wxSpinCtrl* radiusSpin = nullptr;
 	wxSpinCtrl* minDistSpin = nullptr;
@@ -1974,6 +1996,7 @@ bool FloorRuleEditDialog::EditItemDialog(size_t index) {
 	}
 
 	entry.weight = weightSpin->GetValue();
+	entry.randomRotation = rotationCheck->GetValue();
 
 	if (entry.isClusterEntry()) {
 		entry.clusterCount = countSpin ? countSpin->GetValue() : entry.clusterCount;

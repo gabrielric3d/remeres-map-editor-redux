@@ -20,6 +20,8 @@
 #include "lua/lua_script_manager.h"
 #include "lua/lua_scripts_window.h"
 #include "rendering/ui/minimap_window.h"
+#include "rendering/ui/map_display.h"
+#include "rendering/ui/keyboard_handler.h"
 #include "ui/about_window.h"
 #include "ui/main_menubar.h"
 #include "app/updater.h"
@@ -169,6 +171,19 @@ void MainFrame::OnUpdateMenus(wxCommandEvent&) {
 
 #ifdef __WINDOWS__
 bool MainFrame::MSWTranslateMessage(WXMSG* msg) {
+	// Don't let single-letter menu accelerators swallow the configurable "erase ground
+	// above" hold-hotkey while the map canvas has focus (e.g. the default C is also the
+	// Creature palette hotkey): holding the key to erase would otherwise fire that menu
+	// action on every key auto-repeat. Skipping the frame accelerator table here lets
+	// the key reach the canvas / wxGetKeyState path untouched.
+	const int erase_above_key = KeyboardHandler::GetEraseAboveKeyCode();
+	if (erase_above_key != 0 && msg->message == WM_KEYDOWN
+		&& static_cast<int>(msg->wParam) == erase_above_key
+		&& !wxGetKeyState(WXK_CONTROL) && !wxGetKeyState(WXK_ALT) && !wxGetKeyState(WXK_SHIFT)
+		&& dynamic_cast<MapCanvas*>(wxWindow::FindFocus()) != nullptr) {
+		return wxWindow::MSWTranslateMessage(msg);
+	}
+
 	if (g_hotkeys.AreHotkeysEnabled()) {
 		if (wxFrame::MSWTranslateMessage(msg)) {
 			return true;

@@ -77,6 +77,22 @@ public:
 	bool hasOptionalBorder() const {
 		return optional_border != nullptr;
 	}
+	// Declared with carpet_fill="true" in grounds.xml: this brush paints in
+	// Carpet Fill mode (edge pieces inwards, center only when surrounded).
+	// Brushes without it always use the traditional auto-border pipeline.
+	bool isCarpetFill() const {
+		return carpet_fill;
+	}
+
+	// Random center ground id using the <item chance> weights.
+	uint16_t getRandomGroundItemId() const;
+
+	// Carpet Fill support: reverse index from edge-piece item ids to the ground
+	// brush whose outer border owns them. Margin tiles keep their old ground,
+	// so the edge piece is the only marker of which brush is being painted.
+	static GroundBrush* getCarpetPieceOwner(uint16_t itemId);
+	static void registerCarpetPieceOwner(uint16_t itemId, GroundBrush* brush);
+	static void clearCarpetPieceOwners();
 
 	// Accessors for dungeon generator / preset editor
 	uint16_t getFirstGroundItemId() const {
@@ -111,6 +127,7 @@ protected: // Members
 	AutoBorder* optional_border;
 	bool use_only_optional; // If this is true, there will be no normal border under the gravel
 	bool randomize;
+	bool carpet_fill;
 
 	struct SpecificCaseBlock {
 		SpecificCaseBlock() :

@@ -18,14 +18,38 @@
 #include "app/main.h"
 
 #include <algorithm>
+#include <unordered_map>
 #include "brushes/ground/ground_brush.h"
 #include "brushes/ground/auto_border.h"
 #include "brushes/ground/ground_brush_loader.h"
 #include "brushes/ground/ground_border_calculator.h"
 #include "brushes/ground/terrain_placement.h"
 #include "map/basemap.h"
+#include "map/tile_operations.h"
+#include "game/item.h"
+#include "app/settings.h"
 
 uint32_t GroundBrush::border_types[256];
+
+namespace {
+	// Carpet Fill: edge-piece item id -> owning ground brush. Populated by the
+	// loader from each brush's outer borders; first registration wins when a
+	// border set is shared between brushes. Cleared with Brushes::clear().
+	std::unordered_map<uint16_t, GroundBrush*> carpet_piece_owners;
+}
+
+GroundBrush* GroundBrush::getCarpetPieceOwner(uint16_t itemId) {
+	auto it = carpet_piece_owners.find(itemId);
+	return it != carpet_piece_owners.end() ? it->second : nullptr;
+}
+
+void GroundBrush::registerCarpetPieceOwner(uint16_t itemId, GroundBrush* brush) {
+	carpet_piece_owners.emplace(itemId, brush);
+}
+
+void GroundBrush::clearCarpetPieceOwners() {
+	carpet_piece_owners.clear();
+}
 
 GroundBrush::GroundBrush() :
 	z_order(0),
@@ -36,6 +60,7 @@ GroundBrush::GroundBrush() :
 	optional_border(nullptr),
 	use_only_optional(false),
 	randomize(true),
+	carpet_fill(false),
 	total_chance(0) {
 	////
 }
@@ -49,6 +74,12 @@ bool GroundBrush::load(pugi::xml_node node, std::vector<std::string>& warnings) 
 
 void GroundBrush::undraw(BaseMap* map, Tile* tile) {
 	ASSERT(tile);
+	if (carpet_fill && g_settings.getBoolean(Config::CARPET_FILL_BORDERS)) {
+		// Carpet Fill margin tiles carry edge pieces instead of this ground.
+		std::erase_if(tile->items, [this](const std::unique_ptr<Item>& item) {
+			return item->isBorder() && getCarpetPieceOwner(item->getID()) == this;
+		});
+	}
 	if (tile->hasGround() && tile->ground->getGroundBrush() == this) {
 		tile->ground = nullptr;
 	}
@@ -71,19 +102,47 @@ void GroundBrush::draw(BaseMap* map, Tile* tile, void* parameter) {
 			return;
 		}
 	}
-	int chance = random(1, total_chance);
-	uint16_t id = 0;
-	for (const auto& item_block : border_items) {
-		if (chance < item_block.chance) {
-			id = item_block.id;
-			break;
+
+	if (carpet_fill && g_settings.getBoolean(Config::CARPET_FILL_BORDERS)) {
+		const AutoBorder* border = getFirstOuterAutoBorder();
+		if (border) {
+			// Carpet Fill: keep the old ground visible underneath. Drop one
+			// provisional edge piece as the membership marker; borderize picks
+			// the real piece(s) right after, and fills the center ground only
+			// once the tile is fully surrounded by this brush.
+			if (tile->getGroundBrush() == this) {
+				return; // Already the filled center of this brush
+			}
+			for (const auto& item : tile->items) {
+				if (item->isBorder() && border->containsItem(item->getID())) {
+					return; // Already a margin piece of this brush
+				}
+			}
+			for (int direction = 1; direction <= 12; ++direction) {
+				uint32_t pieceId = border->getTileId(direction);
+				if (pieceId != 0) {
+					TileOperations::addBorderItem(tile, Item::Create(static_cast<uint16_t>(pieceId)));
+					return;
+				}
+			}
+			// Border set has no usable pieces: fall back to normal placement.
 		}
 	}
-	if (id == 0) {
-		id = border_items.front().id;
-	}
 
-	TerrainPlacement::placeBrushItem(*tile, id);
+	TerrainPlacement::placeBrushItem(*tile, getRandomGroundItemId());
+}
+
+uint16_t GroundBrush::getRandomGroundItemId() const {
+	if (border_items.empty()) {
+		return 0;
+	}
+	int chance = random(1, total_chance);
+	for (const auto& item_block : border_items) {
+		if (chance < item_block.chance) {
+			return item_block.id;
+		}
+	}
+	return border_items.front().id;
 }
 
 bool GroundBrush::isExcludedBrush(const BorderBlock* bb, uint32_t brushId) {

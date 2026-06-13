@@ -12,6 +12,7 @@
 class Tile;
 class BaseMap;
 class WallBrush;
+class CarpetBrush;
 class House;
 
 namespace TileOperations {
@@ -29,7 +30,7 @@ namespace TileOperations {
 	void tableize(Tile* tile, BaseMap* map);
 	void cleanTables(Tile* tile);
 
-	void carpetize(Tile* tile, BaseMap* map);
+	void carpetize(Tile* tile, BaseMap* map, CarpetBrush* onlyBrush = nullptr);
 
 	// Moved from Tile class
 	std::unique_ptr<Tile> deepCopy(const Tile* tile, BaseMap& map);

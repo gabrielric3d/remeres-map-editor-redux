@@ -31,6 +31,7 @@
 #include "app/settings.h"
 #include <algorithm>
 #include <random>
+#include <unordered_set>
 
 namespace {
 
@@ -247,11 +248,11 @@ namespace {
 					std::unique_ptr<Tile> new_tile = TileOperations::deepCopy(tile, editor.map);
 					TileOperations::cleanWalls(new_tile.get(), brush);
 					brush->draw(draw_map, new_tile.get(), nullptr);
-					draw_map->setTile(drawPos, std::move(new_tile));
+					(void)draw_map->setTile(drawPos, std::move(new_tile));
 				} else {
 					std::unique_ptr<Tile> new_tile(editor.map.allocator(location));
 					brush->draw(draw_map, new_tile.get(), nullptr);
-					draw_map->setTile(drawPos, std::move(new_tile));
+					(void)draw_map->setTile(drawPos, std::move(new_tile));
 				}
 			}
 			// Iterate over the map instead of tilestodraw to avoid duplicates!
@@ -731,6 +732,12 @@ void DrawOperations::draw(Editor& editor, const PositionVector& tilestodraw, Pos
 
 		// Do borders!
 		action = editor.actionQueue->createAction(batch.get());
+		// When carpet interaction is disabled, restrict the border recalculation
+		// to the brush being drawn so other carpets on the tile keep their shape.
+		CarpetBrush* carpetOnlyBrush = nullptr;
+		if (brush->is<CarpetBrush>() && g_settings.getBoolean(Config::DISABLE_CARPET_INTERACTION)) {
+			carpetOnlyBrush = brush->as<CarpetBrush>();
+		}
 		for (const auto& borderPos : tilestoborder) {
 			Tile* tile = editor.map.getTile(borderPos);
 			if (brush->is<TableBrush>()) {
@@ -742,7 +749,7 @@ void DrawOperations::draw(Editor& editor, const PositionVector& tilestodraw, Pos
 			} else if (brush->is<CarpetBrush>()) {
 				if (tile && tile->hasCarpet()) {
 					std::unique_ptr<Tile> new_tile = TileOperations::deepCopy(tile, editor.map);
-					TileOperations::carpetize(new_tile.get(), &editor.map);
+					TileOperations::carpetize(new_tile.get(), &editor.map, carpetOnlyBrush);
 					action->addChange(std::make_unique<Change>(std::move(new_tile)));
 				}
 			}
@@ -820,4 +827,62 @@ void DrawOperations::draw(Editor& editor, const PositionVector& tilestodraw, Pos
 		}
 		editor.addAction(std::move(action), 2);
 	}
+}
+
+void DrawOperations::eraseGroundWithBorders(Editor& editor, const PositionVector& positions) {
+	// ACTION_DRAW (not ACTION_DELETE_TILES) so these batches merge with the brush-stroke
+	// batches they interleave with while drawing on the floor below: the action queue only
+	// merges consecutive batches of the same type, and one stroke should be one undo step.
+	std::unique_ptr<BatchAction> batch = editor.actionQueue->createBatch(ACTION_DRAW);
+	std::unique_ptr<Action> action = editor.actionQueue->createAction(batch.get());
+
+	// 1) Remove the ground (and its auto-borders) from every footprint tile that has one.
+	PositionVector erased;
+	for (const auto& pos : positions) {
+		Tile* tile = editor.map.getTile(pos);
+		if (!tile || !tile->hasGround()) {
+			continue;
+		}
+		std::unique_ptr<Tile> new_tile = TileOperations::deepCopy(tile, editor.map);
+		if (g_settings.getBoolean(Config::PRESERVE_MANUAL_BORDERS)) {
+			TileOperations::cleanAutoBorders(new_tile.get());
+		} else {
+			TileOperations::cleanBorders(new_tile.get());
+		}
+		new_tile->ground = nullptr;
+		action->addChange(std::make_unique<Change>(std::move(new_tile)));
+		erased.push_back(pos);
+	}
+	if (erased.empty()) {
+		return; // Nothing to remove on the floor above; drop the uncommitted batch.
+	}
+	batch->addAndCommitAction(std::move(action));
+
+	// 2) Re-borderize the erased tiles and their 8 neighbors (deduped across overlapping
+	//    neighborhoods) so the surrounding grounds reform their borders against the
+	//    now-open hole. Forced on regardless of the global USE_AUTOMAGIC setting,
+	//    matching the "as if auto-border is enabled" intent.
+	action = editor.actionQueue->createAction(batch.get());
+	std::unordered_set<int64_t> border_seen;
+	const auto borderKey = [](int x, int y) -> int64_t {
+		return (static_cast<int64_t>(static_cast<uint32_t>(y)) << 32) | static_cast<uint32_t>(x);
+	};
+	for (const auto& pos : erased) {
+		for (int dy = -1; dy <= 1; ++dy) {
+			for (int dx = -1; dx <= 1; ++dx) {
+				if (!border_seen.insert(borderKey(pos.x + dx, pos.y + dy)).second) {
+					continue;
+				}
+				Tile* border_tile = editor.map.getTile(pos.x + dx, pos.y + dy, pos.z);
+				if (border_tile) {
+					std::unique_ptr<Tile> border_copy = TileOperations::deepCopy(border_tile, editor.map);
+					TileOperations::borderize(border_copy.get(), &editor.map);
+					action->addChange(std::make_unique<Change>(std::move(border_copy)));
+				}
+			}
+		}
+	}
+	batch->addAndCommitAction(std::move(action));
+
+	editor.addBatch(std::move(batch), 2);
 }

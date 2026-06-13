@@ -1107,6 +1107,25 @@ bool DecorationEngine::validateTilePlacement(const Position& pos, uint16_t itemI
 	return true;
 }
 
+// Roll a random orientation (0-3 turns) and follow the item's rotateTo chain.
+// Items that are not rotatable keep their original id.
+static uint16_t randomRotatedItemId(uint16_t itemId, std::mt19937& rng) {
+	int turns = std::uniform_int_distribution<int>(0, 3)(rng);
+	uint16_t id = itemId;
+	for (int i = 0; i < turns; ++i) {
+		const auto def = g_item_definitions.get(id);
+		if (!def || !def.hasFlag(ItemFlag::Rotatable)) {
+			break;
+		}
+		uint16_t next = static_cast<uint16_t>(def.attribute(ItemAttributeKey::RotateTo));
+		if (next == 0) {
+			break;
+		}
+		id = next;
+	}
+	return id;
+}
+
 bool DecorationEngine::buildPlacementItems(const Position& basePos, const ItemEntry& entry,
                                            const FloorRule* rule, std::vector<PreviewItem>& outItems) {
 	outItems.clear();
@@ -1128,7 +1147,7 @@ bool DecorationEngine::buildPlacementItems(const Position& basePos, const ItemEn
 
 		PreviewItem previewItem;
 		previewItem.position = basePos;
-		previewItem.itemId = entry.itemId;
+		previewItem.itemId = entry.randomRotation ? randomRotatedItemId(entry.itemId, m_rng) : entry.itemId;
 		previewItem.sourceRule = rule;
 		outItems.push_back(previewItem);
 
@@ -1184,7 +1203,7 @@ bool DecorationEngine::buildPlacementItems(const Position& basePos, const ItemEn
 				if (id == 0) continue;
 				PreviewItem previewItem;
 				previewItem.position = pos;
-				previewItem.itemId = id;
+				previewItem.itemId = entry.randomRotation ? randomRotatedItemId(id, m_rng) : id;
 				previewItem.sourceRule = rule;
 				outItems.push_back(previewItem);
 				addedAny = true;
@@ -2188,6 +2207,9 @@ bool DecorationPreset::saveToFile(const std::string& filepath) const {
 			if (item.isCompositeEntry()) {
 				pugi::xml_node compNode = itemsNode.append_child(item.isClusterEntry() ? "cluster" : "composite");
 				compNode.append_attribute("weight") = item.weight;
+				if (item.randomRotation) {
+					compNode.append_attribute("random_rotation") = true;
+				}
 				if (item.isClusterEntry()) {
 					compNode.append_attribute("count") = item.clusterCount;
 					compNode.append_attribute("radius") = item.clusterRadius;
@@ -2209,6 +2231,9 @@ bool DecorationPreset::saveToFile(const std::string& filepath) const {
 				pugi::xml_node itemNode = itemsNode.append_child("item");
 				itemNode.append_attribute("id") = item.itemId;
 				itemNode.append_attribute("weight") = item.weight;
+				if (item.randomRotation) {
+					itemNode.append_attribute("random_rotation") = true;
+				}
 			}
 		}
 	}
@@ -2359,6 +2384,7 @@ bool DecorationPreset::loadFromFile(const std::string& filepath) {
 				ItemEntry entry;
 				entry.itemId = itemNode.attribute("id").as_uint(0);
 				entry.weight = itemNode.attribute("weight").as_int(100);
+				entry.randomRotation = itemNode.attribute("random_rotation").as_bool(false);
 				if (entry.itemId > 0) {
 					rule.items.push_back(entry);
 				}
@@ -2386,14 +2412,17 @@ bool DecorationPreset::loadFromFile(const std::string& filepath) {
 				}
 
 				if (!tiles.empty()) {
+					ItemEntry compEntry;
 					if (nodeName == "cluster") {
 						int count = itemNode.attribute("count").as_int(3);
 						int radius = itemNode.attribute("radius").as_int(3);
 						int minDistance = itemNode.attribute("min_distance").as_int(2);
-						rule.items.push_back(ItemEntry::MakeCluster(tiles, weight, count, radius, minDistance));
+						compEntry = ItemEntry::MakeCluster(tiles, weight, count, radius, minDistance);
 					} else {
-						rule.items.push_back(ItemEntry::MakeComposite(tiles, weight));
+						compEntry = ItemEntry::MakeComposite(tiles, weight);
 					}
+					compEntry.randomRotation = itemNode.attribute("random_rotation").as_bool(false);
+					rule.items.push_back(std::move(compEntry));
 				}
 			}
 		}
@@ -2510,6 +2539,9 @@ std::string DecorationPreset::toXmlString() const {
 			if (item.isCompositeEntry()) {
 				pugi::xml_node compNode = itemsNode.append_child(item.isClusterEntry() ? "cluster" : "composite");
 				compNode.append_attribute("weight") = item.weight;
+				if (item.randomRotation) {
+					compNode.append_attribute("random_rotation") = true;
+				}
 				if (item.isClusterEntry()) {
 					compNode.append_attribute("count") = item.clusterCount;
 					compNode.append_attribute("radius") = item.clusterRadius;
@@ -2531,6 +2563,9 @@ std::string DecorationPreset::toXmlString() const {
 				pugi::xml_node itemNode = itemsNode.append_child("item");
 				itemNode.append_attribute("id") = item.itemId;
 				itemNode.append_attribute("weight") = item.weight;
+				if (item.randomRotation) {
+					itemNode.append_attribute("random_rotation") = true;
+				}
 			}
 		}
 	}
@@ -2677,6 +2712,7 @@ bool DecorationPreset::fromXmlString(const std::string& xml) {
 				ItemEntry entry;
 				entry.itemId = itemNode.attribute("id").as_uint(0);
 				entry.weight = itemNode.attribute("weight").as_int(100);
+				entry.randomRotation = itemNode.attribute("random_rotation").as_bool(false);
 				if (entry.itemId > 0) {
 					rule.items.push_back(entry);
 				}
@@ -2704,14 +2740,17 @@ bool DecorationPreset::fromXmlString(const std::string& xml) {
 				}
 
 				if (!tiles.empty()) {
+					ItemEntry compEntry;
 					if (nodeName == "cluster") {
 						int count = itemNode.attribute("count").as_int(3);
 						int radius = itemNode.attribute("radius").as_int(3);
 						int minDistance = itemNode.attribute("min_distance").as_int(2);
-						rule.items.push_back(ItemEntry::MakeCluster(tiles, weight, count, radius, minDistance));
+						compEntry = ItemEntry::MakeCluster(tiles, weight, count, radius, minDistance);
 					} else {
-						rule.items.push_back(ItemEntry::MakeComposite(tiles, weight));
+						compEntry = ItemEntry::MakeComposite(tiles, weight);
 					}
+					compEntry.randomRotation = itemNode.attribute("random_rotation").as_bool(false);
+					rule.items.push_back(std::move(compEntry));
 				}
 			}
 		}

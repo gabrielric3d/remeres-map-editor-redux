@@ -45,6 +45,12 @@ bool GroundBrushLoader::load(GroundBrush& brush, pugi::xml_node node, std::vecto
 		brush.randomize = attribute.as_bool();
 	}
 
+	// Carpet Fill mode is opt-in per brush: only declared brushes paint edge
+	// pieces inwards; everything else keeps the traditional auto-border.
+	if ((attribute = node.attribute("carpet_fill"))) {
+		brush.carpet_fill = attribute.as_bool();
+	}
+
 	for (pugi::xml_node childNode : node.children()) {
 		std::string_view childName = childNode.name();
 		if (std::ranges::equal(childName, std::string_view("item"), iequal)) {
@@ -302,6 +308,21 @@ bool GroundBrushLoader::load(GroundBrush& brush, pugi::xml_node node, std::vecto
 					borderBlock->owned_autoborder = std::move(cb.owned);
 				}
 				borderBlock->autoborder = cb.ptr;
+
+				// Carpet Fill needs to resolve which brush an edge piece belongs
+				// to (margin tiles keep their old ground), so index the pieces.
+				// Only carpet_fill brushes are indexed: the same border items
+				// used as TRADITIONAL outer borders by other brushes must not
+				// drag those tiles into the carpet pipeline.
+				if (isOuter && borderBlock->autoborder && brush.carpet_fill) {
+					for (const auto& direction_items : borderBlock->autoborder->tiles) {
+						for (const auto& bic : direction_items) {
+							if (bic.id != 0) {
+								GroundBrush::registerCarpetPieceOwner(bic.id, &brush);
+							}
+						}
+					}
+				}
 
 				createdBlocks.push_back(borderBlock.get());
 				brush.borders.push_back(std::move(borderBlock));

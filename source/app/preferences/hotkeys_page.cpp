@@ -162,6 +162,42 @@ HotkeysPage::HotkeysPage(wxWindow* parent) :
 	smartMouseRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "(Click this mouse button on a tile to auto-select its brush)"), 0, wxALIGN_CENTER_VERTICAL);
 	modifierBox->Add(smartMouseRow, 0, wxEXPAND | wxALL, FromDIP(4));
 
+	auto* eraseAboveRow = new wxBoxSizer(wxHORIZONTAL);
+	eraseAboveRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "Erase Ground Above Key:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+
+	wxArrayString eraseAboveChoices;
+	eraseAboveChoices.Add("None");
+	eraseAboveChoices.Add("C");
+	eraseAboveChoices.Add("V");
+	eraseAboveChoices.Add("B");
+	eraseAboveChoices.Add("F");
+	eraseAboveChoices.Add("G");
+	eraseAboveChoices.Add("H");
+	eraseAboveChoices.Add("N");
+	m_eraseAboveHotkey = new wxChoice(modBoxWin, wxID_ANY, wxDefaultPosition, wxDefaultSize, eraseAboveChoices);
+
+	std::string currentEraseAbove = g_settings.getString(Config::ERASE_ABOVE_HOTKEY);
+	int eraseAboveSel = wxNOT_FOUND;
+	for (unsigned int i = 0; i < eraseAboveChoices.GetCount(); ++i) {
+		if (eraseAboveChoices[i].CmpNoCase(wxString(currentEraseAbove)) == 0) {
+			eraseAboveSel = static_cast<int>(i);
+			break;
+		}
+	}
+	if (eraseAboveSel == wxNOT_FOUND) {
+		if (currentEraseAbove.size() == 1) {
+			// A hand-edited single-key value still works at runtime — keep it selectable
+			// instead of silently coercing it to "None" on the next Apply.
+			eraseAboveSel = static_cast<int>(m_eraseAboveHotkey->Append(wxString(currentEraseAbove).Upper()));
+		} else {
+			eraseAboveSel = 0; // "None"
+		}
+	}
+	m_eraseAboveHotkey->SetSelection(eraseAboveSel);
+	eraseAboveRow->Add(m_eraseAboveHotkey, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+	eraseAboveRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "(Hold + Left Click to erase the ground on the floor above the cursor)"), 0, wxALIGN_CENTER_VERTICAL);
+	modifierBox->Add(eraseAboveRow, 0, wxEXPAND | wxALL, FromDIP(4));
+
 	sizer->Add(modifierBox, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(8));
 
 	SetSizer(sizer);
@@ -213,6 +249,12 @@ void HotkeysPage::Apply() {
 		int sel = m_smartBrushMouseButton->GetSelection();
 		wxString choice = (sel != wxNOT_FOUND) ? m_smartBrushMouseButton->GetString(sel) : wxString("None");
 		g_settings.setString(Config::SMART_BRUSH_MOUSE_BUTTON, std::string(choice.mb_str()));
+	}
+
+	if (m_eraseAboveHotkey) {
+		int sel = m_eraseAboveHotkey->GetSelection();
+		wxString choice = (sel != wxNOT_FOUND) ? m_eraseAboveHotkey->GetString(sel) : wxString("C");
+		g_settings.setString(Config::ERASE_ABOVE_HOTKEY, std::string(choice.mb_str()));
 	}
 }
 

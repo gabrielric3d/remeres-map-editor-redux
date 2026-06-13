@@ -57,6 +57,8 @@ struct ItemEntry {
 	int clusterMinDistance = 2;
 	bool hasCenterPoint = false;
 	Position centerOffset;
+	// Generated items have a chance to spawn rotated (follows rotateTo chain)
+	bool randomRotation = false;
 
 	ItemEntry() = default;
 	ItemEntry(uint16_t id, int w = 100) : itemId(id), weight(w), isComposite(false) {}

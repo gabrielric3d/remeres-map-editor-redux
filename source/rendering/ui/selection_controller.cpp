@@ -58,6 +58,16 @@ SelectionController::SelectionController(MapCanvas* canvas, Editor& editor) :
 SelectionController::~SelectionController() {
 }
 
+void SelectionController::ConstrainMoveToAxis(int& move_x, int& move_y) {
+	const int abs_x = move_x < 0 ? -move_x : move_x;
+	const int abs_y = move_y < 0 ? -move_y : move_y;
+	if (abs_x >= abs_y) {
+		move_y = 0;
+	} else {
+		move_x = 0;
+	}
+}
+
 bool SelectionController::IsLassoEnabled() const {
 	return g_settings.getBoolean(Config::SELECTION_LASSO);
 }
@@ -229,6 +239,11 @@ void SelectionController::HandleDrag(const Position& mouse_map_pos, bool shift_d
 			int move_x = drag_start_pos.x - mouse_map_pos.x;
 			int move_y = drag_start_pos.y - mouse_map_pos.y;
 			int move_z = drag_start_pos.z - mouse_map_pos.z;
+			// Hold Shift to lock the move to a straight horizontal/vertical line.
+			drag_axis_constrained = shift_down;
+			if (shift_down) {
+				ConstrainMoveToAxis(move_x, move_y);
+			}
 			ss << "Dragging " << -move_x << "," << -move_y << "," << -move_z;
 			g_gui.SetStatusText(ss);
 
@@ -260,6 +275,11 @@ void SelectionController::HandleRelease(const Position& mouse_map_pos, bool shif
 	int move_x = canvas->last_click_map_x - mouse_map_pos.x;
 	int move_y = canvas->last_click_map_y - mouse_map_pos.y;
 	int move_z = canvas->last_click_map_z - mouse_map_pos.z;
+
+	// Hold Shift to lock the move to a straight horizontal/vertical line.
+	if (dragging && shift_down) {
+		ConstrainMoveToAxis(move_x, move_y);
+	}
 
 	if (g_gui.IsSelectionMode()) {
 		if (dragging && (move_x != 0 || move_y != 0 || move_z != 0)) {

@@ -143,6 +143,7 @@ void TipsWindow::BuildShortcutList() {
 	all_shortcuts.push_back({"View", "Shift+G", "Show grid"});
 	all_shortcuts.push_back({"View", "Shift+I", "Show client box"});
 	all_shortcuts.push_back({"View", "G", "Ghost loose items"});
+	all_shortcuts.push_back({"View", "Alt+G", "Ghost loose grounds"});
 	all_shortcuts.push_back({"View", "Ctrl+L", "Ghost higher floors"});
 	all_shortcuts.push_back({"View", "Q", "Show shade"});
 

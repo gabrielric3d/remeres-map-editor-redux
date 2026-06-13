@@ -120,8 +120,8 @@ namespace TileOperations {
 		TileOperations::update(tile);
 	}
 
-	void carpetize(Tile* tile, BaseMap* map) {
-		CarpetBrush::doCarpets(map, tile);
+	void carpetize(Tile* tile, BaseMap* map, CarpetBrush* onlyBrush) {
+		CarpetBrush::doCarpets(map, tile, onlyBrush);
 	}
 
 	// Implementation of moved methods

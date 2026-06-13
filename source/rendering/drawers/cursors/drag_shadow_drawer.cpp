@@ -50,6 +50,11 @@ void DragShadowDrawer::draw(SpriteBatch& sprite_batch, MapDrawer* drawer, ItemDr
 			move_y = drag_start.y - view.mouse_map_y;
 			move_z = drag_start.z - view.floor;
 
+			// Mirror the Shift axis-lock so the preview matches the committed move.
+			if (drawer->canvas->selection_controller->IsDragAxisConstrained()) {
+				SelectionController::ConstrainMoveToAxis(move_x, move_y);
+			}
+
 			pos.x -= move_x;
 			pos.y -= move_y;
 			pos.z -= move_z;

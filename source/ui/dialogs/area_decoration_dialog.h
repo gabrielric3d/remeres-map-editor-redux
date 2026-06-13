@@ -61,6 +61,10 @@ public:
 	// Add items from doodad brush
 	void AddItemsFromDoodad(DoodadBrush* doodad);
 
+	// Map-canvas global hotkey: Insert = Add Cluster From Selection.
+	// Returns true if the key was consumed.
+	static bool HandleGlobalHotkey(wxKeyEvent& event);
+
 private:
 	AreaDecoration::FloorRule& m_rule;
 	std::function<void(bool)> m_onCloseCallback;
@@ -192,6 +196,8 @@ private:
 	void OnOK(wxCommandEvent& event);
 	void OnCancel(wxCommandEvent& event);
 	void OnClose(wxCloseEvent& event);
+
+	static FloorRuleEditDialog* s_active;
 
 	wxDECLARE_EVENT_TABLE();
 };

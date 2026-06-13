@@ -48,6 +48,9 @@ void ViewSettingsHandler::LoadValues() {
 	}
 
 	menuBar->CheckItem(AUTOMAGIC, g_settings.getBoolean(Config::USE_AUTOMAGIC));
+	menuBar->CheckItem(CARPET_LIKE_GROUND_BORDERS, g_settings.getBoolean(Config::CARPET_LIKE_GROUND_BORDERS));
+	menuBar->CheckItem(CARPET_FILL_BORDERS, g_settings.getBoolean(Config::CARPET_FILL_BORDERS));
+	menuBar->CheckItem(DISABLE_CARPET_INTERACTION, g_settings.getBoolean(Config::DISABLE_CARPET_INTERACTION));
 
 	menuBar->CheckItem(SHOW_SHADE, g_settings.getBoolean(Config::SHOW_SHADE));
 	menuBar->CheckItem(SHOW_INGAME_BOX, g_settings.getBoolean(Config::SHOW_INGAME_BOX));
@@ -59,6 +62,7 @@ void ViewSettingsHandler::LoadValues() {
 	menuBar->CheckItem(SHOW_WAYPOINTS, g_settings.getBoolean(Config::SHOW_WAYPOINTS));
 	menuBar->CheckItem(SHOW_ALL_FLOORS, g_settings.getBoolean(Config::SHOW_ALL_FLOORS));
 	menuBar->CheckItem(GHOST_ITEMS, g_settings.getBoolean(Config::TRANSPARENT_ITEMS));
+	menuBar->CheckItem(GHOST_GROUNDS, g_settings.getBoolean(Config::TRANSPARENT_GROUNDS));
 	menuBar->CheckItem(GHOST_HIGHER_FLOORS, g_settings.getBoolean(Config::TRANSPARENT_FLOORS));
 	menuBar->CheckItem(SHOW_EXTRA, !g_settings.getBoolean(Config::SHOW_EXTRA));
 	menuBar->CheckItem(SHOW_GRID, g_settings.getBoolean(Config::SHOW_GRID));
@@ -99,6 +103,7 @@ void ViewSettingsHandler::OnChangeViewSettings(wxCommandEvent& event) {
 
 	bool old_grid = g_settings.getBoolean(Config::SHOW_GRID);
 	bool old_ghost = g_settings.getBoolean(Config::TRANSPARENT_ITEMS);
+	bool old_ghost_grounds = g_settings.getBoolean(Config::TRANSPARENT_GROUNDS);
 
 	g_settings.setInteger(Config::SHOW_ALL_FLOORS, menuBar->IsItemChecked(SHOW_ALL_FLOORS));
 	if (menuBar->IsItemChecked(SHOW_ALL_FLOORS)) {
@@ -112,6 +117,7 @@ void ViewSettingsHandler::OnChangeViewSettings(wxCommandEvent& event) {
 	}
 	g_settings.setInteger(Config::TRANSPARENT_FLOORS, menuBar->IsItemChecked(GHOST_HIGHER_FLOORS));
 	g_settings.setInteger(Config::TRANSPARENT_ITEMS, menuBar->IsItemChecked(GHOST_ITEMS));
+	g_settings.setInteger(Config::TRANSPARENT_GROUNDS, menuBar->IsItemChecked(GHOST_GROUNDS));
 	g_settings.setInteger(Config::SHOW_INGAME_BOX, menuBar->IsItemChecked(SHOW_INGAME_BOX));
 	// SHOW_LIGHTS is intentionally NOT written here. The light toolbar is an
 	// independent source of truth for this setting, and this handler runs on
@@ -167,6 +173,11 @@ void ViewSettingsHandler::OnChangeViewSettings(wxCommandEvent& event) {
 		g_gui.SetStatusText(std::format("Ghost Mode: {}", new_ghost ? "On" : "Off"));
 	}
 
+	bool new_ghost_grounds = g_settings.getBoolean(Config::TRANSPARENT_GROUNDS);
+	if (old_ghost_grounds != new_ghost_grounds) {
+		g_gui.SetStatusText(std::format("Ghost Grounds: {}", new_ghost_grounds ? "On" : "Off"));
+	}
+
 	g_gui.RefreshView();
 }
 
@@ -206,6 +217,45 @@ void ViewSettingsHandler::OnToggleAutomagic(wxCommandEvent& WXUNUSED(event)) {
 	} else {
 		g_gui.SetStatusText("Automagic disabled.");
 		g_toast.Show("Automagic Disabled");
+	}
+}
+
+void ViewSettingsHandler::OnToggleCarpetLikeGroundBorders(wxCommandEvent& WXUNUSED(event)) {
+	using namespace MenuBar;
+	bool enabled = menuBar->IsItemChecked(CARPET_LIKE_GROUND_BORDERS);
+	g_settings.setInteger(Config::CARPET_LIKE_GROUND_BORDERS, enabled ? 1 : 0);
+	if (enabled) {
+		g_gui.SetStatusText("Carpet-like ground borders enabled.");
+		g_toast.Show("Carpet-like Ground Borders: On");
+	} else {
+		g_gui.SetStatusText("Carpet-like ground borders disabled.");
+		g_toast.Show("Carpet-like Ground Borders: Off");
+	}
+}
+
+void ViewSettingsHandler::OnToggleCarpetFillBorders(wxCommandEvent& WXUNUSED(event)) {
+	using namespace MenuBar;
+	bool enabled = menuBar->IsItemChecked(CARPET_FILL_BORDERS);
+	g_settings.setInteger(Config::CARPET_FILL_BORDERS, enabled ? 1 : 0);
+	if (enabled) {
+		g_gui.SetStatusText("Carpet fill borders enabled: tiles draw their own edge pieces inwards.");
+		g_toast.Show("Carpet Fill Borders: On");
+	} else {
+		g_gui.SetStatusText("Carpet fill borders disabled.");
+		g_toast.Show("Carpet Fill Borders: Off");
+	}
+}
+
+void ViewSettingsHandler::OnToggleDisableCarpetInteraction(wxCommandEvent& WXUNUSED(event)) {
+	using namespace MenuBar;
+	bool enabled = menuBar->IsItemChecked(DISABLE_CARPET_INTERACTION);
+	g_settings.setInteger(Config::DISABLE_CARPET_INTERACTION, enabled ? 1 : 0);
+	if (enabled) {
+		g_gui.SetStatusText("Carpet interaction disabled: carpet brushes no longer remove other carpets.");
+		g_toast.Show("Disable Carpet Interaction: On");
+	} else {
+		g_gui.SetStatusText("Carpet interaction enabled.");
+		g_toast.Show("Disable Carpet Interaction: Off");
 	}
 }
 

@@ -43,6 +43,13 @@ public:
 	 */
 	static void OnKeyUp(MapCanvas* canvas, wxKeyEvent& event);
 
+	/**
+	 * @brief Keycode of the configurable "erase ground on the floor above" hold-hotkey
+	 * (Preferences > Hotkeys > Erase Ground Above Key, Config::ERASE_ABOVE_HOTKEY).
+	 * @return Uppercase keycode, or 0 when set to "None"/invalid (feature disabled)
+	 */
+	static int GetEraseAboveKeyCode();
+
 private:
 	// Prevent instantiation
 	KeyboardHandler() = delete;

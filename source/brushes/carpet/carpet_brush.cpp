@@ -23,6 +23,7 @@
 #include "brushes/ground/auto_border.h"
 #include "brushes/brush_utility.h"
 #include "map/basemap.h"
+#include "app/settings.h"
 
 #include <vector>
 #include <algorithm>
@@ -55,8 +56,14 @@ void CarpetBrush::draw(BaseMap* map, Tile* tile, void* parameter) {
 }
 
 void CarpetBrush::undraw(BaseMap* map, Tile* tile) {
-	std::erase_if(tile->items, [](const auto& item) {
-		return item->isCarpet() && item->getCarpetBrush() != nullptr;
+	// With DISABLE_CARPET_INTERACTION on, this brush only touches its own
+	// carpets, so different carpet brushes can stack on the same tile.
+	const bool isolated = g_settings.getBoolean(Config::DISABLE_CARPET_INTERACTION);
+	std::erase_if(tile->items, [this, isolated](const auto& item) {
+		if (!item->isCarpet() || item->getCarpetBrush() == nullptr) {
+			return false;
+		}
+		return !isolated || item->getCarpetBrush() == this;
 	});
 }
 
@@ -70,8 +77,8 @@ void CarpetBrush::getRelatedItems(std::vector<uint16_t>& items_out) {
 	}
 }
 
-void CarpetBrush::doCarpets(BaseMap* map, Tile* tile) {
-	CarpetBorderCalculator::calculate(map, tile);
+void CarpetBrush::doCarpets(BaseMap* map, Tile* tile, CarpetBrush* onlyBrush) {
+	CarpetBorderCalculator::calculate(map, tile, onlyBrush);
 }
 
 uint16_t CarpetBrush::getRandomCarpet(BorderType alignment) {

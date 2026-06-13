@@ -10,6 +10,7 @@ DrawingOptions::DrawingOptions() {
 void DrawingOptions::SetDefault() {
 	transparent_floors = false;
 	transparent_items = false;
+	transparent_grounds = false;
 	show_ingame_box = false;
 	show_lights = false;
 	show_light_str = true;
@@ -66,6 +67,7 @@ void DrawingOptions::SetDefault() {
 void DrawingOptions::SetIngame() {
 	transparent_floors = false;
 	transparent_items = false;
+	transparent_grounds = false;
 	show_ingame_box = false;
 	show_lights = false;
 	show_light_str = false;
@@ -118,6 +120,7 @@ void DrawingOptions::SetIngame() {
 void DrawingOptions::Update() {
 	transparent_floors = g_settings.getBoolean(Config::TRANSPARENT_FLOORS);
 	transparent_items = g_settings.getBoolean(Config::TRANSPARENT_ITEMS);
+	transparent_grounds = g_settings.getBoolean(Config::TRANSPARENT_GROUNDS);
 	show_ingame_box = g_settings.getBoolean(Config::SHOW_INGAME_BOX);
 	show_lights = g_settings.getBoolean(Config::SHOW_LIGHTS);
 	show_light_str = g_settings.getBoolean(Config::SHOW_LIGHT_STR);

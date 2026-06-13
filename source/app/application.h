@@ -55,10 +55,15 @@ private:
 	wxString m_file_to_open;
 	void FixVersionDiscrapencies();
 	bool ParseCommandLineMap(wxString& fileName);
+	void InstallCrashDiagnostics();
 
 	virtual bool OnExceptionInMainLoop() override;
 	virtual void OnUnhandledException() override;
 	virtual void OnFatalException() override;
+#if wxDEBUG_LEVEL
+	virtual void OnAssertFailure(const wxChar* file, int line, const wxChar* func,
+		const wxChar* cond, const wxChar* msg) override;
+#endif
 
 #ifdef _USE_PROCESS_COM
 	RMEProcessServer* m_proc_server;

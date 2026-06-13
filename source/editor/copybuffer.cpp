@@ -150,7 +150,7 @@ void CopyBuffer::rotate(int quarterTurns) {
 		}
 		TileLocation* location = tiles->createTileL(entry.pos);
 		entry.tile->setLocation(location);
-		tiles->setTile(entry.pos, std::move(entry.tile));
+		(void)tiles->setTile(entry.pos, std::move(entry.tile));
 	}
 
 	// Ensure walls are consistent with their new neighbors

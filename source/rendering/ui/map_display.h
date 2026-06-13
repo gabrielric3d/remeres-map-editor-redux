@@ -115,6 +115,17 @@ public:
 
 	Position GetCursorPosition() const;
 
+	// "Erase ground above": while the configured hotkey (Preferences > Hotkeys >
+	// Erase Ground Above Key, default C) and the Left mouse button are held in drawing
+	// mode, removes the ground (and its auto-borders) on the floor directly above
+	// (same x,y, floor-1), so you can see the level you are digging below. Runs
+	// alongside the normal brush handling, so the current brush keeps drawing on this
+	// floor while the ceiling opens up. Uses the current brush footprint.
+	// Checked on demand via wxGetKeyState (no persistent state): the physical key state
+	// stays correct across focus changes and isn't swallowed by menu accelerators.
+	bool IsEraseAboveActive(const wxMouseEvent& event) const;
+	void EraseGroundAboveAt(int map_x, int map_y);
+
 	void TakeScreenshot(wxFileName path, wxString format);
 
 	void ToggleCameraPathPlayback();

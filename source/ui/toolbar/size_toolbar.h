@@ -23,12 +23,14 @@ public:
 	void UpdateBrushSize(BrushShape shape, int size);
 	void OnToolbarClick(wxCommandEvent& event);
 	void OnHollowThicknessChanged(wxSpinEvent& event);
+	void OnSnapAngleChanged(wxSpinEvent& event);
 
 	static const wxString PANE_NAME;
 
 private:
 	wxAuiToolBar* toolbar;
 	wxSpinCtrl* hollow_thickness_spin = nullptr;
+	wxSpinCtrl* snap_angle_spin = nullptr;
 };
 
 #endif

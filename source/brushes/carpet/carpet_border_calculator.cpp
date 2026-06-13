@@ -25,7 +25,7 @@ static bool hasMatchingCarpetBrushAtTile(BaseMap* map, CarpetBrush* carpetBrush,
 	return false;
 }
 
-void CarpetBorderCalculator::calculate(BaseMap* map, Tile* tile) {
+void CarpetBorderCalculator::calculate(BaseMap* map, Tile* tile, CarpetBrush* onlyBrush) {
 	ASSERT(tile);
 	if (!tile->hasCarpet()) {
 		return;
@@ -41,6 +41,12 @@ void CarpetBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 
 		CarpetBrush* carpetBrush = item->getCarpetBrush();
 		if (!carpetBrush) {
+			continue;
+		}
+
+		// In isolated mode, leave carpets from other brushes untouched so that
+		// drawing one carpet never reshapes another that shares the tile.
+		if (onlyBrush && carpetBrush != onlyBrush) {
 			continue;
 		}
 

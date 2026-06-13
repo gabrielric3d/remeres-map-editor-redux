@@ -41,6 +41,15 @@ SizeToolBar::SizeToolBar(wxWindow* parent) {
 		wxDefaultPosition, FROM_DIP(parent, wxSize(48, -1)), wxSP_ARROW_KEYS, 1, 20, 1);
 	hollow_thickness_spin->SetToolTip("Hollow line wall thickness (in tiles). Wall brushes ignore this and always use 1.");
 	toolbar->AddControl(hollow_thickness_spin);
+	wxBitmap line_snap_bitmap = wxArtProvider::GetBitmap(wxART_GO_FORWARD, wxART_TOOLBAR, icon_size);
+	// TODO: substituir por sprite proprio (linha travada em angulo)
+	toolbar->AddTool(TOOLBAR_SIZES_LINE_SNAP, wxEmptyString, line_snap_bitmap, wxNullBitmap, wxITEM_CHECK, "Angle Snap (lock line to fixed-angle steps)", wxEmptyString, nullptr);
+
+	// Snap angle increment in degrees (45 = 8 directions, 90 = 4, 30 = 12, ...)
+	snap_angle_spin = newd wxSpinCtrl(toolbar, TOOLBAR_SIZES_SNAP_ANGLE, wxString::Format("%d", 45),
+		wxDefaultPosition, FROM_DIP(parent, wxSize(52, -1)), wxSP_ARROW_KEYS, 5, 90, 45);
+	snap_angle_spin->SetToolTip("Angle snap increment in degrees. 45 = 8 directions, 90 = 4, 30 = 12. Angles other than 45/90 produce Bresenham stairs.");
+	toolbar->AddControl(snap_angle_spin);
 	toolbar->AddSeparator();
 	toolbar->AddTool(TOOLBAR_SIZES_1, wxEmptyString, size1_bitmap, wxNullBitmap, wxITEM_CHECK, "Size 1", wxEmptyString, nullptr);
 	toolbar->AddTool(TOOLBAR_SIZES_2, wxEmptyString, size2_bitmap, wxNullBitmap, wxITEM_CHECK, "Size 2", wxEmptyString, nullptr);
@@ -55,6 +64,7 @@ SizeToolBar::SizeToolBar(wxWindow* parent) {
 
 	toolbar->Bind(wxEVT_COMMAND_MENU_SELECTED, &SizeToolBar::OnToolbarClick, this);
 	hollow_thickness_spin->Bind(wxEVT_SPINCTRL, &SizeToolBar::OnHollowThicknessChanged, this);
+	snap_angle_spin->Bind(wxEVT_SPINCTRL, &SizeToolBar::OnSnapAngleChanged, this);
 }
 
 SizeToolBar::~SizeToolBar() {
@@ -62,10 +72,18 @@ SizeToolBar::~SizeToolBar() {
 	if (hollow_thickness_spin) {
 		hollow_thickness_spin->Unbind(wxEVT_SPINCTRL, &SizeToolBar::OnHollowThicknessChanged, this);
 	}
+	if (snap_angle_spin) {
+		snap_angle_spin->Unbind(wxEVT_SPINCTRL, &SizeToolBar::OnSnapAngleChanged, this);
+	}
 }
 
 void SizeToolBar::OnHollowThicknessChanged(wxSpinEvent& event) {
 	g_gui.SetHollowWallThickness(event.GetPosition());
+	g_gui.RefreshView();
+}
+
+void SizeToolBar::OnSnapAngleChanged(wxSpinEvent& event) {
+	g_gui.SetLineSnapAngle(event.GetPosition());
 	g_gui.RefreshView();
 }
 
@@ -78,9 +96,15 @@ void SizeToolBar::Update() {
 	toolbar->EnableTool(TOOLBAR_SIZES_LINE, has_map);
 	toolbar->EnableTool(TOOLBAR_SIZES_LINE_HOLLOW, has_map && g_gui.GetBrushShape() == BRUSHSHAPE_LINE);
 	toolbar->ToggleTool(TOOLBAR_SIZES_LINE_HOLLOW, g_gui.IsHollowLine());
+	toolbar->EnableTool(TOOLBAR_SIZES_LINE_SNAP, has_map && g_gui.GetBrushShape() == BRUSHSHAPE_LINE);
+	toolbar->ToggleTool(TOOLBAR_SIZES_LINE_SNAP, g_gui.IsLineAngleSnap());
 	if (hollow_thickness_spin) {
 		hollow_thickness_spin->Enable(has_map && g_gui.GetBrushShape() == BRUSHSHAPE_LINE && g_gui.IsHollowLine());
 		hollow_thickness_spin->SetValue(g_gui.GetHollowWallThickness());
+	}
+	if (snap_angle_spin) {
+		snap_angle_spin->Enable(has_map && g_gui.GetBrushShape() == BRUSHSHAPE_LINE && g_gui.IsLineAngleSnap());
+		snap_angle_spin->SetValue(g_gui.GetLineSnapAngle());
 	}
 	toolbar->EnableTool(TOOLBAR_SIZES_1, has_map);
 	toolbar->EnableTool(TOOLBAR_SIZES_2, has_map);
@@ -147,12 +171,18 @@ void SizeToolBar::UpdateBrushSize(BrushShape shape, int size) {
 	toolbar->ToggleTool(TOOLBAR_SIZES_6, legacy_size == 8);
 	toolbar->ToggleTool(TOOLBAR_SIZES_7, legacy_size == 11);
 
-	// Hollow only makes sense when shape == LINE — disable the toggle otherwise
+	// Hollow + Angle Snap only make sense when shape == LINE — disable otherwise
 	toolbar->EnableTool(TOOLBAR_SIZES_LINE_HOLLOW, shape == BRUSHSHAPE_LINE);
 	toolbar->ToggleTool(TOOLBAR_SIZES_LINE_HOLLOW, g_gui.IsHollowLine());
+	toolbar->EnableTool(TOOLBAR_SIZES_LINE_SNAP, shape == BRUSHSHAPE_LINE);
+	toolbar->ToggleTool(TOOLBAR_SIZES_LINE_SNAP, g_gui.IsLineAngleSnap());
 	if (hollow_thickness_spin) {
 		hollow_thickness_spin->Enable(shape == BRUSHSHAPE_LINE && g_gui.IsHollowLine());
 		hollow_thickness_spin->SetValue(g_gui.GetHollowWallThickness());
+	}
+	if (snap_angle_spin) {
+		snap_angle_spin->Enable(shape == BRUSHSHAPE_LINE && g_gui.IsLineAngleSnap());
+		snap_angle_spin->SetValue(g_gui.GetLineSnapAngle());
 	}
 
 	g_gui.GetAuiManager()->Update();
@@ -179,6 +209,13 @@ void SizeToolBar::OnToolbarClick(wxCommandEvent& event) {
 				hollow_thickness_spin->Enable(g_gui.GetBrushShape() == BRUSHSHAPE_LINE && g_gui.IsHollowLine());
 			}
 			// Repaint preview overlay if the user is mid-drag with shape=LINE
+			g_gui.RefreshView();
+			break;
+		case TOOLBAR_SIZES_LINE_SNAP:
+			g_gui.SetLineAngleSnap(!g_gui.IsLineAngleSnap());
+			if (snap_angle_spin) {
+				snap_angle_spin->Enable(g_gui.GetBrushShape() == BRUSHSHAPE_LINE && g_gui.IsLineAngleSnap());
+			}
 			g_gui.RefreshView();
 			break;
 		case TOOLBAR_SIZES_1:

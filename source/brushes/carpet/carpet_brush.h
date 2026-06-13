@@ -42,7 +42,7 @@ public:
 	bool canDraw(BaseMap* map, const Position& position) const override;
 	void draw(BaseMap* map, Tile* tile, void* parameter) override;
 	void undraw(BaseMap* map, Tile* tile) override;
-	static void doCarpets(BaseMap* map, Tile* tile);
+	static void doCarpets(BaseMap* map, Tile* tile, CarpetBrush* onlyBrush = nullptr);
 
 	void getRelatedItems(std::vector<uint16_t>& items) override;
 

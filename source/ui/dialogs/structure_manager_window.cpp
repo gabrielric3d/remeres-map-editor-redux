@@ -746,6 +746,29 @@ StructureManagerDialog::~StructureManagerDialog() {
 	if (s_active == this) {
 		s_active = nullptr;
 	}
+
+	// Prevent a crash on close: when the base wxWindow destructor runs
+	// DestroyChildren(), destroying the category tree fires a spurious
+	// wxEVT_TREE_SEL_CHANGED (via wxTreeCtrl::DeleteAllItems), and the list box
+	// can likewise emit wxEVT_LISTBOX. Those handlers call RefreshItemList() /
+	// UpdateSelectionUi(), which dereference sibling controls (m_searchCtrl,
+	// etc.) that may already have been destroyed in the same DestroyChildren
+	// pass -> pure virtual call -> CRT fast-fail (0xC0000409). Unbind the
+	// teardown-sensitive callbacks now, while every child is still alive, so
+	// those stray events have no handler to invoke.
+	m_isDestroying = true;
+	if (m_categoryTree) {
+		m_categoryTree->Unbind(wxEVT_TREE_SEL_CHANGED, &StructureManagerDialog::OnCategoryChanged, this);
+	}
+	if (m_list) {
+		m_list->Unbind(wxEVT_LISTBOX, &StructureManagerDialog::OnSelectionChanged, this);
+	}
+	if (m_searchCtrl) {
+		m_searchCtrl->Unbind(wxEVT_TEXT, &StructureManagerDialog::OnSearchChanged, this);
+	}
+	if (m_autoNameBaseCtrl) {
+		m_autoNameBaseCtrl->Unbind(wxEVT_TEXT, &StructureManagerDialog::OnAutoNameBaseChanged, this);
+	}
 }
 
 bool StructureManagerDialog::GetFixedSavePreview(int& width, int& height, int& zFrom, int& zTo) {
@@ -1133,7 +1156,7 @@ void StructureManagerDialog::BuildCategoryTree() {
 }
 
 void StructureManagerDialog::RefreshItemList() {
-	if (!m_list) {
+	if (m_isDestroying || !m_list) {
 		return;
 	}
 
@@ -1162,6 +1185,9 @@ void StructureManagerDialog::RefreshItemList() {
 }
 
 void StructureManagerDialog::UpdateSelectionUi() {
+	if (m_isDestroying) {
+		return;
+	}
 	bool hasAnyCategory = false;
 	if (m_categoryTree) {
 		wxTreeItemId root = m_categoryTree->GetRootItem();

@@ -136,6 +136,9 @@ void BrushOverlayDrawer::draw(SpriteBatch& sprite_batch, PrimitiveRenderer& prim
 			std::vector<Position> tilestodraw;
 			Position start(drawer->canvas->last_click_map_x, drawer->canvas->last_click_map_y, view.floor);
 			Position end_pos(view.mouse_map_x, view.mouse_map_y, view.floor);
+			if (g_gui.IsLineAngleSnap()) {
+				end_pos = BrushUtility::SnapToAngle(start, end_pos, g_gui.GetLineSnapAngle());
+			}
 			int line_wall_thickness = 0;
 			if (g_gui.IsHollowLine()) {
 				line_wall_thickness = brush->is<WallBrush>() ? 1 : g_gui.GetHollowWallThickness();
