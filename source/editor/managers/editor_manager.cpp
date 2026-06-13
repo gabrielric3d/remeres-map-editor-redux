@@ -432,9 +432,16 @@ bool EditorManager::LoadMap(const FileName& fileName, const MapLoadOptions& load
 				throw std::runtime_error(std::format("Unsupported client version (OtbId: {})", static_cast<int>(ver.client)));
 			}
 
-			// Prefer the default client version (from preferences) if it's compatible and has valid paths
+			// When several client versions share the same OTB id (e.g. multiple 10.98
+			// entries), getBestMatch() returns the first one in the list, which may not be
+			// the one the user configured (its own items.otb path, signatures, etc.).
+			// Prefer the "Default client version" from preferences whenever it matches the
+			// same OTB id, so the user can decide which client is used for that id. We no
+			// longer require hasValidPaths() here: honoring the explicit default lets a
+			// client configured only with a custom items.otb win the tie-break. If that
+			// default genuinely can't load, LoadVersion() reports a clear error.
 			ClientVersion* latest = ClientVersion::getLatestVersion();
-			if (latest && latest != target && latest->getOtbId() == target->getOtbId() && latest->hasValidPaths()) {
+			if (latest && latest != target && latest->getOtbId() == target->getOtbId()) {
 				target = latest;
 			}
 		}
