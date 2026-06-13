@@ -78,6 +78,7 @@
 #include "rendering/postprocess/post_process_manager.h"
 #include "rendering/drawers/overlays/wall_border_drawer.h"
 #include "rendering/drawers/overlays/mountain_overlay_drawer.h"
+#include "rendering/drawers/overlays/pathing_overlay_drawer.h"
 #include "rendering/drawers/overlays/stair_direction_drawer.h"
 #include "rendering/drawers/overlays/zone_overlay_drawer.h"
 #include "rendering/core/forced_light_zone.h"
@@ -137,6 +138,7 @@ MapDrawer::MapDrawer(MapCanvas* canvas) :
 	item_drawer->SetItemIndicatorDrawer(item_indicator_drawer.get());
 	wall_border_drawer = std::make_unique<WallBorderDrawer>();
 	mountain_overlay_drawer = std::make_unique<MountainOverlayDrawer>();
+	pathing_overlay_drawer = std::make_unique<PathingOverlayDrawer>();
 	stair_direction_drawer = std::make_unique<StairDirectionDrawer>();
 	lua_overlay_drawer = std::make_unique<LuaOverlayDrawer>(this);
 	zone_overlay_drawer = std::make_unique<ZoneOverlayDrawer>();
@@ -585,6 +587,10 @@ void MapDrawer::DrawWallBorders(NVGcontext* vg) {
 
 void MapDrawer::DrawMountainOverlay(NVGcontext* vg) {
 	mountain_overlay_drawer->draw(vg, view, editor);
+}
+
+void MapDrawer::DrawPathingOverlay(NVGcontext* vg) {
+	pathing_overlay_drawer->draw(vg, view, editor);
 }
 
 void MapDrawer::DrawStairDirections(NVGcontext* vg) {

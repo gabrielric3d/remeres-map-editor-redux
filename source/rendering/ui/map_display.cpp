@@ -30,6 +30,7 @@
 #include "ui/main_menubar.h"
 #include "editor/editor.h"
 #include "editor/action_queue.h"
+#include "editor/operations/draw_operations.h"
 #include "brushes/brush.h"
 #include "game/sprites.h"
 #include "map/map.h"
@@ -317,6 +318,9 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 	if (options.show_mountain_overlay) {
 		drawer->DrawMountainOverlay(vg);
 	}
+	if (options.show_blocking) {
+		drawer->DrawPathingOverlay(vg);
+	}
 	if (options.show_wall_borders) {
 		drawer->DrawWallBorders(vg);
 	}
@@ -468,6 +472,32 @@ Position MapCanvas::GetCursorPosition() const {
 	return Position(last_cursor_map_x, last_cursor_map_y, floor);
 }
 
+bool MapCanvas::IsEraseAboveActive(const wxMouseEvent& event) const {
+	if (g_gui.IsSelectionMode()) {
+		return false; // Drawing companion only — never erase while selecting/picking.
+	}
+	const int erase_above_key = KeyboardHandler::GetEraseAboveKeyCode();
+	return erase_above_key != 0
+		&& wxGetKeyState(static_cast<wxKeyCode>(erase_above_key))
+		&& !event.ControlDown() && !event.AltDown() && !event.ShiftDown();
+}
+
+void MapCanvas::EraseGroundAboveAt(int map_x, int map_y) {
+	const int floor_above = floor - 1;
+	if (floor_above < 0) {
+		return; // Already on the top floor, nothing above.
+	}
+	// Erase the current brush footprint (size + shape), centered on the given tile,
+	// projected onto the floor above.
+	PositionVector tilestodraw;
+	BrushUtility::GetTilesToDraw(map_x, map_y, floor_above, &tilestodraw, nullptr);
+	if (tilestodraw.empty()) {
+		tilestodraw.push_back(Position(map_x, map_y, floor_above));
+	}
+	DrawOperations::eraseGroundWithBorders(editor, tilestodraw);
+	g_gui.RefreshView();
+}
+
 void MapCanvas::UpdatePositionStatus(int x, int y) {
 	if (x == -1) {
 		x = cursor_x;
@@ -537,6 +567,14 @@ void MapCanvas::OnMouseMove(wxMouseEvent& event) {
 		UpdatePositionStatus(cursor_x, cursor_y);
 		UpdateZoomStatus();
 		Refresh();
+	}
+
+	// "Erase ground above": while the configured hotkey AND the left mouse button are
+	// held (drawing mode only), also erase the ground above the cursor. This runs in
+	// addition to (not instead of) the normal brush handling below, so the current brush
+	// keeps painting on this floor while the ceiling opens up.
+	if (map_update && event.LeftIsDown() && IsEraseAboveActive(event)) {
+		EraseGroundAboveAt(mouse_map_x, mouse_map_y);
 	}
 
 	if (g_gui.IsSelectionMode()) {
@@ -647,6 +685,12 @@ void MapCanvas::OnMouseActionClick(wxMouseEvent& event) {
 		g_gui.OnRectanglePickClick(Position(mouse_map_x, mouse_map_y, floor));
 		g_gui.RefreshView();
 		return;
+	}
+
+	// "Erase ground above": hotkey + Left Click opens the hole on the floor above at
+	// the clicked tile, then falls through to the normal brush action on this floor.
+	if (IsEraseAboveActive(event)) {
+		EraseGroundAboveAt(mouse_map_x, mouse_map_y);
 	}
 
 	// Alt+Click: add camera path keyframe at click position (when camera path palette is active)

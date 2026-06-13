@@ -1,17 +1,10 @@
-#include "rendering/drawers/overlays/mountain_overlay_drawer.h"
+#include "rendering/drawers/overlays/pathing_overlay_drawer.h"
 #include <nanovg.h>
 #include "rendering/core/render_view.h"
 #include "editor/editor.h"
 #include "map/tile.h"
-#include "brushes/ground/ground_brush.h"
 
-static bool isMountainTile(const Tile* t) {
-	if (!t || !t->ground) return false;
-	GroundBrush* gb = t->ground->getGroundBrush();
-	return gb && gb->getZ() >= MountainOverlayDrawer::Z_ORDER_THRESHOLD;
-}
-
-void MountainOverlayDrawer::draw(NVGcontext* vg, const RenderView& view, Editor& editor) {
+void PathingOverlayDrawer::draw(NVGcontext* vg, const RenderView& view, Editor& editor) {
 	if (!vg) return;
 
 	nvgSave(vg);
@@ -19,8 +12,8 @@ void MountainOverlayDrawer::draw(NVGcontext* vg, const RenderView& view, Editor&
 	const float zoom = view.zoom;
 	const float TILE = 32.0f / zoom;
 	const float inset = 2.0f / zoom;
-	const NVGcolor overlayColor = nvgRGBA(0, 0, 0, 128);
-	const NVGcolor indicatorColor = nvgRGBA(255, 165, 0, 200);
+	const NVGcolor overlayColor = nvgRGBA(120, 16, 16, 80);
+	const NVGcolor indicatorColor = nvgRGBA(255, 80, 60, 200);
 
 	nvgFillColor(vg, overlayColor);
 	nvgStrokeColor(vg, indicatorColor);
@@ -29,14 +22,10 @@ void MountainOverlayDrawer::draw(NVGcontext* vg, const RenderView& view, Editor&
 	for (int y = view.start_y; y <= view.end_y; ++y) {
 		for (int x = view.start_x; x <= view.end_x; ++x) {
 			Tile* tile = editor.map.getTile(x, y, view.floor);
-			if (!tile || !isMountainTile(tile)) continue;
-
-			// Mountain ground at (x,y) renders visually at (x+1, y+1) due to isometric offset
-			int draw_x = x + 1;
-			int draw_y = y + 1;
+			if (!tile || tile->size() == 0 || !tile->isBlocking()) continue;
 
 			int ux, uy;
-			if (!view.IsTileVisible(draw_x, draw_y, view.floor, ux, uy)) continue;
+			if (!view.IsTileVisible(x, y, view.floor, ux, uy)) continue;
 
 			float sx = ux / zoom;
 			float sy = uy / zoom;

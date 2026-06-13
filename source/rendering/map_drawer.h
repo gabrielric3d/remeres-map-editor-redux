@@ -66,6 +66,7 @@ class LightIndicatorDrawer;
 class ItemIndicatorDrawer;
 class WallBorderDrawer;
 class MountainOverlayDrawer;
+class PathingOverlayDrawer;
 class StairDirectionDrawer;
 class LuaOverlayDrawer;
 class ZoneOverlayDrawer;
@@ -102,6 +103,7 @@ class MapDrawer {
 	std::unique_ptr<ItemIndicatorDrawer> item_indicator_drawer;
 	std::unique_ptr<WallBorderDrawer> wall_border_drawer;
 	std::unique_ptr<MountainOverlayDrawer> mountain_overlay_drawer;
+	std::unique_ptr<PathingOverlayDrawer> pathing_overlay_drawer;
 	std::unique_ptr<StairDirectionDrawer> stair_direction_drawer;
 	std::unique_ptr<LuaOverlayDrawer> lua_overlay_drawer;
 	std::unique_ptr<ZoneOverlayDrawer> zone_overlay_drawer;
@@ -152,6 +154,7 @@ public:
 	void DrawItemIndicators(NVGcontext* vg);
 	void DrawWallBorders(NVGcontext* vg);
 	void DrawMountainOverlay(NVGcontext* vg);
+	void DrawPathingOverlay(NVGcontext* vg);
 	void DrawStairDirections(NVGcontext* vg);
 	void ClearFrameOverlays();
 	void DrawCreatureNames(NVGcontext* vg);

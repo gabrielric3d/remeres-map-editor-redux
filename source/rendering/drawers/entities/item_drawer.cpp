@@ -10,6 +10,8 @@
 
 #include "rendering/drawers/entities/item_drawer.h"
 #include "rendering/drawers/overlays/hook_indicator_drawer.h"
+#include "rendering/drawers/overlays/mountain_overlay_drawer.h"
+#include "brushes/ground/ground_brush.h"
 #include "rendering/drawers/overlays/door_indicator_drawer.h"
 #include "rendering/drawers/overlays/light_indicator_drawer.h"
 #include "rendering/drawers/overlays/item_indicator_drawer.h"
@@ -178,6 +180,16 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 
 	if (!ephemeral && options.transparent_items && (!it.isGroundTile() || spr->width > 1 || spr->height > 1) && !it.isSplash() && (!it.hasFlag(ItemFlag::IsBorder) || spr->width > 1 || spr->height > 1)) {
 		alpha /= 2;
+	} else if (!ephemeral && options.transparent_grounds && (it.isGroundTile() || it.hasFlag(ItemFlag::IsBorder)) && spr->width == 1 && spr->height == 1 && !it.isSplash()) {
+		alpha /= 2;
+	}
+
+	// Mountain overlay mode: render mountain grounds as ghosts so the terrain behind them stays visible
+	if (!options.ingame && options.show_mountain_overlay && it.isGroundTile()) {
+		GroundBrush* gb = item->getGroundBrush();
+		if (gb && gb->getZ() >= MountainOverlayDrawer::Z_ORDER_THRESHOLD) {
+			alpha = std::min(alpha, 80);
+		}
 	}
 
 	if (it.isPodium()) {
