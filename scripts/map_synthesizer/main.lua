@@ -867,7 +867,10 @@ end
 
 -- Recorta o contorno: alterna "mordidas" (remove) e protuberancias (adiciona)
 -- em pontos aleatorios da borda, deixando o formato irregular como os exemplos.
-local function addDetail(mask, W, H, count, baseR)
+-- biteScale escala o raio da mordida: <1 = mordidas pequenas (1 tile), >1 = lobos
+-- grandes. 1.0 = comportamento padrao.
+local function addDetail(mask, W, H, count, baseR, biteScale)
+	biteScale = biteScale or 1
 	for _ = 1, count do
 		local boundary = {}
 		for y = 3, H - 2 do
@@ -892,7 +895,7 @@ local function addDetail(mask, W, H, count, baseR)
 			return mask
 		end
 		local b = boundary[math.random(#boundary)]
-		local rr = math.max(1.5, baseR * (0.12 + math.random() * 0.22))
+		local rr = math.max(1.5, baseR * (0.12 + math.random() * 0.22) * biteScale)
 		local add = math.random() < 0.5
 		local ir = math.ceil(rr)
 		for dy = -ir, ir do
@@ -1160,25 +1163,156 @@ local function breakStraightRuns(mask, W, H)
 	return mask
 end
 
--- Pipeline do modo "Formato novo": silhueta inedita + aneis aprendidos.
-local function synthesizeShape(profile, opts, W, H, setStatus)
-	if #profile.samples == 0 then
-		return nil, "O perfil ainda nao tem amostras. Use 'Aprender da selecao' primeiro."
+-- Perfil de montanha (algoritmo "subida e descida"): esculpe a(s) face(s)
+-- escolhida(s) da mascara em rampas diagonais formando picos e vales. Funcao
+-- pura: muta `mask` in-place. `opts.mountain` = { enabled, sides, spacing,
+-- height, slope }. sides: "N"/"S"/"L"/"O"/"todos".
+local function applyMountainProfile(mask, W, H, opts)
+	local mtn = opts.mountain
+	if not mtn or not mtn.enabled then
+		return mask
 	end
-	if W < 10 or H < 10 then
-		return nil, "Area de geracao muito pequena para o modo Formato novo (minimo 10x10)."
-	end
-	if W * H > 40000 then
-		return nil, "Area de geracao muito grande (maximo ~40.000 tiles)."
+	local spacing = math.max(2, mtn.spacing or 10)
+	local height = math.max(1, mtn.height or 6)
+	local slope = math.max(1, mtn.slope or 2)
+	local sides = mtn.sides or "N"
+
+	local function wantFace(f)
+		return sides == "todos" or sides == f
 	end
 
-	local seed = opts.seed
-	if not seed or seed == 0 then
-		seed = os.time()
+	-- onda triangular suavizada por degraus de `slope` tiles, com jitter leve
+	-- por seed para nao ficar perfeitamente periodica.
+	local function profileAt(t, phase, jitter)
+		local u = (t / spacing + phase) % 1
+		local tri = (u < 0.5) and (u * 2) or (2 - u * 2) -- 0..1..0
+		local h = tri * height
+		-- discretiza em patamares de `slope` (rampa "tiles por degrau")
+		h = math.floor(h / slope + 0.5) * slope
+		h = h + (jitter[math.floor(t) % #jitter + 1] or 0)
+		if h < 0 then h = 0 end
+		return h
 	end
-	math.randomseed(seed)
 
-	setStatus("Analisando aneis das amostras...")
+	-- vetor de jitter pequeno e estavel para esta passada
+	local jitter = {}
+	for i = 1, 17 do
+		jitter[i] = math.random(-1, 1)
+	end
+
+	local box = maskBBox(mask, W, H)
+	if box.maxx < box.minx or box.maxy < box.miny then
+		return mask
+	end
+
+	-- Para a face Norte: para cada coluna, achar a borda superior atual e
+	-- recortar (remover) ate o perfil de altura. Faces S/L/O por simetria.
+	local function sculptVertical(faceNorth)
+		local phase = math.random()
+		for x = box.minx, box.maxx do
+			local depth = profileAt(x, phase, jitter)
+			if depth > 0 then
+				if faceNorth then
+					-- acha a 1a celula preenchida de cima nesta coluna
+					local top = nil
+					for y = box.miny, box.maxy do
+						if mask[y] and mask[y][x] then
+							top = y
+							break
+						end
+					end
+					if top then
+						for k = 0, depth - 1 do
+							local y = top + k
+							if y > 2 and y < H - 1 then
+								mask[y][x] = nil
+							end
+						end
+					end
+				else
+					-- face Sul: 1a celula preenchida de baixo
+					local bot = nil
+					for y = box.maxy, box.miny, -1 do
+						if mask[y] and mask[y][x] then
+							bot = y
+							break
+						end
+					end
+					if bot then
+						for k = 0, depth - 1 do
+							local y = bot - k
+							if y > 2 and y < H - 1 then
+								mask[y][x] = nil
+							end
+						end
+					end
+				end
+			end
+		end
+		app.yield()
+	end
+
+	local function sculptHorizontal(faceWest)
+		local phase = math.random()
+		for y = box.miny, box.maxy do
+			local depth = profileAt(y, phase, jitter)
+			if depth > 0 then
+				if faceWest then
+					-- face Oeste: 1a celula preenchida da esquerda
+					local left = nil
+					for x = box.minx, box.maxx do
+						if mask[y] and mask[y][x] then
+							left = x
+							break
+						end
+					end
+					if left then
+						for k = 0, depth - 1 do
+							local x = left + k
+							if x > 2 and x < W - 1 then
+								mask[y][x] = nil
+							end
+						end
+					end
+				else
+					-- face Leste: 1a celula preenchida da direita
+					local right = nil
+					for x = box.maxx, box.minx, -1 do
+						if mask[y] and mask[y][x] then
+							right = x
+							break
+						end
+					end
+					if right then
+						for k = 0, depth - 1 do
+							local x = right - k
+							if x > 2 and x < W - 1 then
+								mask[y][x] = nil
+							end
+						end
+					end
+				end
+			end
+		end
+		app.yield()
+	end
+
+	if wantFace("N") then sculptVertical(true) end
+	if wantFace("S") then sculptVertical(false) end
+	if wantFace("O") then sculptHorizontal(true) end
+	if wantFace("L") then sculptHorizontal(false) end
+
+	-- limpa artefatos das rampas (sem quebrar retas: as diagonais ja quebram)
+	fillHoles(mask, W, H)
+	despeckle(mask, W, H)
+	return mask
+end
+
+-- Deriva os parametros geometricos da silhueta a partir das amostras + opts.
+-- Compartilhado por synthesizeShape, P3.5 (WFC) e a previa. Inclui os controles
+-- do Grupo 1 (suavidade) e Grupo 2 (montanha). Defaults reproduzem o
+-- comportamento anterior.
+local function deriveShapeParams(profile, opts, W, H)
 	local ringLabel, dmax, avgTiles, targetC = computeRingStats(profile)
 	if dmax == 0 or avgTiles <= 0 then
 		return nil, "Amostras sem conteudo util."
@@ -1202,11 +1336,270 @@ local function synthesizeShape(profile, opts, W, H, setStatus)
 	targetC = 1 + (targetC - 1) * rough
 	local nDetail = math.floor((6 + 18 * math.max(0, targetC - 1)) * rough)
 
+	-- Grupo 1: suavidade da borda (slider "Liso <-> Dentado", 0..100).
+	-- jag=1 (default 100) = recortado como hoje; jag=0 = liso.
+	local jag = (opts.smoothness or 100) / 100
+	nDetail = math.floor(nDetail * jag)
+	-- borda bem lisa: passada(s) extra(s) de smoothMask no candidato
+	local extraSmooth = (jag < 0.35) and 1 or 0
+	if jag < 0.15 then
+		extraSmooth = 2
+	end
+
+	local biteScale = opts.biteScale or 1
+
+	-- Grupo 2: quando o perfil de montanha esculpe a borda, reduz o ruido
+	-- radial para nao competir com as rampas.
+	if opts.mountain and opts.mountain.enabled then
+		nDetail = math.floor(nDetail * 0.3)
+	end
+
+	return {
+		ringLabel = ringLabel,
+		dmax = dmax,
+		avgTiles = avgTiles,
+		targetC = targetC,
+		fringeDepth = fringeDepth,
+		target = target,
+		baseR = baseR,
+		nDetail = nDetail,
+		biteScale = biteScale,
+		extraSmooth = extraSmooth,
+	}
+end
+
+-- Constroi a mascara booleana de silhueta (mancha/blob) colocando ate
+-- maxShapes silhuetas respeitando o espacamento. Extraido do miolo de
+-- synthesizeShape para ser reusado por synthesizeShape, P3.5 (WFC) e a previa.
+-- Aplica os controles dos Grupos 1-2. Retorna mask, placedCount.
+local function buildSilhouetteMask(W, H, opts, p, setStatus)
+	setStatus = setStatus or function() end
+	local baseR = p.baseR
+	local target = p.target
+	local fringeDepth = p.fringeDepth
+	local nDetail = p.nDetail
+	local biteScale = p.biteScale
+	local extraSmooth = p.extraSmooth or 0
+
+	local wanted = opts.maxShapes or 1
+	local unlimited = wanted == 0
+	local shapes = unlimited and 64 or math.max(1, wanted)
+	local spacing = opts.spacing or 0
+	local neededDist = nil
+	if (opts.coreWidth or 0) > 0 then
+		neededDist = fringeDepth + math.ceil(opts.coreWidth / 2)
+	end
+
+	local mask = {}
+	for y = 1, H do
+		mask[y] = {}
+	end
+	local placedBoxes = {}
+	local placedCount = 0
+
+	local failStreak = 0
+	for s = 1, shapes do
+		if unlimited then
+			setStatus("Gerando silhueta " .. s .. " (preenchendo a area)...")
+		else
+			setStatus("Gerando silhueta " .. s .. "/" .. shapes .. "...")
+		end
+		local best, bestScore, bestBox
+		for _ = 1, 8 do
+			-- com varios shapes, sorteia o centro de cada um
+			local cx, cy
+			if shapes > 1 then
+				local m = baseR * 1.2 + 3
+				if W - 2 * m > 1 then
+					cx = m + math.random() * (W - 2 * m)
+				end
+				if H - 2 * m > 1 then
+					cy = m + math.random() * (H - 2 * m)
+				end
+			end
+			local cand = smoothMask(generateSilhouette(W, H, target, cx, cy), W, H)
+			cand = addDetail(cand, W, H, nDetail, baseR, biteScale)
+			-- Grupo 1: borda visivelmente lisa quando jag baixo
+			for _ = 1, extraSmooth do
+				cand = smoothMask(cand, W, H)
+			end
+			fillHoles(cand, W, H)
+			despeckle(cand, W, H)
+
+			-- Grupo 2: esculpe a face escolhida em picos/vales (montanha)
+			if opts.mountain and opts.mountain.enabled then
+				applyMountainProfile(cand, W, H, opts)
+			end
+
+			-- largura minima do centro: engorda ate o miolo ter a
+			-- profundidade necessaria
+			if neededDist then
+				local dist = distanceToEmpty(cand, W, H)
+				local dM = 0
+				for y = 1, H do
+					for x = 1, W do
+						local d = dist[y][x]
+						if d and d > dM then
+							dM = d
+						end
+					end
+				end
+				if dM > 0 and dM < neededDist then
+					dilateMask(cand, W, H, neededDist - dM)
+				end
+			end
+
+			-- quebra retas antes do bbox, para o espacamento valer no
+			-- contorno final
+			breakStraightRuns(cand, W, H)
+
+			local area, c = measureMask(cand, W, H)
+			if area > 0 then
+				local box = maskBBox(cand, W, H)
+				-- respeita o espacamento com os shapes ja colocados
+				local fits = true
+				for _, k in ipairs(placedBoxes) do
+					local apartX = box.maxx + spacing < k.minx or k.maxx + spacing < box.minx
+					local apartY = box.maxy + spacing < k.miny or k.maxy + spacing < box.miny
+					if not (apartX or apartY) then
+						fits = false
+						break
+					end
+				end
+				if fits then
+					local score = math.abs(area - target) / target + 0.8 * math.abs(c - p.targetC)
+					if not bestScore or score < bestScore then
+						best, bestScore, bestBox = cand, score, box
+					end
+				end
+			end
+			app.yield()
+		end
+		if best then
+			for y = 1, H do
+				for x = 1, W do
+					if best[y][x] then
+						mask[y][x] = true
+					end
+				end
+			end
+			placedBoxes[#placedBoxes + 1] = bestBox
+			placedCount = placedCount + 1
+			failStreak = 0
+		else
+			failStreak = failStreak + 1
+			-- area saturada: varios shapes seguidos sem lugar
+			if unlimited and failStreak >= 3 then
+				break
+			end
+		end
+	end
+
+	return mask, placedCount
+end
+
+-- Veste uma mascara (booleana ou grade ja preenchida) com labels por anel de
+-- distancia ate a borda. Compartilhado por synthesizeShape e P3.5 (WFC).
+--   maskOrRows: ou mask[y][x] (booleana) ou rows[y][x] (0/EMPTY ja prontos)
+--   booleano: se true, trata maskOrRows como mascara booleana.
+-- Grupo 3 (niveis): quando opts.levels > 0, divide a profundidade em N faixas
+-- concentricas, cada uma com o label aprendido naquela "altura" relativa.
+local function dressMaskByRings(maskOrRows, W, H, ringLabel, dmax, opts, booleano)
+	local rows
+	if booleano then
+		rows = {}
+		for y = 1, H do
+			rows[y] = {}
+			for x = 1, W do
+				rows[y][x] = maskOrRows[y][x] and 0 or EMPTY -- 0 = placeholder nao-vazio
+			end
+		end
+	else
+		rows = maskOrRows
+	end
+	local dist = distanceToEmpty(rows, W, H)
+
+	local levels = math.floor(opts.levels or 0)
+	local levelLabel = nil
+	local dM = 0
+	if levels > 0 then
+		-- distancia maxima presente na mascara
+		for y = 1, H do
+			for x = 1, W do
+				local d = dist[y][x]
+				if d and d > dM then
+					dM = d
+				end
+			end
+		end
+		if dM <= 0 then
+			levels = 0 -- mascara vazia: cai no caminho padrao
+		else
+			-- cada nivel pega o label aprendido na profundidade representativa
+			levelLabel = {}
+			for k = 1, levels do
+				local sampleD = math.floor(((k - 0.5) / levels) * dmax + 0.5)
+				if sampleD < 1 then sampleD = 1 end
+				if sampleD > dmax then sampleD = dmax end
+				levelLabel[k] = ringLabel[sampleD]
+			end
+		end
+	end
+
+	local out = {}
+	for y = 1, H do
+		out[y] = {}
+		for x = 1, W do
+			local d = dist[y][x]
+			if d then
+				if levels > 0 then
+					local k = math.ceil(d / dM * levels)
+					if k < 1 then k = 1 end
+					if k > levels then k = levels end
+					out[y][x] = levelLabel[k]
+				else
+					out[y][x] = ringLabel[math.min(d, dmax)]
+				end
+			else
+				out[y][x] = EMPTY
+			end
+		end
+	end
+	return out
+end
+
+-- Pipeline do modo "Formato novo": silhueta inedita + aneis aprendidos.
+local function synthesizeShape(profile, opts, W, H, setStatus)
+	if #profile.samples == 0 then
+		return nil, "O perfil ainda nao tem amostras. Use 'Aprender da selecao' primeiro."
+	end
+	if W < 10 or H < 10 then
+		return nil, "Area de geracao muito pequena para o modo Formato novo (minimo 10x10)."
+	end
+	if W * H > 40000 then
+		return nil, "Area de geracao muito grande (maximo ~40.000 tiles)."
+	end
+
+	local seed = opts.seed
+	if not seed or seed == 0 then
+		seed = os.time()
+	end
+	math.randomseed(seed)
+
+	setStatus("Analisando aneis das amostras...")
+	local p, perr = deriveShapeParams(profile, opts, W, H)
+	if not p then
+		return nil, perr
+	end
+	local ringLabel, dmax, fringeDepth = p.ringLabel, p.dmax, p.fringeDepth
+
 	local mask
 	local placedCount = 1
 
 	if opts.shapeKind == "path" then
-		-- caminho (rio/trilha): largura do centro controlada pelo usuario
+		-- caminho (rio/trilha): largura do centro controlada pelo usuario.
+		-- Os Grupos 1-2 (suavidade/montanha) nao se aplicam ao caminho; o
+		-- Grupo 3 (niveis) vale pelo "vestir por aneis" abaixo.
 		local coreW = opts.coreWidth or 0
 		if coreW <= 0 then
 			coreW = math.max(2, 2 * (dmax - fringeDepth))
@@ -1217,139 +1610,15 @@ local function synthesizeShape(profile, opts, W, H, setStatus)
 		despeckle(mask, W, H)
 		breakStraightRuns(mask, W, H)
 	else
-		-- mancha(s): coloca ate maxShapes silhuetas respeitando o espacamento;
-		-- 0 = preenche a area com quantos shapes couberem
-		local wanted = opts.maxShapes or 1
-		local unlimited = wanted == 0
-		local shapes = unlimited and 64 or math.max(1, wanted)
-		local spacing = opts.spacing or 0
-		local neededDist = nil
-		if (opts.coreWidth or 0) > 0 then
-			neededDist = fringeDepth + math.ceil(opts.coreWidth / 2)
-		end
-
-		mask = {}
-		for y = 1, H do
-			mask[y] = {}
-		end
-		local placedBoxes = {}
-		placedCount = 0
-
-		local failStreak = 0
-		for s = 1, shapes do
-			if unlimited then
-				setStatus("Gerando silhueta " .. s .. " (preenchendo a area)...")
-			else
-				setStatus("Gerando silhueta " .. s .. "/" .. shapes .. "...")
-			end
-			local best, bestScore, bestBox
-			for _ = 1, 8 do
-				-- com varios shapes, sorteia o centro de cada um
-				local cx, cy
-				if shapes > 1 then
-					local m = baseR * 1.2 + 3
-					if W - 2 * m > 1 then
-						cx = m + math.random() * (W - 2 * m)
-					end
-					if H - 2 * m > 1 then
-						cy = m + math.random() * (H - 2 * m)
-					end
-				end
-				local cand = smoothMask(generateSilhouette(W, H, target, cx, cy), W, H)
-				cand = addDetail(cand, W, H, nDetail, baseR)
-				fillHoles(cand, W, H)
-				despeckle(cand, W, H)
-
-				-- largura minima do centro: engorda ate o miolo ter a
-				-- profundidade necessaria
-				if neededDist then
-					local dist = distanceToEmpty(cand, W, H)
-					local dM = 0
-					for y = 1, H do
-						for x = 1, W do
-							local d = dist[y][x]
-							if d and d > dM then
-								dM = d
-							end
-						end
-					end
-					if dM > 0 and dM < neededDist then
-						dilateMask(cand, W, H, neededDist - dM)
-					end
-				end
-
-				-- quebra retas antes do bbox, para o espacamento valer no
-				-- contorno final
-				breakStraightRuns(cand, W, H)
-
-				local area, c = measureMask(cand, W, H)
-				if area > 0 then
-					local box = maskBBox(cand, W, H)
-					-- respeita o espacamento com os shapes ja colocados
-					local fits = true
-					for _, k in ipairs(placedBoxes) do
-						local apartX = box.maxx + spacing < k.minx or k.maxx + spacing < box.minx
-						local apartY = box.maxy + spacing < k.miny or k.maxy + spacing < box.miny
-						if not (apartX or apartY) then
-							fits = false
-							break
-						end
-					end
-					if fits then
-						local score = math.abs(area - target) / target + 0.8 * math.abs(c - targetC)
-						if not bestScore or score < bestScore then
-							best, bestScore, bestBox = cand, score, box
-						end
-					end
-				end
-				app.yield()
-			end
-			if best then
-				for y = 1, H do
-					for x = 1, W do
-						if best[y][x] then
-							mask[y][x] = true
-						end
-					end
-				end
-				placedBoxes[#placedBoxes + 1] = bestBox
-				placedCount = placedCount + 1
-				failStreak = 0
-			else
-				failStreak = failStreak + 1
-				-- area saturada: varios shapes seguidos sem lugar
-				if unlimited and failStreak >= 3 then
-					break
-				end
-			end
-		end
-
+		-- mancha(s): silhueta(s) via funcao unificada (Grupos 1-2 aplicados)
+		mask, placedCount = buildSilhouetteMask(W, H, opts, p, setStatus)
 		if placedCount == 0 then
 			return nil, "Nenhum shape coube na area (reduza espacamento/tamanho ou aumente a area)."
 		end
 	end
 
-	-- veste a silhueta: label por distancia ate a borda, como nas amostras
-	local rows = {}
-	for y = 1, H do
-		rows[y] = {}
-		for x = 1, W do
-			rows[y][x] = mask[y][x] and 0 or EMPTY -- 0 = placeholder nao-vazio
-		end
-	end
-	local dist = distanceToEmpty(rows, W, H)
-	local out = {}
-	for y = 1, H do
-		out[y] = {}
-		for x = 1, W do
-			local d = dist[y][x]
-			if d then
-				out[y][x] = ringLabel[math.min(d, dmax)]
-			else
-				out[y][x] = EMPTY
-			end
-		end
-	end
+	-- veste a silhueta: label por distancia ate a borda (ou por niveis, Grupo 3)
+	local out = dressMaskByRings(mask, W, H, ringLabel, dmax, opts, true)
 	-- remove sobras desconexas alem dos shapes colocados
 	placedCount = filterShapes(out, math.max(1, placedCount))
 	return out, placedCount
@@ -1574,6 +1843,36 @@ local function synthesize(profile, opts, W, H, setStatus)
 	end
 
 	local out = decode(wave, count, patterns, PW, PH, W, H, N)
+
+	-- P3.5 (opcional, default OFF): recorta a textura WFC contra a silhueta dos
+	-- controles de "Esculpir silhueta". Intersecao pos-decode: seguro pois
+	-- applyResult ignora celulas EMPTY. So vale para blobs (caminho usa outro
+	-- caminho). Re-rotula por niveis se Grupo 3 estiver ligado.
+	if opts.useSilhouetteMask and opts.shapeKind ~= "path"
+		and W >= 10 and H >= 10 and W * H <= 40000 then
+		local p = deriveShapeParams(profile, opts, W, H)
+		if p then
+			setStatus("Recortando textura na silhueta...")
+			local mask = buildSilhouetteMask(W, H, opts, p, setStatus)
+			local masked = false
+			for y = 1, H do
+				local mrow = mask[y]
+				local orow = out[y]
+				for x = 1, W do
+					if not (mrow and mrow[x]) then
+						orow[x] = EMPTY
+					else
+						masked = true
+					end
+				end
+			end
+			-- niveis: re-rotula dentro da mascara por faixas concentricas
+			if masked and (opts.levels or 0) > 0 then
+				out = dressMaskByRings(out, W, H, p.ringLabel, p.dmax, opts, false)
+			end
+		end
+	end
+
 	local shapesKept = nil
 	if opts.maxShapes and opts.maxShapes > 0 then
 		shapesKept = filterShapes(out, opts.maxShapes, opts.spacing)
@@ -1805,6 +2104,180 @@ local function renderPreviewCanvas(profile, sample)
 	return canvas
 end
 
+-- ============================================================================
+-- Grupo 4: previa ao vivo da silhueta
+-- ============================================================================
+
+-- Paleta fixa por nivel (exterior -> centro), usada apenas na previa para
+-- distinguir os aneis/terracos. Nao tem relacao com os grounds reais.
+local PREVIEW_PALETTE = {
+	{ 60, 140, 70 }, -- exterior (verde)
+	{ 90, 165, 80 },
+	{ 130, 150, 70 },
+	{ 160, 140, 60 }, -- terra
+	{ 150, 120, 90 },
+	{ 130, 110, 110 },
+	{ 120, 120, 130 }, -- centro (pedra)
+}
+
+-- Cap de grade da previa (a previa e indicativa, nao 1:1).
+local PREVIEW_GRID_CAP = 64
+
+-- Gera a mascara de silhueta barata para a previa (sem pintar o mapa). Usa a
+-- selecao atual para o tamanho (ou um quadrado fixo), com downscale agressivo.
+-- Retorna out (grade de niveis: 0 = vazio, 1..N = anel/nivel), W, H.
+local function previewMask(profile, opts)
+	if not profile or #profile.samples == 0 then
+		return nil
+	end
+
+	-- tamanho alvo: selecao atual ou quadrado padrao
+	local W, H
+	local sel = app.selection
+	if sel and sel.size > 0 then
+		local ok, b = pcall(function()
+			return sel.bounds
+		end)
+		if ok and b and b.min.z == b.max.z then
+			W = b.max.x - b.min.x + 1
+			H = b.max.y - b.min.y + 1
+		end
+	end
+	if not W or not H then
+		W = opts.genSize or 36
+		H = W
+	end
+
+	-- downscale para a previa nao ficar cara
+	local scale = 1
+	if W > PREVIEW_GRID_CAP or H > PREVIEW_GRID_CAP then
+		scale = math.max(W, H) / PREVIEW_GRID_CAP
+	end
+	W = math.max(10, math.floor(W / scale + 0.5))
+	H = math.max(10, math.floor(H / scale + 0.5))
+
+	-- seed estavel: previa repetivel enquanto a seed do campo nao muda
+	local seed = opts.seed
+	if not seed or seed == 0 then
+		seed = 12345
+	end
+	math.randomseed(seed)
+
+	local p = deriveShapeParams(profile, opts, W, H)
+	if not p then
+		return nil
+	end
+
+	local mask
+	if opts.shapeKind == "path" then
+		local coreW = opts.coreWidth or 0
+		if coreW <= 0 then
+			coreW = math.max(2, 2 * (p.dmax - p.fringeDepth))
+		end
+		mask = generatePath(W, H, p.fringeDepth, coreW / 2)
+		fillHoles(mask, W, H)
+		despeckle(mask, W, H)
+		breakStraightRuns(mask, W, H)
+	else
+		local placed
+		mask, placed = buildSilhouetteMask(W, H, opts, p)
+		if placed == 0 then
+			return nil
+		end
+	end
+
+	-- colore por profundidade ate a borda (aneis), ou por faixas iguais quando
+	-- Grupo 3 (niveis) estiver ligado. Os indices viram cores na previa.
+	local levels = math.floor(opts.levels or 0)
+	local rows = {}
+	for y = 1, H do
+		rows[y] = {}
+		for x = 1, W do
+			rows[y][x] = mask[y][x] and 0 or EMPTY
+		end
+	end
+	local dist = distanceToEmpty(rows, W, H)
+	local dM = 0
+	for y = 1, H do
+		for x = 1, W do
+			local d = dist[y][x]
+			if d and d > dM then
+				dM = d
+			end
+		end
+	end
+
+	local out = {}
+	for y = 1, H do
+		out[y] = {}
+		for x = 1, W do
+			local d = dist[y][x]
+			if d then
+				local k
+				if levels > 0 and dM > 0 then
+					k = math.ceil(d / dM * levels)
+				else
+					-- mapeia a profundidade em ate 7 tons para a previa
+					local span = math.max(1, dM)
+					k = math.ceil(d / span * #PREVIEW_PALETTE)
+				end
+				if k < 1 then k = 1 end
+				if k > #PREVIEW_PALETTE then k = #PREVIEW_PALETTE end
+				out[y][x] = k
+			else
+				out[y][x] = 0
+			end
+		end
+	end
+	return out, W, H
+end
+
+-- Renderiza a grade de niveis como LuaImage de baixa resolucao usando blocos de
+-- cor solida (LuaImage nao tem set-pixel: usa Image.blank(px,px,cor)+blit).
+local function renderMaskPreview(levelsGrid, W, H)
+	if not hasPreview or not levelsGrid then
+		return nil
+	end
+	local px = math.max(1, math.min(math.floor((PREVIEW_W - 4) / W), math.floor((PREVIEW_H - 4) / H)))
+	local canvas = Image.blank(PREVIEW_W, PREVIEW_H, 18, 18, 22)
+	if not canvas.valid then
+		return nil
+	end
+	-- blocos pre-pintados reutilizaveis, um por nivel
+	local blocks = {}
+	local function blockFor(k)
+		local b = blocks[k]
+		if b == nil then
+			local c = PREVIEW_PALETTE[k] or PREVIEW_PALETTE[#PREVIEW_PALETTE]
+			b = Image.blank(px, px, c[1], c[2], c[3])
+			if not b.valid then
+				b = false
+			end
+			blocks[k] = b
+		end
+		return b or nil
+	end
+
+	local offX = math.floor((PREVIEW_W - W * px) / 2)
+	local offY = math.floor((PREVIEW_H - H * px) / 2)
+	for y = 1, H do
+		local row = levelsGrid[y]
+		for x = 1, W do
+			local k = row[x]
+			if k and k > 0 then
+				local blk = blockFor(k)
+				if blk then
+					canvas:blit(blk, offX + (x - 1) * px, offY + (y - 1) * px)
+				end
+			end
+		end
+		if y % 16 == 0 then
+			app.yield()
+		end
+	end
+	return canvas
+end
+
 -- Itens da lista de amostras (com thumbnail quando a amostra nao e enorme).
 local function sampleListItems(profile)
 	local items = {}
@@ -1903,6 +2376,14 @@ buildDialog = function(selectedName)
 		dlg:repaint()
 	end
 
+	-- forward-declarados: usados por closures do box "Esculpir silhueta" antes
+	-- de serem atribuidos mais abaixo (readOpts apos os controles de geracao).
+	local readOpts
+	local updateSilPreview = function() end
+
+	-- Layout em 2 colunas: esquerda = perfil/amostras/geracao; direita = esculpir silhueta
+	dlg:wrap({ orient = "horizontal", expand = true })
+	dlg:wrap({ orient = "vertical", expand = true })
 	-- ------------------------------------------------------------------
 	-- 1) Perfil
 	-- ------------------------------------------------------------------
@@ -2099,6 +2580,7 @@ buildDialog = function(selectedName)
 	dlg:endwrap()
 	dlg:endbox()
 
+
 	dlg:box({ orient = "vertical", label = "Quantidade e distribuicao" })
 	dlg:wrap({})
 	groupIcon("svg/solid/shuffle.svg", 2148)
@@ -2201,7 +2683,18 @@ buildDialog = function(selectedName)
 	local lastGen = nil
 	local seedCounter = 0
 
-	local function readOpts()
+	-- slider 0..100 -> biteScale 0.4..2.5 com 50 -> 1.0 exato (sem regressao).
+	-- piecewise: 0..50 mapeia 0.4..1.0; 50..100 mapeia 1.0..2.5.
+	local function biteScaleFrom(v)
+		v = v or 50
+		if v <= 50 then
+			return 0.4 + (v / 50) * 0.6 -- 0.4 .. 1.0
+		end
+		return 1.0 + ((v - 50) / 50) * 1.5 -- 1.0 .. 2.5
+	end
+
+	-- atribui o forward-declarado (usado por closures do box de silhueta acima)
+	readOpts = function()
 		return {
 			mode = (dlg.data.mode == "WFC (textura fiel)") and "wfc" or "shape",
 			shapeKind = (dlg.data.shapeKind == "Caminho (rio)") and "path" or "blob",
@@ -2219,7 +2712,48 @@ buildDialog = function(selectedName)
 			seed = dlg.data.seed,
 			maxShapes = math.floor(dlg.data.shapes or 1),
 			genSize = math.floor(dlg.data.genSize or 36),
+			-- Esculpir silhueta (Grupos 1-4); defaults reproduzem o atual
+			smoothness = dlg.data.smoothness or 100,
+			biteScale = biteScaleFrom(dlg.data.biteScale or 50), -- 50 = 1.0 (padrao)
+			levels = math.floor(dlg.data.levels or 0),
+			useSilhouetteMask = dlg.data.wfcMask or false,
+			mountain = {
+				enabled = dlg.data.mtnOn or false,
+				sides = ({ Norte = "N", Sul = "S", Leste = "L", Oeste = "O", Todos = "todos" })[dlg.data.mtnSides] or "N",
+				spacing = math.floor(dlg.data.mtnSpacing or 10),
+				height = math.floor(dlg.data.mtnHeight or 6),
+				slope = math.floor(dlg.data.mtnSlope or 2),
+			},
 		}
+	end
+
+	-- Grupo 4: render da previa da silhueta. Mecanismo primario = botao
+	-- "Atualizar previa". Guardado por `busy` + pcall (a previa nunca deve
+	-- travar a UI nem quebrar a geracao). Nao roda o solver WFC.
+	updateSilPreview = function()
+		if busy or not hasPreview then
+			return
+		end
+		busy = true
+		local ok, err = pcall(function()
+			local profile = currentProfile()
+			if not profile then
+				return
+			end
+			local grid, w, h = previewMask(profile, readOpts())
+			if not grid then
+				return
+			end
+			local img = renderMaskPreview(grid, w, h)
+			if img then
+				dlg:modify({ silPreview = { image = img, smooth = false } })
+				dlg:repaint()
+			end
+		end)
+		busy = false
+		if not ok then
+			setStatus("Previa indisponivel: " .. tostring(err))
+		end
 	end
 
 	groupIcon("svg/solid/play.svg")
@@ -2332,6 +2866,139 @@ buildDialog = function(selectedName)
 	})
 	dlg:endwrap()
 	dlg:endbox()
+	dlg:endwrap() -- fim da coluna esquerda
+	dlg:wrap({ orient = "vertical", expand = true }) -- coluna direita
+	-- ------------------------------------------------------------------
+	-- Esculpir silhueta (Grupos 1-4)
+	-- ------------------------------------------------------------------
+	dlg:box({ orient = "vertical", label = "Esculpir silhueta (modo Formato novo)" })
+
+	-- Grupo 1: suavidade da borda
+	dlg:wrap({})
+	groupIcon("svg/solid/wave-square.svg", 2148)
+	dlg:slider({
+		id = "smoothness",
+		label = "Liso <-> Dentado",
+		min = 0,
+		max = 100,
+		value = 100,
+		tooltip = "0 = bordas lisas/arredondadas; 100 = recortado como as amostras.",
+	})
+	dlg:endwrap()
+	dlg:wrap({})
+	dlg:slider({
+		id = "biteScale",
+		label = "Tamanho do recorte",
+		min = 0,
+		max = 100,
+		value = 50,
+		tooltip = "Mordidas pequenas (1 tile) a esquerda; lobos grandes a direita. 50 = padrao.",
+	})
+	dlg:endwrap()
+
+	-- Grupo 2: perfil de montanha
+	dlg:wrap({})
+	groupIcon("svg/solid/mountain.svg", 2785)
+	dlg:check({
+		id = "mtnOn",
+		text = "Perfil de montanha (subida/descida)",
+		selected = false,
+		tooltip = "Esculpe a face escolhida em picos e vales por rampas diagonais. So vale para Mancha (blob).",
+		onchange = function()
+			updateSilPreview()
+		end,
+	})
+	dlg:endwrap()
+	dlg:wrap({})
+	dlg:combobox({
+		id = "mtnSides",
+		label = "Lado dos picos",
+		options = { "Norte", "Sul", "Leste", "Oeste", "Todos" },
+		option = "Norte",
+		tooltip = "Em qual(is) face(s) esculpir a serra de picos.",
+		-- controle discreto: atualiza a previa ao vivo (guardado por busy)
+		onchange = function()
+			updateSilPreview()
+		end,
+	})
+	dlg:endwrap()
+	dlg:wrap({})
+	dlg:slider({
+		id = "mtnSpacing",
+		label = "Espacamento dos picos",
+		min = 3,
+		max = 40,
+		value = 10,
+		tooltip = "Distancia (tiles) entre um pico e outro.",
+	})
+	dlg:endwrap()
+	dlg:wrap({})
+	dlg:slider({
+		id = "mtnHeight",
+		label = "Altura dos picos",
+		min = 1,
+		max = 20,
+		value = 6,
+		tooltip = "Amplitude (tiles) do recorte dos picos/vales.",
+	})
+	dlg:endwrap()
+	dlg:wrap({})
+	dlg:slider({
+		id = "mtnSlope",
+		label = "Inclinacao da rampa",
+		min = 1,
+		max = 8,
+		value = 2,
+		tooltip = "Tiles para subir 1 degrau. Maior = rampa mais suave.",
+	})
+	dlg:endwrap()
+
+	-- Grupo 3: terracos / niveis
+	dlg:wrap({})
+	groupIcon("svg/solid/layer-group.svg", 2554)
+	dlg:slider({
+		id = "levels",
+		label = "Niveis (terracos)",
+		min = 0,
+		max = 6,
+		value = 0,
+		tooltip = "0 = um ground (como as amostras). N = aneis concentricos como terracos. Precisa de amostras com camadas.",
+	})
+	dlg:endwrap()
+
+	-- P3.5: aplicar a silhueta no modo WFC
+	dlg:wrap({})
+	dlg:check({
+		id = "wfcMask",
+		text = "Aplicar silhueta no WFC",
+		selected = false,
+		tooltip = "Recorta a textura WFC com os controles de silhueta acima. So no modo WFC + Mancha.",
+	})
+	dlg:endwrap()
+
+	-- Grupo 4: previa ao vivo da silhueta
+	dlg:wrap({})
+	groupIcon("svg/solid/eye.svg", 2553)
+	dlg:button({
+		text = "Atualizar previa",
+		tooltip = "Mostra a forma da silhueta para os controles atuais (a textura final vem na geracao).",
+		onclick = function()
+			updateSilPreview()
+		end,
+	})
+	dlg:endwrap()
+	if hasPreview then
+		dlg:image({
+			id = "silPreview",
+			image = Image.blank(PREVIEW_W, PREVIEW_H, 18, 18, 22),
+			smooth = false,
+		})
+	else
+		dlg:label({ text = "(previa disponivel apos recompilar o editor)" })
+	end
+	dlg:endbox()
+	dlg:endwrap() -- fim da coluna direita
+	dlg:endwrap() -- fim do layout em 2 colunas
 
 	dlg:label({
 		id = "status",
