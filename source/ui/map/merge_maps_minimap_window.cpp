@@ -28,16 +28,22 @@
 #include <wx/dirdlg.h>
 #include <wx/filedlg.h>
 #include <wx/textctrl.h>
+#include <wx/textdlg.h>
 #include <wx/listbox.h>
+#include <wx/choice.h>
+#include <wx/msgdlg.h>
 #include <wx/sizer.h>
 #include <wx/statbox.h>
 #include <wx/stattext.h>
 #include <wx/button.h>
 
+#include <toml++/toml.h>
+
+#include <algorithm>
 #include <vector>
 
 MergeMapsMinimapWindow::MergeMapsMinimapWindow(wxWindow* parent) :
-	wxDialog(parent, wxID_ANY, "Merge Maps to Minimap", wxDefaultPosition, FROM_DIP(parent, wxSize(480, 480))) {
+	wxDialog(parent, wxID_ANY, "Merge Maps to Minimap", wxDefaultPosition, FROM_DIP(parent, wxSize(540, 540))) {
 	wxSizer* sizer = newd wxBoxSizer(wxVERTICAL);
 	wxSizer* tmpsizer;
 
@@ -46,6 +52,22 @@ MergeMapsMinimapWindow::MergeMapsMinimapWindow(wxWindow* parent) :
 	error_field->SetForegroundColour(*wxRED);
 	tmpsizer = newd wxBoxSizer(wxHORIZONTAL);
 	tmpsizer->Add(error_field, 0, wxALL, 5);
+	sizer->Add(tmpsizer, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, 5);
+
+	// Preset row: pick a saved configuration (maps + folder + file name) so the
+	// user doesn't have to re-add the maps on every export.
+	tmpsizer = newd wxStaticBoxSizer(wxHORIZONTAL, this, "Preset");
+	preset_choice = newd wxChoice(this, wxID_ANY);
+	tmpsizer->Add(preset_choice, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+	auto savePresetBtn = newd wxButton(this, wxID_ANY, "Save");
+	savePresetBtn->SetToolTip("Save the current maps and output settings to the selected preset");
+	tmpsizer->Add(savePresetBtn, 0, wxALL, 5);
+	auto savePresetAsBtn = newd wxButton(this, wxID_ANY, "Save As...");
+	savePresetAsBtn->SetToolTip("Save the current maps and output settings as a new named preset");
+	tmpsizer->Add(savePresetAsBtn, 0, wxALL, 5);
+	delete_preset_button = newd wxButton(this, wxID_ANY, "Delete");
+	delete_preset_button->SetToolTip("Delete the selected preset");
+	tmpsizer->Add(delete_preset_button, 0, wxALL, 5);
 	sizer->Add(tmpsizer, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, 5);
 
 	// Maps list + management buttons. Order matters: tiles sharing a position
@@ -100,6 +122,9 @@ MergeMapsMinimapWindow::MergeMapsMinimapWindow(wxWindow* parent) :
 	SetSizer(sizer);
 	Layout();
 	Centre(wxBOTH);
+
+	LoadPresetsFromSettings();
+	RebuildPresetChoice(0);
 	CheckValues();
 
 	addBtn->Bind(wxEVT_BUTTON, &MergeMapsMinimapWindow::OnClickAddMaps, this);
@@ -109,6 +134,11 @@ MergeMapsMinimapWindow::MergeMapsMinimapWindow(wxWindow* parent) :
 	browseBtn->Bind(wxEVT_BUTTON, &MergeMapsMinimapWindow::OnClickBrowse, this);
 	ok_button->Bind(wxEVT_BUTTON, &MergeMapsMinimapWindow::OnClickOK, this);
 	cancelBtn->Bind(wxEVT_BUTTON, &MergeMapsMinimapWindow::OnClickCancel, this);
+
+	preset_choice->Bind(wxEVT_CHOICE, &MergeMapsMinimapWindow::OnPresetSelected, this);
+	savePresetBtn->Bind(wxEVT_BUTTON, &MergeMapsMinimapWindow::OnClickSavePreset, this);
+	savePresetAsBtn->Bind(wxEVT_BUTTON, &MergeMapsMinimapWindow::OnClickSavePresetAs, this);
+	delete_preset_button->Bind(wxEVT_BUTTON, &MergeMapsMinimapWindow::OnClickDeletePreset, this);
 
 	SetIcons(IMAGE_MANAGER.GetIconBundle(ICON_FILE_EXPORT));
 }
@@ -254,4 +284,176 @@ void MergeMapsMinimapWindow::CheckValues() {
 
 	error_field->SetLabel(wxEmptyString);
 	ok_button->Enable(true);
+}
+
+// ----------------------------------------------------------------------------
+// Presets
+//
+// Presets are stored as a TOML array of tables in config.toml (the same shared
+// settings table that holds e.g. the client list), so they survive across
+// sessions without a dedicated settings key:
+//
+//   [[minimap_merge_presets]]
+//   name = "..."
+//   folder = "..."
+//   filename = "..."
+//   maps = [ "a.otbm", "b.otbm" ]
+// ----------------------------------------------------------------------------
+
+void MergeMapsMinimapWindow::LoadPresetsFromSettings() {
+	presets.clear();
+	auto* arr = g_settings.getTable()["minimap_merge_presets"].as_array();
+	if (!arr) {
+		return;
+	}
+	for (auto&& elem : *arr) {
+		auto* table = elem.as_table();
+		if (!table) {
+			continue;
+		}
+		MergePreset preset;
+		preset.name = (*table)["name"].value_or(std::string());
+		if (preset.name.empty()) {
+			continue;
+		}
+		preset.folder = (*table)["folder"].value_or(std::string());
+		preset.filename = (*table)["filename"].value_or(std::string());
+		if (auto* maps = (*table)["maps"].as_array()) {
+			for (auto&& map : *maps) {
+				if (auto value = map.value<std::string>()) {
+					preset.maps.push_back(*value);
+				}
+			}
+		}
+		presets.push_back(std::move(preset));
+	}
+}
+
+void MergeMapsMinimapWindow::SavePresetsToSettings() {
+	toml::array arr;
+	for (const auto& preset : presets) {
+		toml::table table;
+		table.insert_or_assign("name", preset.name);
+		table.insert_or_assign("folder", preset.folder);
+		table.insert_or_assign("filename", preset.filename);
+		toml::array maps;
+		for (const auto& map : preset.maps) {
+			maps.push_back(map);
+		}
+		table.insert_or_assign("maps", std::move(maps));
+		arr.push_back(std::move(table));
+	}
+	g_settings.getTable().insert_or_assign("minimap_merge_presets", std::move(arr));
+	g_settings.save();
+}
+
+void MergeMapsMinimapWindow::RebuildPresetChoice(int select_index) {
+	preset_choice->Clear();
+	preset_choice->Append("- Select preset -");
+	for (const auto& preset : presets) {
+		preset_choice->Append(wxString::FromUTF8(preset.name));
+	}
+	if (select_index < 0 || select_index >= static_cast<int>(preset_choice->GetCount())) {
+		select_index = 0;
+	}
+	preset_choice->SetSelection(select_index);
+	delete_preset_button->Enable(select_index > 0);
+}
+
+void MergeMapsMinimapWindow::ApplyPreset(const MergePreset& preset) {
+	maps_list->Clear();
+	for (const auto& map : preset.maps) {
+		maps_list->Append(wxString::FromUTF8(map));
+	}
+	if (!preset.folder.empty()) {
+		directory_text_field->ChangeValue(wxString::FromUTF8(preset.folder));
+	}
+	if (!preset.filename.empty()) {
+		file_name_text_field->ChangeValue(wxString::FromUTF8(preset.filename));
+	}
+	CheckValues();
+}
+
+MergeMapsMinimapWindow::MergePreset MergeMapsMinimapWindow::CaptureCurrentState(const std::string& name) const {
+	MergePreset preset;
+	preset.name = name;
+	preset.folder = directory_text_field->GetValue().ToStdString();
+	preset.filename = file_name_text_field->GetValue().ToStdString();
+	for (unsigned int i = 0; i < maps_list->GetCount(); ++i) {
+		preset.maps.push_back(maps_list->GetString(i).ToStdString());
+	}
+	return preset;
+}
+
+int MergeMapsMinimapWindow::FindPresetByName(const std::string& name) const {
+	for (size_t i = 0; i < presets.size(); ++i) {
+		if (presets[i].name == name) {
+			return static_cast<int>(i);
+		}
+	}
+	return -1;
+}
+
+void MergeMapsMinimapWindow::OnPresetSelected(wxCommandEvent& WXUNUSED(event)) {
+	int sel = preset_choice->GetSelection();
+	delete_preset_button->Enable(sel > 0);
+	int index = sel - 1;
+	if (index >= 0 && index < static_cast<int>(presets.size())) {
+		ApplyPreset(presets[index]);
+	}
+}
+
+void MergeMapsMinimapWindow::OnClickSavePreset(wxCommandEvent& event) {
+	int sel = preset_choice->GetSelection();
+	int index = sel - 1;
+	if (index < 0 || index >= static_cast<int>(presets.size())) {
+		// Nothing selected yet — fall back to creating a new named preset.
+		OnClickSavePresetAs(event);
+		return;
+	}
+	presets[index] = CaptureCurrentState(presets[index].name);
+	SavePresetsToSettings();
+}
+
+void MergeMapsMinimapWindow::OnClickSavePresetAs(wxCommandEvent& WXUNUSED(event)) {
+	wxTextEntryDialog dialog(this, "Preset name:", "Save Preset As");
+	if (dialog.ShowModal() != wxID_OK) {
+		return;
+	}
+	wxString raw = dialog.GetValue();
+	raw.Trim(true).Trim(false);
+	if (raw.IsEmpty()) {
+		return;
+	}
+	std::string name = raw.ToStdString();
+
+	int existing = FindPresetByName(name);
+	if (existing != -1) {
+		if (wxMessageBox("A preset named '" + raw + "' already exists. Overwrite it?", "Save Preset As", wxYES_NO | wxICON_QUESTION, this) != wxYES) {
+			return;
+		}
+		presets[existing] = CaptureCurrentState(name);
+		SavePresetsToSettings();
+		RebuildPresetChoice(existing + 1);
+		return;
+	}
+
+	presets.push_back(CaptureCurrentState(name));
+	SavePresetsToSettings();
+	RebuildPresetChoice(static_cast<int>(presets.size()));
+}
+
+void MergeMapsMinimapWindow::OnClickDeletePreset(wxCommandEvent& WXUNUSED(event)) {
+	int sel = preset_choice->GetSelection();
+	int index = sel - 1;
+	if (index < 0 || index >= static_cast<int>(presets.size())) {
+		return;
+	}
+	wxString name = wxString::FromUTF8(presets[index].name);
+	if (wxMessageBox("Delete preset '" + name + "'?", "Delete Preset", wxYES_NO | wxICON_WARNING, this) != wxYES) {
+		return;
+	}
+	presets.erase(presets.begin() + index);
+	SavePresetsToSettings();
+	RebuildPresetChoice(0);
 }

@@ -22,10 +22,14 @@
 
 #include <wx/dialog.h>
 
+#include <string>
+#include <vector>
+
 class wxStaticText;
 class wxTextCtrl;
 class wxButton;
 class wxListBox;
+class wxChoice;
 
 // Merges several .otbm map files into a single .otmm client minimap. Maps keep
 // their absolute X/Y/Z coordinates; tiles sharing a position are overwritten
@@ -46,15 +50,41 @@ public:
 	void OnClickOK(wxCommandEvent&);
 	void OnClickCancel(wxCommandEvent&);
 
+	void OnPresetSelected(wxCommandEvent&);
+	void OnClickSavePreset(wxCommandEvent&);
+	void OnClickSavePresetAs(wxCommandEvent&);
+	void OnClickDeletePreset(wxCommandEvent&);
+
 protected:
+	// A saved configuration of the dialog: which maps (ordered), where to write
+	// the .otmm and under which file name. Persisted to config.toml so the user
+	// does not have to re-add maps every export.
+	struct MergePreset {
+		std::string name;
+		std::string folder;
+		std::string filename;
+		std::vector<std::string> maps;
+	};
+
 	void CheckValues();
 	void SwapSelected(int delta);
 
+	void LoadPresetsFromSettings();
+	void SavePresetsToSettings();
+	void RebuildPresetChoice(int select_index);
+	void ApplyPreset(const MergePreset& preset);
+	MergePreset CaptureCurrentState(const std::string& name) const;
+	int FindPresetByName(const std::string& name) const;
+
 	wxStaticText* error_field;
+	wxChoice* preset_choice;
+	wxButton* delete_preset_button;
 	wxListBox* maps_list;
 	wxTextCtrl* directory_text_field;
 	wxTextCtrl* file_name_text_field;
 	wxButton* ok_button;
+
+	std::vector<MergePreset> presets;
 };
 
 #endif
