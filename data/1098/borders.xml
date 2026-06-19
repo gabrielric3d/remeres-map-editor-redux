@@ -1,22 +1,6 @@
 <?xml version="1.0"?>
 <materials>
 	<border activated="true" id="58">
-		
-		
-		
-		
-		
-		
-		
-		 -- mountain edge border (old) --	
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="891" />
 		<borderitem edge="w" item="894" />
 		<borderitem edge="e" item="892" />
@@ -30,53 +14,7 @@
 		<borderitem edge="dse" item="901" />
 		<borderitem edge="dsw" item="902" />
 	</border>
-	<border activated="true" id="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- mountain edge border (new) --	
-		
-		
-		
-		
-		
-		
-		
-		
-		<borderitem edge="n" item="4456" />
-		<borderitem edge="w" item="4459" />
-		<borderitem edge="e" item="4457" />
-		<borderitem edge="s" item="4458" />
-		<borderitem edge="cnw" item="4460" />
-		<borderitem edge="cne" item="4461" />
-		<borderitem edge="cse" item="4462" />
-		<borderitem edge="csw" item="4463" />
-		<borderitem edge="dnw" item="4464" />
-		<borderitem edge="dne" item="4465" />
-		<borderitem edge="dse" item="4466" />
-		<borderitem edge="dsw" item="4467" />
-	</border>
 	<border activated="false" id="2" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- grass border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4542" />
 		<borderitem edge="e" item="4543" />
 		<borderitem edge="s" item="4544" />
@@ -91,22 +29,6 @@
 		<borderitem edge="dse" item="4553" />
 	</border>
 	<border activated="true" id="4">
-		
-		
-		
-		
-		
-		
-		
-		 -- Flat roof border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="5052" />
 		<borderitem edge="w" item="5049" />
 		<borderitem edge="s" item="921" />
@@ -121,22 +43,6 @@
 		<borderitem edge="dse" item="5045" />
 	</border>
 	<border activated="false" id="5">
-		
-		
-		
-		
-		
-		
-		
-		 -- Sea border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4644" />
 		<borderitem edge="e" item="4645" />
 		<borderitem edge="s" item="4646" />
@@ -151,22 +57,6 @@
 		<borderitem edge="dse" item="4651" />
 	</border>
 	<border activated="true" id="6">
-		
-		
-		
-		
-		
-		
-		
-		 -- snow border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4737" />
 		<borderitem edge="e" item="4738" />
 		<borderitem edge="s" item="4739" />
@@ -181,22 +71,6 @@
 		<borderitem edge="dse" item="4748" />
 	</border>
 	<border activated="true" id="7">
-		
-		
-		
-		
-		
-		
-		
-		 -- cave border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4796" />
 		<borderitem edge="e" item="4797" />
 		<borderitem edge="s" item="4798" />
@@ -211,22 +85,6 @@
 		<borderitem edge="dse" item="4807" />
 	</border>
 	<border activated="false" id="8" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- lawn border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4784" />
 		<borderitem edge="e" item="4785" />
 		<borderitem edge="s" item="4786" />
@@ -241,22 +99,6 @@
 		<borderitem edge="dse" item="4795" />
 	</border>
 	<border activated="false" id="9" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- jungle grass border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="3305" />
 		<borderitem edge="e" item="3302" />
 		<borderitem edge="s" item="3304" />
@@ -271,22 +113,6 @@
 		<borderitem edge="dse" item="3306" />
 	</border>
 	<border activated="true" id="10" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- mountain edge border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4456" />
 		<borderitem edge="e" item="4457" />
 		<borderitem edge="s" item="4458" />
@@ -301,22 +127,6 @@
 		<borderitem edge="dsw" item="4467" />
 	</border>
 	<border activated="true" id="11" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- rock border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4554" />
 		<borderitem edge="e" item="4555" />
 		<borderitem edge="s" item="4556" />
@@ -331,22 +141,6 @@
 		<borderitem edge="dse" item="4565" />
 	</border>
 	<border activated="true" id="12" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- gravel border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4596" />
 		<borderitem edge="e" item="4597" />
 		<borderitem edge="s" item="4598" />
@@ -361,22 +155,6 @@
 		<borderitem edge="dse" item="4607" />
 	</border>
 	<border activated="true" id="13" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- dirt border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4667" />
 		<borderitem edge="e" item="4668" />
 		<borderitem edge="s" item="4669" />
@@ -391,22 +169,6 @@
 		<borderitem edge="dse" item="4678" />
 	</border>
 	<border activated="true" id="14" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- light dirt border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4679" />
 		<borderitem edge="e" item="4680" />
 		<borderitem edge="s" item="4681" />
@@ -421,22 +183,6 @@
 		<borderitem edge="dse" item="4690" />
 	</border>
 	<border activated="true" id="15" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- swamp border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4713" />
 		<borderitem edge="e" item="4714" />
 		<borderitem edge="s" item="4715" />
@@ -451,22 +197,6 @@
 		<borderitem edge="dse" item="4724" />
 	</border>
 	<border activated="true" id="16">
-		
-		
-		
-		
-		
-		
-		
-		 -- desert sand border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4772" />
 		<borderitem edge="e" item="4775" />
 		<borderitem edge="s" item="4773" />
@@ -481,22 +211,6 @@
 		<borderitem edge="dse" item="4783" />
 	</border>
 	<border activated="false" id="17">
-		
-		
-		
-		
-		
-		
-		
-		 -- beach sand border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4760" />
 		<borderitem edge="e" item="4761" />
 		<borderitem edge="s" item="4762" />
@@ -511,22 +225,6 @@
 		<borderitem edge="dse" item="4771" />
 	</border>
 	<border activated="true" id="18">
-		
-		
-		
-		
-		
-		
-		
-		 -- lava border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4808" />
 		<borderitem edge="e" item="4809" />
 		<borderitem edge="s" item="4810" />
@@ -541,22 +239,6 @@
 		<borderitem edge="dse" item="4819" />
 	</border>
 	<border activated="true" id="19" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- hard rock border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="3226" />
 		<borderitem edge="e" item="3227" />
 		<borderitem edge="s" item="3228" />
@@ -570,23 +252,21 @@
 		<borderitem edge="dsw" item="3236" />
 		<borderitem edge="dse" item="3237" />
 	</border>
+	<border activated="true" id="20">
+		<borderitem edge="n" item="4514" />
+		<borderitem edge="e" item="4515" />
+		<borderitem edge="s" item="4516" />
+		<borderitem edge="w" item="4517" />
+		<borderitem edge="cnw" item="4518" />
+		<borderitem edge="cne" item="4519" />
+		<borderitem edge="csw" item="4520" />
+		<borderitem edge="cse" item="4521" />
+		<borderitem edge="dnw" item="4522" />
+		<borderitem edge="dne" item="4523" />
+		<borderitem edge="dsw" item="4524" />
+		<borderitem edge="dse" item="4525" />
+	</border>
 	<border activated="true" id="21">
-		
-		
-		
-		
-		
-		
-		
-		 -- cave wall border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="5632" />
 		<borderitem edge="e" item="5637" />
 		<borderitem edge="s" item="5638" />
@@ -601,22 +281,6 @@
 		<borderitem edge="dse" item="5649" />
 	</border>
 	<border activated="true" id="22">
-		
-		
-		
-		
-		
-		
-		
-		 -- stone cave wall border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="5640" />
 		<borderitem edge="e" item="5641" />
 		<borderitem edge="s" item="5642" />
@@ -631,22 +295,6 @@
 		<borderitem edge="dse" item="5653" />
 	</border>
 	<border activated="true" id="23">
-		
-		
-		
-		
-		
-		
-		
-		 -- brick roof, vertical--
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="s" item="934" />
 		<borderitem edge="cse" item="930" />
 		<borderitem edge="csw" item="933" />
@@ -654,22 +302,6 @@
 		<borderitem edge="e" item="925" />
 	</border>
 	<border activated="true" id="24">
-		
-		
-		
-		
-		
-		
-		
-		 -- brick roof, left--
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="s" item="931" />
 		<borderitem edge="cse" item="930" />
 		<borderitem edge="csw" item="933" />
@@ -677,22 +309,6 @@
 		<borderitem edge="e" item="925" />
 	</border>
 	<border activated="true" id="25">
-		
-		
-		
-		
-		
-		
-		
-		 -- brick roof, right --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="s" item="932" />
 		<borderitem edge="cse" item="930" />
 		<borderitem edge="csw" item="933" />
@@ -700,22 +316,6 @@
 		<borderitem edge="e" item="925" />
 	</border>
 	<border activated="true" id="26">
-		
-		
-		
-		
-		
-		
-		
-		 -- brick roof, up --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="e" item="941" />
 		<borderitem edge="cse" item="940" />
 		<borderitem edge="cne" item="943" />
@@ -723,22 +323,6 @@
 		<borderitem edge="s" item="935" />
 	</border>
 	<border activated="true" id="27">
-		
-		
-		
-		
-		
-		
-		
-		 -- brick roof, horizontal --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="e" item="944" />
 		<borderitem edge="cse" item="940" />
 		<borderitem edge="cne" item="943" />
@@ -746,22 +330,6 @@
 		<borderitem edge="s" item="935" />
 	</border>
 	<border activated="true" id="28">
-		
-		
-		
-		
-		
-		
-		
-		 -- brick roof, down --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="e" item="942" />
 		<borderitem edge="cse" item="940" />
 		<borderitem edge="cne" item="943" />
@@ -769,22 +337,6 @@
 		<borderitem edge="s" item="935" />
 	</border>
 	<border activated="true" id="29" type="optional">
-		
-		
-		
-		
-		
-		
-		
-		 -- normal mountain gravel border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4471" />
 		<borderitem edge="e" item="4468" />
 		<borderitem edge="s" item="4469" />
@@ -799,44 +351,12 @@
 		<borderitem edge="dse" item="4479" />
 	</border>
 	<border activated="true" id="51">
-		
-		
-		
-		
-		
-		
-		
-		 -- partial mountain gravel border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="e" item="4468" />
 		<borderitem edge="s" item="4469" />
 		<borderitem edge="cse" item="4470" />
 		<borderitem edge="dse" item="4479" />
 	</border>
 	<border activated="true" id="3">
-		
-		
-		
-		
-		
-		
-		
-		 -- mountain inner border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="e" item="4826" />
 		<borderitem edge="s" item="4827" />
 		<borderitem edge="dse" item="877" />
@@ -1034,22 +554,6 @@
 		<borderitem edge="dse" item="17490" />
 	</border>
 	<border activated="true" id="30">
-		
-		
-		
-		
-		
-		
-		
-		 -- lava rock border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="5828" />
 		<borderitem edge="e" item="5829" />
 		<borderitem edge="s" item="5830" />
@@ -1064,22 +568,6 @@
 		<borderitem edge="dse" item="5839" />
 	</border>
 	<border activated="true" id="31">
-		
-		
-		
-		
-		
-		
-		
-		 -- Flat brown bomboo roof border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="3353" />
 		<borderitem edge="w" item="3356" />
 		<borderitem edge="s" item="3350" />
@@ -1094,22 +582,6 @@
 		<borderitem edge="dse" item="3357" />
 	</border>
 	<border activated="true" id="32">
-		
-		
-		
-		
-		
-		
-		
-		 -- Flat green bamboo roof border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="6164" />
 		<borderitem edge="w" item="6167" />
 		<borderitem edge="s" item="6161" />
@@ -1124,22 +596,6 @@
 		<borderitem edge="dse" item="6168" />
 	</border>
 	<border activated="true" id="33">
-		
-		
-		
-		
-		
-		
-		
-		 -- snowY sea border (NOT SNOW BORDER TO SEA, JUST A SNOWY SEA BORDER (Confusing yes... ) --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="6627" />
 		<borderitem edge="e" item="6628" />
 		<borderitem edge="s" item="6629" />
@@ -1154,22 +610,6 @@
 		<borderitem edge="dse" item="6631" />
 	</border>
 	<border activated="true" id="34">
-		
-		
-		
-		
-		
-		
-		
-		 -- wooden roof, up --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="e" item="951" />
 		<borderitem edge="cse" item="950" />
 		<borderitem edge="cne" item="954" />
@@ -1177,22 +617,6 @@
 		<borderitem edge="s" item="945" />
 	</border>
 	<border activated="true" id="35">
-		
-		
-		
-		
-		
-		
-		
-		 -- wooden roof, horizontal --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="e" item="952" />
 		<borderitem edge="cse" item="950" />
 		<borderitem edge="cne" item="954" />
@@ -1200,22 +624,6 @@
 		<borderitem edge="s" item="945" />
 	</border>
 	<border activated="true" id="36">
-		
-		
-		
-		
-		
-		
-		
-		 -- wooden roof, down --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="e" item="953" />
 		<borderitem edge="cse" item="950" />
 		<borderitem edge="cne" item="954" />
@@ -1223,22 +631,6 @@
 		<borderitem edge="s" item="945" />
 	</border>
 	<border activated="true" id="37">
-		
-		
-		
-		
-		
-		
-		
-		 -- wooden roof, left --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="s" item="963" />
 		<borderitem edge="cse" item="960" />
 		<borderitem edge="csw" item="964" />
@@ -1246,22 +638,6 @@
 		<borderitem edge="e" item="955" />
 	</border>
 	<border activated="true" id="38">
-		
-		
-		
-		
-		
-		
-		
-		 -- wooden roof, vertical --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="s" item="962" />
 		<borderitem edge="cse" item="960" />
 		<borderitem edge="csw" item="964" />
@@ -1269,22 +645,6 @@
 		<borderitem edge="e" item="955" />
 	</border>
 	<border activated="true" id="39">
-		
-		
-		
-		
-		
-		
-		
-		 -- wooden roof, right --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="s" item="961" />
 		<borderitem edge="cse" item="960" />
 		<borderitem edge="csw" item="964" />
@@ -1292,22 +652,6 @@
 		<borderitem edge="e" item="955" />
 	</border>
 	<border activated="true" id="40">
-		
-		
-		
-		
-		
-		
-		
-		 -- dark wooden floor border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="3145" />
 		<borderitem edge="w" item="3147" />
 		<borderitem edge="s" item="3144" />
@@ -1322,22 +666,6 @@
 		<borderitem edge="dse" item="3151" />
 	</border>
 	<border activated="true" id="41" type="optional">
-		
-		
-		
-		
-		
-		
-		
-		 -- wooden floor border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="435" />
 		<borderitem edge="w" item="437" />
 		<borderitem edge="s" item="434" />
@@ -1352,22 +680,6 @@
 		<borderitem edge="dse" item="438" />
 	</border>
 	<border activated="true" id="42">
-		
-		
-		
-		
-		
-		
-		
-		 -- melting ground border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="5816" />
 		<borderitem edge="w" item="5819" />
 		<borderitem edge="s" item="5818" />
@@ -1382,22 +694,6 @@
 		<borderitem edge="dse" item="5824" />
 	</border>
 	<border activated="true" id="43">
-		
-		
-		
-		
-		
-		
-		
-		 -- ice border--
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="6695" />
 		<borderitem edge="w" item="6698" />
 		<borderitem edge="s" item="6697" />
@@ -1412,22 +708,6 @@
 		<borderitem edge="dse" item="6706" />
 	</border>
 	<border activated="true" id="44">
-		
-		
-		
-		
-		
-		
-		
-		 -- frozen mud slim border--
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="7067" />
 		<borderitem edge="w" item="7070" />
 		<borderitem edge="s" item="7069" />
@@ -1442,22 +722,6 @@
 		<borderitem edge="dse" item="7078" />
 	</border>
 	<border activated="true" id="45">
-		
-		
-		
-		
-		
-		
-		
-		 -- wooden raft border--
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="7205" />
 		<borderitem edge="w" item="7207" />
 		<borderitem edge="s" item="7204" />
@@ -1472,22 +736,6 @@
 		<borderitem edge="dse" item="7209" />
 	</border>
 	<border activated="true" id="46">
-		
-		
-		
-		
-		
-		
-		
-		 -- frozen mud thick border--
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="7079" />
 		<borderitem edge="w" item="7082" />
 		<borderitem edge="s" item="7081" />
@@ -1502,22 +750,6 @@
 		<borderitem edge="dse" item="7090" />
 	</border>
 	<border activated="true" id="47">
-		
-		
-		
-		
-		
-		
-		
-		 -- frozen mud sea border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="6639" />
 		<borderitem edge="e" item="6640" />
 		<borderitem edge="s" item="6641" />
@@ -1531,23 +763,7 @@
 		<borderitem edge="dsw" item="6645" />
 		<borderitem edge="dse" item="6646" />
 	</border>
-	<border activated="true" id="48">
-		
-		
-		
-		
-		
-		
-		
-		 -- snow sea border --
-		
-		
-		
-		
-		
-		
-		
-		
+	<border activated="false" id="48">
 		<borderitem edge="n" item="6675" />
 		<borderitem edge="e" item="4738" />
 		<borderitem edge="s" item="4739" />
@@ -1562,23 +778,6 @@
 		<borderitem edge="dse" item="4748" />
 	</border>
 	<border activated="true" id="50">
-		
-		
-		
-		
-		
-		
-		
-		 -- invisible border --
-	
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4542" />
 		<borderitem edge="e" item="4543" />
 		<borderitem edge="s" item="4544" />
@@ -1597,22 +796,6 @@
 		<borderitem edge="cse" item="87" />
 	</border>
 	<border activated="true" id="52" type="optional">
-		
-		
-		
-		
-		
-		
-		
-		 -- snowy mountain gravel border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="6720" />
 		<borderitem edge="e" item="6762" />
 		<borderitem edge="s" item="6761" />
@@ -1627,22 +810,6 @@
 		<borderitem edge="dse" item="6727" />
 	</border>
 	<border activated="true" id="53">
-		
-		
-		
-		
-		
-		
-		
-		 -- "lofty" (Thanks MMB :P) snow border--
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="6939" />
 		<borderitem edge="w" item="6940" />
 		<borderitem edge="s" item="6941" />
@@ -1657,22 +824,6 @@
 		<borderitem edge="dse" item="6947" />
 	</border>
 	<border activated="true" id="54">
-		
-		
-		
-		
-		
-		
-		
-		 -- partial snowy mountain gravel border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="e" item="6762" />
 		<borderitem edge="s" item="6761" />
 		<borderitem edge="cse" item="6768" />
@@ -1681,44 +832,12 @@
 		<borderitem edge="dse" item="6727" />
 	</border>
 	<border activated="true" id="55">
-		
-		
-		
-		
-		
-		
-		
-		 -- inner icy mountain border--
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="s" item="6729" />
 		<borderitem edge="e" item="6728" />
 		<borderitem edge="cse" item="6730" />
 		<borderitem edge="dse" item="6732" />
 	</border>
 	<border activated="true" id="56">
-		
-		
-		
-		
-		
-		
-		
-		 -- Fur roof border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="6814" />
 		<borderitem edge="e" item="6816" />
 		<borderitem edge="s" item="6811" />
@@ -1733,22 +852,6 @@
 		<borderitem edge="dsw" item="6819" />
 	</border>
 	<border activated="true" id="57" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- dark swamp border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="4725" />
 		<borderitem edge="e" item="4726" />
 		<borderitem edge="s" item="4727" />
@@ -1763,22 +866,6 @@
 		<borderitem edge="dse" item="4736" />
 	</border>
 	<border activated="true" id="120" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- thick grass border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="7653" />
 		<borderitem edge="e" item="7710" />
 		<borderitem edge="s" item="7709" />
@@ -1793,22 +880,6 @@
 		<borderitem edge="dse" item="7664" />
 	</border>
 	<border activated="true" id="121">
-		
-		
-		
-		
-		
-		
-		
-		 -- thick cave border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="7654" />
 		<borderitem edge="e" item="7834" />
 		<borderitem edge="s" item="7833" />
@@ -1823,22 +894,6 @@
 		<borderitem edge="dse" item="7837" />
 	</border>
 	<border activated="true" id="122">
-		
-		
-		
-		
-		
-		
-		
-		 -- icy cave wall border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="6823" />
 		<borderitem edge="e" item="6824" />
 		<borderitem edge="s" item="6825" />
@@ -1853,62 +908,14 @@
 		<borderitem edge="dse" item="6832" />
 	</border>
 	<border activated="true" id="123">
-		
-		
-		
-		
-		
-		
-		
-		 -- icy cave wall border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="e" item="6214" />
 		<borderitem edge="w" item="6215" />
 	</border>
 	<border activated="true" id="124">
-		
-		
-		
-		
-		
-		
-		
-		 -- icy cave wall border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="6212" />
 		<borderitem edge="s" item="6211" />
 	</border>
 	<border activated="true" id="125">
-		
-		
-		
-		
-		
-		
-		
-		 -- dirt mountain ground border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="8460" />
 		<borderitem edge="e" item="8463" />
 		<borderitem edge="s" item="8462" />
@@ -1923,22 +930,6 @@
 		<borderitem edge="dse" item="8470" />
 	</border>
 	<border activated="true" id="126">
-		
-		
-		
-		
-		
-		
-		
-		 -- ugly cobblestone border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="8447" />
 		<borderitem edge="e" item="8449" />
 		<borderitem edge="s" item="8450" />
@@ -1953,22 +944,6 @@
 		<borderitem edge="dse" item="8452" />
 	</border>
 	<border activated="true" id="127">
-		
-		
-		
-		
-		
-		
-		
-		 -- dark cobblestone border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="8435" />
 		<borderitem edge="e" item="8437" />
 		<borderitem edge="s" item="8438" />
@@ -1983,22 +958,6 @@
 		<borderitem edge="dse" item="8440" />
 	</border>
 	<border activated="true" id="128">
-		
-		
-		
-		
-		
-		
-		
-		 -- dried grass border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="8349" />
 		<borderitem edge="e" item="8360" />
 		<borderitem edge="s" item="8359" />
@@ -2013,22 +972,6 @@
 		<borderitem edge="dse" item="8358" />
 	</border>
 	<border activated="true" id="129">
-		
-		
-		
-		
-		
-		
-		
-		 -- thick sand border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="8335" />
 		<borderitem edge="e" item="8338" />
 		<borderitem edge="s" item="8336" />
@@ -2043,22 +986,6 @@
 		<borderitem edge="dse" item="8346" />
 	</border>
 	<border activated="true" id="130" type="optional">
-		
-		
-		
-		
-		
-		
-		
-		 -- normal dirt mountain gravel --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="7989" />
 		<borderitem edge="e" item="8168" />
 		<borderitem edge="s" item="8169" />
@@ -2073,22 +1000,6 @@
 		<borderitem edge="dse" item="8138" />
 	</border>
 	<border activated="true" id="132">
-		
-		
-		
-		
-		
-		
-		
-		 -- thick sand border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="8021" />
 		<borderitem edge="e" item="8024" />
 		<borderitem edge="s" item="8023" />
@@ -2103,22 +1014,6 @@
 		<borderitem edge="dse" item="8032" />
 	</border>
 	<border activated="true" id="133">
-		
-		
-		
-		
-		
-		
-		
-		 -- "lofty" (Thanks MMB :P) ice border--
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="6870" />
 		<borderitem edge="w" item="6871" />
 		<borderitem edge="s" item="6872" />
@@ -2133,22 +1028,6 @@
 		<borderitem edge="dse" item="6881" />
 	</border>
 	<border activated="true" id="134">
-		
-		
-		
-		
-		
-		
-		
-		 -- dark sand dirt border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="11165" />
 		<borderitem edge="e" item="11167" />
 		<borderitem edge="s" item="11166" />
@@ -2163,22 +1042,6 @@
 		<borderitem edge="dse" item="11173" />
 	</border>
 	<border activated="true" id="135">
-		
-		
-		
-		
-		
-		
-		
-		 -- lush grass border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="12707" />
 		<borderitem edge="e" item="12708" />
 		<borderitem edge="s" item="12706" />
@@ -2193,22 +1056,6 @@
 		<borderitem edge="dse" item="12710" />
 	</border>
 	<border activated="true" id="136">
-		
-		
-		
-		
-		
-		
-		
-		 -- mossy floor border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="17674" />
 		<borderitem edge="e" item="17675" />
 		<borderitem edge="s" item="17673" />
@@ -2223,22 +1070,6 @@
 		<borderitem edge="dse" item="17677" />
 	</border>
 	<border activated="true" id="137">
-		
-		
-		
-		
-		
-		
-		
-		 -- forest floor border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="21113" />
 		<borderitem edge="e" item="21124" />
 		<borderitem edge="s" item="21123" />
@@ -2253,22 +1084,6 @@
 		<borderitem edge="dse" item="21122" />
 	</border>
 	<border activated="true" id="138">
-		
-		
-		
-		
-		
-		
-		
-		 -- brown sand border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="10456" />
 		<borderitem edge="e" item="10459" />
 		<borderitem edge="s" item="10457" />
@@ -2283,22 +1098,6 @@
 		<borderitem edge="dse" item="10466" />
 	</border>
 	<border activated="true" id="139">
-		
-		
-		
-		
-		
-		
-		
-		 -- dirt mud border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="10625" />
 		<borderitem edge="e" item="10628" />
 		<borderitem edge="s" item="10626" />
@@ -2313,22 +1112,6 @@
 		<borderitem edge="dse" item="10635" />
 	</border>
 	<border activated="true" id="140">
-		
-		
-		
-		
-		
-		
-		
-		 -- dark dirt mud border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="21613" />
 		<borderitem edge="e" item="21616" />
 		<borderitem edge="s" item="21614" />
@@ -2343,22 +1126,6 @@
 		<borderitem edge="dse" item="21623" />
 	</border>
 	<border activated="true" id="141">
-		
-		
-		
-		
-		
-		
-		
-		 -- unknown brown dirt border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="21912" />
 		<borderitem edge="e" item="21915" />
 		<borderitem edge="s" item="21913" />
@@ -2373,22 +1140,6 @@
 		<borderitem edge="dse" item="21922" />
 	</border>
 	<border activated="true" id="142">
-		
-		
-		
-		
-		
-		
-		
-		 -- pink sand border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="10638" />
 		<borderitem edge="e" item="10639" />
 		<borderitem edge="s" item="10640" />
@@ -2403,22 +1154,6 @@
 		<borderitem edge="dse" item="10649" />
 	</border>
 	<border activated="true" id="143">
-		
-		
-		
-		
-		
-		
-		
-		 -- dark sand border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="13201" />
 		<borderitem edge="e" item="13212" />
 		<borderitem edge="s" item="13211" />
@@ -2433,22 +1168,6 @@
 		<borderitem edge="dse" item="13210" />
 	</border>
 	<border activated="true" id="144">
-		
-		
-		
-		
-		
-		
-		
-		 -- mud sand border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="11016" />
 		<borderitem edge="e" item="11017" />
 		<borderitem edge="s" item="11018" />
@@ -2463,22 +1182,6 @@
 		<borderitem edge="dse" item="11027" />
 	</border>
 	<border activated="true" id="145">
-		
-		
-		
-		
-		
-		
-		
-		 -- mud sand brown border (unused) --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="11153" />
 		<borderitem edge="e" item="11078" />
 		<borderitem edge="s" item="11079" />
@@ -2493,22 +1196,6 @@
 		<borderitem edge="dse" item="11086" />
 	</border>
 	<border activated="true" id="146">
-		
-		
-		
-		
-		
-		
-		
-		 -- light dirt border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="11177" />
 		<borderitem edge="e" item="11179" />
 		<borderitem edge="s" item="11178" />
@@ -2523,22 +1210,6 @@
 		<borderitem edge="dse" item="11185" />
 	</border>
 	<border activated="true" id="147">
-		
-		
-		
-		
-		
-		
-		
-		 -- cake tile border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="13084" />
 		<borderitem edge="e" item="13085" />
 		<borderitem edge="s" item="13083" />
@@ -2553,22 +1224,6 @@
 		<borderitem edge="dse" item="13087" />
 	</border>
 	<border activated="true" id="148">
-		
-		
-		
-		
-		
-		
-		
-		 -- venore swamp border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="18594" />
 		<borderitem edge="e" item="18595" />
 		<borderitem edge="s" item="18593" />
@@ -2583,22 +1238,6 @@
 		<borderitem edge="dse" item="18597" />
 	</border>
 	<border activated="true" id="149">
-		
-		
-		
-		
-		
-		
-		
-		 -- muddy floor border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="11775" />
 		<borderitem edge="e" item="11778" />
 		<borderitem edge="s" item="11777" />
@@ -2612,53 +1251,7 @@
 		<borderitem edge="dsw" item="11792" />
 		<borderitem edge="dse" item="11791" />
 	</border>
-	<border activated="true" id="150">
-		
-		
-		
-		
-		
-		
-		
-		 -- venore muddy floor border --
-		
-		
-		
-		
-		
-		
-		
-		
-		<borderitem edge="n" item="18568" />
-		<borderitem edge="e" item="18571" />
-		<borderitem edge="s" item="18570" />
-		<borderitem edge="w" item="18569" />
-		<borderitem edge="cnw" item="18572" />
-		<borderitem edge="cne" item="18573" />
-		<borderitem edge="csw" item="18575" />
-		<borderitem edge="cse" item="18574" />
-		<borderitem edge="dnw" item="18576" />
-		<borderitem edge="dne" item="18577" />
-		<borderitem edge="dsw" item="18579" />
-		<borderitem edge="dse" item="18578" />
-	</border>
 	<border activated="true" id="151">
-		
-		
-		
-		
-		
-		
-		
-		 -- darkest mud border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="11522" />
 		<borderitem edge="e" item="11523" />
 		<borderitem edge="s" item="11524" />
@@ -2673,22 +1266,6 @@
 		<borderitem edge="dse" item="11533" />
 	</border>
 	<border activated="true" id="152">
-		
-		
-		
-		
-		
-		
-		
-		 -- purple mud border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="11741" />
 		<borderitem edge="e" item="11742" />
 		<borderitem edge="s" item="11743" />
@@ -2703,22 +1280,6 @@
 		<borderitem edge="dse" item="11752" />
 	</border>
 	<border activated="true" id="154">
-		
-		
-		
-		
-		
-		
-		
-		 -- mysterious border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="11478" />
 		<borderitem edge="e" item="11479" />
 		<borderitem edge="s" item="11480" />
@@ -2733,22 +1294,6 @@
 		<borderitem edge="dse" item="11489" />
 	</border>
 	<border activated="true" id="155">
-		
-		
-		
-		
-		
-		
-		
-		 -- dark spikes border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="12255" />
 		<borderitem edge="e" item="12256" />
 		<borderitem edge="s" item="12254" />
@@ -2763,22 +1308,6 @@
 		<borderitem edge="dse" item="12258" />
 	</border>
 	<border activated="true" id="156">
-		
-		
-		
-		
-		
-		
-		
-		 -- red spikes border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="12243" />
 		<borderitem edge="e" item="12244" />
 		<borderitem edge="s" item="12242" />
@@ -2793,22 +1322,6 @@
 		<borderitem edge="dse" item="12246" />
 	</border>
 	<border activated="true" id="157">
-		
-		
-		
-		
-		
-		
-		
-		 -- slime fungus border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="13609" />
 		<borderitem edge="e" item="13608" />
 		<borderitem edge="s" item="13607" />
@@ -2823,22 +1336,6 @@
 		<borderitem edge="dse" item="13613" />
 	</border>
 	<border activated="true" id="159">
-		
-		
-		
-		
-		
-		
-		
-		 -- blue sea floor border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="15013" />
 		<borderitem edge="e" item="15014" />
 		<borderitem edge="s" item="15012" />
@@ -2853,22 +1350,6 @@
 		<borderitem edge="dse" item="15016" />
 	</border>
 	<border activated="true" id="160">
-		
-		
-		
-		
-		
-		
-		
-		 -- brown/green sea floor border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="15239" />
 		<borderitem edge="e" item="15240" />
 		<borderitem edge="s" item="15238" />
@@ -2883,22 +1364,6 @@
 		<borderitem edge="dse" item="15242" />
 	</border>
 	<border activated="true" id="161">
-		
-		
-		
-		
-		
-		
-		
-		 -- crystal floor border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="17445" />
 		<borderitem edge="e" item="17446" />
 		<borderitem edge="s" item="17444" />
@@ -2913,22 +1378,6 @@
 		<borderitem edge="dse" item="17448" />
 	</border>
 	<border activated="true" id="162">
-		
-		
-		
-		
-		
-		
-		
-		 -- crystal floor depth border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="17457" />
 		<borderitem edge="e" item="17458" />
 		<borderitem edge="s" item="17456" />
@@ -2943,22 +1392,6 @@
 		<borderitem edge="dse" item="17460" />
 	</border>
 	<border activated="true" id="163">
-		
-		
-		
-		
-		
-		
-		
-		 -- basalt border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="17630" />
 		<borderitem edge="e" item="17631" />
 		<borderitem edge="s" item="17629" />
@@ -2973,22 +1406,6 @@
 		<borderitem edge="dse" item="17633" />
 	</border>
 	<border activated="true" id="164">
-		
-		
-		
-		
-		
-		
-		
-		 -- mold border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="17654" />
 		<borderitem edge="e" item="17655" />
 		<borderitem edge="s" item="17653" />
@@ -3003,22 +1420,6 @@
 		<borderitem edge="dse" item="17657" />
 	</border>
 	<border activated="true" id="165">
-		
-		
-		
-		
-		
-		
-		
-		 -- mushroom sponge border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="18106" />
 		<borderitem edge="e" item="18107" />
 		<borderitem edge="s" item="18105" />
@@ -3033,22 +1434,6 @@
 		<borderitem edge="dse" item="18109" />
 	</border>
 	<border activated="true" id="166">
-		
-		
-		
-		
-		
-		
-		
-		 -- salt floor border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="18172" />
 		<borderitem edge="e" item="18174" />
 		<borderitem edge="s" item="18173" />
@@ -3063,22 +1448,6 @@
 		<borderitem edge="dse" item="18180" />
 	</border>
 	<border activated="false" id="167">
-		
-		
-		
-		
-		
-		
-		
-		 -- cookie border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="18184" />
 		<borderitem edge="e" item="18186" />
 		<borderitem edge="s" item="18185" />
@@ -3093,22 +1462,6 @@
 		<borderitem edge="dse" item="18192" />
 	</border>
 	<border activated="true" id="168">
-		
-		
-		
-		
-		
-		
-		
-		 -- branches border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="20787" />
 		<borderitem edge="e" item="21131" />
 		<borderitem edge="s" item="20797" />
@@ -3123,22 +1476,6 @@
 		<borderitem edge="dse" item="20796" />
 	</border>
 	<border activated="true" id="169">
-		
-		
-		
-		
-		
-		
-		
-		 -- grey floor (unknown4) border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="22195" />
 		<borderitem edge="e" item="22198" />
 		<borderitem edge="s" item="22196" />
@@ -3153,22 +1490,6 @@
 		<borderitem edge="dse" item="22205" />
 	</border>
 	<border activated="true" id="170">
-		
-		
-		
-		
-		
-		
-		
-		 -- serpent seacrest ground border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="23955" />
 		<borderitem edge="e" item="23957" />
 		<borderitem edge="s" item="23956" />
@@ -3183,22 +1504,6 @@
 		<borderitem edge="dse" item="23959" />
 	</border>
 	<border activated="true" id="171">
-		
-		
-		
-		
-		
-		
-		
-		 -- muddy water border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="11451" />
 		<borderitem edge="e" item="11454" />
 		<borderitem edge="s" item="11452" />
@@ -3213,22 +1518,6 @@
 		<borderitem edge="dse" item="11460" />
 	</border>
 	<border activated="true" id="172">
-		
-		
-		
-		
-		
-		
-		
-		 -- acid border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="11551" />
 		<borderitem edge="e" item="11550" />
 		<borderitem edge="s" item="11549" />
@@ -3243,22 +1532,6 @@
 		<borderitem edge="dse" item="11555" />
 	</border>
 	<border activated="true" id="173">
-		
-		
-		
-		
-		
-		
-		
-		 -- dirty water border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="13740" />
 		<borderitem edge="e" item="13741" />
 		<borderitem edge="s" item="13742" />
@@ -3273,22 +1546,6 @@
 		<borderitem edge="dse" item="13747" />
 	</border>
 	<border activated="true" id="174">
-		
-		
-		
-		
-		
-		
-		
-		 -- shallow water border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="11031" />
 		<borderitem edge="e" item="11034" />
 		<borderitem edge="s" item="11032" />
@@ -3303,22 +1560,6 @@
 		<borderitem edge="dse" item="11040" />
 	</border>
 	<border activated="true" id="175">
-		
-		
-		
-		
-		
-		
-		
-		 -- small brook water border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="21159" />
 		<borderitem edge="e" item="21162" />
 		<borderitem edge="s" item="21160" />
@@ -3333,22 +1574,6 @@
 		<borderitem edge="dse" item="21168" />
 	</border>
 	<border activated="true" id="176">
-		
-		
-		
-		
-		
-		
-		
-		 -- crystal dirt border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="21950" />
 		<borderitem edge="e" item="21953" />
 		<borderitem edge="s" item="21951" />
@@ -3362,53 +1587,7 @@
 		<borderitem edge="dsw" item="21961" />
 		<borderitem edge="dse" item="21960" />
 	</border>
-	<border activated="true" id="177">
-		
-		
-		
-		
-		
-		
-		
-		 -- coubblestone border --
-		
-		
-		
-		
-		
-		
-		
-		
-		<borderitem edge="n" item="19750" />
-		<borderitem edge="e" item="19751" />
-		<borderitem edge="s" item="19749" />
-		<borderitem edge="w" item="19752" />
-		<borderitem edge="cnw" item="19759" />
-		<borderitem edge="cne" item="19760" />
-		<borderitem edge="csw" item="19758" />
-		<borderitem edge="cse" item="19757" />
-		<borderitem edge="dnw" item="19755" />
-		<borderitem edge="dne" item="19756" />
-		<borderitem edge="dsw" item="19754" />
-		<borderitem edge="dse" item="19753" />
-	</border>
 	<border activated="true" id="178">
-		
-		
-		
-		
-		
-		
-		
-		 -- oramond pavement border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="22752" />
 		<borderitem edge="e" item="22753" />
 		<borderitem edge="s" item="22751" />
@@ -3423,22 +1602,6 @@
 		<borderitem edge="dse" item="22755" />
 	</border>
 	<border activated="true" id="179">
-		
-		
-		
-		
-		
-		
-		
-		 -- oramond border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="23132" />
 		<borderitem edge="e" item="23133" />
 		<borderitem edge="s" item="23131" />
@@ -3453,22 +1616,6 @@
 		<borderitem edge="dse" item="23135" />
 	</border>
 	<border activated="true" id="180">
-		
-		
-		
-		
-		
-		
-		
-		 -- oramond other pavement border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="22918" />
 		<borderitem edge="e" item="22919" />
 		<borderitem edge="s" item="22917" />
@@ -3483,22 +1630,6 @@
 		<borderitem edge="dse" item="22921" />
 	</border>
 	<border activated="true" id="181">
-		
-		
-		
-		
-		
-		
-		
-		 -- venore cobblestone border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="19762" />
 		<borderitem edge="e" item="19763" />
 		<borderitem edge="s" item="19761" />
@@ -3513,22 +1644,6 @@
 		<borderitem edge="dse" item="19765" />
 	</border>
 	<border activated="true" id="182">
-		
-		
-		
-		
-		
-		
-		
-		 -- venore plaster border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="19774" />
 		<borderitem edge="e" item="19775" />
 		<borderitem edge="s" item="19773" />
@@ -3543,22 +1658,6 @@
 		<borderitem edge="dse" item="19777" />
 	</border>
 	<border activated="true" id="183">
-		
-		
-		
-		
-		
-		
-		
-		 -- terracotta border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="19829" />
 		<borderitem edge="e" item="19830" />
 		<borderitem edge="s" item="19828" />
@@ -3573,22 +1672,6 @@
 		<borderitem edge="dse" item="19832" />
 	</border>
 	<border activated="true" id="184">
-		
-		
-		
-		
-		
-		
-		
-		 -- roshamuul border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="22183" />
 		<borderitem edge="e" item="22186" />
 		<borderitem edge="s" item="22184" />
@@ -3603,22 +1686,6 @@
 		<borderitem edge="dse" item="22193" />
 	</border>
 	<border activated="true" id="185">
-		
-		
-		
-		
-		
-		
-		
-		 -- unknown1 border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="22207" />
 		<borderitem edge="e" item="22210" />
 		<borderitem edge="s" item="22208" />
@@ -3633,42 +1700,10 @@
 		<borderitem edge="dse" item="22217" />
 	</border>
 	<border activated="true" id="186">
-		
-		
-		
-		
-		
-		
-		
-		 -- darkest wooden floor border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="9570" />
 		<borderitem edge="s" item="9569" />
 	</border>
 	<border activated="true" id="187">
-		
-		
-		
-		
-		
-		
-		
-		 -- light wooden floor border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="18119" />
 		<borderitem edge="e" item="18120" />
 		<borderitem edge="s" item="18118" />
@@ -3683,22 +1718,6 @@
 		<borderitem edge="dse" item="18135" />
 	</border>
 	<border activated="true" id="188">
-		
-		
-		
-		
-		
-		
-		
-		 -- timber floor border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="12740" />
 		<borderitem edge="e" item="12741" />
 		<borderitem edge="s" item="12739" />
@@ -3713,51 +1732,35 @@
 		<borderitem edge="dse" item="12743" />
 	</border>
 	<border activated="true" id="189">
-		
-		
-		
-		
-		
-		
-		
-		 -- grimy wooden plank horizontal border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="18908" />
-		<borderitem edge="e" item="18902" />
+		<borderitem edge="e">
+			<item id="18771" chance="80" />
+			<item id="18770" chance="35" />
+			<item id="18902" chance="15" />
+		</borderitem>
 		<borderitem edge="s" item="18904" />
-		<borderitem edge="w" item="18906" />
+		<borderitem edge="w">
+			<item id="18773" chance="80" />
+			<item id="18772" chance="35" />
+			<item id="18906" chance="15" />
+		</borderitem>
 		<borderitem edge="cnw" item="18907" />
 		<borderitem edge="cne" item="18909" />
 		<borderitem edge="csw" item="18905" />
 		<borderitem edge="cse" item="18903" />
 	</border>
 	<border activated="true" id="190">
-		
-		
-		
-		
-		
-		
-		
-		 -- grimy wooden plank vertical border --
-		
-		
-		
-		
-		
-		
-		
-		
-		<borderitem edge="n" item="18916" />
+		<borderitem edge="n">
+			<item id="18777" chance="80" />
+			<item id="18776" chance="35" />
+			<item id="18916" chance="15" />
+		</borderitem>
 		<borderitem edge="e" item="18910" />
-		<borderitem edge="s" item="18912" />
+		<borderitem edge="s">
+			<item id="18775" chance="80" />
+			<item id="18774" chance="35" />
+			<item id="18912" chance="15" />
+		</borderitem>
 		<borderitem edge="w" item="18914" />
 		<borderitem edge="cnw" item="18915" />
 		<borderitem edge="cne" item="18917" />
@@ -3765,22 +1768,6 @@
 		<borderitem edge="cse" item="18911" />
 	</border>
 	<border activated="true" id="191">
-		
-		
-		
-		
-		
-		
-		
-		 -- pink wooden plank border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="18877" />
 		<borderitem edge="e" item="18880" />
 		<borderitem edge="s" item="18859" />
@@ -3791,22 +1778,6 @@
 		<borderitem edge="cse" item="18860" />
 	</border>
 	<border activated="true" id="192">
-		
-		
-		
-		
-		
-		
-		
-		 -- yellow pavement border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="10418" />
 		<borderitem edge="e" item="10419" />
 		<borderitem edge="s" item="10417" />
@@ -3821,22 +1792,6 @@
 		<borderitem edge="dse" item="10421" />
 	</border>
 	<border activated="true" id="193">
-		
-		
-		
-		
-		
-		
-		
-		 -- dark pavement border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="11465" />
 		<borderitem edge="e" item="11466" />
 		<borderitem edge="s" item="11464" />
@@ -3851,22 +1806,6 @@
 		<borderitem edge="dse" item="11468" />
 	</border>
 	<border activated="true" id="194">
-		
-		
-		
-		
-		
-		
-		
-		 -- serpent ground border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="10858" />
 		<borderitem edge="e" item="10859" />
 		<borderitem edge="s" item="10857" />
@@ -3881,22 +1820,6 @@
 		<borderitem edge="dse" item="10861" />
 	</border>
 	<border activated="true" id="195">
-		
-		
-		
-		
-		
-		
-		
-		 -- ice stone floor border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="18345" />
 		<borderitem edge="e" item="18347" />
 		<borderitem edge="s" item="18346" />
@@ -3911,22 +1834,6 @@
 		<borderitem edge="dse" item="18353" />
 	</border>
 	<border activated="true" id="196">
-		
-		
-		
-		
-		
-		
-		
-		 -- hive strucutre --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="14537" />
 		<borderitem edge="e" item="14540" />
 		<borderitem edge="s" item="14539" />
@@ -3941,22 +1848,6 @@
 		<borderitem edge="dse" item="14547" />
 	</border>
 	<border activated="true" id="197">
-		
-		
-		
-		
-		
-		
-		
-		 -- red hive structure --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="14553" />
 		<borderitem edge="e" item="14558" />
 		<borderitem edge="s" item="14557" />
@@ -3971,22 +1862,6 @@
 		<borderitem edge="dse" item="14565" />
 	</border>
 	<border activated="true" id="198">
-		
-		
-		
-		
-		
-		
-		
-		 -- dark hive structure --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="14716" />
 		<borderitem edge="e" item="14719" />
 		<borderitem edge="s" item="14718" />
@@ -4001,22 +1876,6 @@
 		<borderitem edge="dse" item="14726" />
 	</border>
 	<border activated="true" id="199">
-		
-		
-		
-		
-		
-		
-		
-		 -- colourful honeycomb --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="15367" />
 		<borderitem edge="e" item="15370" />
 		<borderitem edge="s" item="15361" />
@@ -4031,22 +1890,6 @@
 		<borderitem edge="dse" item="15371" />
 	</border>
 	<border activated="true" id="200">
-		
-		
-		
-		
-		
-		
-		
-		 -- bland honeycomb --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="15379" />
 		<borderitem edge="e" item="15382" />
 		<borderitem edge="s" item="15373" />
@@ -4061,22 +1904,6 @@
 		<borderitem edge="dse" item="15383" />
 	</border>
 	<border activated="true" id="201">
-		
-		
-		
-		
-		
-		
-		
-		 -- ocean floor --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="5427" />
 		<borderitem edge="e" item="5429" />
 		<borderitem edge="s" item="5428" />
@@ -4091,22 +1918,6 @@
 		<borderitem edge="dse" item="5431" />
 	</border>
 	<border activated="true" id="202">
-		
-		
-		
-		
-		
-		
-		
-		 -- krailos grass --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="25018" />
 		<borderitem edge="e" item="25029" />
 		<borderitem edge="s" item="25028" />
@@ -4121,22 +1932,6 @@
 		<borderitem edge="dse" item="25027" />
 	</border>
 	<border activated="true" id="203">
-		
-		
-		
-		
-		
-		
-		
-		 -- krailos dirt --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="25042" />
 		<borderitem edge="e" item="25053" />
 		<borderitem edge="s" item="25052" />
@@ -4151,22 +1946,6 @@
 		<borderitem edge="dse" item="25051" />
 	</border>
 	<border activated="true" id="204">
-		
-		
-		
-		
-		
-		
-		
-		 -- dark scaled ground --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="25716" />
 		<borderitem edge="e" item="25719" />
 		<borderitem edge="s" item="25713" />
@@ -4181,22 +1960,6 @@
 		<borderitem edge="dse" item="25737" />
 	</border>
 	<border activated="true" id="205">
-		
-		
-		
-		
-		
-		
-		
-		 -- unknown7 --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="25756" />
 		<borderitem edge="e" item="25757" />
 		<borderitem edge="s" item="25755" />
@@ -4211,22 +1974,6 @@
 		<borderitem edge="dse" item="25763" />
 	</border>
 	<border activated="true" id="206">
-		
-		
-		
-		
-		
-		
-		
-		 -- krailos orange --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="25078" />
 		<borderitem edge="e" item="25079" />
 		<borderitem edge="s" item="25080" />
@@ -4241,22 +1988,6 @@
 		<borderitem edge="dse" item="25089" />
 	</border>
 	<border activated="true" id="207">
-		
-		
-		
-		
-		
-		
-		
-		 -- krailos yellow --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="25102" />
 		<borderitem edge="e" item="25103" />
 		<borderitem edge="s" item="25104" />
@@ -4271,22 +2002,6 @@
 		<borderitem edge="dse" item="25113" />
 	</border>
 	<border activated="true" id="208">
-		
-		
-		
-		
-		
-		
-		
-		 -- krailos purple --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="25090" />
 		<borderitem edge="e" item="25091" />
 		<borderitem edge="s" item="25092" />
@@ -4301,22 +2016,6 @@
 		<borderitem edge="dse" item="25101" />
 	</border>
 	<border activated="true" id="209">
-		
-		
-		
-		
-		
-		
-		
-		 -- unknown5 --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="23334" />
 		<borderitem edge="e" item="23331" />
 		<borderitem edge="s" item="23333" />
@@ -4331,22 +2030,6 @@
 		<borderitem edge="cse" item="23339" />
 	</border>
 	<border activated="true" id="210">
-		
-		
-		
-		
-		
-		
-		
-		 -- unknown6 pink acid --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="24150" />
 		<borderitem edge="e" item="24147" />
 		<borderitem edge="s" item="24149" />
@@ -4361,22 +2044,6 @@
 		<borderitem edge="dse" item="24154" />
 	</border>
 	<border activated="true" id="211">
-		
-		
-		
-		
-		
-		
-		
-		 -- lava new border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="15503" />
 		<borderitem edge="e" item="15504" />
 		<borderitem edge="s" item="15505" />
@@ -4391,22 +2058,6 @@
 		<borderitem edge="dse" item="15511" />
 	</border>
 	<border activated="true" id="212">
-		
-		
-		
-		
-		
-		
-		
-		 -- scale roof --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="10889" />
 		<borderitem edge="e" item="10891" />
 		<borderitem edge="s" item="10886" />
@@ -4421,44 +2072,12 @@
 		<borderitem edge="dse" item="10893" />
 	</border>
 	<border activated="true" id="213">
-		
-		
-		
-		
-		
-		
-		
-		 -- rocky wall bottoms --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="13674" />
 		<borderitem edge="w" item="13473" />
 		<borderitem edge="cne" item="13684" />
 		<borderitem edge="dnw" item="13679" />
 	</border>
 	<border activated="true" id="214">
-		
-		
-		
-		
-		
-		
-		
-		 -- striped marquee red white (vertical) --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="5192" />
 		<borderitem edge="e" item="5188" />
 		<borderitem edge="s" item="5183" />
@@ -4469,22 +2088,6 @@
 		<borderitem edge="cse" item="5182" />
 	</border>
 	<border activated="true" id="215">
-		
-		
-		
-		
-		
-		
-		
-		 -- striped marquee red white (horizontal) --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="5166" />
 		<borderitem edge="e" item="5158" />
 		<borderitem edge="s" item="5165" />
@@ -4495,22 +2098,6 @@
 		<borderitem edge="cse" item="5161" />
 	</border>
 	<border activated="true" id="216">
-		
-		
-		
-		
-		
-		
-		
-		 -- striped marquee blue yellow (vertical) --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="5201" />
 		<borderitem edge="e" item="5196" />
 		<borderitem edge="s" item="5198" />
@@ -4521,22 +2108,6 @@
 		<borderitem edge="cse" item="5194" />
 	</border>
 	<border activated="true" id="217">
-		
-		
-		
-		
-		
-		
-		
-		 -- striped marquee blue yellow (horizontal) --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="5175" />
 		<borderitem edge="e" item="5171" />
 		<borderitem edge="s" item="5173" />
@@ -4547,22 +2118,6 @@
 		<borderitem edge="cse" item="5170" />
 	</border>
 	<border activated="true" id="218">
-		
-		
-		
-		
-		
-		
-		
-		 -- marquee green (vertical) --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="5225" />
 		<borderitem edge="e" item="5220" />
 		<borderitem edge="s" item="5222" />
@@ -4573,22 +2128,6 @@
 		<borderitem edge="cse" item="5218" />
 	</border>
 	<border activated="true" id="219">
-		
-		
-		
-		
-		
-		
-		
-		 -- marquee green (horizontal) --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="5214" />
 		<borderitem edge="e" item="5207" />
 		<borderitem edge="s" item="5212" />
@@ -4599,22 +2138,6 @@
 		<borderitem edge="cse" item="5206" />
 	</border>
 	<border activated="true" id="220">
-		
-		
-		
-		
-		
-		
-		
-		 -- marquee blue (vertical) --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="5249" />
 		<borderitem edge="e" item="5244" />
 		<borderitem edge="s" item="5246" />
@@ -4625,22 +2148,6 @@
 		<borderitem edge="cse" item="5242" />
 	</border>
 	<border activated="true" id="221">
-		
-		
-		
-		
-		
-		
-		
-		 -- marquee blue (horizontal) --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="5238" />
 		<borderitem edge="e" item="5231" />
 		<borderitem edge="s" item="5236" />
@@ -4651,22 +2158,6 @@
 		<borderitem edge="cse" item="5230" />
 	</border>
 	<border activated="true" id="222">
-		
-		
-		
-		
-		
-		
-		
-		 -- broken blue marble floor --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="12362" />
 		<borderitem edge="e" item="12363" />
 		<borderitem edge="s" item="12361" />
@@ -4681,22 +2172,6 @@
 		<borderitem edge="dse" item="12365" />
 	</border>
 	<border activated="true" id="224">
-		
-		
-		
-		
-		
-		
-		
-		 -- orange zao carpet --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="12126" />
 		<borderitem edge="e" item="12127" />
 		<borderitem edge="s" item="12125" />
@@ -4711,22 +2186,6 @@
 		<borderitem edge="dse" item="12129" />
 	</border>
 	<border activated="true" id="225">
-		
-		
-		
-		
-		
-		
-		
-		 -- brown zao carpet --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="12177" />
 		<borderitem edge="e" item="12178" />
 		<borderitem edge="s" item="12137" />
@@ -4741,22 +2200,6 @@
 		<borderitem edge="dse" item="12180" />
 	</border>
 	<border activated="true" id="226">
-		
-		
-		
-		
-		
-		
-		
-		 -- jungle grass with wather border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="39221" />
 		<borderitem edge="e" item="39223" />
 		<borderitem edge="s" item="39220" />
@@ -4771,22 +2214,6 @@
 		<borderitem edge="dse" item="39231" />
 	</border>
 	<border activated="true" id="227" type="optional">
-		
-		
-		
-		
-		
-		
-		
-		 -- mountain two --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="29719" />
 		<borderitem edge="e" item="29678" />
 		<borderitem edge="s" item="29677" />
@@ -4801,22 +2228,6 @@
 		<borderitem edge="dse" item="29725" />
 	</border>
 	<border activated="true" id="228">
-		
-		
-		
-		
-		
-		
-		
-		 -- underworld scratched mountain
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="36226" />
 		<borderitem edge="e" item="36227" />
 		<borderitem edge="s" item="36228" />
@@ -4831,22 +2242,6 @@
 		<borderitem edge="dse" item="36237" />
 	</border>
 	<border activated="true" id="229" type="optional">
-		
-		
-		
-		
-		
-		
-		
-		 -- rotten mountain --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="42578" />
 		<borderitem edge="e" item="42219" />
 		<borderitem edge="s" item="42210" />
@@ -4861,22 +2256,6 @@
 		<borderitem edge="dse" item="42584" />
 	</border>
 	<border activated="true" id="230" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- rotten border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="42255" />
 		<borderitem edge="e" item="42256" />
 		<borderitem edge="s" item="42254" />
@@ -4890,53 +2269,7 @@
 		<borderitem edge="dsw" item="42263" />
 		<borderitem edge="dse" item="42262" />
 	</border>
-	<border activated="true" id="231" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- stone pavement lighter --
-		
-		
-		
-		
-		
-		
-		
-		
-		<borderitem edge="n" item="40989" />
-		<borderitem edge="e" item="40993" />
-		<borderitem edge="s" item="40987" />
-		<borderitem edge="w" item="40995" />
-		<borderitem edge="cnw" item="41004" />
-		<borderitem edge="cne" item="41002" />
-		<borderitem edge="csw" item="41000" />
-		<borderitem edge="cse" item="40999" />
-		<borderitem edge="dnw" item="41010" />
-		<borderitem edge="dne" item="41011" />
-		<borderitem edge="dsw" item="41007" />
-		<borderitem edge="dse" item="41006" />
-	</border>
 	<border activated="true" id="232" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- dark dirt new --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="39896" />
 		<borderitem edge="e" item="39897" />
 		<borderitem edge="s" item="39995" />
@@ -4951,22 +2284,6 @@
 		<borderitem edge="dse" item="40007" />
 	</border>
 	<border activated="true" id="233" type="optional">
-		
-		
-		
-		
-		
-		
-		
-		 -- fancy mountain --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="42163" />
 		<borderitem edge="e" item="42156" />
 		<borderitem edge="s" item="42150" />
@@ -4981,22 +2298,6 @@
 		<borderitem edge="dse" item="42169" />
 	</border>
 	<border activated="true" id="234" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- edgy stone border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="7641" />
 		<borderitem edge="e" item="7642" />
 		<borderitem edge="s" item="7643" />
@@ -5011,22 +2312,6 @@
 		<borderitem edge="dse" item="7652" />
 	</border>
 	<border activated="true" id="236">
-		
-		
-		
-		
-		
-		
-		
-		 -- mountain edge border (new) --	
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="8053" />
 		<borderitem edge="w" item="8054" />
 		<borderitem edge="e" item="8056" />
@@ -5041,22 +2326,6 @@
 		<borderitem edge="dsw" item="8119" />
 	</border>
 	<border activated="true" id="237" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- white marble floor border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="44273" />
 		<borderitem edge="e" item="44274" />
 		<borderitem edge="s" item="44272" />
@@ -5071,22 +2340,6 @@
 		<borderitem edge="dse" item="44280" />
 	</border>
 	<border activated="true" id="238" type="optional">
-		
-		
-		
-		
-		
-		
-		
-		 -- new ice mountain --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="44674" />
 		<borderitem edge="e" item="44673" />
 		<borderitem edge="s" item="44675" />
@@ -5101,22 +2354,6 @@
 		<borderitem edge="dse" item="44683" />
 	</border>
 	<border activated="true" id="239" type="optional">
-		
-		
-		
-		
-		
-		
-		
-		 -- rotten mountain 2 --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="46025" />
 		<borderitem edge="e" item="45972" />
 		<borderitem edge="s" item="45960" />
@@ -5131,22 +2368,6 @@
 		<borderitem edge="dse" item="46031" />
 	</border>
 	<border activated="true" id="240">
-		
-		
-		
-		
-		
-		
-		
-		 -- "lofty" (Thanks MMB :P) snow border--
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="46153" />
 		<borderitem edge="w" item="46154" />
 		<borderitem edge="s" item="46155" />
@@ -5175,22 +2396,6 @@
 		<borderitem edge="dse" item="44370" />
 	</border>
 	<border activated="true" id="242" type="optional">
-		
-		
-		
-		
-		
-		
-		
-		 -- candia chocolate mountain border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="46752" />
 		<borderitem edge="e" item="46725" />
 		<borderitem edge="s" item="46719" />
@@ -5205,22 +2410,6 @@
 		<borderitem edge="dse" item="46759" />
 	</border>
 	<border activated="true" id="243">
-		
-		
-		
-		
-		
-		
-		
-		 -- candia green border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="47053" />
 		<borderitem edge="e" item="47054" />
 		<borderitem edge="s" item="47052" />
@@ -5235,22 +2424,6 @@
 		<borderitem edge="dse" item="47060" />
 	</border>
 	<border activated="true" id="244">
-		
-		
-		
-		
-		
-		
-		
-		 -- candia chocolate ground border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="47074" />
 		<borderitem edge="e" item="47075" />
 		<borderitem edge="s" item="47073" />
@@ -5265,22 +2438,6 @@
 		<borderitem edge="dse" item="47081" />
 	</border>
 	<border activated="true" id="245">
-		
-		
-		
-		
-		
-		
-		
-		 -- candia cream border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="47095" />
 		<borderitem edge="e" item="47096" />
 		<borderitem edge="s" item="47094" />
@@ -5295,22 +2452,6 @@
 		<borderitem edge="dse" item="47102" />
 	</border>
 	<border activated="true" id="246">
-		
-		
-		
-		
-		
-		
-		
-		 -- candia green border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="47053" />
 		<borderitem edge="e" item="47054" />
 		<borderitem edge="s" item="47052" />
@@ -5325,22 +2466,6 @@
 		<borderitem edge="dse" item="47060" />
 	</border>
 	<border activated="true" id="247" type="optional">
-		
-		
-		
-		
-		
-		
-		
-		 -- cake mountain border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="13134" />
 		<borderitem edge="e" item="13134" />
 		<borderitem edge="s" item="13134" />
@@ -5351,22 +2476,6 @@
 		<borderitem edge="cse" item="13142" />
 	</border>
 	<border activated="true" id="248">
-		
-		
-		
-		
-		
-		
-		
-		 -- waffle border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="47111" />
 		<borderitem edge="e" item="47112" />
 		<borderitem edge="s" item="47109" />
@@ -5381,22 +2490,6 @@
 		<borderitem edge="dse" item="47112" />
 	</border>
 	<border activated="true" id="249" type="optional">
-		
-		
-		
-		
-		
-		
-		
-		 -- candia chocolate mountain border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="45316" />
 		<borderitem edge="e" item="45315" />
 		<borderitem edge="s" item="45317" />
@@ -5411,22 +2504,6 @@
 		<borderitem edge="dse" item="45325" />
 	</border>
 	<border activated="true" id="250">
-		
-		
-		
-		
-		
-		
-		
-		 -- frozen mud thick border--
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="45353" />
 		<borderitem edge="w" item="45356" />
 		<borderitem edge="s" item="45355" />
@@ -5440,37 +2517,7 @@
 		<borderitem edge="dsw" item="45363" />
 		<borderitem edge="dse" item="45364" />
 	</border>
-	<border activated="true" id="251">
-		<borderitem edge="n" item="31674" />
-		<borderitem edge="w" item="31675" />
-		<borderitem edge="s" item="31673" />
-		<borderitem edge="e" item="31676" />
-		<borderitem edge="cnw" item="31680" />
-		<borderitem edge="cne" item="31679" />
-		<borderitem edge="csw" item="31678" />
-		<borderitem edge="cse" item="31677" />
-		<borderitem edge="dnw" item="31684" />
-		<borderitem edge="dne" item="31683" />
-		<borderitem edge="dsw" item="31682" />
-		<borderitem edge="dse" item="31681" />
-	</border>
 	<border activated="true" id="252">
-		
-		
-		
-		
-		
-		
-		
-		 -- shallow water --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="38066" />
 		<borderitem edge="e" item="38069" />
 		<borderitem edge="s" item="38068" />
@@ -5485,22 +2532,6 @@
 		<borderitem edge="dse" item="38074" />
 	</border>
 	<border activated="true" id="253" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- grass border 2 --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="45763" />
 		<borderitem edge="e" item="45774" />
 		<borderitem edge="s" item="45773" />
@@ -5515,22 +2546,6 @@
 		<borderitem edge="dse" item="45772" />
 	</border>
 	<border activated="true" id="254" group="1">
-		
-		
-		
-		
-		
-		
-		
-		 -- grass border 3 --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="45719" />
 		<borderitem edge="e" item="45730" />
 		<borderitem edge="s" item="45729" />
@@ -5545,22 +2560,6 @@
 		<borderitem edge="dse" item="45728" />
 	</border>
 	<border activated="true" id="256">
-		
-		
-		
-		
-		
-		
-		
-		 -- sunken sand packed --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="45082" />
 		<borderitem edge="s" item="45081" />
 		<borderitem edge="w" item="45080" />
@@ -5575,22 +2574,6 @@
 		<borderitem edge="dse" item="45070" />
 	</border>
 	<border activated="true" id="257">
-		
-		
-		
-		
-		
-		
-		
-		 -- sunken sand sediment --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="45094" />
 		<borderitem edge="s" item="45093" />
 		<borderitem edge="w" item="45092" />
@@ -5605,22 +2588,6 @@
 		<borderitem edge="dse" item="45083" />
 	</border>
 	<border activated="true" id="258">
-		
-		
-		
-		
-		
-		
-		
-		 -- sunken sand sediment 2 --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="51799" />
 		<borderitem edge="s" item="51798" />
 		<borderitem edge="w" item="51801" />
@@ -5635,22 +2602,6 @@
 		<borderitem edge="dse" item="51802" />
 	</border>
 	<border activated="true" id="259" type="optional">
-		
-		
-		
-		
-		
-		
-		
-		 -- desert mountain border
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="43476" />
 		<borderitem edge="e" item="43506" />
 		<borderitem edge="s" item="43507" />
@@ -5663,22 +2614,6 @@
 		<borderitem edge="dse" item="43505" />
 	</border>
 	<border activated="true" id="260">
-		
-		
-		
-		
-		
-		
-		
-		 -- darkisland brown/green sea floor border --
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="51787" />
 		<borderitem edge="e" item="51788" />
 		<borderitem edge="s" item="51786" />
@@ -5693,22 +2628,6 @@
 		<borderitem edge="dse" item="51790" />
 	</border>
 	<border activated="true" id="261">
-		
-		
-		
-		
-		
-		
-		
-		 -- stone ice
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="46197" />
 		<borderitem edge="w" item="46199" />
 		<borderitem edge="e" item="46198" />
@@ -5722,53 +2641,7 @@
 		<borderitem edge="dsw" item="46205" />
 		<borderitem edge="dse" item="46204" />
 	</border>
-	<border activated="true" id="262">
-		
-		
-		
-		
-		
-		
-		
-		 -- ice mountain inside border
-		
-		
-		
-		
-		
-		
-		
-		
-		<borderitem edge="n" item="44701" />
-		<borderitem edge="w" item="44702" />
-		<borderitem edge="e" item="44704" />
-		<borderitem edge="s" item="44703" />
-		<borderitem edge="cnw" item="44712" />
-		<borderitem edge="cne" item="44711" />
-		<borderitem edge="csw" item="44710" />
-		<borderitem edge="cse" item="44709" />
-		<borderitem edge="dnw" item="44705" />
-		<borderitem edge="dne" item="44706" />
-		<borderitem edge="dsw" item="44708" />
-		<borderitem edge="dse" item="44707" />
-	</border>
 	<border activated="true" id="263">
-		
-		
-		
-		
-		
-		
-		
-		 -- ice ground 4
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="44647" />
 		<borderitem edge="w" item="44650" />
 		<borderitem edge="e" item="44648" />
@@ -5783,28 +2656,6 @@
 		<borderitem edge="dse" item="44658" />
 	</border>
 	<border activated="true" id="264">
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		 -- snow ground border 5
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="44800" />
 		<borderitem edge="w" item="44803" />
 		<borderitem edge="e" item="44801" />
@@ -5819,28 +2670,6 @@
 		<borderitem edge="dse" item="44811" />
 	</border>
 	<border activated="true" id="265">
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		 -- black border
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="34648" />
 		<borderitem edge="w" item="34651" />
 		<borderitem edge="e" item="34649" />
@@ -5855,28 +2684,6 @@
 		<borderitem edge="dse" item="34659" />
 	</border>
 	<border activated="true" id="266">
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		 -- black border mountain
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
 		<borderitem edge="n" item="51823" />
 		<borderitem edge="w" item="51826" />
 		<borderitem edge="e" item="51824" />
@@ -5917,34 +2724,6 @@
 		<borderitem edge="dne" item="44767" />
 		<borderitem edge="dsw" item="44769" />
 		<borderitem edge="dse" item="44768" />
-	</border>
-	<border activated="true" id="269">
-		<borderitem edge="n" item="44393" />
-		<borderitem edge="w" item="44396" />
-		<borderitem edge="e" item="44394" />
-		<borderitem edge="s" item="44395" />
-		<borderitem edge="cnw" item="44397" />
-		<borderitem edge="cne" item="44398" />
-		<borderitem edge="cse" item="44400" />
-		<borderitem edge="csw" item="44399" />
-		<borderitem edge="dnw" item="44401" />
-		<borderitem edge="dne" item="44402" />
-		<borderitem edge="dse" item="44404" />
-		<borderitem edge="dsw" item="44403" />
-	</border>
-	<border activated="true" id="269">
-		<borderitem edge="n" item="44393" />
-		<borderitem edge="w" item="44396" />
-		<borderitem edge="e" item="44394" />
-		<borderitem edge="s" item="44395" />
-		<borderitem edge="cnw" item="44397" />
-		<borderitem edge="cne" item="44398" />
-		<borderitem edge="cse" item="44400" />
-		<borderitem edge="csw" item="44399" />
-		<borderitem edge="dnw" item="44401" />
-		<borderitem edge="dne" item="44402" />
-		<borderitem edge="dse" item="44404" />
-		<borderitem edge="dsw" item="44403" />
 	</border>
 	<border activated="true" id="270">
 		<borderitem edge="n" item="49695" />
@@ -6085,5 +2864,454 @@
 		<borderitem edge="dne" item="45141" />
 		<borderitem edge="dse" item="45138" />
 		<borderitem edge="dsw" item="45139" />
+	</border>
+	<border id="280">
+		<borderitem edge="n" item="45582" />
+		<borderitem edge="w" item="45585" />
+		<borderitem edge="e" item="45583" />
+		<borderitem edge="s" item="45584" />
+		<borderitem edge="cnw" item="45586" />
+		<borderitem edge="cne" item="45587" />
+		<borderitem edge="cse" item="45589" />
+		<borderitem edge="csw" item="45588" />
+		<borderitem edge="dnw" item="45590" />
+		<borderitem edge="dne" item="45591" />
+		<borderitem edge="dse" item="45593" />
+		<borderitem edge="dsw" item="45592" />
+	</border>
+	<border id="282">
+		<borderitem edge="n" item="53428" />
+		<borderitem edge="e" item="53439" />
+		<borderitem edge="s" item="53438" />
+		<borderitem edge="cnw" item="53430" />
+		<borderitem edge="cne" item="53431" />
+		<borderitem edge="cse" item="53433" />
+		<borderitem edge="csw" item="53432" />
+		<borderitem edge="dnw" item="53434" />
+		<borderitem edge="dne" item="53435" />
+		<borderitem edge="dse" item="53437" />
+		<borderitem edge="dsw" item="53436" />
+		<borderitem edge="w" item="53429" />
+	</border>
+	<border id="281">
+		<borderitem edge="n" item="53440" />
+		<borderitem edge="w" item="53441" />
+		<borderitem edge="e" item="53451" />
+		<borderitem edge="s" item="53450" />
+		<borderitem edge="cnw" item="53442" />
+		<borderitem edge="cne" item="53443" />
+		<borderitem edge="cse" item="53445" />
+		<borderitem edge="csw" item="53444" />
+		<borderitem edge="dnw" item="53446" />
+		<borderitem edge="dne" item="53447" />
+		<borderitem edge="dse" item="53449" />
+		<borderitem edge="dsw" item="53448" />
+	</border>
+	<border id="283">
+		<borderitem edge="n" item="52620" />
+		<borderitem edge="w" item="52622" />
+		<borderitem edge="e" item="52621" />
+		<borderitem edge="s" item="52619" />
+		<borderitem edge="cnw" item="52626" />
+		<borderitem edge="cne" item="52625" />
+		<borderitem edge="cse" item="52623" />
+		<borderitem edge="csw" item="52624" />
+		<borderitem edge="dnw" item="52630" />
+		<borderitem edge="dne" item="52629" />
+		<borderitem edge="dse" item="52627" />
+		<borderitem edge="dsw" item="52628" />
+	</border>
+	<border id="284">
+		<borderitem edge="n" item="54363" />
+		<borderitem edge="w" item="54366" />
+		<borderitem edge="e" item="54364" />
+		<borderitem edge="s" item="54365" />
+		<borderitem edge="cnw" item="54367" />
+		<borderitem edge="cne" item="54368" />
+		<borderitem edge="cse" item="54370" />
+		<borderitem edge="csw" item="54369" />
+		<borderitem edge="dnw" item="54371" />
+		<borderitem edge="dne" item="54372" />
+		<borderitem edge="dse" item="54374" />
+		<borderitem edge="dsw" item="54373" />
+	</border>
+	<border id="286">
+		<borderitem edge="n" item="41121" />
+		<borderitem edge="e" item="41122" />
+		<borderitem edge="w" item="41123" />
+		<borderitem edge="s" item="41120" />
+		<borderitem edge="csw" item="41125" />
+		<borderitem edge="cse" item="41124" />
+		<borderitem edge="cne" item="41126" />
+		<borderitem edge="cnw" item="41127" />
+		<borderitem edge="dnw" item="41131" />
+		<borderitem edge="dne" item="41130" />
+		<borderitem edge="dsw" item="41129" />
+		<borderitem edge="dse" item="41128" />
+	</border>
+	<border id="287">
+		<borderitem edge="n" item="44800" />
+		<borderitem edge="e" item="44801" />
+		<borderitem edge="s" item="44802" />
+		<borderitem edge="w" item="44803" />
+		<borderitem edge="cnw" item="44804" />
+		<borderitem edge="cne" item="44805" />
+		<borderitem edge="cse" item="44807" />
+		<borderitem edge="csw" item="44806" />
+		<borderitem edge="dnw" item="44808" />
+		<borderitem edge="dne" item="44809" />
+		<borderitem edge="dse" item="44811" />
+		<borderitem edge="dsw" item="44810" />
+	</border>
+	<border id="289">
+		<borderitem edge="n" item="54352" />
+		<borderitem edge="e" item="54351" />
+		<borderitem edge="s" item="54350" />
+		<borderitem edge="w" item="54353" />
+		<borderitem edge="cnw" item="54357" />
+		<borderitem edge="cne" item="54356" />
+		<borderitem edge="cse" item="54354" />
+		<borderitem edge="csw" item="54355" />
+		<borderitem edge="dnw" item="54361" />
+		<borderitem edge="dne" item="54360" />
+		<borderitem edge="dse" item="54358" />
+		<borderitem edge="dsw" item="54359" />
+	</border>
+	<border id="290">
+		<borderitem edge="n" item="37662" />
+		<borderitem edge="e" item="37663" />
+		<borderitem edge="s" item="37661" />
+		<borderitem edge="w" item="37664" />
+		<borderitem edge="cnw" item="37660" />
+		<borderitem edge="cne" item="37659" />
+		<borderitem edge="cse" item="37657" />
+		<borderitem edge="csw" item="37658" />
+		<borderitem edge="dnw" item="37665" />
+		<borderitem edge="dne" item="37666" />
+		<borderitem edge="dse" item="37668" />
+		<borderitem edge="dsw" item="37667" />
+	</border>
+	<border id="291">
+		<borderitem edge="n" item="25030" />
+		<borderitem edge="e" item="25041" />
+		<borderitem edge="s" item="25040" />
+		<borderitem edge="w" item="25031" />
+		<borderitem edge="cnw" item="25032" />
+		<borderitem edge="cne" item="25033" />
+		<borderitem edge="cse" item="25035" />
+		<borderitem edge="csw" item="25034" />
+		<borderitem edge="dnw" item="25036" />
+		<borderitem edge="dne" item="25037" />
+		<borderitem edge="dse" item="25039" />
+		<borderitem edge="dsw" item="25038" />
+	</border>
+	<border id="285" type="optional">
+		<borderitem edge="n" item="44600" />
+		<borderitem edge="e" item="44588" />
+		<borderitem edge="s" item="44590" />
+		<borderitem edge="w" item="44598" />
+		<borderitem edge="cnw" item="44604" />
+		<borderitem edge="cne" item="44603" />
+		<borderitem edge="cse" item="44582" />
+		<borderitem edge="csw" item="44602" />
+		<borderitem edge="dnw" item="44605" />
+		<borderitem edge="dne" item="44607" />
+		<borderitem edge="dse" item="44608" />
+		<borderitem edge="dsw" item="44606" />
+	</border>
+	<border id="292">
+		<borderitem edge="n" item="44589" />
+		<borderitem edge="e" item="44588" />
+		<borderitem edge="s" item="44590" />
+		<borderitem edge="w" item="44587" />
+		<borderitem edge="cnw" item="44593" />
+		<borderitem edge="cne" item="44592" />
+		<borderitem edge="cse" item="44582" />
+		<borderitem edge="csw" item="44591" />
+		<borderitem edge="dnw" item="44594" />
+		<borderitem edge="dne" item="44596" />
+		<borderitem edge="dse" item="44597" />
+		<borderitem edge="dsw" item="44595" />
+	</border>
+	<border id="262" type="optional">
+		<borderitem edge="n" item="44701" />
+		<borderitem edge="e" item="44704" />
+		<borderitem edge="s" item="44703" />
+		<borderitem edge="w" item="44702" />
+		<borderitem edge="cnw" item="44712" />
+		<borderitem edge="cne" item="44711" />
+		<borderitem edge="cse" item="44709" />
+		<borderitem edge="csw" item="44710" />
+		<borderitem edge="dnw" item="44705" />
+		<borderitem edge="dne" item="44706" />
+		<borderitem edge="dse" item="44707" />
+		<borderitem edge="dsw" item="44708" />
+	</border>
+	<border id="293">
+		<borderitem edge="n" item="54688" />
+		<borderitem edge="e" item="54689" />
+		<borderitem edge="s" item="54690" />
+		<borderitem edge="w" item="54691" />
+		<borderitem edge="cnw" item="54692" />
+		<borderitem edge="cne" item="54693" />
+		<borderitem edge="cse" item="54695" />
+		<borderitem edge="csw" item="54694" />
+		<borderitem edge="dnw" item="54696" />
+		<borderitem edge="dne" item="54697" />
+		<borderitem edge="dse" item="54699" />
+		<borderitem edge="dsw" item="54698" />
+	</border>
+	<border id="294">
+		<borderitem edge="n" item="45191" />
+		<borderitem edge="e" item="45192" />
+		<borderitem edge="s" item="45193" />
+		<borderitem edge="w" item="45194" />
+		<borderitem edge="cnw" item="45199" />
+		<borderitem edge="cne" item="45200" />
+		<borderitem edge="cse" item="45202" />
+		<borderitem edge="csw" item="45201" />
+		<borderitem edge="dnw" item="45195" />
+		<borderitem edge="dne" item="45196" />
+		<borderitem edge="dse" item="45198" />
+		<borderitem edge="dsw" item="45197" />
+	</border>
+	<border id="295">
+		<borderitem edge="n" item="18142" />
+		<borderitem edge="e" item="18143" />
+		<borderitem edge="s" item="18141" />
+		<borderitem edge="w" item="18144" />
+		<borderitem edge="cnw" item="18151" />
+		<borderitem edge="cne" item="18152" />
+		<borderitem edge="cse" item="18149" />
+		<borderitem edge="csw" item="18150" />
+		<borderitem edge="dnw" item="18147" />
+		<borderitem edge="dne" item="18148" />
+		<borderitem edge="dse" item="18145" />
+		<borderitem edge="dsw" item="18146" />
+	</border>
+	<border id="297">
+		<borderitem edge="n" item="54730" />
+		<borderitem edge="e" item="54731" />
+		<borderitem edge="s" item="54732" />
+		<borderitem edge="w" item="54733" />
+		<borderitem edge="cnw" item="54738" />
+		<borderitem edge="cne" item="54739" />
+		<borderitem edge="cse" item="54741" />
+		<borderitem edge="csw" item="54740" />
+		<borderitem edge="dnw" item="54734" />
+		<borderitem edge="dne" item="54735" />
+		<borderitem edge="dse" item="54737" />
+		<borderitem edge="dsw" item="54736" />
+	</border>
+	<border id="299">
+		<borderitem edge="n" item="54751" />
+		<borderitem edge="e" item="54762" />
+		<borderitem edge="s" item="54761" />
+		<borderitem edge="w" item="54752" />
+		<borderitem edge="cnw" item="54753" />
+		<borderitem edge="cne" item="54754" />
+		<borderitem edge="cse" item="54756" />
+		<borderitem edge="csw" item="54755" />
+		<borderitem edge="dnw" item="54757" />
+		<borderitem edge="dne" item="54758" />
+		<borderitem edge="dse" item="54760" />
+		<borderitem edge="dsw" item="54759" />
+	</border>
+	<border id="300">
+		<borderitem edge="n" item="34661" />
+		<borderitem edge="e" item="34662" />
+		<borderitem edge="s" item="34663" />
+		<borderitem edge="w" item="34664" />
+		<borderitem edge="cnw" item="34665" />
+		<borderitem edge="cne" item="34666" />
+		<borderitem edge="cse" item="34668" />
+		<borderitem edge="csw" item="34667" />
+		<borderitem edge="dnw" item="34669" />
+		<borderitem edge="dne" item="34670" />
+		<borderitem edge="dse" item="34672" />
+		<borderitem edge="dsw" item="34671" />
+	</border>
+	<border id="301">
+		<borderitem edge="n" item="31698" />
+		<borderitem edge="e" item="31699" />
+		<borderitem edge="s" item="31697" />
+		<borderitem edge="w" item="31700" />
+		<borderitem edge="cnw" item="31704" />
+		<borderitem edge="cne" item="31703" />
+		<borderitem edge="cse" item="31701" />
+		<borderitem edge="csw" item="31702" />
+		<borderitem edge="dnw" item="31708" />
+		<borderitem edge="dne" item="31707" />
+		<borderitem edge="dse" item="31705" />
+		<borderitem edge="dsw" item="31706" />
+	</border>
+	<border id="302">
+		<borderitem edge="n" item="31698" />
+		<borderitem edge="e" item="31699" />
+		<borderitem edge="s" item="31697" />
+		<borderitem edge="w" item="31700" />
+		<borderitem edge="cnw" item="31704" />
+		<borderitem edge="cne" item="31703" />
+		<borderitem edge="cse" item="31701" />
+		<borderitem edge="csw" item="31702" />
+		<borderitem edge="dnw" item="31708" />
+		<borderitem edge="dne" item="31707" />
+		<borderitem edge="dse" item="31705" />
+		<borderitem edge="dsw" item="31706" />
+	</border>
+	<border id="251">
+		<borderitem edge="n" item="31674" />
+		<borderitem edge="e" item="31675" />
+		<borderitem edge="s" item="31673" />
+		<borderitem edge="w" item="31676" />
+		<borderitem edge="cnw" item="31680" />
+		<borderitem edge="cne" item="31679" />
+		<borderitem edge="cse" item="31677" />
+		<borderitem edge="csw" item="31678" />
+		<borderitem edge="dnw" item="31684" />
+		<borderitem edge="dne" item="31683" />
+		<borderitem edge="dse" item="31681" />
+		<borderitem edge="dsw" item="31682" />
+	</border>
+	<border id="304">
+		<borderitem edge="n" item="55550" />
+		<borderitem edge="e" item="55561" />
+		<borderitem edge="s" item="55560" />
+		<borderitem edge="w" item="55551" />
+		<borderitem edge="cnw" item="55552" />
+		<borderitem edge="cne" item="55553" />
+		<borderitem edge="cse" item="55555" />
+		<borderitem edge="csw" item="55554" />
+		<borderitem edge="dnw" item="55556" />
+		<borderitem edge="dne" item="55557" />
+		<borderitem edge="dse" item="55559" />
+		<borderitem edge="dsw" item="55558" />
+	</border>
+	<border id="305">
+		<borderitem edge="n" item="55579" />
+		<borderitem edge="e" item="55576" />
+		<borderitem edge="s" item="55578" />
+		<borderitem edge="w" item="55582" />
+		<borderitem edge="cnw" item="55581" />
+		<borderitem edge="cne" item="55577" />
+		<borderitem edge="cse" item="55575" />
+		<borderitem edge="csw" item="55580" />
+		<borderitem edge="dnw" item="55586" />
+		<borderitem edge="dne" item="55584" />
+		<borderitem edge="dse" item="55583" />
+		<borderitem edge="dsw" item="55585" />
+	</border>
+	<border id="306">
+		<borderitem edge="n" item="55625" />
+		<borderitem edge="e" item="55636" />
+		<borderitem edge="s" item="55635" />
+		<borderitem edge="w" item="55626" />
+		<borderitem edge="cnw" item="55627" />
+		<borderitem edge="cne" item="55628" />
+		<borderitem edge="cse" item="55630" />
+		<borderitem edge="csw" item="55629" />
+		<borderitem edge="dnw" item="55631" />
+		<borderitem edge="dne" item="55632" />
+		<borderitem edge="dse" item="55634" />
+		<borderitem edge="dsw" item="55633" />
+	</border>
+	<border id="307">
+		<borderitem edge="n" item="51632" />
+		<borderitem edge="e" item="51629" />
+		<borderitem edge="s" item="51630" />
+		<borderitem edge="w" item="51633" />
+		<borderitem edge="cnw" item="51636" />
+		<borderitem edge="cne" item="51635" />
+		<borderitem edge="cse" item="51631" />
+		<borderitem edge="csw" item="51634" />
+		<borderitem edge="dnw" item="51637" />
+		<borderitem edge="dne" item="51639" />
+		<borderitem edge="dse" item="51640" />
+		<borderitem edge="dsw" item="51638" />
+	</border>
+	<border id="308">
+		<borderitem edge="n" item="51612" />
+		<borderitem edge="e" item="51613" />
+		<borderitem edge="s" item="51614" />
+		<borderitem edge="w" item="51615" />
+		<borderitem edge="cnw" item="51616" />
+		<borderitem edge="cne" item="51617" />
+		<borderitem edge="cse" item="51619" />
+		<borderitem edge="csw" item="51618" />
+		<borderitem edge="dnw" item="51620" />
+		<borderitem edge="dne" item="51621" />
+		<borderitem edge="dse" item="51623" />
+		<borderitem edge="dsw" item="51622" />
+	</border>
+	<border id="309">
+		<borderitem edge="n" item="55648" />
+		<borderitem edge="e" item="55649" />
+		<borderitem edge="s" item="55647" />
+		<borderitem edge="w" item="55650" />
+		<borderitem edge="cnw" item="55654" />
+		<borderitem edge="cne" item="55653" />
+		<borderitem edge="cse" item="55651" />
+		<borderitem edge="csw" item="55652" />
+		<borderitem edge="dnw" item="55658" />
+		<borderitem edge="dne" item="55657" />
+		<borderitem edge="dse" item="55655" />
+		<borderitem edge="dsw" item="55656" />
+	</border>
+	<border id="310">
+		<borderitem edge="n" item="35524" />
+		<borderitem edge="e" item="35523" />
+		<borderitem edge="s" item="35522" />
+		<borderitem edge="w" item="35525" />
+		<borderitem edge="cnw" item="35526" />
+		<borderitem edge="cne" item="35527" />
+		<borderitem edge="cse" item="35529" />
+		<borderitem edge="csw" item="35528" />
+		<borderitem edge="dnw" item="35530" />
+		<borderitem edge="dne" item="35531" />
+		<borderitem edge="dse" item="35533" />
+		<borderitem edge="dsw" item="35532" />
+	</border>
+	<border id="311">
+		<borderitem edge="n" item="13621" />
+		<borderitem edge="e" item="13622" />
+		<borderitem edge="s" item="13620" />
+		<borderitem edge="w" item="13623" />
+		<borderitem edge="cnw" item="13630" />
+		<borderitem edge="cne" item="13631" />
+		<borderitem edge="cse" item="13628" />
+		<borderitem edge="csw" item="13629" />
+		<borderitem edge="dnw" item="13626" />
+		<borderitem edge="dne" item="13627" />
+		<borderitem edge="dse" item="13624" />
+		<borderitem edge="dsw" item="13625" />
+	</border>
+	<border id="312">
+		<borderitem edge="n" item="55520" />
+		<borderitem edge="e" item="55521" />
+		<borderitem edge="s" item="55519" />
+		<borderitem edge="w" item="55522" />
+		<borderitem edge="cnw" item="55526" />
+		<borderitem edge="cne" item="55525" />
+		<borderitem edge="cse" item="55523" />
+		<borderitem edge="csw" item="55524" />
+		<borderitem edge="dnw" item="55530" />
+		<borderitem edge="dne" item="55529" />
+		<borderitem edge="dse" item="55527" />
+		<borderitem edge="dsw" item="55528" />
+	</border>
+	<!-- borda neve 1 -->
+	<border id="313">
+		<borderitem edge="n" item="44393" />
+		<borderitem edge="e" item="44394" />
+		<borderitem edge="s" item="44395" />
+		<borderitem edge="w" item="44396" />
+		<borderitem edge="cnw" item="44397" />
+		<borderitem edge="cne" item="44398" />
+		<borderitem edge="cse" item="44400" />
+		<borderitem edge="csw" item="44399" />
+		<borderitem edge="dnw" item="44401" />
+		<borderitem edge="dne" item="44402" />
+		<borderitem edge="dse" item="44404" />
+		<borderitem edge="dsw" item="44403" />
 	</border>
 </materials>

@@ -10,13 +10,20 @@ set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "Minimum CMake policy version 
 
 project(rme)
 
-# Limit parallel compilation to 20 threads
+# Limit parallel compilation to avoid C1060 (compiler out of heap space).
+# wxWidgets + heavy templates can consume several GB per cl.exe instance.
+# Override with -DRME_PARALLEL_COMPILE=N at configure time if needed.
+set(RME_PARALLEL_COMPILE "4" CACHE STRING "Max parallel compile jobs")
+set(RME_PARALLEL_LINK    "2" CACHE STRING "Max parallel link jobs")
+
 if(MSVC)
-	add_compile_options(/MP20)
+	add_compile_options(/MP${RME_PARALLEL_COMPILE})
 else()
 	set(CMAKE_JOB_POOL_COMPILE compile_pool)
 	set(CMAKE_JOB_POOL_LINK link_pool)
-	set_property(GLOBAL PROPERTY JOB_POOLS compile_pool=20 link_pool=4)
+	set_property(GLOBAL PROPERTY JOB_POOLS
+		compile_pool=${RME_PARALLEL_COMPILE}
+		link_pool=${RME_PARALLEL_LINK})
 endif()
 
 set(CMAKE_CXX_STANDARD 23)
@@ -36,7 +43,8 @@ if(MSVC)
 	set(CMAKE_CXX_FLAGS_MINSIZEREL     "/O1 /DNDEBUG")
 	set(CMAKE_CXX_FLAGS_RELEASE        "/O2 /DNDEBUG")
 	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/O2 /Zi /DNDEBUG")
-	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+	# LTCG desativado: reduz uso de RAM no link (~6 GB → ~1 GB).
+	# set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 else()
 	set(CMAKE_CXX_FLAGS                "-Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -Wno-deprecated-declarations -Wno-overloaded-virtual -Wno-strict-aliasing -Wno-sign-compare -Wno-unused-function -Wunused-result")
 	set(CMAKE_CXX_FLAGS_DEBUG          "-O0 -g -D__DEBUG__")
@@ -68,6 +76,8 @@ find_package(glad CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
+find_package(unofficial-lua CONFIG REQUIRED)
+find_package(cpr CONFIG REQUIRED)
 
 # nanovg: try vcpkg/Conan first, fallback to ext/nanovg
 find_package(nanovg CONFIG QUIET)
@@ -137,6 +147,8 @@ target_link_libraries(rme PRIVATE glm::glm)
 target_link_libraries(rme PRIVATE nanovg::nanovg)
 target_link_libraries(rme PRIVATE spdlog::spdlog)
 target_link_libraries(rme PRIVATE tomlplusplus::tomlplusplus)
+target_link_libraries(rme PRIVATE unofficial::lua::lua)
+target_link_libraries(rme PRIVATE cpr::cpr)
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT "rme")
 

@@ -99,6 +99,7 @@ gha-creds-*.json
 rme
 rme.cfg
 data/user/
+data/presets/
 
 # Tibia asset files (not shipped in repo)
 *.spr

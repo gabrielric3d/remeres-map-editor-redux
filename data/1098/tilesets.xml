@@ -487,6 +487,7 @@
 			<brush name="red grass" />
 			<brush name="borda chao pedra escuro" />
 			<brush name="chao roxo 2" />
+			<brush name="borda neve 1" />
 		</terrain>
 		<doodad>
 			<brush name="green trees" />
@@ -638,7 +639,9 @@
 			
 			
 			
+			
 			 -- whirlpool --
+			
 			
 			
 			
@@ -923,7 +926,9 @@
 			
 			
 			
+			
 			 -- whirlpool --
+			
 			
 			
 			
@@ -1670,7 +1675,9 @@
 			
 			
 			
+			
 									-- ramp --
+			
 			
 			
 			
@@ -1728,7 +1735,9 @@
 			
 			
 			
+			
 							-- city stairs --
+			
 			
 			
 			
@@ -1776,7 +1785,9 @@
 			
 			
 			
+			
 							-- city stairs hole --
+			
 			
 			
 			
@@ -1823,7 +1834,9 @@
 			
 			
 			
+			
 									-- ladder --
+			
 			
 			
 			
@@ -1860,7 +1873,9 @@
 			
 			
 			
+			
 						-- ladder hole --
+			
 			
 			
 			
@@ -1898,7 +1913,9 @@
 			
 			
 			
+			
 						-- random entrances --
+			
 			
 			
 			
@@ -1935,7 +1952,9 @@
 			
 			
 			
+			
 									-- cave hole --
+			
 			
 			
 			
@@ -1977,7 +1996,9 @@
 			
 			
 			
+			
 									-- rope spot --
+			
 			
 			
 			
@@ -2078,7 +2099,9 @@
 			
 			
 			
+			
 			-- light --
+			
 			
 			
 			
@@ -2143,7 +2166,9 @@
 			
 			
 			
+			
 			-- tapestry --
+			
 			
 			
 			
@@ -2192,7 +2217,9 @@
 			
 			
 			
+			
 			-- banner --
+			
 			
 			
 			
@@ -2251,7 +2278,9 @@
 			
 			
 			
+			
 			-- nature --
+			
 			
 			
 			
@@ -2335,7 +2364,9 @@
 			
 			
 			
+			
 			-- signs --
+			
 			
 			
 			
@@ -2379,7 +2410,9 @@
 			
 			
 			
+			
 			-- trophies --
+			
 			
 			
 			
@@ -2431,7 +2464,9 @@
 			
 			
 			
+			
 			-- architectural --
+			
 			
 			
 			
@@ -2492,7 +2527,9 @@
 			
 			
 			
+			
 			-- rest --
+			
 			
 			
 			
@@ -2643,7 +2680,9 @@
 			
 			
 			
+			
 		-- light sources --
+			
 			
 			
 			
@@ -2697,7 +2736,9 @@
 			
 			
 			
+			
 		-- tapestry --
+			
 			
 			
 			
@@ -2739,7 +2780,9 @@
 			
 			
 			
+			
 		-- decoration/inside wall decoration --
+			
 			
 			
 			
@@ -2819,7 +2862,9 @@
 			
 			
 			
+			
 		-- outside cave dungeon wall decoration --
+			
 			
 			
 			
@@ -2880,7 +2925,9 @@
 			
 			
 			
+			
 		-- nature wall decoration --
+			
 			
 			
 			
@@ -2952,7 +2999,9 @@
 			
 			
 			
+			
 		-- furniture --
+			
 			
 			
 			
@@ -3013,7 +3062,9 @@
 			
 			
 			
+			
 			-- tables --
+			
 			
 			
 			
@@ -3075,7 +3126,9 @@
 			
 			
 			
+			
 			-- chairs --
+			
 			
 			
 			
@@ -3143,7 +3196,9 @@
 			
 			
 			
+			
 			-- carpets --
+			
 			
 			
 			
@@ -3189,7 +3244,9 @@
 			
 			
 			
+			
 			-- beds --
+			
 			
 			
 			
@@ -3235,7 +3292,9 @@
 			
 			
 			
+			
 			-- chests, boxes and such --
+			
 			
 			
 			
@@ -3291,7 +3350,9 @@
 			
 			
 			
+			
 			-- misc --
+			
 			
 			
 			
@@ -3381,7 +3442,9 @@
 			
 			
 			
+			
 			-- music --
+			
 			
 			
 			
@@ -3541,7 +3604,9 @@
 			
 			
 			
+			
 			-- Potted plants --
+			
 			
 			
 			
@@ -3748,8 +3813,10 @@
 			
 			
 			
+			
 
 			-- graves --
+			
 			
 			
 			
@@ -3783,8 +3850,10 @@
 			
 			
 			
+			
 
 			-- coffins --
+			
 			
 			
 			
@@ -3823,8 +3892,10 @@
 			
 			
 			
+			
 
 			-- Campfires --
+			
 			
 			
 			
@@ -3863,8 +3934,10 @@
 			
 			
 			
+			
 
 			-- fountains --
+			
 			
 			
 			
@@ -3919,8 +3992,10 @@
 			
 			
 			
+			
 
 			-- tents --
+			
 			
 			
 			
@@ -3956,8 +4031,10 @@
 			
 			
 			
+			
 
 			-- misc --
+			
 			
 			
 			
@@ -4066,8 +4143,10 @@
 			
 			
 			
+			
 
 			-- uber skeleton --
+			
 			
 			
 			
@@ -4104,7 +4183,9 @@
 			
 			
 			
+			
 		-- statues --
+			
 			
 			
 			
@@ -4203,7 +4284,9 @@
 			
 			
 			
+			
 		-- rest --
+			
 			
 			
 			
@@ -4427,7 +4510,9 @@
 			
 			
 			
+			
 			-- Signs --
+			
 			
 			
 			
@@ -4550,7 +4635,9 @@
 			
 			
 			
+			
 			-- Helmets --
+			
 			
 			
 			
@@ -4647,8 +4734,10 @@
 			
 			
 			
+			
 			-- Armor --
 	        
+			
 			
 			
 			
@@ -4726,7 +4815,9 @@
 			
 			
 			
+			
 			-- Legs --
+			
 			
 			
 			
@@ -4788,7 +4879,9 @@
 			
 			
 			
+			
 			-- Boots --
+			
 			
 			
 			
@@ -4856,7 +4949,9 @@
 			
 			
 			
+			
 			-- Amulets --
+			
 			
 			
 			
@@ -4929,7 +5024,9 @@
 			
 			
 			
+			
 			-- Rings --
+			
 			
 			
 			
@@ -5003,7 +5100,9 @@
 			
 			
 			
+			
 			-- Swords --
+			
 			
 			
 			
@@ -5081,7 +5180,9 @@
 			
 			
 			
+			
 			-- Maces --
+			
 			
 			
 			
@@ -5161,7 +5262,9 @@
 			
 			
 			
+			
 			-- Axes --
+			
 			
 			
 			
@@ -5232,7 +5335,9 @@
 			
 			
 			
+			
 			-- Distance --
+			
 			
 			
 			
@@ -5286,7 +5391,9 @@
 			
 			
 			
+			
 			-- Ammo --
+			
 			
 			
 			
@@ -5331,7 +5438,9 @@
 			
 			
 			
+			
 			-- Wands --
+			
 			
 			
 			
@@ -5383,7 +5492,9 @@
 			
 			
 			
+			
 			-- Tomes --
+			
 			
 			
 			
@@ -5424,7 +5535,9 @@
 			
 			
 			
+			
 			-- Swords --
+			
 			
 			
 			
@@ -5461,7 +5574,9 @@
 			
 			
 			
+			
 			-- Maces --
+			
 			
 			
 			
@@ -5498,7 +5613,9 @@
 			
 			
 			
+			
 			-- Axes --
+			
 			
 			
 			
@@ -5535,7 +5652,9 @@
 			
 			
 			
+			
 			-- Ammo --
+			
 			
 			
 			
@@ -5667,7 +5786,9 @@
 			
 			
 			
+			
 			-- Some random stuff --
+			
 			
 			
 			
@@ -5700,7 +5821,9 @@
 			
 			
 			
+			
 			 -- Watch (Also ID 6091, 6092, but those are useless?) --
+			
 			
 			
 			
@@ -5736,7 +5859,9 @@
 			
 			
 			
+			
 			-- Trinkets --
+			
 			
 			
 			
@@ -5798,7 +5923,9 @@
 			
 			
 			
+			
 			-- Instruments --
+			
 			
 			
 			
@@ -5848,7 +5975,9 @@
 			
 			
 			
+			
 			-- Lights --
+			
 			
 			
 			
@@ -5899,8 +6028,10 @@
 			
 			
 			
+			
 
 			-- Instruments --
+			
 			
 			
 			
@@ -5934,8 +6065,10 @@
 			
 			
 			
+			
 
 			-- Random --
+			
 			
 			
 			
@@ -5987,7 +6120,9 @@
 			
 			
 			
+			
 			-- Food related --
+			
 			
 			
 			
@@ -6023,7 +6158,9 @@
 			
 			
 			
+			
 			-- Keys --
+			
 			
 			
 			
@@ -6057,7 +6194,9 @@
 			
 			
 			
+			
 			-- Game pieces --
+			
 			
 			
 			
@@ -6182,7 +6321,9 @@
 			
 			
 			
+			
 			 -- magic forcefield --
+			
 			
 			
 			
@@ -6392,7 +6533,9 @@
 			
 			
 			
+			
 		-- books --
+			
 			
 			
 			
@@ -6484,7 +6627,9 @@
 			
 			
 			
+			
 		-- scrolls --
+			
 			
 			
 			
@@ -6554,7 +6699,9 @@
 			
 			
 			
+			
 		-- signs --
+			
 			
 			
 			
@@ -6597,7 +6744,9 @@
 			
 			
 			
+			
 		-- other --
+			
 			
 			
 			
@@ -7114,7 +7263,9 @@
 			
 			
 			
+			
 		-- railings --
+			
 			
 			
 			
@@ -7160,7 +7311,9 @@
 			
 			
 			
+			
 		-- fences --
+			
 			
 			
 			
@@ -7198,7 +7351,9 @@
 			
 			
 			
+			
 		-- pillars --
+			
 			
 			
 			
@@ -7261,7 +7416,9 @@
 			
 			
 			
+			
 		-- structural --
+			
 			
 			
 			
@@ -7318,7 +7475,9 @@
 			
 			
 			
+			
 		-- poles and struts --
+			
 			
 			
 			
@@ -7361,7 +7520,9 @@
 			
 			
 			
+			
 		-- random --
+			
 			
 			
 			
@@ -7958,7 +8119,9 @@
 			
 			
 			
+			
 						-- wooden floor (normal) --
+			
 			
 			
 			
@@ -7999,7 +8162,9 @@
 			
 			
 			
+			
 					-- wooden floor (carlin) --
+			
 			
 			
 			
@@ -8040,7 +8205,9 @@
 			
 			
 			
+			
 					-- wooden floor (venore) --
+			
 			
 			
 			
@@ -8078,7 +8245,9 @@
 			
 			
 			
+			
 									-- brown flat roof --
+			
 			
 			
 			
@@ -8122,7 +8291,9 @@
 			
 			
 			
+			
 						-- tiled roof + wooden roof --
+			
 			
 			
 			
@@ -8155,7 +8326,9 @@
 			
 			
 			
+			
 					-- stone floor border --
+			
 			
 			
 			
@@ -8190,7 +8363,9 @@
 			
 			
 			
+			
 								-- jungle grass --
+			
 			
 			
 			
@@ -8233,7 +8408,9 @@
 			
 			
 			
+			
 						-- mountain (thick) --
+			
 			
 			
 			
@@ -8271,7 +8448,9 @@
 			
 			
 			
+			
 					-- mountain (thin) --
+			
 			
 			
 			
@@ -8309,7 +8488,9 @@
 			
 			
 			
+			
 					-- rock soil --
+			
 			
 			
 			
@@ -8349,7 +8530,9 @@
 			
 			
 			
+			
 					-- grass --
+			
 			
 			
 			
@@ -8389,7 +8572,9 @@
 			
 			
 			
+			
 					-- gravel --
+			
 			
 			
 			
@@ -8429,7 +8614,9 @@
 			
 			
 			
+			
 					-- white sand --
+			
 			
 			
 			
@@ -8469,7 +8656,9 @@
 			
 			
 			
+			
 					-- shallow water --
+			
 			
 			
 			
@@ -8509,7 +8698,9 @@
 			
 			
 			
+			
 					-- shallow to sand --
+			
 			
 			
 			
@@ -8542,7 +8733,9 @@
 			
 			
 			
+			
 					-- dirt --
+			
 			
 			
 			
@@ -8582,7 +8775,9 @@
 			
 			
 			
+			
 					-- swamp dirt --
+			
 			
 			
 			
@@ -8622,7 +8817,9 @@
 			
 			
 			
+			
 					-- swamp light --
+			
 			
 			
 			
@@ -8662,7 +8859,9 @@
 			
 			
 			
+			
 					-- swamp dark --
+			
 			
 			
 			
@@ -8702,7 +8901,9 @@
 			
 			
 			
+			
 					-- snow --
+			
 			
 			
 			
@@ -8742,7 +8943,9 @@
 			
 			
 			
+			
 					-- sand (spray) --
+			
 			
 			
 			
@@ -8782,7 +8985,9 @@
 			
 			
 			
+			
 					-- sand (thin) --
+			
 			
 			
 			
@@ -8822,7 +9027,9 @@
 			
 			
 			
+			
 					-- dark grass --
+			
 			
 			
 			
@@ -8862,7 +9069,9 @@
 			
 			
 			
+			
 					-- cave dirt  --
+			
 			
 			
 			
@@ -8902,7 +9111,9 @@
 			
 			
 			
+			
 					-- cave lava --
+			
 			
 			
 			
@@ -8942,7 +9153,9 @@
 			
 			
 			
+			
 								-- broken stone tile --
+			
 			
 			
 			
@@ -8989,7 +9202,9 @@
 			
 			
 			
+			
 								-- sand water --
+			
 			
 			
 			
@@ -9032,7 +9247,9 @@
 			
 			
 			
+			
 					-- small lava cracks --
+			
 			
 			
 			
@@ -9072,7 +9289,9 @@
 			
 			
 			
+			
 					-- rock soil lava --
+			
 			
 			
 			
@@ -9112,7 +9331,9 @@
 			
 			
 			
+			
 					-- small lava cracks (elevated) --
+			
 			
 			
 			
@@ -9151,7 +9372,9 @@
 			
 			
 			
+			
 									-- tree wall --
+			
 			
 			
 			
@@ -9188,7 +9411,9 @@
 			
 			
 			
+			
 									-- grass roof --
+			
 			
 			
 			
@@ -9230,7 +9455,9 @@
 			
 			
 			
+			
 					-- snow prints --
+			
 			
 			
 			
@@ -9263,7 +9490,9 @@
 			
 			
 			
+			
 					-- snow water --
+			
 			
 			
 			
@@ -9303,7 +9532,9 @@
 			
 			
 			
+			
 					-- stone water --
+			
 			
 			
 			
@@ -9344,7 +9575,9 @@
 			
 			
 			
+			
 					-- transition stone snow water --
+			
 			
 			
 			
@@ -9378,7 +9611,9 @@
 			
 			
 			
+			
 									-- ice water --
+			
 			
 			
 			
@@ -9419,7 +9654,9 @@
 			
 			
 			
+			
 					-- ice --
+			
 			
 			
 			
@@ -9459,7 +9696,9 @@
 			
 			
 			
+			
 									-- ice (elevated) --
+			
 			
 			
 			
@@ -9501,7 +9740,9 @@
 			
 			
 			
+			
 									-- rough ice (elevated) --
+			
 			
 			
 			
@@ -9543,7 +9784,9 @@
 			
 			
 			
+			
 									-- snow (elevated) --
+			
 			
 			
 			
@@ -9585,7 +9828,9 @@
 			
 			
 			
+			
 					-- mud rock --
+			
 			
 			
 			
@@ -9625,7 +9870,9 @@
 			
 			
 			
+			
 					-- mud rock (thick) --
+			
 			
 			
 			
@@ -9665,7 +9912,9 @@
 			
 			
 			
+			
 								-- rough ice --
+			
 			
 			
 			
@@ -9706,7 +9955,9 @@
 			
 			
 			
+			
 					-- metal fittings --
+			
 			
 			
 			
@@ -9739,7 +9990,9 @@
 			
 			
 			
+			
 					-- metal fittings --
+			
 			
 			
 			
@@ -9772,7 +10025,9 @@
 			
 			
 			
+			
 								-- dirt cave wall --
+			
 			
 			
 			
@@ -9814,7 +10069,9 @@
 			
 			
 			
+			
 					-- overlap dirt to stone cave wall --
+			
 			
 			
 			
@@ -9847,7 +10104,9 @@
 			
 			
 			
+			
 					-- stone cave wall --
+			
 			
 			
 			
@@ -9887,7 +10146,9 @@
 			
 			
 			
+			
 					-- frozen cave wall --
+			
 			
 			
 			
@@ -9926,7 +10187,9 @@
 			
 			
 			
+			
 					-- transition frozen cave wall --
+			
 			
 			
 			
@@ -9960,7 +10223,9 @@
 			
 			
 			
+			
 					-- sandstone wall --
+			
 			
 			
 			
@@ -9998,7 +10263,9 @@
 			
 			
 			
+			
 								-- fur roof --
+			
 			
 			
 			
@@ -10040,7 +10307,9 @@
 			
 			
 			
+			
 								-- raft (water) --
+			
 			
 			
 			
@@ -10084,7 +10353,9 @@
 			
 			
 			
+			
 								-- raft (no water) --
+			
 			
 			
 			
@@ -10128,7 +10399,9 @@
 			
 			
 			
+			
 					-- rock soil (thick) --
+			
 			
 			
 			
@@ -10168,7 +10441,9 @@
 			
 			
 			
+			
 								-- grass (thick) --
+			
 			
 			
 			
@@ -10211,7 +10486,9 @@
 			
 			
 			
+			
 								-- cave dirt (thick) --
+			
 			
 			
 			
@@ -10254,7 +10531,9 @@
 			
 			
 			
+			
 						-- ramp --
+			
 			
 			
 			
@@ -10288,7 +10567,9 @@
 			
 			
 			
+			
 						-- dirt cave wall + ground --
+			
 			
 			
 			
@@ -10321,7 +10602,9 @@
 			
 			
 			
+			
 						-- stone cave wall + ground --
+			
 			
 			
 			
@@ -10354,7 +10637,9 @@
 			
 			
 			
+			
 								-- earth --
+			
 			
 			
 			
@@ -10397,7 +10682,9 @@
 			
 			
 			
+			
 								-- rifty earth --
+			
 			
 			
 			
@@ -10441,7 +10728,9 @@
 			
 			
 			
+			
 					-- sand sea --
+			
 			
 			
 			
@@ -10474,7 +10763,9 @@
 			
 			
 			
+			
 								-- dried grass roof --
+			
 			
 			
 			
@@ -10516,7 +10807,9 @@
 			
 			
 			
+			
 					-- liberty bay wooden floor --
+			
 			
 			
 			
@@ -10559,7 +10852,9 @@
 			
 			
 			
+			
 								-- special of above --
+			
 			
 			
 			
@@ -10595,7 +10890,9 @@
 			
 			
 			
+			
 								-- dried grass --
+			
 			
 			
 			
@@ -10638,7 +10935,9 @@
 			
 			
 			
+			
 								-- cobbled pavement --
+			
 			
 			
 			
@@ -10681,7 +10980,9 @@
 			
 			
 			
+			
 								-- ugly cobbled pavement --
+			
 			
 			
 			
@@ -10725,7 +11026,9 @@
 			
 			
 			
+			
 								--- thick sand --
+			
 			
 			
 			
@@ -10767,7 +11070,9 @@
 			
 			
 			
+			
 					-- dark wooden floor (block path) --
+			
 			
 			
 			
@@ -10800,7 +11105,9 @@
 			
 			
 			
+			
 					-- dark wooden floor (no block) --
+			
 			
 			
 			
@@ -10833,7 +11140,9 @@
 			
 			
 			
+			
 					-- dark wooden floor (no block) --
+			
 			
 			
 			
@@ -10866,7 +11175,9 @@
 			
 			
 			
+			
 								-- flat red roof (vertical) --
+			
 			
 			
 			
@@ -10909,7 +11220,9 @@
 			
 			
 			
+			
 								-- flat red roof (horizontal) --
+			
 			
 			
 			
@@ -10952,7 +11265,9 @@
 			
 			
 			
+			
 					-- yellow pavement --
+			
 			
 			
 			
@@ -10993,7 +11308,9 @@
 			
 			
 			
+			
 					-- dark pavement --
+			
 			
 			
 			
@@ -11034,7 +11351,9 @@
 			
 			
 			
+			
 								-- rice water --
+			
 			
 			
 			
@@ -11076,7 +11395,9 @@
 			
 			
 			
+			
 								-- tainted soil --
+			
 			
 			
 			
@@ -11118,7 +11439,9 @@
 			
 			
 			
+			
 								-- dark dirt mud --
+			
 			
 			
 			
@@ -11160,7 +11483,9 @@
 			
 			
 			
+			
 								-- light dirt mud --
+			
 			
 			
 			
@@ -11202,7 +11527,9 @@
 			
 			
 			
+			
 					-- pink sand --
+			
 			
 			
 			
@@ -11242,7 +11569,9 @@
 			
 			
 			
+			
 					-- mud sand --
+			
 			
 			
 			
@@ -11282,7 +11611,9 @@
 			
 			
 			
+			
 					-- sand waterlike border --
+			
 			
 			
 			
@@ -11323,7 +11654,9 @@
 			
 			
 			
+			
 									-- dark dirt --
+			
 			
 			
 			
@@ -11365,7 +11698,9 @@
 			
 			
 			
+			
 									-- light dirt --
+			
 			
 			
 			
@@ -11406,7 +11741,9 @@
 			
 			
 			
+			
 					-- serpent ground --
+			
 			
 			
 			
@@ -11447,7 +11784,9 @@
 			
 			
 			
+			
 									-- scale roof --
+			
 			
 			
 			
@@ -11490,7 +11829,9 @@
 			
 			
 			
+			
 									-- mysterious ground (thin) --
+			
 			
 			
 			
@@ -11530,7 +11871,9 @@
 			
 			
 			
+			
 					-- mysterious ground (thick) --
+			
 			
 			
 			
@@ -11570,7 +11913,9 @@
 			
 			
 			
+			
 					-- darkest mud (thin) --
+			
 			
 			
 			
@@ -11610,7 +11955,9 @@
 			
 			
 			
+			
 					-- darkest mud (thick) --
+			
 			
 			
 			
@@ -11650,7 +11997,9 @@
 			
 			
 			
+			
 					-- purple mud (thin) --
+			
 			
 			
 			
@@ -11690,7 +12039,9 @@
 			
 			
 			
+			
 					-- purple mud (thick) --
+			
 			
 			
 			
@@ -11730,7 +12081,9 @@
 			
 			
 			
+			
 									-- acid --
+			
 			
 			
 			
@@ -11769,7 +12122,9 @@
 			
 			
 			
+			
 									-- muddy floor --
+			
 			
 			
 			
@@ -11810,7 +12165,9 @@
 			
 			
 			
+			
 					-- jade ornaments --
+			
 			
 			
 			
@@ -11843,7 +12200,9 @@
 			
 			
 			
+			
 					-- orange zao roof --
+			
 			
 			
 			
@@ -11884,7 +12243,9 @@
 			
 			
 			
+			
 					-- brown zao roof --
+			
 			
 			
 			
@@ -11925,7 +12286,9 @@
 			
 			
 			
+			
 					-- red spikes --
+			
 			
 			
 			
@@ -11966,7 +12329,9 @@
 			
 			
 			
+			
 					-- dark spikes --
+			
 			
 			
 			
@@ -12007,7 +12372,9 @@
 			
 			
 			
+			
 					-- broken blue marble floor --
+			
 			
 			
 			
@@ -12048,7 +12415,9 @@
 			
 			
 			
+			
 					-- broken deepling marble floor --
+			
 			
 			
 			
@@ -12089,7 +12458,9 @@
 			
 			
 			
+			
 					-- symbol line on floor --
+			
 			
 			
 			
@@ -12122,7 +12493,9 @@
 			
 			
 			
+			
 					-- lush grass 1 --
+			
 			
 			
 			
@@ -12163,7 +12536,9 @@
 			
 			
 			
+			
 					-- lush grass 2 --
+			
 			
 			
 			
@@ -12204,7 +12579,9 @@
 			
 			
 			
+			
 					-- timber floor --
+			
 			
 			
 			
@@ -12248,7 +12625,9 @@
 			
 			
 			
+			
 									-- dark sand --
+			
 			
 			
 			
@@ -12291,7 +12670,9 @@
 			
 			
 			
+			
 					-- green leaves --
+			
 			
 			
 			
@@ -12332,7 +12713,9 @@
 			
 			
 			
+			
 					-- yellow leaves --
+			
 			
 			
 			
@@ -12373,7 +12756,9 @@
 			
 			
 			
+			
 									-- slime fungus --
+			
 			
 			
 			
@@ -12416,7 +12801,9 @@
 			
 			
 			
+			
 					-- rocky floor --
+			
 			
 			
 			
@@ -12457,7 +12844,9 @@
 			
 			
 			
+			
 									-- dirty water --
+			
 			
 			
 			
@@ -12498,7 +12887,9 @@
 			
 			
 			
+			
 									-- hive structure --
+			
 			
 			
 			
@@ -12539,7 +12930,9 @@
 			
 			
 			
+			
 					-- hive (thick) --
+			
 			
 			
 			
@@ -12573,7 +12966,9 @@
 			
 			
 			
+			
 									-- red hive structure --
+			
 			
 			
 			
@@ -12614,7 +13009,9 @@
 			
 			
 			
+			
 					-- red hive (thick) --
+			
 			
 			
 			
@@ -12647,7 +13044,9 @@
 			
 			
 			
+			
 									-- dark hive structure --
+			
 			
 			
 			
@@ -12688,7 +13087,9 @@
 			
 			
 			
+			
 					-- dark hive (thick) --
+			
 			
 			
 			
@@ -12721,7 +13122,9 @@
 			
 			
 			
+			
 									-- hive spot --
+			
 			
 			
 			
@@ -12759,7 +13162,9 @@
 			
 			
 			
+			
 									-- red hive spot --
+			
 			
 			
 			
@@ -12797,7 +13202,9 @@
 			
 			
 			
+			
 									-- dark hive spot --
+			
 			
 			
 			
@@ -12833,7 +13240,9 @@
 			
 			
 			
+			
 					-- something hive --
+			
 			
 			
 			
@@ -12867,7 +13276,9 @@
 			
 			
 			
+			
 									-- colourful honeycomb --
+			
 			
 			
 			
@@ -12911,7 +13322,9 @@
 			
 			
 			
+			
 									-- bland honeycomb --
+			
 			
 			
 			
@@ -12955,7 +13368,9 @@
 			
 			
 			
+			
 									-- hoard of gold --
+			
 			
 			
 			
@@ -12999,7 +13414,9 @@
 			
 			
 			
+			
 					-- deepling spawn --
+			
 			
 			
 			
@@ -13042,7 +13459,9 @@
 			
 			
 			
+			
 					-- blue sea floor --
+			
 			
 			
 			
@@ -13083,7 +13502,9 @@
 			
 			
 			
+			
 					-- brown sea floor --
+			
 			
 			
 			
@@ -13124,7 +13545,9 @@
 			
 			
 			
+			
 					-- unknowndeepling --
+			
 			
 			
 			
@@ -13165,7 +13588,9 @@
 			
 			
 			
+			
 					-- lava --
+			
 			
 			
 			
@@ -13206,7 +13631,9 @@
 			
 			
 			
+			
 					-- crystal floor --
+			
 			
 			
 			
@@ -13247,7 +13674,9 @@
 			
 			
 			
+			
 					-- crystal floor (void) --
+			
 			
 			
 			
@@ -13288,7 +13717,9 @@
 			
 			
 			
+			
 					-- basalt floor --
+			
 			
 			
 			
@@ -13329,7 +13760,9 @@
 			
 			
 			
+			
 					-- mold floor --
+			
 			
 			
 			
@@ -13370,7 +13803,9 @@
 			
 			
 			
+			
 					-- mossy floor --
+			
 			
 			
 			
@@ -13411,7 +13846,9 @@
 			
 			
 			
+			
 					-- mossy floor (thick) --
+			
 			
 			
 			
@@ -13452,7 +13889,9 @@
 			
 			
 			
+			
 					-- mushroom sponge --
+			
 			
 			
 			
@@ -13493,7 +13932,9 @@
 			
 			
 			
+			
 									-- salt floor --
+			
 			
 			
 			
@@ -13535,7 +13976,9 @@
 			
 			
 			
+			
 									-- cookie floor --
+			
 			
 			
 			
@@ -13577,7 +14020,9 @@
 			
 			
 			
+			
 									-- dark ice stone floor --
+			
 			
 			
 			
@@ -13619,7 +14064,9 @@
 			
 			
 			
+			
 									-- scattered crystals --
+			
 			
 			
 			
@@ -13661,7 +14108,9 @@
 			
 			
 			
+			
 									-- muddy floor --
+			
 			
 			
 			
@@ -13702,7 +14151,9 @@
 			
 			
 			
+			
 					-- venore swamp --
+			
 			
 			
 			
@@ -13743,7 +14194,9 @@
 			
 			
 			
+			
 					-- grimy wooden plank with those thingies --
+			
 			
 			
 			
@@ -13776,7 +14229,9 @@
 			
 			
 			
+			
 									-- grimy wooden plank (horizontal) --
+			
 			
 			
 			
@@ -13816,7 +14271,9 @@
 			
 			
 			
+			
 									-- grimy wooden plank (vertical) --
+			
 			
 			
 			
@@ -13856,7 +14313,9 @@
 			
 			
 			
+			
 									-- pink wooden planks --
+			
 			
 			
 			
@@ -13896,7 +14355,9 @@
 			
 			
 			
+			
 					-- cobblestone fittings --
+			
 			
 			
 			
@@ -13937,7 +14398,9 @@
 			
 			
 			
+			
 					-- yellow cobblestone fittings --
+			
 			
 			
 			
@@ -13978,7 +14441,9 @@
 			
 			
 			
+			
 					-- yellow cobblestone fittings (broken) --
+			
 			
 			
 			
@@ -14019,7 +14484,9 @@
 			
 			
 			
+			
 									-- ornate carpet --
+			
 			
 			
 			
@@ -14060,7 +14527,9 @@
 			
 			
 			
+			
 					-- light brick fittings --
+			
 			
 			
 			
@@ -14101,7 +14570,9 @@
 			
 			
 			
+			
 					-- dark brick fittings --
+			
 			
 			
 			
@@ -14142,7 +14613,9 @@
 			
 			
 			
+			
 					-- terracotta --
+			
 			
 			
 			
@@ -14183,7 +14656,9 @@
 			
 			
 			
+			
 					-- venore cobblestone --
+			
 			
 			
 			
@@ -14224,7 +14699,9 @@
 			
 			
 			
+			
 					-- venore plaster --
+			
 			
 			
 			
@@ -14265,7 +14742,9 @@
 			
 			
 			
+			
 									-- forest floor --
+			
 			
 			
 			
@@ -14308,7 +14787,9 @@
 			
 			
 			
+			
 									-- branch floor --
+			
 			
 			
 			
@@ -14351,7 +14832,9 @@
 			
 			
 			
+			
 									-- tree leaves --
+			
 			
 			
 			
@@ -14393,7 +14876,9 @@
 			
 			
 			
+			
 									-- teal leaves --
+			
 			
 			
 			
@@ -14435,7 +14920,9 @@
 			
 			
 			
+			
 					-- small brook --
+			
 			
 			
 			
@@ -14477,7 +14964,9 @@
 			
 			
 			
+			
 									-- fog --
+			
 			
 			
 			
@@ -14519,7 +15008,9 @@
 			
 			
 			
+			
 									-- muddy sand (thick) --
+			
 			
 			
 			
@@ -14561,7 +15052,9 @@
 			
 			
 			
+			
 									-- brown sand (thick) --
+			
 			
 			
 			
@@ -14603,7 +15096,9 @@
 			
 			
 			
+			
 					-- uhh --
+			
 			
 			
 			
@@ -14636,7 +15131,9 @@
 			
 			
 			
+			
 									-- unknown2 --
+			
 			
 			
 			
@@ -14678,7 +15175,9 @@
 			
 			
 			
+			
 									-- crystal dirt --
+			
 			
 			
 			
@@ -14720,7 +15219,9 @@
 			
 			
 			
+			
 									-- roshamuul pavement --
+			
 			
 			
 			
@@ -14762,7 +15263,9 @@
 			
 			
 			
+			
 									-- unknown4 --
+			
 			
 			
 			
@@ -14804,7 +15307,9 @@
 			
 			
 			
+			
 									-- unknown1 --
+			
 			
 			
 			
@@ -14846,7 +15351,9 @@
 			
 			
 			
+			
 					-- oramond pavement --
+			
 			
 			
 			
@@ -14887,7 +15394,9 @@
 			
 			
 			
+			
 					-- oramond other pavement broken --
+			
 			
 			
 			
@@ -14928,7 +15437,9 @@
 			
 			
 			
+			
 					-- oramond other pavement --
+			
 			
 			
 			
@@ -14969,7 +15480,9 @@
 			
 			
 			
+			
 					-- oramond other pavement alternate --
+			
 			
 			
 			
@@ -15010,7 +15523,9 @@
 			
 			
 			
+			
 					-- bridge border --
+			
 			
 			
 			
@@ -15043,7 +15558,9 @@
 			
 			
 			
+			
 									-- unknown5 --
+			
 			
 			
 			
@@ -15087,7 +15604,9 @@
 			
 			
 			
+			
 					-- other bridge borders --
+			
 			
 			
 			
@@ -15120,7 +15639,9 @@
 			
 			
 			
+			
 									-- serpent seacrest ground --
+			
 			
 			
 			
@@ -15163,7 +15684,9 @@
 			
 			
 			
+			
 									-- unknown6 --
+			
 			
 			
 			
@@ -15207,7 +15730,9 @@
 			
 			
 			
+			
 									-- green hoard of gold --
+			
 			
 			
 			
@@ -15251,7 +15776,9 @@
 			
 			
 			
+			
 									-- krailos grass (thin) --
+			
 			
 			
 			
@@ -15294,7 +15821,9 @@
 			
 			
 			
+			
 									-- krailos grass (thick) --
+			
 			
 			
 			
@@ -15337,7 +15866,9 @@
 			
 			
 			
+			
 									-- krailos dirt (thin) --
+			
 			
 			
 			
@@ -15380,7 +15911,9 @@
 			
 			
 			
+			
 									-- krailos dirt (thick) --
+			
 			
 			
 			
@@ -15423,7 +15956,9 @@
 			
 			
 			
+			
 					-- krailos orange --
+			
 			
 			
 			
@@ -15463,7 +15998,9 @@
 			
 			
 			
+			
 					-- krailos purple --
+			
 			
 			
 			
@@ -15503,7 +16040,9 @@
 			
 			
 			
+			
 					-- krailos yellow --
+			
 			
 			
 			
@@ -15543,7 +16082,9 @@
 			
 			
 			
+			
 									-- dark scaled ground --
+			
 			
 			
 			
@@ -15587,7 +16128,9 @@
 			
 			
 			
+			
 					--  unknown3 --
+			
 			
 			
 			
@@ -16495,7 +17038,9 @@
 			
 			
 			
+			
 		-- pyramid --
+			
 			
 			
 			
@@ -16531,7 +17076,9 @@
 			
 			
 			
+			
 		-- statues pillars etc --
+			
 			
 			
 			
@@ -16582,7 +17129,9 @@
 			
 			
 			
+			
 		-- furniture --
+			
 			
 			
 			
@@ -16630,7 +17179,9 @@
 			
 			
 			
+			
 		-- hangables --
+			
 			
 			
 			
@@ -16665,7 +17216,9 @@
 			
 			
 			
+			
 		-- nature --
+			
 			
 			
 			

@@ -20,176 +20,89 @@
 ]]
 
 CUSTOM_ITEM_LIGHTS = {
-    -- Item IDs: 29712-29723
     -- ================================================================
-    -- WHITE LIGHTS (29712-29714)
+    -- HOSPITAL LIGHTS (29712-29715) — color 129, intensity 6
+    -- All four use the same color and base radius. They differ only in
+    -- the flicker pattern, so a corridor of mixed IDs reads as the same
+    -- fixture type with varying levels of decay.
+    -- The `name` field is metadata only — not consumed by the engine yet,
+    -- but documents intent and is available for future editor tooltips.
     -- ================================================================
 
-    -- Strong white, horror flicker: off 2s -> on 1s -> blink 3x -> repeat
+    -- Mostly on. Every ~10s, a quick burst of flickers, then back to steady.
     [29712] = {
-        color = 129, intensity = 6,
+        name = "Hospital Lamp - Stable",
+        color = 129, intensity = 8,
         pattern = {
-            {0, 2000},
-            {8, 1000},
-            {0, 150},
-            {8, 150},
-            {0, 150},
-            {8, 150},
-            {0, 150},
-            {8, 150},
+            {8, 10000},  -- steady on for 10 seconds
+            {0, 80},     -- quick flicker burst
+            {8, 80},
+            {0, 80},
+            {8, 120},
+            {0, 60},
+            {8, 100},
         }
     },
 
-    -- Strong white, subtle flicker (hospital corridor)
+    -- Short, frequent flickers — never fully calm.
     [29713] = {
-        color = 129, intensity = 6,
+        name = "Hospital Lamp - Nervous",
+        color = 129, intensity = 8,
         pattern = {
-            {8, 3000},
+            {8, 1200},
+            {2, 80},     -- dim flicker
+            {8, 800},
+            {0, 60},     -- off flicker
+            {8, 1500},
             {3, 100},
-            {8, 2000},
-            {5, 80},
+            {8, 600},
+            {0, 80},
         }
     },
 
-    -- Weak white, moderate flicker (hospital room)
+    -- Long outages, struggles back to life. Reads as "about to fail".
     [29714] = {
-        color = 129, intensity = 4,
+        name = "Hospital Lamp - Dying",
+        color = 129, intensity = 8,
         pattern = {
-            {4, 2000},
-            {1, 200},
-            {4, 1500},
-            {0, 300},
-            {4, 1000},
-            {2, 150},
+            {8, 3000},   -- on 3s
+            {0, 1500},   -- dies
+            {8, 400},    -- flickers back briefly
+            {0, 200},
+            {8, 200},
+            {0, 2500},   -- long death
+            {8, 800},    -- recovers
         }
     },
 
-    -- ================================================================
-    -- RED LIGHTS (29715-29716)
-    -- ================================================================
-
-    -- Red emergency, aggressive alarm pattern
+    -- Calm pause, then a rapid strobe burst. Repeats.
     [29715] = {
-        color = 30, intensity = 6,
+        name = "Hospital Lamp - Strobing",
+        color = 129, intensity = 8,
         pattern = {
-            {6, 300},
-            {0, 300},
-            {6, 300},
-            {0, 300},
-            {6, 300},
-            {0, 1500},
+            {8, 2500},   -- calm
+            {0, 100},    -- strobe burst
+            {8, 100},
+            {0, 100},
+            {8, 100},
+            {0, 100},
+            {8, 100},
+            {0, 100},
+            {8, 100},
         }
     },
 
-    -- Red, slow pulse
     [29716] = {
-        color = 30, intensity = 5,
+        name = "Hospital Lamp - Big",
+        color = 129, intensity = 15,
         pattern = {
-            {5, 2000},
-            {2, 500},
-            {5, 1500},
-            {3, 300},
+            {15, 15000},  -- steady on for 10 seconds
+            {0, 80},     -- quick flicker burst
+            {15, 80},
+            {0, 80},
         }
     },
 
-    -- ================================================================
-    -- BLUE LIGHTS (29717)
-    -- ================================================================
-
-    -- Blue cold, subtle flicker (morgue, laboratory)
-    [29717] = {
-        color = 195, intensity = 5,
-        pattern = {
-            {5, 4000},
-            {2, 200},
-            {5, 3000},
-            {3, 150},
-        }
-    },
-
-    -- ================================================================
-    -- ORANGE/FIRE LIGHTS (29718-29719)
-    -- ================================================================
-
-    -- Orange fire, natural torch flicker
-    [29718] = {
-        color = 35, intensity = 6,
-        pattern = {
-            {6, 400},
-            {4, 200},
-            {6, 300},
-            {5, 250},
-            {6, 500},
-            {3, 150},
-            {6, 350},
-            {4, 100},
-        }
-    },
-
-    -- Orange fire, dying candle
-    [29719] = {
-        color = 35, intensity = 3,
-        pattern = {
-            {3, 500},
-            {1, 300},
-            {3, 400},
-            {0, 200},
-            {2, 600},
-            {0, 500},
-            {3, 300},
-            {1, 150},
-        }
-    },
-
-    -- ================================================================
-    -- GREEN LIGHTS (29720)
-    -- ================================================================
-
-    -- Green toxic, slow pulse
-    [29720] = {
-        color = 55, intensity = 5,
-        pattern = {
-            {5, 2000},
-            {2, 800},
-            {5, 1500},
-            {1, 600},
-        }
-    },
-
-    -- ================================================================
-    -- WARM YELLOW LIGHTS (29721)
-    -- ================================================================
-
-    -- Warm yellow, old lamp dying
-    [29721] = {
-        color = 210, intensity = 7,
-        pattern = {
-            {7, 2000},
-            {0, 1500},
-            {7, 800},
-            {0, 200},
-            {7, 200},
-            {0, 3000},
-        }
-    },
-
-    -- ================================================================
-    -- PURPLE LIGHTS (29722-29723)
-    -- ================================================================
-
-    -- Purple mystical, slow pulse
-    [29722] = {
-        color = 180, intensity = 5,
-        pattern = {
-            {5, 3000},
-            {2, 1000},
-            {5, 2000},
-            {3, 800},
-        }
-    },
-
-    -- Purple, stable
-    [29723] = { color = 180, intensity = 4, pattern = {} },
 }
 
 return CUSTOM_ITEM_LIGHTS
