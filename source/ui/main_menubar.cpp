@@ -292,6 +292,10 @@ void MainMenuBar::OnOpen(wxCommandEvent& event) {
 	fileMenuHandler->OnOpen(event);
 }
 
+void MainMenuBar::OnOpenForced(wxCommandEvent& event) {
+	fileMenuHandler->OnOpenForced(event);
+}
+
 void MainMenuBar::OnClose(wxCommandEvent& event) {
 	fileMenuHandler->OnClose(event);
 }

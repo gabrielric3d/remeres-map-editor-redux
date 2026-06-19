@@ -1007,25 +1007,6 @@ version = 1077
 
 [[clients]]
 configType = 'dat_otb'
-datSignature = '42A3'
-dataDirectory = '1098'
-description = 'sample description'
-extended = true
-frameDurations = true
-frameGroups = true
-metadataFile = 'Tibia.dat'
-name = '10.98'
-otbFile = 'B:\Github\blacktalon-workspace\server\data\items\items.otb'
-otbId = 57
-otbMajor = 3
-otbmVersions = [ 3 ]
-sprSignature = '57BBD603'
-spritesFile = 'Tibia.spr'
-transparency = false
-version = 1098
-
-[[clients]]
-configType = 'dat_otb'
 datSignature = '44BA'
 dataDirectory = '10100'
 description = 'sample description'
@@ -1235,21 +1216,21 @@ version = 1286
 
 [[clients]]
 configType = 'dat_otb'
-datSignature = '439D5A33'
+datSignature = '42A3'
 dataDirectory = '770'
 description = 'sample description'
-extended = false
-frameDurations = false
-frameGroups = false
+extended = true
+frameDurations = true
+frameGroups = true
 metadataFile = 'Tibia.dat'
 name = '7.7-srv'
-otbFile = 'items.otb'
+otbFile = 'B:\Github\blacktalon-workspace\server\data\items\items.otb'
 otbId = 0
 otbMajor = 0
 otbmVersions = []
-sprSignature = '439852BE'
+sprSignature = '57BBD603'
 spritesFile = 'Tibia.spr'
-transparency = false
+transparency = true
 version = 77
 
 [[clients]]
@@ -1262,13 +1243,13 @@ frameDurations = true
 frameGroups = true
 metadataFile = 'Tibia.dat'
 name = '10.98dat'
-otbFile = 'items.otb'
+otbFile = 'B:\Github\blacktalon-workspace\server\data\items\items.otb'
 otbId = 57
 otbMajor = 3
 otbmVersions = [ 3 ]
 sprSignature = '57BBD603'
 spritesFile = 'Tibia.spr'
-transparency = false
+transparency = true
 version = 1098
 
 [[clients]]
@@ -1300,7 +1281,7 @@ frameDurations = true
 frameGroups = true
 metadataFile = 'Tibia.dat'
 name = '10.98 (Copy)'
-otbFile = 'items.otb'
+otbFile = 'B:\Github\blacktalon-workspace\server\data\items\items.otb'
 otbId = 57
 otbMajor = 3
 otbmVersions = [ 3 ]
@@ -1308,3 +1289,41 @@ sprSignature = '57BBD603'
 spritesFile = 'Tibia.spr'
 transparency = true
 version = 1098
+
+[[clients]]
+configType = 'dat_otb'
+datSignature = '42A3'
+dataDirectory = '1287'
+description = ''
+extended = true
+frameDurations = true
+frameGroups = true
+metadataFile = 'Tibia.dat'
+name = 'New Client'
+otbFile = 'B:\Github\blacktalon-workspace\client\data\things\1098\items.otb'
+otbId = 0
+otbMajor = 1
+otbmVersions = []
+sprSignature = '57BBD603'
+spritesFile = 'Tibia.spr'
+transparency = true
+version = 0
+
+[[clients]]
+configType = 'dat_otb'
+datSignature = '0'
+dataDirectory = '1287'
+description = ''
+extended = false
+frameDurations = false
+frameGroups = false
+metadataFile = 'Tibia.dat'
+name = 'New Client 1'
+otbFile = ''
+otbId = 0
+otbMajor = 1
+otbmVersions = []
+sprSignature = '0'
+spritesFile = 'Tibia.spr'
+transparency = false
+version = 0

@@ -1,4 +1,12 @@
 [editor]
+advanced_item_finder_interaction_filters = 0
+advanced_item_finder_property_filters = 3
+advanced_item_finder_query_text = ''
+advanced_item_finder_selected_creature = ''
+advanced_item_finder_selected_kind = 0
+advanced_item_finder_selected_server_id = 35808
+advanced_item_finder_type_filters = 0
+advanced_item_finder_visual_filters = 0
 always_make_backup = false
 auto_assign_doorid = true
 auto_create_spawn = true
@@ -7,13 +15,17 @@ borderize_drag = true
 borderize_drag_threshold = 6000
 borderize_paste = true
 borderize_paste_threshold = 10000
+carpet_fill_borders = false
+carpet_like_ground_borders = false
 compensated_select = true
-copy_position_format = 4
-current_spawn_radius = 5
+copy_position_format = 2
+current_spawn_radius = 2
 default_client_version = 57
-default_spawntime = 60
+default_spawntime = 16
+disable_carpet_interaction = true
 doodad_brush_erase_like = false
 doubleclick_properties = true
+erase_above_hotkey = 'C'
 eraser_leave_unique = true
 find_item_mode = 0
 ground_replace_modifier = 'Alt'
@@ -21,34 +33,49 @@ group_actions = true
 house_brush_remove_items = false
 jump_to_item_mode = 0
 listbox_eats_all_events = true
+map_properties_default_save_location = ''
+map_properties_remember_save_location = false
 max_spawn_radius = 30
 merge_move = false
 merge_paste = false
+non_destructive_ground_paint = false
 only_one_instance = true
+palette_scroll_speed = 5.099999904632568
+preserve_manual_borders = false
 raw_like_simone = true
-recent_edited_map_path = 'B:\Github\blacktalon-hell-expansion\mapa\hospital.otbm'
-recent_edited_map_position = '1135:1067:7'
+recent_edited_map_path = 'B:\Github\blacktalon-workspace\server\data\scripts\maps\hunting areas\inferno.otbm'
+recent_edited_map_position = '5043:3857:6'
 recent_files = [
-    'B:\Github\blacktalon-hell-expansion\mapa\hospital.otbm',
+    'B:\Github\Maps\OTA Maps\MightMap.otbm',
+    'B:\Github\blacktalon-workspace\server\data\scripts\maps\hunting areas\inferno.otbm',
+    'B:\Github\blacktalon-hell-expansion\mapa\pharaoh blight v1.otbm',
+    'B:\Github\blacktalon-hell-expansion\mapa\mapa de poison_v2.otbm',
+    'B:\Github\Maps\RyuKage\hell\primeiro_dominio.otbm',
     'B:\Github\blacktalon-workspace\server\data\world\map.otbm',
-    'B:\Github\blacktalon-workspace\server\data\scripts\maps\eternal_depths\eternaldepths_allmaps.otbm'
+    'B:\Github\BLACKTALON_MAPS\worldmap\mainland_new.otbm',
+    'B:\Github\Maps\Marcelo090\pharaoh blight v1.otbm',
+    'B:\Github\blacktalon-hell-expansion\mapa\mansion_v1.otbm',
+    'B:\Github\blacktalon-workspace\server\data\world\city.otbm'
 ]
 replace_size = 500
 save_with_otb_magic_number = false
-scroll_speed = 3.5
+scroll_speed = 6.0
+search_results_limit = 100000
 selection_type = 0
-show_tileset_editor = false
+show_tileset_editor = true
+smart_brush_modifier = 'Ctrl+Alt'
+smart_brush_mouse_button = 'None'
 switch_mousebuttons = false
 undo_mem_size = 40
 undo_size = 400
 use_automagic = false
 use_otbm_4_for_all_maps = false
 warn_for_duplicate_id = true
-worker_threads = 1
-zoom_speed = 1.399999976158142
+worker_threads = 16
+zoom_speed = 2.700000047683716
 
 [experimental]
-experimental_fog = 0
+experimental_fog = 1
 
 [general]
 autocheck_for_updates = false
@@ -57,7 +84,9 @@ use_updater = true
 
 [graphics]
 anti_aliasing = 0
-creature_favorites = ''
+creature_favorites = 'Blizzard Horn;Glacial Overlord;Glacier Aristocrat;Unyielding Cold'
+creatures_auto_load_dir = ''
+creatures_auto_load_enabled = false
 creatures_json_path = 'B:\Github\blacktalon-workspace\server\data\scripts\creatures_table.json'
 cursor_alpha = 128
 cursor_alt_alpha = 128
@@ -67,18 +96,30 @@ cursor_alt_red = 0
 cursor_blue = 0
 cursor_green = 166
 cursor_red = 0
+favorite_files = '''B:\Github\BLACKTALON_MAPS\worldmap\mainland_new.otbm
+B:\Github\blacktalon-workspace\server\data\world\city.otbm
+B:\Github\blacktalon-workspace\server\data\world\event\events area.otbm
+B:\Github\blacktalon-workspace\server\data\scripts\maps\eternal_depths\eternaldepths_allmaps.otbm
+B:\Github\blacktalon-workspace\server\data\world\map.otbm
+B:\Github\blacktalon-workspace\server\data\scripts\maps\hunting areas\inferno.otbm'''
 frame_rate_limit = 144
 hard_refresh_rate = 200
 hide_items_when_zoomed = true
-icon_background = 0
-minimap_export_dir = ''
+icon_background = 255
+light_sources_data = '29712,Hospital Lamp - Stable,255,255,255;29713,Hospital Lamp - Nervous,103,108,126;29714,Hospital Lamp - Dying,200,200,200;29715,Hospital Lamp - Strobing,192,192,192;29716,Hospital Lamp - Big,255,200,0'
+minimap_export_dir = 'C:\Users\biel0\OneDrive\Documentos'
 minimap_update_delay = 333
 minimap_view_box = true
-screen_shader = '4xBRZ'
+palette_grid_icon_size = 48
+screen_shader = 'None'
 screenshot_directory = 'C:\Users\karol\Pictures\RME\'
 screenshot_format = 'png'
 selection_lasso = false
 show_fps_counter = true
+show_mountain_overlay = false
+show_stair_direction = false
+show_toast_notifications = true
+show_wall_borders = false
 software_clean_size = 500
 software_clean_threshold = 1800
 texture_clean_pulse = 15
@@ -86,7 +127,7 @@ texture_clean_threshold = 2500
 texture_longevity = 20
 texture_management = true
 tileset_export_dir = ''
-use_memcached_sprites = 0
+use_memcached_sprites = 1
 
 [hotkeys]
 hotkey_0 = 'NONE'
@@ -100,18 +141,28 @@ hotkey_7 = 'NONE'
 hotkey_8 = 'NONE'
 hotkey_9 = 'NONE'
 menu_action_hotkeys = '''RELOAD_DATA=F9
+ROTATE_SELECTION_CW=Home
+SELECT_MODE_LASSO=L
+SHOW_PREVIEW=
+SHOW_FORCED_LIGHT_ZONES=F7
+SELECT_CREATURE=
 '''
 numerical_hotkeys = ''
+
+[scripts]
+blacktalon_map_offsets = false
+'fps_counter.lua' = false
+hello_world = true
 
 [toolbars]
 show_toolbar_brushes = true
 show_toolbar_position = true
 show_toolbar_sizes = true
 show_toolbar_standard = true
-toolbar_brushes_layout = 'name=brush_toolbar;caption=;state=2106044;dir=1;layer=10;row=1;pos=285;prop=100000;bestw=378;besth=26;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
-toolbar_position_layout = 'name=position_toolbar;caption=;state=2106044;dir=1;layer=10;row=1;pos=907;prop=100000;bestw=200;besth=24;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
-toolbar_sizes_layout = 'name=sizes_toolbar;caption=;state=2106044;dir=1;layer=10;row=1;pos=665;prop=100000;bestw=240;besth=26;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
-toolbar_standard_layout = 'name=standard_toolbar;caption=;state=2106044;dir=1;layer=10;row=1;pos=1;prop=100000;bestw=282;besth=26;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
+toolbar_brushes_layout = 'name=brush_toolbar;caption=;state=2106044;dir=1;layer=10;row=0;pos=6;prop=100000;bestw=378;besth=26;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
+toolbar_position_layout = 'name=position_toolbar;caption=;state=2106044;dir=1;layer=10;row=0;pos=628;prop=100000;bestw=200;besth=24;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
+toolbar_sizes_layout = 'name=sizes_toolbar;caption=;state=2106044;dir=1;layer=10;row=0;pos=386;prop=100000;bestw=240;besth=26;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
+toolbar_standard_layout = 'name=standard_toolbar;caption=;state=2106044;dir=1;layer=10;row=1;pos=5;prop=100000;bestw=282;besth=26;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
 
 [ui]
 palette_col_count = 8
@@ -119,9 +170,9 @@ palette_collection_style = 'large icons'
 palette_creature_style = 0
 palette_doodad_style = 'large icons'
 palette_item_style = 'listbox'
-palette_raw_style = 'listbox'
+palette_raw_style = 'large icons'
 palette_terrain_style = 'large icons'
-use_gui_selection_shadow = false
+use_gui_selection_shadow = true
 use_large_choose_item_icons = true
 use_large_collection_toolbar = true
 use_large_container_icons = true
@@ -141,54 +192,69 @@ use_custom_data_directory = 0
 version_id = 40102000
 
 [view]
-always_show_zones = false
+always_show_zones = true
 draw_locked_door = false
 ext_house_shader = false
 highlight_items = false
 highlight_locked_doors = false
 show_all_floors = true
 show_as_minimap = false
-show_autoborder_preview = true
+show_autoborder_preview = false
 show_blocking = false
 show_camera_paths = true
 show_creature_names = true
-show_creatures = true
+show_creatures = false
 show_cursor_highlight = true
+show_custom_item_lights = true
 show_extra = true
+show_forced_light_zones = true
 show_grid = false
-show_houses = false
+show_houses = true
 show_ingame_box = false
+show_invalid_tiles = false
+show_invalid_zones = false
 show_items = true
 show_light_str = false
 show_lights = false
+show_moveables = false
 show_only_grounds = false
 show_only_modified_tiles = false
 show_only_tileflags = false
-show_preview = false
+show_pickupables = false
+show_preview = true
 show_shade = false
-show_spawns = true
+show_shadow_occlusion = false
+show_spawns = false
 show_special_tiles = false
-show_technical_items = false
+show_technical_items = true
 show_tooltips = false
 show_towns = false
 show_wall_hooks = false
-show_waypoints = false
+show_waypoints = true
+show_zone_boundaries = false
 transparent_floors = false
+transparent_grounds = false
 transparent_items = false
 
 [window]
+advanced_item_finder_window_height = 860
+advanced_item_finder_window_width = 1480
+advanced_item_finder_window_x = 540
+advanced_item_finder_window_y = 266
 house_palette_layout = 'name=HousePalette;caption=Houses;state=6293502;dir=2;layer=0;row=0;pos=0;prop=100000;bestw=230;besth=400;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
 ingame_preview_layout = 'name=IngamePreview;caption=In-game Preview;state=2099198;dir=2;layer=0;row=0;pos=0;prop=100000;bestw=404;besth=150;minw=200;minh=150;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=400;floath=300;floatw_cli=-1;floath_cli=-1'
 ingame_preview_visible = false
-minimap_layout = 'name=98f8fd00699b5b360003c4940000000c;caption=Minimap;state=2099199;dir=4;layer=0;row=0;pos=1;prop=100000;bestw=205;besth=130;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=481;floaty=391;floatw=-1;floath=-1;floatw_cli=957;floath_cli=727'
+minimap_layout = 'name=Minimap;caption=Minimap;state=2099198;dir=4;layer=0;row=0;pos=1;prop=100000;bestw=261;besth=200;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1'
 minimap_visible = false
-palette_layout = 'name=Palette_1;caption=Palette;state=2099196;dir=4;layer=0;row=0;pos=0;prop=100000;bestw=225;besth=300;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=-1;floaty=-1;floatw=-1;floath=-1;floatw_cli=-1;floath_cli=-1|'
-preferences_window_height = 772
-preferences_window_width = 1200
-replace_tool_window_height = 862
+palette_layout = ''
+preferences_window_height = 835
+preferences_window_width = 1697
+replace_tool_auto_add_rule = false
+replace_tool_auto_assign_palette = false
+replace_tool_window_height = 851
 replace_tool_window_width = 1400
 theme = 0
-tool_options_layout = 'name=ToolOptions;caption=Tool Options;state=6293502;dir=4;layer=0;row=0;pos=0;prop=100000;bestw=230;besth=300;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=79;floaty=1259;floatw=-1;floath=-1;floatw_cli=230;floath_cli=300'
+tool_options_layout = 'name=ToolOptions;caption=Tool Options;state=6293502;dir=2;layer=1;row=0;pos=0;prop=32729;bestw=230;besth=300;minw=-1;minh=-1;maxw=-1;maxh=-1;floatx=2332;floaty=283;floatw=-1;floath=-1;floatw_cli=230;floath_cli=300'
 welcome_dialog = true
 window_height = 1408
 window_maximized = true
@@ -462,11 +528,6 @@ name = '10.77'
 [[clients]]
 clientPath = ''
 default = false
-name = '10.98'
-
-[[clients]]
-clientPath = ''
-default = false
 name = '10.100'
 
 [[clients]]
@@ -525,7 +586,7 @@ default = false
 name = '7.7-srv'
 
 [[clients]]
-clientPath = ''
+clientPath = 'B:\Github\blacktalon-workspace\client\data\things\1098\'
 default = false
 name = '10.98dat'
 
@@ -535,6 +596,30 @@ default = false
 name = '1098-BlackTek'
 
 [[clients]]
-clientPath = 'B:\Github\blacktalon-workspace\client\data\things\1098'
+clientPath = 'B:\Github\blacktalon-workspace\client\data\things\1098\'
 default = true
 name = '10.98 (Copy)'
+
+[[clients]]
+clientPath = 'B:\Github\blacktalon-workspace\client\data\things\1098\'
+default = false
+name = 'New Client'
+
+[[clients]]
+clientPath = ''
+default = false
+name = 'New Client 1'
+
+[[minimap_merge_presets]]
+filename = 'merged_minimap'
+folder = 'C:\Users\biel0\OneDrive\Documentos'
+maps = [
+    'B:\Github\blacktalon-workspace\server\data\world\map.otbm',
+    'B:\Github\blacktalon-workspace\server\data\world\quest_final_room.otbm',
+    'B:\Github\blacktalon-workspace\server\data\world\training_room.otbm',
+    'B:\Github\blacktalon-workspace\server\data\world\city.otbm',
+    'B:\Github\blacktalon-workspace\server\data\world\starterzone\inferno.otbm',
+    'B:\Github\blacktalon-workspace\server\data\scripts\maps\hunting areas\inferno.otbm',
+    'B:\Github\blacktalon-workspace\server\data\scripts\maps\eternal_depths\eternaldepths_allmaps.otbm'
+]
+name = 'blacktalon all maps'

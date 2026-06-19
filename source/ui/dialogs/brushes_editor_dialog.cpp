@@ -7,6 +7,7 @@
 #include "ui/dialogs/brushes_editor_dialog.h"
 #include "ui/dialogs/border_editor_dialog.h"
 #include "ui/dialogs/doodad_editor_dialog.h"
+#include "ui/dialogs/wall_brush_editor_dialog.h"
 #include "ui/theme.h"
 
 #include <wx/sizer.h>
@@ -70,12 +71,8 @@ void BrushesEditorDialog::CreateGUIControls() {
 	m_doodadsPanel = new DoodadEditorDialog(m_notebook);
 	m_notebook->AddPage(m_doodadsPanel, "  Doodads  ");
 
-	// Tab 3: Walls (placeholder)
-	m_wallsPanel = CreatePlaceholderPanel(
-		"Walls Editor",
-		"Walls editor is coming soon.\n\n"
-		"This will let you author walls.xml entries — wall segments, junctions,\n"
-		"doors, windows and pole pieces — from a visual grid.");
+	// Tab 3: Walls
+	m_wallsPanel = new WallBrushEditorDialog(m_notebook);
 	m_notebook->AddPage(m_wallsPanel, "  Walls  ");
 
 	// Tab 4: Tilesets (placeholder)
@@ -123,6 +120,15 @@ wxPanel* BrushesEditorDialog::CreatePlaceholderPanel(const wxString& title, cons
 bool BrushesEditorDialog::OpenItemInBordersEditor(uint16_t itemId, bool preferGround) {
 	m_notebook->SetSelection(TAB_BORDERS_GROUNDS);
 	return m_bordersPanel->OpenItemInEditor(itemId, preferGround);
+}
+
+bool BrushesEditorDialog::OpenItemInWallsEditor(uint16_t itemId) {
+	// Only jump to the Walls tab if the item actually belongs to a wall brush.
+	if (!m_wallsPanel->OpenItemInEditor(itemId)) {
+		return false;
+	}
+	m_notebook->SetSelection(TAB_WALLS);
+	return true;
 }
 
 void BrushesEditorDialog::OnPageChanged(wxBookCtrlEvent& event) {

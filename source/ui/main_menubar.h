@@ -31,6 +31,7 @@ namespace MenuBar {
 	enum ActionID {
 		NEW,
 		OPEN,
+		OPEN_FORCED,
 		SAVE,
 		SAVE_AS,
 		GENERATE_MAP,
@@ -262,6 +263,7 @@ public:
 	// Handlers
 	void OnNew(wxCommandEvent& event);
 	void OnOpen(wxCommandEvent& event);
+	void OnOpenForced(wxCommandEvent& event);
 	void OnSave(wxCommandEvent& event);
 	void OnSaveAs(wxCommandEvent& event);
 	void OnClose(wxCommandEvent& event);

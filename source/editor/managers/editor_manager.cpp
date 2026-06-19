@@ -360,14 +360,16 @@ bool EditorManager::NewMap() {
 	return true;
 }
 
-void EditorManager::OpenMap() {
+void EditorManager::OpenMap(bool force_client_mismatch) {
 	std::vector<wxString> recentFiles = g_gui.root->GetRecentFiles();
 	OpenMapDialog dialog(g_gui.root, recentFiles);
 
 	if (dialog.ShowModal() == wxID_OK) {
 		wxString path = dialog.GetSelectedPath();
 		if (!path.empty()) {
-			LoadMap(path);
+			MapLoadOptions load_options;
+			load_options.force_client_mismatch = force_client_mismatch;
+			LoadMap(FileName(path), load_options);
 		}
 	}
 }
@@ -426,6 +428,12 @@ bool EditorManager::LoadMap(const FileName& fileName, const MapLoadOptions& load
 			if (!target) {
 				throw std::runtime_error(std::format("Unsupported client selection: {}", load_options.selected_client_id));
 			}
+		} else if (load_options.force_client_mismatch && g_version.getLoadedVersion()) {
+			// Forced load: keep the client/assets that are currently loaded instead of
+			// resolving (and loading) the version the map header asks for. This is what the
+			// user wants when picking "Open Forced Load" - reuse what is already loaded and
+			// skip the version mismatch check below.
+			target = g_version.getLoadedVersion();
 		} else {
 			target = ClientVersion::getBestMatch(ver.client);
 			if (!target) {

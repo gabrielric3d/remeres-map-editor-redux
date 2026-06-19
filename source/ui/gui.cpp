@@ -868,8 +868,8 @@ std::unique_ptr<LiveClient> GUI::PopPendingLiveClient(LiveClient* ptr) {
 bool GUI::NewMap() {
 	return g_editors.NewMap();
 }
-void GUI::OpenMap() {
-	g_editors.OpenMap();
+void GUI::OpenMap(bool force_client_mismatch) {
+	g_editors.OpenMap(force_client_mismatch);
 }
 void GUI::SaveMap() {
 	g_editors.SaveMap();
@@ -1043,10 +1043,21 @@ void GUI::DestroyBrushesEditorDialog() {
 
 void GUI::OpenBrushesEditorForItem(uint16_t itemId, bool preferGround) {
 	ShowBrushesEditorDialog();
-	if (brushes_editor_dialog && !brushes_editor_dialog->OpenItemInBordersEditor(itemId, preferGround)) {
-		wxMessageBox(wxString::Format("Item %u is not used by any border or ground brush.", itemId),
-			"Open in Brushes Editor", wxICON_INFORMATION, brushes_editor_dialog);
+	if (!brushes_editor_dialog) {
+		return;
 	}
+
+	// Walls live in their own file (walls.xml), so a wall/door item never collides
+	// with a border or ground id — try the Walls tab first, then borders/grounds.
+	if (brushes_editor_dialog->OpenItemInWallsEditor(itemId)) {
+		return;
+	}
+	if (brushes_editor_dialog->OpenItemInBordersEditor(itemId, preferGround)) {
+		return;
+	}
+
+	wxMessageBox(wxString::Format("Item %u is not used by any wall, border or ground brush.", itemId),
+		"Open in Brushes Editor", wxICON_INFORMATION, brushes_editor_dialog);
 }
 
 //=============================================================================

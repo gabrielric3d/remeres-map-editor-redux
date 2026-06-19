@@ -33,6 +33,10 @@ void FileMenuHandler::OnOpen(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.OpenMap();
 }
 
+void FileMenuHandler::OnOpenForced(wxCommandEvent& WXUNUSED(event)) {
+	g_gui.OpenMap(true);
+}
+
 void FileMenuHandler::OnSave(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.SaveMap();
 }

@@ -122,6 +122,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_editor_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_scan_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/brushes_editor_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/wall_brush_editor_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_generator_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_preset_editor_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/instance_layout_dialog.h
@@ -552,6 +553,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_editor_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_scan_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/brushes_editor_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/wall_brush_editor_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_generator_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_preset_editor_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/instance_layout_dialog.cpp
