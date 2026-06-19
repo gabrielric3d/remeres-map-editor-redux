@@ -38,7 +38,7 @@ public:
 	bool ShouldSave();
 	void SaveCurrentMap(FileName filename, bool showdialog);
 	bool NewMap();
-	void OpenMap();
+	void OpenMap(bool force_client_mismatch = false);
 	void SaveMap();
 	void SaveMapAs();
 	bool LoadMap(const FileName& fileName, const MapLoadOptions& load_options = {});

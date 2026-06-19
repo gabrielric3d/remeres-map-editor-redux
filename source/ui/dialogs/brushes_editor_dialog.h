@@ -13,6 +13,7 @@
 
 class BorderEditorDialog; // embedded panel
 class DoodadEditorDialog; // embedded panel
+class WallBrushEditorDialog; // embedded panel
 
 class BrushesEditorDialog : public wxDialog {
 public:
@@ -22,6 +23,10 @@ public:
 	// Switch to the Borders & Grounds tab and load the border/ground brush that
 	// uses the given item. Returns false if no border or ground brush uses it.
 	bool OpenItemInBordersEditor(uint16_t itemId, bool preferGround);
+
+	// Switch to the Walls tab and load the wall brush that uses the given item
+	// (only switches tabs on success). Returns false if no wall brush uses it.
+	bool OpenItemInWallsEditor(uint16_t itemId);
 
 	void OnPageChanged(wxBookCtrlEvent& event);
 	void OnCloseWindow(wxCloseEvent& event);
@@ -33,7 +38,7 @@ private:
 	wxNotebook* m_notebook;
 	BorderEditorDialog* m_bordersPanel;
 	DoodadEditorDialog* m_doodadsPanel;
-	wxPanel* m_wallsPanel;
+	WallBrushEditorDialog* m_wallsPanel;
 	wxPanel* m_tilesetsPanel;
 
 	static constexpr int TAB_BORDERS_GROUNDS = 0;

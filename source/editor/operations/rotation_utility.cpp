@@ -185,13 +185,19 @@ void RotationUtility::ensureWallCatalogs() {
 Position RotationUtility::rotatePosition(const Position& pos, const Position& minPos, int width, int height) const {
 	const int rx = pos.x - minPos.x;
 	const int ry = pos.y - minPos.y;
+	// A 90-degree turn swaps the bounding box (width <-> height). Anchoring the
+	// result at minPos would drift the selection's center by (width - height) / 2
+	// tiles, so it appears to jump sideways. Re-center the rotated box on the same
+	// point to keep the rotation "in place" (no effect when width == height; 180
+	// degrees keeps the box shape so it needs no adjustment).
+	const int recenter = (width - height) / 2;
 	switch (turns_) {
 		case 1: // 90 CW
-			return Position(minPos.x + (height - 1 - ry), minPos.y + rx, pos.z);
+			return Position(minPos.x + (height - 1 - ry) + recenter, minPos.y + rx - recenter, pos.z);
 		case 2: // 180
 			return Position(minPos.x + (width - 1 - rx), minPos.y + (height - 1 - ry), pos.z);
 		case 3: // 90 CCW
-			return Position(minPos.x + ry, minPos.y + (width - 1 - rx), pos.z);
+			return Position(minPos.x + ry + recenter, minPos.y + (width - 1 - rx) - recenter, pos.z);
 		default:
 			return pos;
 	}

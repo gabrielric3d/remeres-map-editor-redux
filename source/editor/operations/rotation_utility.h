@@ -33,6 +33,8 @@ public:
 	}
 
 	// Rotates pos within the bounding box anchored at minPos (width x height), Z unchanged.
+	// For multi-floor selections, callers pass each tile's own floor bounding box so
+	// every floor rotates independently and keeps its relative offset to the others.
 	Position rotatePosition(const Position& pos, const Position& minPos, int width, int height) const;
 
 	// Remaps the item ID/orientation (border -> AutoBorder group; wall/door -> WallBrush catalog; fallback doRotate).

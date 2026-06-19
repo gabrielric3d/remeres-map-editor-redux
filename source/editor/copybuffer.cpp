@@ -82,10 +82,14 @@ void CopyBuffer::rotate(int quarterTurns) {
 		return;
 	}
 
-	// Find bounding box
+	// Each floor rotates independently inside its own bounding box, so a multi-floor
+	// buffer keeps the relative offset between floors instead of rotating it away.
+	struct FloorBox {
+		int minX = 0, minY = 0, maxX = 0, maxY = 0;
+		bool init = false;
+	};
+	FloorBox floor_box[MAP_MAX_LAYER + 1];
 	bool hasPos = false;
-	Position minPos;
-	Position maxPos;
 
 	for (MapIterator it = tiles->begin(); it != tiles->end(); ++it) {
 		Tile* tile = (*it).get();
@@ -94,15 +98,20 @@ void CopyBuffer::rotate(int quarterTurns) {
 		}
 
 		const Position pos = tile->getPosition();
-		if (!hasPos) {
-			minPos = pos;
-			maxPos = pos;
-			hasPos = true;
+		if (pos.z < 0 || pos.z > MAP_MAX_LAYER) {
+			continue;
+		}
+		hasPos = true;
+		FloorBox& fb = floor_box[pos.z];
+		if (!fb.init) {
+			fb.minX = fb.maxX = pos.x;
+			fb.minY = fb.maxY = pos.y;
+			fb.init = true;
 		} else {
-			minPos.x = std::min(minPos.x, pos.x);
-			minPos.y = std::min(minPos.y, pos.y);
-			maxPos.x = std::max(maxPos.x, pos.x);
-			maxPos.y = std::max(maxPos.y, pos.y);
+			fb.minX = std::min(fb.minX, pos.x);
+			fb.minY = std::min(fb.minY, pos.y);
+			fb.maxX = std::max(fb.maxX, pos.x);
+			fb.maxY = std::max(fb.maxY, pos.y);
 		}
 	}
 
@@ -110,8 +119,15 @@ void CopyBuffer::rotate(int quarterTurns) {
 		return;
 	}
 
-	const int width = maxPos.x - minPos.x + 1;
-	const int height = maxPos.y - minPos.y + 1;
+	// Rotate a position within its own floor's bounding box.
+	auto rotateForFloor = [&](const Position& p) -> Position {
+		if (p.z < 0 || p.z > MAP_MAX_LAYER) {
+			return p;
+		}
+		const FloorBox& fb = floor_box[p.z];
+		const Position fmin(fb.minX, fb.minY, p.z);
+		return rot.rotatePosition(p, fmin, fb.maxX - fb.minX + 1, fb.maxY - fb.minY + 1);
+	};
 
 	// Deep copy all tiles, rotate items, compute new positions
 	struct PendingTile {
@@ -131,7 +147,7 @@ void CopyBuffer::rotate(int quarterTurns) {
 		}
 
 		auto rotatedTile = TileOperations::deepCopy(oldTile, *tiles);
-		const Position newPos = rot.rotatePosition(oldTile->getPosition(), minPos, width, height);
+		const Position newPos = rotateForFloor(oldTile->getPosition());
 
 		rot.rotateTileItems(rotatedTile.get());
 

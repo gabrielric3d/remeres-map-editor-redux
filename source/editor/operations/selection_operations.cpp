@@ -18,6 +18,8 @@
 
 #include "brushes/doodad/doodad_brush.h"
 
+#include <algorithm>
+
 void SelectionOperations::doSurroundingBorders(DoodadBrush* doodad_brush, PositionList& tilestoborder, Tile* buffer_tile, Tile* new_tile) {
 	if (doodad_brush->doNewBorders() && g_settings.getInteger(Config::USE_AUTOMAGIC)) {
 		tilestoborder.push_back(Position(new_tile->getPosition().x, new_tile->getPosition().y, new_tile->getPosition().z));
@@ -345,20 +347,46 @@ void SelectionOperations::rotateSelection(Editor& editor, int quarterTurns) {
 		return;
 	}
 
-	// Rotation is restricted to a single floor
-	Position min_pos = editor.selection.minPosition();
-	Position max_pos = editor.selection.maxPosition();
-	if (min_pos.z != max_pos.z) {
-		g_gui.SetStatusText("Cannot rotate selection across multiple floors.");
-		return;
+	// Multi-floor is allowed. Each floor rotates independently inside its OWN
+	// bounding box, so floors keep their relative offset (e.g. the one-tile overlap
+	// that makes an upper floor stack on the floor below) instead of having it
+	// rotated away. A single-floor selection has just one box, so nothing changes.
+	struct FloorBox {
+		int minX = 0, minY = 0, maxX = 0, maxY = 0;
+		bool init = false;
+	};
+	FloorBox floor_box[MAP_MAX_LAYER + 1];
+	for (Tile* tile : editor.selection) {
+		const Position p = tile->getPosition();
+		if (p.z < 0 || p.z > MAP_MAX_LAYER) {
+			continue;
+		}
+		FloorBox& fb = floor_box[p.z];
+		if (!fb.init) {
+			fb.minX = fb.maxX = p.x;
+			fb.minY = fb.maxY = p.y;
+			fb.init = true;
+		} else {
+			fb.minX = std::min(fb.minX, p.x);
+			fb.minY = std::min(fb.minY, p.y);
+			fb.maxX = std::max(fb.maxX, p.x);
+			fb.maxY = std::max(fb.maxY, p.y);
+		}
 	}
 
-	const int width = max_pos.x - min_pos.x + 1;
-	const int height = max_pos.y - min_pos.y + 1;
+	// Rotate a position within its own floor's bounding box.
+	auto rotateForFloor = [&](const Position& p) -> Position {
+		if (p.z < 0 || p.z > MAP_MAX_LAYER) {
+			return p;
+		}
+		const FloorBox& fb = floor_box[p.z];
+		const Position fmin(fb.minX, fb.minY, p.z);
+		return rot.rotatePosition(p, fmin, fb.maxX - fb.minX + 1, fb.maxY - fb.minY + 1);
+	};
 
 	// All-or-nothing: if any rotated position lands out of bounds, abort before touching the map
 	for (Tile* tile : editor.selection) {
-		if (!rot.rotatePosition(tile->getPosition(), min_pos, width, height).isValid()) {
+		if (!rotateForFloor(tile->getPosition()).isValid()) {
 			g_gui.SetStatusText("Rotation would move selection out of bounds.");
 			return;
 		}
@@ -484,7 +512,7 @@ void SelectionOperations::rotateSelection(Editor& editor, int quarterTurns) {
 	action = editor.actionQueue->createAction(batchAction.get());
 	for (Tile* tile : tmp_storage) {
 		const Position old_pos = tile->getPosition();
-		const Position new_pos = rot.rotatePosition(old_pos, min_pos, width, height);
+		const Position new_pos = rotateForFloor(old_pos);
 
 		if (!new_pos.isValid()) {
 			delete tile;
@@ -608,9 +636,19 @@ void SelectionOperations::rotateSelection(Editor& editor, int quarterTurns) {
 		batchAction->addAndCommitAction(std::move(action));
 	}
 
-	// Unlike moving, rotation changes internal border orientations for mixed ground types.
-	// Rebuild borders/walls/etc on the rotated tiles themselves.
-	if (create_borders && doborders) {
+	// Unlike moving, rotation changes internal border/wall orientations, so the
+	// rotated tiles themselves must be rebuilt.
+	//
+	// Walls, tables and carpets keep their orientation purely through their item
+	// id, and a wall set normally defines a single "corner" sprite
+	// (WALL_NORTHWEST_DIAGONAL) with no item for the other three diagonal
+	// alignments. The in-place alignment remap in RotationUtility therefore
+	// cannot turn a corner into its rotated counterpart: the corner sprite would
+	// stay put while the straight walls around it rotate, leaving a broken joint.
+	// So we ALWAYS re-run their auto-border here (mirroring CopyBuffer::rotate),
+	// independent of automagic, letting the rotated neighbour geometry pick the
+	// correct piece. Ground borders, on the other hand, still follow automagic.
+	{
 		action = editor.actionQueue->createAction(batchAction.get());
 		for (Tile* tile : editor.selection) {
 			if (!tile) {
@@ -618,12 +656,21 @@ void SelectionOperations::rotateSelection(Editor& editor, int quarterTurns) {
 			}
 
 			Tile* map_tile = editor.map.getTile(tile->getPosition());
-			if (!map_tile || !map_tile->ground || !map_tile->ground->getGroundBrush()) {
+			if (!map_tile) {
+				continue;
+			}
+
+			const bool has_ground_brush = map_tile->ground && map_tile->ground->getGroundBrush();
+			const bool want_ground_borders = create_borders && doborders && has_ground_brush;
+			const bool has_oriented_item = map_tile->hasWall() || map_tile->hasTable() || map_tile->hasCarpet();
+			if (!want_ground_borders && !has_oriented_item) {
 				continue;
 			}
 
 			std::unique_ptr<Tile> new_tile = TileOperations::deepCopy(map_tile, editor.map);
-			TileOperations::borderize(new_tile.get(), &editor.map);
+			if (want_ground_borders) {
+				TileOperations::borderize(new_tile.get(), &editor.map);
+			}
 			TileOperations::wallize(new_tile.get(), &editor.map);
 			TileOperations::tableize(new_tile.get(), &editor.map);
 			TileOperations::carpetize(new_tile.get(), &editor.map);
