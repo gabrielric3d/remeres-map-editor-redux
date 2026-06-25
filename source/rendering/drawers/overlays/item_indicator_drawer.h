@@ -16,6 +16,7 @@ public:
 		Pickupable,
 		Moveable,
 		PickupableAndMoveable,
+		Destination,
 	};
 
 	struct IndicatorRequest {

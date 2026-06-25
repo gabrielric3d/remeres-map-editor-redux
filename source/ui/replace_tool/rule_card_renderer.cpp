@@ -135,6 +135,33 @@ void RuleCardRenderer::DrawRuleCard(RuleBuilderPanel* panel, NVGcontext* vg, int
 	float arrowX = startX + CARD_W + 10;
 	DrawRuleArrow(vg, arrowX, itemY, ITEM_H);
 
+	// 3b. Offset badge (clickable) sitting just above the arrow.
+	{
+		const bool hasOffset = (rule.offsetX != 0 || rule.offsetY != 0);
+		const float bx = arrowX;
+		const float bw = (float)ARROW_WIDTH;
+		const float bh = 18.0f;
+		const float by = y + CARD_PADDING + 35.0f; // raw constants so HitTest matches on any DPI
+
+		NVGcolor accentCol = NvgUtils::ToNvColor(Theme::Get(Theme::Role::Accent));
+		nvgBeginPath(vg);
+		nvgRoundedRect(vg, bx, by, bw, bh, 4);
+		if (hasOffset) {
+			nvgFillColor(vg, accentCol);
+			nvgFill(vg);
+		} else {
+			nvgStrokeColor(vg, NvgUtils::ToNvColor(Theme::Get(Theme::Role::CardBorder)));
+			nvgStrokeWidth(vg, 1.0f);
+			nvgStroke(vg);
+		}
+
+		std::string label = hasOffset ? std::format("{:+d},{:+d}", rule.offsetX, rule.offsetY) : "offset";
+		nvgFontSize(vg, 9.0f);
+		nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
+		nvgFillColor(vg, hasOffset ? nvgRGBA(255, 255, 255, 255) : NvgUtils::ToNvColor(Theme::Get(Theme::Role::TextSubtle)));
+		nvgText(vg, bx + bw / 2.0f, by + bh / 2.0f, label.c_str(), nullptr);
+	}
+
 	// 4. Targets
 	float txStartX = arrowX + ARROW_WIDTH;
 	for (size_t j = 0; j < rule.targets.size(); ++j) {

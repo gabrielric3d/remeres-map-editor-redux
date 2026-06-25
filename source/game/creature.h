@@ -85,6 +85,7 @@ protected:
 	int spawntime;
 	bool saved;
 	bool selected;
+	bool is_npc; // cached so the name/type survives even if the type is purged from g_creatures
 };
 
 inline void Creature::save() {
@@ -104,7 +105,9 @@ inline bool Creature::isNpc() const {
 	if (type) {
 		return type->isNpc;
 	}
-	return false;
+	// Type was purged from the database (e.g. custom NPC after a version switch):
+	// fall back to the flag we cached at construction so we don't misclassify it.
+	return is_npc;
 }
 
 inline std::string Creature::getName() const {
@@ -112,7 +115,10 @@ inline std::string Creature::getName() const {
 	if (type) {
 		return type->name;
 	}
-	return "";
+	// Type was purged from the database: we still know our own name, so return it
+	// instead of "" — otherwise saveSpawns would write an empty name and the
+	// creature would be silently dropped on the next load.
+	return type_name;
 }
 inline CreatureBrush* Creature::getBrush() const {
 	CreatureType* type = g_creatures[type_name];

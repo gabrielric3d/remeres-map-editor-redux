@@ -15,6 +15,11 @@ struct ReplacementTarget {
 struct ReplacementRule {
 	uint16_t fromId = 0;
 	std::vector<ReplacementTarget> targets;
+	// Position offset (in tiles) applied to the replacement item, relative to the
+	// original. 0,0 keeps the replacement in place (legacy behaviour); any other
+	// value relocates the new item to originalPos + (offsetX, offsetY).
+	int offsetX = 0;
+	int offsetY = 0;
 };
 
 struct RuleSet {

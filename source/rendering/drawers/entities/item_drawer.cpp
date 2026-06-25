@@ -70,6 +70,12 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 
 	const ItemDefinitionView it = params.item_definition ? params.item_definition : item->getDefinition();
 
+	// teleport destination indicator (overlay icon, queued early so it shows regardless of
+	// sprite resolution or the technical-item special-case early returns below)
+	if (!options.ingame && options.show_tech_items && item->isTeleport()) {
+		DrawDestinationIndicator(pos);
+	}
+
 	// Locked door indicator
 	if (!options.ingame && options.highlight_locked_doors && it.isDoor()) {
 		bool locked = item->isLocked();
@@ -382,5 +388,11 @@ void ItemDrawer::DrawItemIndicator(const Position& pos, bool pickupable, bool mo
 			type = ItemIndicatorDrawer::IndicatorType::Moveable;
 		}
 		item_indicator_drawer->addIndicator(pos, type, isHouseTile);
+	}
+}
+
+void ItemDrawer::DrawDestinationIndicator(const Position& pos) {
+	if (item_indicator_drawer) {
+		item_indicator_drawer->addIndicator(pos, ItemIndicatorDrawer::IndicatorType::Destination, false);
 	}
 }

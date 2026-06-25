@@ -7,6 +7,10 @@
 #include <wx/dcbuffer.h>
 #include <wx/graphics.h>
 #include <wx/msgdlg.h>
+#include <wx/dialog.h>
+#include <wx/spinctrl.h>
+#include <wx/stattext.h>
+#include <wx/sizer.h>
 #include <nanovg.h>
 #include <format>
 #include <cmath>
@@ -27,6 +31,36 @@ static const int ARROW_WIDTH = 60;
 static const int SECTION_GAP = 20;
 static const int CARD_W = ITEM_SIZE + 20;
 static const int GHOST_SLOT_WIDTH = CARD_W;
+
+// Small modal asking for the per-rule X/Y offset. Returns true on OK.
+static bool ShowOffsetDialog(wxWindow* parent, int& ioX, int& ioY) {
+	wxDialog dlg(parent, wxID_ANY, "Replacement Offset");
+
+	wxBoxSizer* root = new wxBoxSizer(wxVERTICAL);
+	wxStaticText* info = new wxStaticText(&dlg, wxID_ANY,
+		"Offset (in tiles) applied to the replacement item,\nrelative to the original. 0, 0 keeps it on the same tile.");
+	root->Add(info, 0, wxALL, 10);
+
+	wxFlexGridSizer* grid = new wxFlexGridSizer(2, 2, 6, 8);
+	grid->Add(new wxStaticText(&dlg, wxID_ANY, "Offset X:"), 0, wxALIGN_CENTER_VERTICAL);
+	wxSpinCtrl* spinX = new wxSpinCtrl(&dlg, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, -1000, 1000, ioX);
+	grid->Add(spinX, 0, wxEXPAND);
+	grid->Add(new wxStaticText(&dlg, wxID_ANY, "Offset Y:"), 0, wxALIGN_CENTER_VERTICAL);
+	wxSpinCtrl* spinY = new wxSpinCtrl(&dlg, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, -1000, 1000, ioY);
+	grid->Add(spinY, 0, wxEXPAND);
+	root->Add(grid, 0, wxLEFT | wxRIGHT | wxEXPAND, 10);
+
+	root->Add(dlg.CreateButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 10);
+	dlg.SetSizerAndFit(root);
+	dlg.CenterOnParent();
+
+	if (dlg.ShowModal() != wxID_OK) {
+		return false;
+	}
+	ioX = spinX->GetValue();
+	ioY = spinY->GetValue();
+	return true;
+}
 
 // ----------------------------------------------------------------------------
 // ItemDropTarget
@@ -319,6 +353,18 @@ void RuleBuilderPanel::OnMouse(wxMouseEvent& event) {
 				}
 				Refresh();
 			}
+		} else if (hit.type == HitResult::EditOffset && hit.ruleIndex != -1) {
+			auto& rule = m_rules[hit.ruleIndex];
+			int ox = rule.offsetX;
+			int oy = rule.offsetY;
+			if (ShowOffsetDialog(this, ox, oy)) {
+				rule.offsetX = ox;
+				rule.offsetY = oy;
+				if (m_listener) {
+					m_listener->OnRuleChanged();
+				}
+				Refresh();
+			}
 		} else if (hit.type == HitResult::Source && hit.ruleIndex != -1) {
 			if (m_listener) {
 				m_listener->OnRuleItemSelected(m_rules[hit.ruleIndex].fromId);
@@ -392,6 +438,15 @@ RuleBuilderPanel::HitResult RuleBuilderPanel::HitTest(int x, int y) const {
 
 			if (localX >= startX && localX <= startX + CARD_W && localY >= sourceY && localY <= sourceY + ITEM_HEIGHT) {
 				return { HitResult::Source, (int)i, -1 };
+			}
+
+			// Offset badge (above the arrow). Geometry mirrors RuleCardRenderer,
+			// using raw constants so it matches the badge on any DPI.
+			float badgeX = startX + CARD_W + 10;
+			float badgeY = CARD_PADDING + 35.0f;
+			float badgeH = 18.0f;
+			if (localX >= badgeX && localX <= badgeX + ARROW_WIDTH && localY >= badgeY && localY <= badgeY + badgeH) {
+				return { HitResult::EditOffset, (int)i, -1 };
 			}
 
 			// Targets (Wrapping)

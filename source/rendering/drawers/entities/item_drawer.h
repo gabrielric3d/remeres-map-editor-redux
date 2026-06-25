@@ -52,6 +52,7 @@ public:
 	void DrawDoorIndicator(bool locked, const Position& pos, bool south, bool east);
 	void DrawLightIndicator(const Position& pos, uint16_t clientId);
 	void DrawItemIndicator(const Position& pos, bool pickupable, bool moveable, bool isHouseTile);
+	void DrawDestinationIndicator(const Position& pos);
 
 	void SetHookIndicatorDrawer(HookIndicatorDrawer* drawer) {
 		hook_indicator_drawer = drawer;

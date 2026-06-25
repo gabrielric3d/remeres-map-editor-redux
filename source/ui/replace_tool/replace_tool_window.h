@@ -14,6 +14,7 @@
 #include <map>
 
 class Editor;
+class wxSpinCtrl;
 
 class ReplaceToolWindow : public wxDialog, public LibraryPanel::Listener, public RuleListControl::Listener, public RuleBuilderPanel::Listener, public ItemGridPanel::Listener {
 public:
@@ -71,6 +72,9 @@ private:
 	wxChoice* m_scopeChoice;
 	wxCheckBox* m_autoAddCheck;
 	wxCheckBox* m_autoAssignCheck;
+	wxSpinCtrl* m_offsetX;
+	wxSpinCtrl* m_offsetY;
+	wxButton* m_applyOffsetAllBtn;
 	int m_nextSlot = 1; // Alternates between 1 (Original) and 2 (Replacement)
 
 	ReplacementEngine engine;

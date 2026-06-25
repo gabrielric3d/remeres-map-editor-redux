@@ -212,9 +212,19 @@ bool MapXMLIO::saveSpawns(const Map& map, pugi::xml_document& doc) {
 				const Tile* creatureTile = map.getTile(spawnPosition + Position(x, y, 0));
 				if (creatureTile && creatureTile->creature && !creatureTile->creature->isSaved()) {
 					Creature* creature = creatureTile->creature.get();
+
+					// Safety net: never write a nameless creature. A creature with an empty
+					// name is discarded on load (see loadSpawns), so it would vanish silently.
+					std::string creatureName = creature->getName();
+					if (creatureName.empty()) {
+						spdlog::warn("MapXMLIO: Skipping creature with empty name at {}:{}:{} (its type is missing from the creature database)",
+							spawnPosition.x + x, spawnPosition.y + y, spawnPosition.z);
+						continue;
+					}
+
 					pugi::xml_node creatureNode = spawnNode.append_child(creature->isNpc() ? "npc" : "monster");
 
-					creatureNode.append_attribute("name") = creature->getName().c_str();
+					creatureNode.append_attribute("name") = creatureName.c_str();
 					creatureNode.append_attribute("x") = x;
 					creatureNode.append_attribute("y") = y;
 					creatureNode.append_attribute("z") = spawnPosition.z;

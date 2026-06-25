@@ -32,6 +32,7 @@ void ItemIndicatorDrawer::draw(NVGcontext* vg, const RenderView& view) {
 	const NVGcolor colorHousePickupable = nvgRGBA(255, 80, 80, 230);  // Red for house tiles
 	const NVGcolor colorHouseMoveable = nvgRGBA(255, 80, 80, 230);    // Red for house tiles
 	const NVGcolor colorHouseBoth = nvgRGBA(255, 80, 80, 230);        // Red for house tiles
+	const NVGcolor colorDestination = nvgRGBA(120, 230, 120, 235);    // Green (teleport destination)
 
 	const float zoomFactor = 1.0f / view.zoom;
 	const float iconSize = 14.0f * zoomFactor;
@@ -73,6 +74,13 @@ void ItemIndicatorDrawer::draw(NVGcontext* vg, const RenderView& view) {
 				float offsetX = iconSize * 0.55f;
 				IconRenderer::DrawIconWithBorder(vg, iconX - offsetX, iconY, iconSize, outlineOffset, ICON_HAND_POINTER_SOLID, color);
 				IconRenderer::DrawIconWithBorder(vg, iconX + offsetX, iconY, iconSize, outlineOffset, ICON_ARROWS_UP_DOWN_LEFT_RIGHT, color);
+				break;
+			}
+			case IndicatorType::Destination: {
+				// Top-right corner so it doesn't overlap pickupable/moveable (bottom-right)
+				const float destX = x + TILE_SIZE - iconSize * 0.7f;
+				const float destY = y + iconSize * 0.7f;
+				IconRenderer::DrawIconWithBorder(vg, destX, destY, iconSize, outlineOffset, ICON_LOCATION_DOT, colorDestination);
 				break;
 			}
 		}

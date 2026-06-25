@@ -16,11 +16,15 @@ void from_json(const nlohmann::json& j, ReplacementTarget& t) {
 }
 
 void to_json(nlohmann::json& j, const ReplacementRule& r) {
-	j = nlohmann::json { { "fromId", r.fromId }, { "targets", r.targets } };
+	j = nlohmann::json { { "fromId", r.fromId }, { "targets", r.targets }, { "offsetX", r.offsetX }, { "offsetY", r.offsetY } };
 }
 void from_json(const nlohmann::json& j, ReplacementRule& r) {
 	j.at("fromId").get_to(r.fromId);
 	j.at("targets").get_to(r.targets);
+	// Offsets are optional for backward compatibility with rule sets saved
+	// before the feature existed.
+	r.offsetX = j.value("offsetX", 0);
+	r.offsetY = j.value("offsetY", 0);
 }
 
 void to_json(nlohmann::json& j, const RuleSet& s) {

@@ -235,6 +235,34 @@ void ReplaceToolWindow::InitLayout() {
 	m_autoAssignCheck->SetValue(g_settings.getBoolean(Config::REPLACE_TOOL_AUTO_ASSIGN_PALETTE));
 	actionsSizer->Add(m_autoAssignCheck, wxSizerFlags(0).Expand().Border(wxLEFT | wxRIGHT | wxBOTTOM, padding));
 
+	// Global offset: set X/Y here and apply to every rule in the builder at once.
+	// (Each rule also keeps its own offset, editable via the badge on its card.)
+	wxStaticText* offsetLabel = new wxStaticText(actionsCard, wxID_ANY, "OFFSET (TILES):");
+	offsetLabel->SetForegroundColour(wxColour(180, 180, 180));
+	offsetLabel->SetFont(Theme::GetFont(9, true));
+	actionsSizer->Add(offsetLabel, wxSizerFlags(0).Border(wxLEFT | wxRIGHT, padding));
+
+	wxBoxSizer* offsetSizer = new wxBoxSizer(wxHORIZONTAL);
+	wxStaticText* offXLabel = new wxStaticText(actionsCard, wxID_ANY, "X:");
+	offXLabel->SetForegroundColour(wxColour(180, 180, 180));
+	m_offsetX = new wxSpinCtrl(actionsCard, wxID_ANY, wxEmptyString, wxDefaultPosition, FromDIP(wxSize(70, 24)), wxSP_ARROW_KEYS, -1000, 1000, 0);
+	wxStaticText* offYLabel = new wxStaticText(actionsCard, wxID_ANY, "Y:");
+	offYLabel->SetForegroundColour(wxColour(180, 180, 180));
+	m_offsetY = new wxSpinCtrl(actionsCard, wxID_ANY, wxEmptyString, wxDefaultPosition, FromDIP(wxSize(70, 24)), wxSP_ARROW_KEYS, -1000, 1000, 0);
+
+	offsetSizer->Add(offXLabel, wxSizerFlags(0).Center().Border(wxRIGHT, 4));
+	offsetSizer->Add(m_offsetX, wxSizerFlags(1).Center().Border(wxRIGHT, 8));
+	offsetSizer->Add(offYLabel, wxSizerFlags(0).Center().Border(wxRIGHT, 4));
+	offsetSizer->Add(m_offsetY, wxSizerFlags(1).Center());
+	actionsSizer->Add(offsetSizer, wxSizerFlags(0).Expand().Border(wxLEFT | wxRIGHT | wxTOP, padding / 2));
+
+	m_applyOffsetAllBtn = new wxButton(actionsCard, wxID_ANY, "APPLY OFFSET TO ALL RULES", wxDefaultPosition, FromDIP(wxSize(-1, 26)));
+	m_applyOffsetAllBtn->SetBackgroundColour(wxColour(80, 80, 80));
+	m_applyOffsetAllBtn->SetForegroundColour(*wxWHITE);
+	m_applyOffsetAllBtn->SetFont(Theme::GetFont(9, true));
+	m_applyOffsetAllBtn->SetToolTip("Set the offset above on every rule currently in the builder");
+	actionsSizer->Add(m_applyOffsetAllBtn, wxSizerFlags(0).Expand().Border(wxALL, padding));
+
 	actionsSizer->AddStretchSpacer(1);
 
 	// Execute Button
@@ -269,6 +297,21 @@ void ReplaceToolWindow::InitLayout() {
 	m_executeBtn->Bind(wxEVT_BUTTON, &ReplaceToolWindow::OnExecute, this);
 	m_addVisibleBtn->Bind(wxEVT_BUTTON, &ReplaceToolWindow::OnAddVisibleTiles, this);
 	closeBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { Close(); });
+
+	m_applyOffsetAllBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+		std::vector<ReplacementRule> rules = ruleBuilder->GetRules();
+		if (rules.empty()) {
+			return;
+		}
+		int ox = m_offsetX->GetValue();
+		int oy = m_offsetY->GetValue();
+		for (auto& rule : rules) {
+			rule.offsetX = ox;
+			rule.offsetY = oy;
+		}
+		ruleBuilder->SetRules(rules);
+		OnRuleChanged(); // persist if a rule set is active
+	});
 
 	m_addRuleBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
 		std::vector<ReplacementRule> rules = ruleBuilder->GetRules();

@@ -23,15 +23,20 @@
 #include <unordered_map>
 
 Creature::Creature(CreatureType* ctype) :
-	direction(SOUTH), spawntime(0), saved(false), selected(false) {
+	direction(SOUTH), spawntime(0), saved(false), selected(false), is_npc(false) {
 	if (ctype) {
 		type_name = ctype->name;
+		is_npc = ctype->isNpc;
 	}
 }
 
 Creature::Creature(std::string ctype_name) :
-	type_name(std::move(ctype_name)), direction(SOUTH), spawntime(0), saved(false), selected(false) {
-	////
+	type_name(std::move(ctype_name)), direction(SOUTH), spawntime(0), saved(false), selected(false), is_npc(false) {
+	// Cache the NPC flag from the database if the type is currently known.
+	// deepCopy() overwrites it afterwards from the source creature.
+	if (CreatureType* type = g_creatures[type_name]) {
+		is_npc = type->isNpc;
+	}
 }
 
 Creature::~Creature() {
@@ -72,6 +77,7 @@ std::unique_ptr<Creature> Creature::deepCopy() const {
 	copy->direction = direction;
 	copy->selected = selected;
 	copy->saved = saved;
+	copy->is_npc = is_npc;
 	return copy;
 }
 

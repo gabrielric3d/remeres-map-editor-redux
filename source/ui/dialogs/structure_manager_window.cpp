@@ -2694,6 +2694,14 @@ void StructureManagerDialog::OnCharHook(wxKeyEvent& event) {
 		}
 	}
 
+	// Page Up/Down step one entry at a time (with wrap-around). Intercept here so the
+	// native wxListBox does not consume them as a full-page scroll (which jumps straight
+	// to the first/last item on a short list) when the list has focus.
+	if (!m_tutorialActive && (key == WXK_PAGEUP || key == WXK_PAGEDOWN)) {
+		SelectAdjacentEntry(key == WXK_PAGEUP ? -1 : 1);
+		return;
+	}
+
 	event.Skip();
 }
 

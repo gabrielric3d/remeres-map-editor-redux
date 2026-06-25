@@ -33,6 +33,7 @@ public:
 			SaveRule,
 			DeleteRule, // The 'X' on the rule card
 			DeleteTarget, // The 'X' overlay on a specific target
+			EditOffset, // The offset badge above the arrow
 		};
 		Type type = None;
 		int ruleIndex = -1;
