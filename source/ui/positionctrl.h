@@ -20,6 +20,15 @@
 
 #include "ui/numbertextctrl.h"
 
+class wxSpinCtrl;
+
+// Enables pasting a full "x, y, z" position (e.g. "1428, 1232, 8") onto a trio of
+// raw wxSpinCtrl controls, for dialogs that use plain spin controls instead of
+// PositionCtrl. Pressing Ctrl+V while any of the controls is focused fills all of
+// them at once when the clipboard holds a recognizable position. Pass nullptr for
+// z_field on 2D (X/Y only) inputs, in which case the pasted Z is ignored.
+void EnablePositionPaste(wxSpinCtrl* x_field, wxSpinCtrl* y_field, wxSpinCtrl* z_field = nullptr);
+
 class PositionCtrl : public wxStaticBoxSizer {
 public:
 	PositionCtrl(wxWindow* parent, const wxString& label, int x, int y, int z, int maxx = MAP_MAX_WIDTH, int maxy = MAP_MAX_HEIGHT, int maxz = MAP_MAX_LAYER);
@@ -50,6 +59,7 @@ public:
 	bool Enable(bool enable = true);
 
 	void OnClipboardText(wxClipboardTextEvent&);
+	void OnCharHook(wxKeyEvent&);
 
 protected:
 	NumberTextCtrl* x_field;

@@ -23,6 +23,7 @@
 #include "map/tile.h"
 #include "editor/selection.h"
 #include "ui/find_item_window.h"
+#include "ui/positionctrl.h"
 #include "rendering/core/graphics.h"
 #include "item_definitions/core/item_definition_store.h"
 #include "brushes/brush.h"
@@ -2364,6 +2365,10 @@ void AreaDecorationDialog::CreateAreaTab(wxNotebook* notebook) {
 	m_rectY2Spin->Bind(wxEVT_TEXT, &AreaDecorationDialog::OnRectangleCoordsChanged, this);
 	m_rectZ1Spin->Bind(wxEVT_TEXT, &AreaDecorationDialog::OnRectangleCoordsChanged, this);
 	m_rectZ2Spin->Bind(wxEVT_TEXT, &AreaDecorationDialog::OnRectangleCoordsChanged, this);
+
+	// Allow pasting a full "x, y, z" position (Ctrl+V) into either corner's fields.
+	EnablePositionPaste(m_rectX1Spin, m_rectY1Spin, m_rectZ1Spin);
+	EnablePositionPaste(m_rectX2Spin, m_rectY2Spin, m_rectZ2Spin);
 
 	rectBox->Add(coordGrid, 0, wxALL, 5);
 

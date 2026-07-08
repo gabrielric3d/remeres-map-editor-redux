@@ -9,6 +9,7 @@
 #include "app/managers/version_manager.h"
 #include "ui/dialog_util.h"
 #include "ui/map_tab.h"
+#include "ui/positionctrl.h"
 #include "util/image_manager.h"
 
 #include <wx/dirdlg.h>
@@ -344,6 +345,10 @@ MapPropertiesWindow::MapPropertiesWindow(wxWindow* parent, MapTab* view, Editor&
 		to_sizer->Add(to_z_spin, wxSizerFlags(1).Expand());
 		grid_sizer->Add(to_sizer, 1, wxEXPAND);
 	}
+
+	// Allow pasting a full "x, y, z" position (Ctrl+V) into either corner's fields.
+	EnablePositionPaste(from_x_spin, from_y_spin, from_z_spin);
+	EnablePositionPaste(to_x_spin, to_y_spin, to_z_spin);
 
 	topsizer->Add(grid_sizer, wxSizerFlags(1).Expand().Border(wxALL, 20));
 

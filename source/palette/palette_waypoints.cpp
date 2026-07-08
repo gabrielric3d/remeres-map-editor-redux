@@ -26,6 +26,7 @@
 #include "palette/palette_waypoints.h"
 #include "brushes/waypoint/waypoint_brush.h"
 #include "map/map.h"
+#include "ui/positionctrl.h"
 #include "util/image_manager.h"
 
 #include <algorithm>
@@ -447,12 +448,122 @@ void WaypointPalettePanel::OnEditWaypointLabel(wxListEvent& event) {
 }
 
 void WaypointPalettePanel::OnClickAddWaypoint(wxCommandEvent& event) {
-	if (map) {
-		map->waypoints.addWaypoint(std::make_unique<Waypoint>());
-		long i = waypoint_list->InsertItem(0, "");
-		waypoint_list->SetItemData(i, 0);
-		waypoint_list->EditLabel(i);
+	if (!map) {
+		return;
 	}
+
+	// Suggest a unique default name so the user can just confirm.
+	std::string default_name;
+	int suffix = 1;
+	do {
+		default_name = "Waypoint " + std::to_string(suffix++);
+	} while (map->waypoints.getWaypoint(default_name));
+
+	// Default position: center of the map on the ground floor.
+	Position default_pos(map->getWidth() / 2, map->getHeight() / 2, GROUND_LAYER);
+
+	// Dialog to configure the name and position before the waypoint is created.
+	wxDialog dlg(this, wxID_ANY, "Add Waypoint", wxDefaultPosition, wxDefaultSize);
+	wxBoxSizer* main_sizer = newd wxBoxSizer(wxVERTICAL);
+
+	wxFlexGridSizer* grid = newd wxFlexGridSizer(2, 5, 5);
+	grid->AddGrowableCol(1);
+
+	grid->Add(newd wxStaticText(&dlg, wxID_ANY, "Name:"), 0, wxALIGN_CENTER_VERTICAL);
+	wxTextCtrl* name_field = newd wxTextCtrl(&dlg, wxID_ANY, wxstr(default_name), wxDefaultPosition, wxSize(180, -1));
+	grid->Add(name_field, 1, wxEXPAND);
+
+	grid->Add(newd wxStaticText(&dlg, wxID_ANY, "X:"), 0, wxALIGN_CENTER_VERTICAL);
+	wxSpinCtrl* spin_x = newd wxSpinCtrl(&dlg, wxID_ANY, std::to_string(default_pos.x), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 65535, default_pos.x);
+	grid->Add(spin_x, 1, wxEXPAND);
+
+	grid->Add(newd wxStaticText(&dlg, wxID_ANY, "Y:"), 0, wxALIGN_CENTER_VERTICAL);
+	wxSpinCtrl* spin_y = newd wxSpinCtrl(&dlg, wxID_ANY, std::to_string(default_pos.y), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 65535, default_pos.y);
+	grid->Add(spin_y, 1, wxEXPAND);
+
+	grid->Add(newd wxStaticText(&dlg, wxID_ANY, "Z:"), 0, wxALIGN_CENTER_VERTICAL);
+	wxSpinCtrl* spin_z = newd wxSpinCtrl(&dlg, wxID_ANY, std::to_string(default_pos.z), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 15, default_pos.z);
+	grid->Add(spin_z, 1, wxEXPAND);
+
+	main_sizer->Add(grid, 0, wxEXPAND | wxALL, 10);
+
+	// Allow pasting a full "x, y, z" position (Ctrl+V) into any of the fields.
+	EnablePositionPaste(spin_x, spin_y, spin_z);
+
+	// OK / Cancel buttons
+	wxStdDialogButtonSizer* btn_sizer = newd wxStdDialogButtonSizer();
+	btn_sizer->AddButton(newd wxButton(&dlg, wxID_OK, "OK"));
+	btn_sizer->AddButton(newd wxButton(&dlg, wxID_CANCEL, "Cancel"));
+	btn_sizer->Realize();
+	main_sizer->Add(btn_sizer, 0, wxEXPAND | wxALL, 10);
+
+	dlg.SetSizerAndFit(main_sizer);
+	dlg.CenterOnParent();
+
+	name_field->SetFocus();
+	name_field->SelectAll();
+
+	// Re-prompt until we get a valid, unique name (or the user cancels).
+	std::string name;
+	while (true) {
+		if (dlg.ShowModal() != wxID_OK) {
+			return;
+		}
+
+		name = nstr(name_field->GetValue());
+		// Trim surrounding whitespace.
+		name.erase(0, name.find_first_not_of(" \t"));
+		if (const size_t last = name.find_last_not_of(" \t"); last != std::string::npos) {
+			name.erase(last + 1);
+		} else {
+			name.clear();
+		}
+
+		if (name.empty()) {
+			wxMessageBox("Waypoint name cannot be empty.", "Add Waypoint", wxOK | wxICON_WARNING, &dlg);
+			name_field->SetFocus();
+			continue;
+		}
+		if (map->waypoints.getWaypoint(name)) {
+			wxMessageBox("There already is a waypoint with this name.", "Add Waypoint", wxOK | wxICON_WARNING, &dlg);
+			name_field->SetFocus();
+			name_field->SelectAll();
+			continue;
+		}
+		break;
+	}
+
+	Position new_pos(spin_x->GetValue(), spin_y->GetValue(), spin_z->GetValue());
+
+	auto wp_ptr = std::make_unique<Waypoint>(name, new_pos);
+	Waypoint* wp = wp_ptr.get();
+	map->waypoints.addWaypoint(std::move(wp_ptr));
+
+	// Register the waypoint on its destination tile.
+	if (new_pos != Position()) {
+		Tile* new_tile = map->getTile(new_pos);
+		if (!new_tile) {
+			new_tile = map->createTile(new_pos.x, new_pos.y, new_pos.z);
+		}
+		new_tile->getLocation()->increaseWaypointCount();
+	}
+
+	g_brush_manager.waypoint_brush->setWaypoint(wp);
+
+	// Refresh and select the new waypoint in the list.
+	UpdateList();
+	const long count = waypoint_list->GetItemCount();
+	for (long i = 0; i < count; ++i) {
+		if (waypoint_list->GetItemData(i) == 0 && nstr(waypoint_list->GetItemText(i)) == name) {
+			waypoint_list->SetItemState(i, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED);
+			waypoint_list->EnsureVisible(i);
+			break;
+		}
+	}
+	g_gui.RefreshPalettes();
+
+	g_gui.SetScreenCenterPosition(new_pos);
+	g_gui.SetStatusText(wxString::Format("Waypoint '%s' created at (%d, %d, %d)", wxstr(name), new_pos.x, new_pos.y, new_pos.z));
 }
 
 void WaypointPalettePanel::OnClickRemoveWaypoint(wxCommandEvent& event) {
@@ -505,6 +616,9 @@ void WaypointPalettePanel::OnClickSetPosition(wxCommandEvent& event) {
 	grid->Add(spin_z, 1, wxEXPAND);
 
 	main_sizer->Add(grid, 0, wxEXPAND | wxALL, 10);
+
+	// Allow pasting a full "x, y, z" position (Ctrl+V) into any of the fields.
+	EnablePositionPaste(spin_x, spin_y, spin_z);
 
 	// Current position info
 	wxString current_pos = wxString::Format("Current: (%d, %d, %d)", wp->pos.x, wp->pos.y, wp->pos.z);

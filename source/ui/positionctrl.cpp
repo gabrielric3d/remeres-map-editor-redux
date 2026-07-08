@@ -18,7 +18,50 @@
 #include "app/main.h"
 #include "ui/positionctrl.h"
 #include "ui/numbertextctrl.h"
+#include "ui/gui.h"
+#include "editor/editor.h"
+#include "map/map.h"
 #include "map/position.h"
+#include <wx/spinctrl.h>
+
+void EnablePositionPaste(wxSpinCtrl* x_field, wxSpinCtrl* y_field, wxSpinCtrl* z_field /* = nullptr */) {
+	auto handler = [x_field, y_field, z_field](wxKeyEvent& evt) {
+		if (evt.GetKeyCode() == WXK_CONTROL_V) {
+			// Validate against the current map bounds when available; wxSpinCtrl
+			// clamps to its own range on SetValue regardless.
+			int map_width = MAP_MAX_WIDTH;
+			int map_height = MAP_MAX_HEIGHT;
+			if (const Editor* editor = g_gui.GetCurrentEditor()) {
+				map_width = editor->map.getWidth();
+				map_height = editor->map.getHeight();
+			}
+			Position position;
+			if (posFromClipboard(position, map_width, map_height)) {
+				if (x_field) {
+					x_field->SetValue(position.x);
+				}
+				if (y_field) {
+					y_field->SetValue(position.y);
+				}
+				if (z_field) {
+					z_field->SetValue(position.z);
+				}
+				return; // consume so the raw text isn't pasted into a single field
+			}
+		}
+		evt.Skip();
+	};
+
+	if (x_field) {
+		x_field->Bind(wxEVT_CHAR, handler);
+	}
+	if (y_field) {
+		y_field->Bind(wxEVT_CHAR, handler);
+	}
+	if (z_field) {
+		z_field->Bind(wxEVT_CHAR, handler);
+	}
+}
 
 PositionCtrl::PositionCtrl(wxWindow* parent, const wxString& label, int x, int y, int z, int maxx /*= MAP_MAX_WIDTH*/, int maxy /*= MAP_MAX_HEIGHT*/, int maxz /*= MAP_MAX_LAYER*/) :
 	wxStaticBoxSizer(wxHORIZONTAL, parent, label) {
@@ -26,16 +69,19 @@ PositionCtrl::PositionCtrl(wxWindow* parent, const wxString& label, int x, int y
 	x_field = newd NumberTextCtrl(box, wxID_ANY, x, 0, maxx, wxTE_PROCESS_ENTER, "X", wxDefaultPosition, wxSize(60, 20));
 	x_field->SetToolTip("X Coordinate");
 	x_field->Bind(wxEVT_TEXT_PASTE, &PositionCtrl::OnClipboardText, this);
+	x_field->Bind(wxEVT_CHAR_HOOK, &PositionCtrl::OnCharHook, this);
 	Add(x_field, 2, wxEXPAND | wxLEFT | wxBOTTOM, 5);
 
 	y_field = newd NumberTextCtrl(box, wxID_ANY, y, 0, maxy, wxTE_PROCESS_ENTER, "Y", wxDefaultPosition, wxSize(60, 20));
 	y_field->SetToolTip("Y Coordinate");
 	y_field->Bind(wxEVT_TEXT_PASTE, &PositionCtrl::OnClipboardText, this);
+	y_field->Bind(wxEVT_CHAR_HOOK, &PositionCtrl::OnCharHook, this);
 	Add(y_field, 2, wxEXPAND | wxLEFT | wxBOTTOM, 5);
 
 	z_field = newd NumberTextCtrl(box, wxID_ANY, z, 0, maxz, wxTE_PROCESS_ENTER, "Z", wxDefaultPosition, wxSize(35, 20));
 	z_field->SetToolTip("Z Coordinate (Layer)");
 	z_field->Bind(wxEVT_TEXT_PASTE, &PositionCtrl::OnClipboardText, this);
+	z_field->Bind(wxEVT_CHAR_HOOK, &PositionCtrl::OnCharHook, this);
 	Add(z_field, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 
 	maxWidth = maxx;
@@ -85,4 +131,20 @@ void PositionCtrl::OnClipboardText(wxClipboardTextEvent& evt) {
 	} else {
 		evt.Skip();
 	}
+}
+
+void PositionCtrl::OnCharHook(wxKeyEvent& evt) {
+	// Intercept Ctrl+V before the numeric validator strips the separators from a
+	// pasted "x, y, z" string. When the clipboard holds a recognizable position,
+	// fill all three fields and swallow the paste; otherwise let it proceed.
+	if (evt.ControlDown() && !evt.AltDown() && evt.GetKeyCode() == 'V') {
+		Position position;
+		if (posFromClipboard(position, maxWidth, maxHeight)) {
+			x_field->SetIntValue(position.x);
+			y_field->SetIntValue(position.y);
+			z_field->SetIntValue(position.z);
+			return; // consume so the raw text isn't pasted into a single field
+		}
+	}
+	evt.Skip();
 }

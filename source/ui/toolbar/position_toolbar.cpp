@@ -40,20 +40,26 @@ PositionToolBar::PositionToolBar(wxWindow* parent) {
 
 	x_control->Bind(wxEVT_TEXT_PASTE, &PositionToolBar::OnPaste, this);
 	x_control->Bind(wxEVT_KEY_UP, &PositionToolBar::OnKeyUp, this);
+	x_control->Bind(wxEVT_CHAR_HOOK, &PositionToolBar::OnCharHook, this);
 	y_control->Bind(wxEVT_TEXT_PASTE, &PositionToolBar::OnPaste, this);
 	y_control->Bind(wxEVT_KEY_UP, &PositionToolBar::OnKeyUp, this);
+	y_control->Bind(wxEVT_CHAR_HOOK, &PositionToolBar::OnCharHook, this);
 	z_control->Bind(wxEVT_TEXT_PASTE, &PositionToolBar::OnPaste, this);
 	z_control->Bind(wxEVT_KEY_UP, &PositionToolBar::OnKeyUp, this);
+	z_control->Bind(wxEVT_CHAR_HOOK, &PositionToolBar::OnCharHook, this);
 	go_button->Bind(wxEVT_BUTTON, &PositionToolBar::OnGoClick, this);
 }
 
 PositionToolBar::~PositionToolBar() {
 	x_control->Unbind(wxEVT_TEXT_PASTE, &PositionToolBar::OnPaste, this);
 	x_control->Unbind(wxEVT_KEY_UP, &PositionToolBar::OnKeyUp, this);
+	x_control->Unbind(wxEVT_CHAR_HOOK, &PositionToolBar::OnCharHook, this);
 	y_control->Unbind(wxEVT_TEXT_PASTE, &PositionToolBar::OnPaste, this);
 	y_control->Unbind(wxEVT_KEY_UP, &PositionToolBar::OnKeyUp, this);
+	y_control->Unbind(wxEVT_CHAR_HOOK, &PositionToolBar::OnCharHook, this);
 	z_control->Unbind(wxEVT_TEXT_PASTE, &PositionToolBar::OnPaste, this);
 	z_control->Unbind(wxEVT_KEY_UP, &PositionToolBar::OnKeyUp, this);
+	z_control->Unbind(wxEVT_CHAR_HOOK, &PositionToolBar::OnCharHook, this);
 	go_button->Unbind(wxEVT_BUTTON, &PositionToolBar::OnGoClick, this);
 }
 
@@ -128,4 +134,20 @@ void PositionToolBar::OnPaste(wxClipboardTextEvent& event) {
 	} else {
 		event.Skip();
 	}
+}
+
+void PositionToolBar::OnCharHook(wxKeyEvent& event) {
+	// Intercept Ctrl+V before the numeric validator strips the separators from a
+	// pasted "x, y, z" string; fill all three fields when it parses as a position.
+	if (event.ControlDown() && !event.AltDown() && event.GetKeyCode() == 'V') {
+		Position position;
+		const Map& currentMap = g_gui.GetCurrentMap();
+		if (posFromClipboard(position, currentMap.getWidth(), currentMap.getHeight())) {
+			x_control->SetIntValue(position.x);
+			y_control->SetIntValue(position.y);
+			z_control->SetIntValue(position.z);
+			return; // consume so the raw text isn't pasted into a single field
+		}
+	}
+	event.Skip();
 }

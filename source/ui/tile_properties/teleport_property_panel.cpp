@@ -9,6 +9,7 @@
 #include "map/tile.h"
 #include "map/map.h"
 #include "ui/gui.h"
+#include "ui/positionctrl.h"
 #include "editor/editor.h"
 #include "editor/action.h"
 #include "editor/action_queue.h"
@@ -41,6 +42,9 @@ TeleportPropertyPanel::TeleportPropertyPanel(wxWindow* parent) :
 	x_spin->Bind(wxEVT_SPINCTRL, &TeleportPropertyPanel::OnDestChange, this);
 	y_spin->Bind(wxEVT_SPINCTRL, &TeleportPropertyPanel::OnDestChange, this);
 	z_spin->Bind(wxEVT_SPINCTRL, &TeleportPropertyPanel::OnDestChange, this);
+
+	// Allow pasting a full "x, y, z" position (Ctrl+V) into any of the fields.
+	EnablePositionPaste(x_spin, y_spin, z_spin);
 }
 
 TeleportPropertyPanel::~TeleportPropertyPanel() {

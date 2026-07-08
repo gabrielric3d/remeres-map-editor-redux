@@ -23,6 +23,7 @@
 #include "ui/gui.h"
 #include "ui/gui_ids.h"
 #include "ui/dialog_util.h"
+#include "ui/positionctrl.h"
 #include "app/application.h"
 #include "app/definitions.h"
 #include "util/image_manager.h"
@@ -124,6 +125,11 @@ ExportMinimapWindow::ExportMinimapWindow(wxWindow* parent, Editor& editor) :
 	to_y_spin = newd wxSpinCtrl(this, wxID_ANY, std::to_string(map_h), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, map_h, map_h);
 	tmpsizer->Add(to_y_spin, 1, wxALL, 5);
 	sizer->Add(tmpsizer, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, 5);
+
+	// Allow pasting a full "x, y, z" position (Ctrl+V) into either corner; the X/Y
+	// are filled and the pasted Z is ignored (floor is chosen separately).
+	EnablePositionPaste(from_x_spin, from_y_spin, nullptr);
+	EnablePositionPaste(to_x_spin, to_y_spin, nullptr);
 
 	merge_floors_checkbox = newd wxCheckBox(this, wxID_ANY, "Merge floors into single image");
 	merge_floors_checkbox->Enable(false);

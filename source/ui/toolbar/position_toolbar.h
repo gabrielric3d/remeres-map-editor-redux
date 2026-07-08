@@ -22,6 +22,7 @@ public:
 	void OnGoClick(wxCommandEvent& event);
 	void OnKeyUp(wxKeyEvent& event);
 	void OnPaste(wxClipboardTextEvent& event);
+	void OnCharHook(wxKeyEvent& event);
 
 	static const wxString PANE_NAME;
 
