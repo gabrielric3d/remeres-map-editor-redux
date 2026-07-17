@@ -131,6 +131,15 @@ bool BrushesEditorDialog::OpenItemInWallsEditor(uint16_t itemId) {
 	return true;
 }
 
+bool BrushesEditorDialog::OpenItemInDoodadsEditor(uint16_t itemId) {
+	// Only jump to the Doodads tab if the item actually belongs to a doodad brush.
+	if (!m_doodadsPanel->OpenItemInEditor(itemId)) {
+		return false;
+	}
+	m_notebook->SetSelection(TAB_DOODADS);
+	return true;
+}
+
 void BrushesEditorDialog::OnPageChanged(wxBookCtrlEvent& event) {
 	// Ignore nested notebook events (the Border/Ground sub-notebook inside the Borders tab).
 	if (event.GetEventObject() != m_notebook) {

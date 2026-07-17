@@ -139,8 +139,8 @@ public:
 	std::unique_ptr<Animator> animator;
 
 	uint16_t draw_height;
-	uint16_t drawoffset_x;
-	uint16_t drawoffset_y;
+	int16_t drawoffset_x;
+	int16_t drawoffset_y;
 
 	uint16_t minimap_color;
 

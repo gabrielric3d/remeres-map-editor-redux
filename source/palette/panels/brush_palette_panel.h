@@ -37,6 +37,8 @@ public:
 
 	// Called when this page is displayed
 	void OnSwitchIn() override;
+	// Called when this page is hidden
+	void OnSwitchOut() override;
 
 	// Event handler for child window
 	void OnSwitchingPage(wxChoicebookEvent& event);

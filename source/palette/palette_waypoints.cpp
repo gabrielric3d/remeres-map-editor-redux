@@ -30,119 +30,7 @@
 #include "util/image_manager.h"
 
 #include <algorithm>
-#include <map>
-#include <set>
 #include <wx/textdlg.h>
-
-namespace {
-
-// Extract category from waypoint name.
-// Names with format "Category (Detail)" or "Category Name" are grouped.
-// Common multi-word prefixes are detected by looking for shared prefixes among all names.
-std::string ExtractCategory(const std::string& name, const std::set<std::string>& known_categories) {
-	for (const auto& cat : known_categories) {
-		if (name.length() > cat.length() && name.substr(0, cat.length()) == cat) {
-			char next = name[cat.length()];
-			if (next == ' ' || next == '(') {
-				return cat;
-			}
-		}
-	}
-	return "";
-}
-
-// Build category set from all waypoint names by finding common prefixes
-std::set<std::string> BuildCategories(const Waypoints& waypoints) {
-	std::map<std::string, int> prefix_counts;
-
-	// Collect all names
-	std::vector<std::string> names;
-	for (const auto& [key, wp] : waypoints) {
-		names.push_back(wp->name);
-	}
-
-	// For each pair of names, find shared word-boundary prefixes
-	for (size_t i = 0; i < names.size(); ++i) {
-		for (size_t j = i + 1; j < names.size(); ++j) {
-			const std::string& a = names[i];
-			const std::string& b = names[j];
-
-			// Find common prefix length
-			size_t common = 0;
-			while (common < a.length() && common < b.length() && a[common] == b[common]) {
-				++common;
-			}
-
-			// Truncate to last word boundary (space)
-			size_t last_space = std::string::npos;
-			for (size_t k = 0; k < common; ++k) {
-				if (a[k] == ' ') {
-					last_space = k;
-				}
-			}
-
-			if (last_space != std::string::npos && last_space >= 2) {
-				std::string prefix = a.substr(0, last_space);
-				// Only count if both names are longer than the prefix (i.e., it's truly a category)
-				if (a.length() > last_space + 1 && b.length() > last_space + 1) {
-					prefix_counts[prefix]++;
-				}
-			}
-		}
-	}
-
-	std::set<std::string> categories;
-	for (const auto& [prefix, count] : prefix_counts) {
-		if (count >= 1) {
-			// Check that at least 2 names actually have this prefix
-			int match_count = 0;
-			for (const auto& name : names) {
-				if (name.length() > prefix.length() && name.substr(0, prefix.length()) == prefix) {
-					char next = name[prefix.length()];
-					if (next == ' ' || next == '(') {
-						match_count++;
-					}
-				}
-			}
-			if (match_count >= 2) {
-				categories.insert(prefix);
-			}
-		}
-	}
-
-	// Remove categories that are subsets of longer categories with same members
-	std::set<std::string> to_remove;
-	for (const auto& short_cat : categories) {
-		for (const auto& long_cat : categories) {
-			if (long_cat.length() > short_cat.length() &&
-				long_cat.substr(0, short_cat.length()) == short_cat) {
-				// Check if all members of short_cat are also members of long_cat
-				bool all_match = true;
-				for (const auto& name : names) {
-					if (name.length() > short_cat.length() &&
-						name.substr(0, short_cat.length()) == short_cat &&
-						(name[short_cat.length()] == ' ' || name[short_cat.length()] == '(')) {
-						if (!(name.length() > long_cat.length() &&
-							  name.substr(0, long_cat.length()) == long_cat)) {
-							all_match = false;
-							break;
-						}
-					}
-				}
-				if (all_match) {
-					to_remove.insert(short_cat);
-				}
-			}
-		}
-	}
-	for (const auto& r : to_remove) {
-		categories.erase(r);
-	}
-
-	return categories;
-}
-
-} // namespace
 
 WaypointPalettePanel::WaypointPalettePanel(wxWindow* parent, wxWindowID id) :
 	PalettePanel(parent, id),
@@ -173,6 +61,14 @@ WaypointPalettePanel::WaypointPalettePanel(wxWindow* parent, wxWindowID id) :
 	tmpsizer->Add(set_position_button, 1, wxEXPAND);
 	sidesizer->Add(tmpsizer, 0, wxEXPAND);
 
+	// Reorder buttons (drag & drop also works directly on the list)
+	wxSizer* ordersizer = newd wxBoxSizer(wxHORIZONTAL);
+	move_up_button = newd wxButton(static_cast<wxStaticBoxSizer*>(sidesizer)->GetStaticBox(), PALETTE_WAYPOINT_MOVE_UP, wxString::FromUTF8("\xE2\x86\x91 Up"), wxDefaultPosition, wxSize(50, -1));
+	ordersizer->Add(move_up_button, 1, wxEXPAND);
+	move_down_button = newd wxButton(static_cast<wxStaticBoxSizer*>(sidesizer)->GetStaticBox(), PALETTE_WAYPOINT_MOVE_DOWN, wxString::FromUTF8("\xE2\x86\x93 Down"), wxDefaultPosition, wxSize(50, -1));
+	ordersizer->Add(move_down_button, 1, wxEXPAND);
+	sidesizer->Add(ordersizer, 0, wxEXPAND);
+
 	topsizer->Add(sidesizer, 1, wxEXPAND);
 
 	SetSizerAndFit(topsizer);
@@ -181,10 +77,18 @@ WaypointPalettePanel::WaypointPalettePanel(wxWindow* parent, wxWindowID id) :
 	Bind(wxEVT_BUTTON, &WaypointPalettePanel::OnClickAddWaypoint, this, PALETTE_WAYPOINT_ADD_WAYPOINT);
 	Bind(wxEVT_BUTTON, &WaypointPalettePanel::OnClickRemoveWaypoint, this, PALETTE_WAYPOINT_REMOVE_WAYPOINT);
 	Bind(wxEVT_BUTTON, &WaypointPalettePanel::OnClickSetPosition, this, PALETTE_WAYPOINT_SET_POSITION);
+	Bind(wxEVT_BUTTON, &WaypointPalettePanel::OnClickMoveUp, this, PALETTE_WAYPOINT_MOVE_UP);
+	Bind(wxEVT_BUTTON, &WaypointPalettePanel::OnClickMoveDown, this, PALETTE_WAYPOINT_MOVE_DOWN);
 
 	Bind(wxEVT_LIST_BEGIN_LABEL_EDIT, &WaypointPalettePanel::OnBeginEditWaypointLabel, this, PALETTE_WAYPOINT_LISTBOX);
 	Bind(wxEVT_LIST_END_LABEL_EDIT, &WaypointPalettePanel::OnEditWaypointLabel, this, PALETTE_WAYPOINT_LISTBOX);
 	Bind(wxEVT_LIST_ITEM_SELECTED, &WaypointPalettePanel::OnClickWaypoint, this, PALETTE_WAYPOINT_LISTBOX);
+	Bind(wxEVT_LIST_BEGIN_DRAG, &WaypointPalettePanel::OnBeginDrag, this, PALETTE_WAYPOINT_LISTBOX);
+
+	// Drag reordering needs raw mouse events on the list itself.
+	waypoint_list->Bind(wxEVT_MOTION, &WaypointPalettePanel::OnListMotion, this);
+	waypoint_list->Bind(wxEVT_LEFT_UP, &WaypointPalettePanel::OnListLeftUp, this);
+	waypoint_list->Bind(wxEVT_MOUSE_CAPTURE_LOST, &WaypointPalettePanel::OnListCaptureLost, this);
 
 	Bind(wxEVT_TEXT, &WaypointPalettePanel::OnFilterTextChange, this, PALETTE_WAYPOINT_FILTER);
 	filter_text->Bind(wxEVT_CHAR_HOOK, &WaypointPalettePanel::OnFilterCharHook, this);
@@ -239,11 +143,14 @@ Waypoint* WaypointPalettePanel::GetSelectedWaypoint() const {
 	if (item == -1) {
 		return nullptr;
 	}
-	// Skip category headers (bold items have data = 1)
-	if (waypoint_list->GetItemData(item) == 1) {
-		return nullptr;
-	}
 	return map->waypoints.getWaypoint(nstr(waypoint_list->GetItemText(item)));
+}
+
+std::string WaypointPalettePanel::WaypointNameAtRow(long row) const {
+	if (row < 0 || row >= waypoint_list->GetItemCount()) {
+		return "";
+	}
+	return nstr(waypoint_list->GetItemText(row));
 }
 
 void WaypointPalettePanel::OnUpdate() {
@@ -268,6 +175,8 @@ void WaypointPalettePanel::UpdateList() {
 		add_waypoint_button->Enable(false);
 		remove_waypoint_button->Enable(false);
 		set_position_button->Enable(false);
+		move_up_button->Enable(false);
+		move_down_button->Enable(false);
 		waypoint_list->Thaw();
 		return;
 	}
@@ -276,86 +185,21 @@ void WaypointPalettePanel::UpdateList() {
 	add_waypoint_button->Enable(true);
 	remove_waypoint_button->Enable(true);
 	set_position_button->Enable(true);
-
-	Waypoints& waypoints = map->waypoints;
+	move_up_button->Enable(true);
+	move_down_button->Enable(true);
 
 	// Get filter text
-	std::string filter = nstr(filter_text->GetValue());
-	std::string filter_lower = as_lower_str(filter);
+	std::string filter_lower = as_lower_str(nstr(filter_text->GetValue()));
 
-	// Build categories
-	std::set<std::string> categories = BuildCategories(waypoints);
-
-	// Organize waypoints into categories
-	std::map<std::string, std::vector<Waypoint*>> categorized;
-	std::vector<Waypoint*> uncategorized;
-
-	for (const auto& [name, wp] : waypoints) {
-		// Apply filter
+	// Flat list following the manual order. Drag rows or use the Up/Down
+	// buttons to reorder; new waypoints are always appended at the end.
+	long idx = 0;
+	for (Waypoint* wp : map->waypoints.getOrdered()) {
 		if (!filter_lower.empty()) {
-			std::string name_lower = as_lower_str(wp->name);
-			if (name_lower.find(filter_lower) == std::string::npos) {
+			if (as_lower_str(wp->name).find(filter_lower) == std::string::npos) {
 				continue;
 			}
 		}
-
-		std::string cat = ExtractCategory(wp->name, categories);
-		if (cat.empty()) {
-			uncategorized.push_back(wp.get());
-		} else {
-			categorized[cat].push_back(wp.get());
-		}
-	}
-
-	// Sort uncategorized alphabetically
-	std::sort(uncategorized.begin(), uncategorized.end(), [](const Waypoint* a, const Waypoint* b) {
-		return a->name < b->name;
-	});
-
-	long idx = 0;
-
-	// Add categorized waypoints
-	for (const auto& [cat, wps] : categorized) {
-		// Category header
-		long header_idx = waypoint_list->InsertItem(idx, wxString::Format("--- %s ---", wxstr(cat)));
-		waypoint_list->SetItemData(header_idx, 1); // Mark as category header
-		wxFont font = waypoint_list->GetFont();
-		font.SetWeight(wxFONTWEIGHT_BOLD);
-		wxListItem item;
-		item.SetId(header_idx);
-		item.SetFont(font);
-		item.SetTextColour(wxColour(180, 180, 100));
-		waypoint_list->SetItem(item);
-		idx++;
-
-		// Sort waypoints within category
-		auto sorted_wps = wps;
-		std::sort(sorted_wps.begin(), sorted_wps.end(), [](const Waypoint* a, const Waypoint* b) {
-			return a->name < b->name;
-		});
-
-		for (const auto& wp : sorted_wps) {
-			waypoint_list->InsertItem(idx, wxstr(wp->name));
-			waypoint_list->SetItemData(idx, 0);
-			idx++;
-		}
-	}
-
-	// Add uncategorized waypoints
-	if (!uncategorized.empty() && !categorized.empty()) {
-		long header_idx = waypoint_list->InsertItem(idx, "--- Other ---");
-		waypoint_list->SetItemData(header_idx, 1);
-		wxFont font = waypoint_list->GetFont();
-		font.SetWeight(wxFONTWEIGHT_BOLD);
-		wxListItem item;
-		item.SetId(header_idx);
-		item.SetFont(font);
-		item.SetTextColour(wxColour(180, 180, 100));
-		waypoint_list->SetItem(item);
-		idx++;
-	}
-
-	for (const auto& wp : uncategorized) {
 		waypoint_list->InsertItem(idx, wxstr(wp->name));
 		waypoint_list->SetItemData(idx, 0);
 		idx++;
@@ -369,12 +213,6 @@ void WaypointPalettePanel::OnClickWaypoint(wxListEvent& event) {
 		return;
 	}
 
-	// Skip category headers
-	if (waypoint_list->GetItemData(event.GetIndex()) == 1) {
-		waypoint_list->SetItemState(event.GetIndex(), 0, wxLIST_STATE_SELECTED);
-		return;
-	}
-
 	std::string wpname = nstr(event.GetText());
 	Waypoint* wp = map->waypoints.getWaypoint(wpname);
 	if (wp) {
@@ -383,12 +221,7 @@ void WaypointPalettePanel::OnClickWaypoint(wxListEvent& event) {
 	}
 }
 
-void WaypointPalettePanel::OnBeginEditWaypointLabel(wxListEvent& event) {
-	// Don't allow editing category headers
-	if (waypoint_list->GetItemData(event.GetIndex()) == 1) {
-		event.Veto();
-		return;
-	}
+void WaypointPalettePanel::OnBeginEditWaypointLabel(wxListEvent& WXUNUSED(event)) {
 	// We need to disable all hotkeys, so we can type properly
 	g_hotkeys.DisableHotkeys();
 }
@@ -536,8 +369,11 @@ void WaypointPalettePanel::OnClickAddWaypoint(wxCommandEvent& event) {
 	Position new_pos(spin_x->GetValue(), spin_y->GetValue(), spin_z->GetValue());
 
 	auto wp_ptr = std::make_unique<Waypoint>(name, new_pos);
+	// New waypoints are always appended at the end of the manual order.
+	wp_ptr->order = map->waypoints.getNextOrder();
 	Waypoint* wp = wp_ptr.get();
 	map->waypoints.addWaypoint(std::move(wp_ptr));
+	map->doChange();
 
 	// Register the waypoint on its destination tile.
 	if (new_pos != Position()) {
@@ -572,7 +408,7 @@ void WaypointPalettePanel::OnClickRemoveWaypoint(wxCommandEvent& event) {
 	}
 
 	long item = waypoint_list->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
-	if (item != -1 && waypoint_list->GetItemData(item) != 1) {
+	if (item != -1) {
 		Waypoint* wp = map->waypoints.getWaypoint(nstr(waypoint_list->GetItemText(item)));
 		if (wp) {
 			if (map->getTile(wp->pos)) {
@@ -581,6 +417,9 @@ void WaypointPalettePanel::OnClickRemoveWaypoint(wxCommandEvent& event) {
 			map->waypoints.removeWaypoint(wp->name);
 		}
 		waypoint_list->DeleteItem(item);
+		// Keep order values compact after the removal.
+		map->waypoints.normalizeOrder();
+		map->doChange();
 		refresh_timer.Start(300, true);
 	}
 }
@@ -657,10 +496,155 @@ void WaypointPalettePanel::OnClickSetPosition(wxCommandEvent& event) {
 			new_tile->getLocation()->increaseWaypointCount();
 		}
 
+		map->doChange();
+
 		// Navigate to the new position
 		g_gui.SetScreenCenterPosition(new_pos);
 		g_gui.SetStatusText(wxString::Format("Waypoint '%s' moved to (%d, %d, %d)", wxstr(wp->name), new_pos.x, new_pos.y, new_pos.z));
 	}
+}
+
+void WaypointPalettePanel::FinishReorder(const std::string& select_name) {
+	UpdateList();
+	const long count = waypoint_list->GetItemCount();
+	for (long i = 0; i < count; ++i) {
+		if (as_lower_str(nstr(waypoint_list->GetItemText(i))) == as_lower_str(select_name)) {
+			waypoint_list->SetItemState(i, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED);
+			waypoint_list->EnsureVisible(i);
+			break;
+		}
+	}
+}
+
+void WaypointPalettePanel::MoveSelectedWaypoint(int delta) {
+	if (!map || delta == 0) {
+		return;
+	}
+
+	Waypoint* wp = GetSelectedWaypoint();
+	if (!wp) {
+		g_gui.SetStatusText("No waypoint selected.");
+		return;
+	}
+
+	// Build the currently visible order (respecting the filter) so moving is
+	// relative to what the user actually sees.
+	std::string filter_lower = as_lower_str(nstr(filter_text->GetValue()));
+	std::vector<Waypoint*> visible;
+	for (Waypoint* w : map->waypoints.getOrdered()) {
+		if (!filter_lower.empty() && as_lower_str(w->name).find(filter_lower) == std::string::npos) {
+			continue;
+		}
+		visible.push_back(w);
+	}
+
+	auto it = std::find(visible.begin(), visible.end(), wp);
+	if (it == visible.end()) {
+		return;
+	}
+	const long idx = static_cast<long>(std::distance(visible.begin(), it));
+	const long target = idx + delta;
+	if (target < 0 || target >= static_cast<long>(visible.size())) {
+		return; // Already at the edge.
+	}
+
+	// Swap the manual order of the two visible neighbours, then compact.
+	std::swap(wp->order, visible[target]->order);
+	map->waypoints.normalizeOrder();
+	map->doChange();
+
+	FinishReorder(wp->name);
+}
+
+void WaypointPalettePanel::OnClickMoveUp(wxCommandEvent& WXUNUSED(event)) {
+	MoveSelectedWaypoint(-1);
+}
+
+void WaypointPalettePanel::OnClickMoveDown(wxCommandEvent& WXUNUSED(event)) {
+	MoveSelectedWaypoint(1);
+}
+
+void WaypointPalettePanel::OnBeginDrag(wxListEvent& event) {
+	if (!map) {
+		return;
+	}
+	dragged_name = WaypointNameAtRow(event.GetIndex());
+	if (dragged_name.empty()) {
+		return;
+	}
+	dragging = true;
+	if (!waypoint_list->HasCapture()) {
+		waypoint_list->CaptureMouse();
+	}
+}
+
+void WaypointPalettePanel::OnListCaptureLost(wxMouseCaptureLostEvent& WXUNUSED(event)) {
+	// Capture can be yanked away (e.g. Alt-Tab). Abort any in-progress drag.
+	dragging = false;
+	dragged_name.clear();
+}
+
+void WaypointPalettePanel::OnListMotion(wxMouseEvent& event) {
+	// Let the list handle normal hover/selection; drag drop is finalized on
+	// left-up. Just keep default processing here.
+	event.Skip();
+}
+
+void WaypointPalettePanel::OnListLeftUp(wxMouseEvent& event) {
+	if (!dragging) {
+		event.Skip();
+		return;
+	}
+	dragging = false;
+	if (waypoint_list->HasCapture()) {
+		waypoint_list->ReleaseMouse();
+	}
+
+	if (!map || dragged_name.empty()) {
+		event.Skip();
+		return;
+	}
+
+	Waypoint* dragged = map->waypoints.getWaypoint(dragged_name);
+	if (!dragged) {
+		event.Skip();
+		return;
+	}
+
+	// Figure out which row we dropped on.
+	int flags = 0;
+	long drop_row = waypoint_list->HitTest(event.GetPosition(), flags);
+	std::string target_name = WaypointNameAtRow(drop_row);
+
+	// Dropping onto itself is a no-op.
+	if (as_lower_str(target_name) == as_lower_str(dragged_name)) {
+		event.Skip();
+		return;
+	}
+
+	// Rebuild the master order with the dragged waypoint moved to just before
+	// the target row (or to the end when dropped past the last item).
+	std::vector<Waypoint*> all = map->waypoints.getOrdered();
+	all.erase(std::remove(all.begin(), all.end(), dragged), all.end());
+
+	std::vector<Waypoint*>::iterator insert_at = all.end();
+	if (!target_name.empty()) {
+		Waypoint* target = map->waypoints.getWaypoint(target_name);
+		auto tit = std::find(all.begin(), all.end(), target);
+		if (tit != all.end()) {
+			insert_at = tit;
+		}
+	}
+	all.insert(insert_at, dragged);
+
+	// Reassign compact order values following the new arrangement.
+	for (size_t i = 0; i < all.size(); ++i) {
+		all[i]->order = static_cast<int>(i);
+	}
+	map->doChange();
+
+	FinishReorder(dragged_name);
+	event.Skip();
 }
 
 void WaypointPalettePanel::OnFilterTextChange(wxCommandEvent& WXUNUSED(event)) {

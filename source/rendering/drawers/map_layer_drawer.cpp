@@ -60,7 +60,7 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 	bool draw_lights = options.isDrawLight() && view.zoom <= 10.0;
 
 	// Common lambda to draw a node
-	auto drawNode = [&](MapNode* nd, int nd_map_x, int nd_map_y, bool live) {
+	auto drawNode = [&](MapNode* nd, int nd_map_x, int nd_map_y, bool live, TileRenderPass pass) {
 		int node_draw_x = nd_map_x * TILE_SIZE + base_screen_x;
 		int node_draw_y = nd_map_y * TILE_SIZE + base_screen_y;
 
@@ -70,14 +70,17 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 		}
 
 		if (live && !nd->isVisible(map_z > GROUND_LAYER)) {
-			if (!nd->isRequested(map_z > GROUND_LAYER)) {
-				// Request the node
-				if (editor->live_manager.GetClient()) {
-					editor->live_manager.GetClient()->queryNode(nd_map_x, nd_map_y, map_z > GROUND_LAYER);
+			// Only the first pass requests the node and draws the placeholder.
+			if (pass == TileRenderPass::Ground || pass == TileRenderPass::All) {
+				if (!nd->isRequested(map_z > GROUND_LAYER)) {
+					// Request the node
+					if (editor->live_manager.GetClient()) {
+						editor->live_manager.GetClient()->queryNode(nd_map_x, nd_map_y, map_z > GROUND_LAYER);
+					}
+					nd->setRequested(map_z > GROUND_LAYER, true);
 				}
-				nd->setRequested(map_z > GROUND_LAYER, true);
+				grid_drawer->DrawNodeLoadingPlaceholder(sprite_batch, nd_map_x, nd_map_y, view);
 			}
-			grid_drawer->DrawNodeLoadingPlaceholder(sprite_batch, nd_map_x, nd_map_y, view);
 			return;
 		}
 
@@ -98,32 +101,42 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 					continue;
 				}
 
-				tile_renderer->DrawTile(sprite_batch, location, view, options, options.current_house_id, draw_x_base, draw_y, draw_lights ? &light_buffer : nullptr);
+				tile_renderer->DrawTile(sprite_batch, location, view, options, options.current_house_id, draw_x_base, draw_y, draw_lights ? &light_buffer : nullptr, pass);
 			}
 		}
 	};
 
-	if (live_client) {
-		for (int nd_map_x = nd_start_x; nd_map_x <= nd_end_x; nd_map_x += 4) {
-			for (int nd_map_y = nd_start_y; nd_map_y <= nd_end_y; nd_map_y += 4) {
-				MapNode* nd = editor->map.getLeaf(nd_map_x, nd_map_y);
-				if (!nd) {
-					nd = editor->map.createLeaf(nd_map_x, nd_map_y);
-					nd->setVisible(false, false);
+	// Three passes per floor, mirroring the client: every ground first, then
+	// every ground border, then the remaining contents. This keeps sprites
+	// that overhang a neighbouring tile (draw offsets, big sprites) from
+	// being covered by that neighbour's lower-order sprites.
+	auto drawPass = [&](TileRenderPass pass) {
+		if (live_client) {
+			for (int nd_map_x = nd_start_x; nd_map_x <= nd_end_x; nd_map_x += 4) {
+				for (int nd_map_y = nd_start_y; nd_map_y <= nd_end_y; nd_map_y += 4) {
+					MapNode* nd = editor->map.getLeaf(nd_map_x, nd_map_y);
+					if (!nd) {
+						nd = editor->map.createLeaf(nd_map_x, nd_map_y);
+						nd->setVisible(false, false);
+					}
+					drawNode(nd, nd_map_x, nd_map_y, true, pass);
 				}
-				drawNode(nd, nd_map_x, nd_map_y, true);
 			}
-		}
-	} else {
-		// Use SpatialHashGrid::visitLeaves which handles O(1) viewport query internally
-		// Expand the query range slightly to handle the 4-tile alignment and safety margin
-		int safe_start_x = nd_start_x - PAINTERS_ALGORITHM_SAFETY_MARGIN_PIXELS / TILE_SIZE;
-		int safe_start_y = nd_start_y - PAINTERS_ALGORITHM_SAFETY_MARGIN_PIXELS / TILE_SIZE;
-		int safe_end_x = nd_end_x + PAINTERS_ALGORITHM_SAFETY_MARGIN_PIXELS / TILE_SIZE;
-		int safe_end_y = nd_end_y + PAINTERS_ALGORITHM_SAFETY_MARGIN_PIXELS / TILE_SIZE;
+		} else {
+			// Use SpatialHashGrid::visitLeaves which handles O(1) viewport query internally
+			// Expand the query range slightly to handle the 4-tile alignment and safety margin
+			int safe_start_x = nd_start_x - PAINTERS_ALGORITHM_SAFETY_MARGIN_PIXELS / TILE_SIZE;
+			int safe_start_y = nd_start_y - PAINTERS_ALGORITHM_SAFETY_MARGIN_PIXELS / TILE_SIZE;
+			int safe_end_x = nd_end_x + PAINTERS_ALGORITHM_SAFETY_MARGIN_PIXELS / TILE_SIZE;
+			int safe_end_y = nd_end_y + PAINTERS_ALGORITHM_SAFETY_MARGIN_PIXELS / TILE_SIZE;
 
-		editor->map.visitLeaves(safe_start_x, safe_start_y, safe_end_x, safe_end_y, [&](MapNode* nd, int nd_map_x, int nd_map_y) {
-			drawNode(nd, nd_map_x, nd_map_y, false);
-		});
-	}
+			editor->map.visitLeaves(safe_start_x, safe_start_y, safe_end_x, safe_end_y, [&](MapNode* nd, int nd_map_x, int nd_map_y) {
+				drawNode(nd, nd_map_x, nd_map_y, false, pass);
+			});
+		}
+	};
+
+	drawPass(TileRenderPass::Ground);
+	drawPass(TileRenderPass::Borders);
+	drawPass(TileRenderPass::Contents);
 }

@@ -196,8 +196,10 @@ enum DatFlags : uint8_t {
 	DatFlagUnwrappable = 36,
 	DatFlagTopEffect = 37,
 	DatFlagWings = 38,
+	DatFlagDrawLast = 39, // Custom client flag: render this thing last (no payload)
 	DatFlagDefault = 40,
 	DatFlagBonesAnimated = 41, // Custom client flag: per-frame bone positions for hasBones outfits
+	DatFlagFloat = 42, // BlackTalon custom flag: mount bobs up/down (no payload; on-disk byte 0x2B)
 
 	DatFlagFloorChange = 252,
 	DatFlagNoMoveAnimation = 253, // 10.10: real value is 16, but we need to do this for backwards compatibility

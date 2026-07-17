@@ -281,6 +281,15 @@ void BrushPalettePanel::OnPageChanged(wxChoicebookEvent& event) {
 	}
 
 	BrushPanel* panel = dynamic_cast<BrushPanel*>(choicebook->GetCurrentPage());
+
+	// Pause preloading on tileset pages that are no longer visible.
+	for (size_t iz = 0; iz < choicebook->GetPageCount(); ++iz) {
+		BrushPanel* other = dynamic_cast<BrushPanel*>(choicebook->GetPage(iz));
+		if (other && other != panel) {
+			other->OnSwitchOut();
+		}
+	}
+
 	Brush* new_brush = nullptr;
 
 	if (panel) {
@@ -323,6 +332,18 @@ void BrushPalettePanel::OnSwitchIn() {
 	}
 
 	LoadCurrentContents();
+}
+
+void BrushPalettePanel::OnSwitchOut() {
+	// Stop preloading on the visible tileset grid so it doesn't keep competing
+	// for the UI thread while another palette page is shown.
+	if (choicebook) {
+		BrushPanel* panel = dynamic_cast<BrushPanel*>(choicebook->GetCurrentPage());
+		if (panel) {
+			panel->OnSwitchOut();
+		}
+	}
+	PalettePanel::OnSwitchOut();
 }
 
 void BrushPalettePanel::OnClickAddTileset(wxCommandEvent& WXUNUSED(event)) {

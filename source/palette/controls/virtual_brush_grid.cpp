@@ -702,6 +702,18 @@ void VirtualBrushGrid::StartPreloading() {
 	m_preloadTimer.Start(PRELOAD_TIMER_INTERVAL);
 }
 
+void VirtualBrushGrid::OnSwitchIn() {
+	// Resume preloading the remaining textures when this page becomes visible again.
+	if (!m_preloadComplete && !m_preloadTimer.IsRunning()) {
+		m_preloadTimer.Start(PRELOAD_TIMER_INTERVAL);
+	}
+}
+
+void VirtualBrushGrid::OnSwitchOut() {
+	// Stop preloading while hidden so background grids don't compete for the UI thread.
+	m_preloadTimer.Stop();
+}
+
 void VirtualBrushGrid::OnPreloadTimer(wxTimerEvent&) {
 	if (m_preloadComplete) {
 		m_preloadTimer.Stop();

@@ -20,6 +20,8 @@
 #include "game/waypoints.h"
 #include "map/map.h"
 
+#include <algorithm>
+
 void Waypoints::addWaypoint(std::unique_ptr<Waypoint> wp, bool replace) {
 	if (getWaypoint(wp->name) && !replace) {
 		return;
@@ -65,4 +67,37 @@ void Waypoints::removeWaypoint(std::string name) {
 		return;
 	}
 	waypoints.erase(iter);
+}
+
+std::vector<Waypoint*> Waypoints::getOrdered() const {
+	std::vector<Waypoint*> result;
+	result.reserve(waypoints.size());
+	for (const auto& [name, wp] : waypoints) {
+		result.push_back(wp.get());
+	}
+	std::stable_sort(result.begin(), result.end(), [](const Waypoint* a, const Waypoint* b) {
+		if (a->order != b->order) {
+			return a->order < b->order;
+		}
+		return a->name < b->name;
+	});
+	return result;
+}
+
+int Waypoints::getNextOrder() const {
+	int max_order = -1;
+	for (const auto& [name, wp] : waypoints) {
+		if (wp->order > max_order) {
+			max_order = wp->order;
+		}
+	}
+	return max_order + 1;
+}
+
+void Waypoints::normalizeOrder() {
+	std::vector<Waypoint*> ordered = getOrdered();
+	int index = 0;
+	for (Waypoint* wp : ordered) {
+		wp->order = index++;
+	}
 }

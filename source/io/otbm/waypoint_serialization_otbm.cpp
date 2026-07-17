@@ -5,6 +5,7 @@
 
 void WaypointSerializationOTBM::readWaypoints(Map& map, BinaryNode* mapNode) {
 	spdlog::debug("Reading OTBM_WAYPOINTS...");
+	int order = 0;
 	for (BinaryNode* waypointNode = mapNode->getChild(); waypointNode != nullptr; waypointNode = waypointNode->advance()) {
 		uint8_t waypointType;
 		if (!waypointNode->getByte(waypointType)) {
@@ -29,6 +30,8 @@ void WaypointSerializationOTBM::readWaypoints(Map& map, BinaryNode* mapNode) {
 			continue;
 		}
 		wp.pos = { x, y, z };
+		// Preserve the on-disk order so manual ordering round-trips.
+		wp.order = order++;
 
 		map.waypoints.addWaypoint(std::make_unique<Waypoint>(std::move(wp)));
 	}
@@ -48,8 +51,7 @@ OTBMWriteResult WaypointSerializationOTBM::writeWaypoints(const Map& map, NodeFi
 
 	if (supportWaypoints) {
 		f.addNode(OTBM_WAYPOINTS);
-		for (const auto& [name, waypoint_ptr] : map.waypoints) {
-			const Waypoint* waypoint = waypoint_ptr.get();
+		for (const Waypoint* waypoint : map.waypoints.getOrdered()) {
 			f.addNode(OTBM_WAYPOINT);
 			f.addString(waypoint->name);
 			f.addU16(waypoint->pos.x);

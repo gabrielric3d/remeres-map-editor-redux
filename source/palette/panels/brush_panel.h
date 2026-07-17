@@ -31,6 +31,10 @@ public:
 	// Select a brush relative to the current selection (offset: -1 = previous, +1 = next)
 	virtual bool SelectBrushByOffset(int offset) { return false; }
 
+	// Called when the containing page is shown/hidden. Default no-op.
+	virtual void OnSwitchIn() { }
+	virtual void OnSwitchOut() { }
+
 protected:
 	const TilesetCategory* const tileset;
 	bool loaded;

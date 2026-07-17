@@ -20,6 +20,8 @@
 
 #include "map/position.h"
 
+#include <vector>
+
 class Waypoint {
 public:
 	Waypoint() = default;
@@ -27,6 +29,9 @@ public:
 
 	std::string name;
 	Position pos;
+	// Manual display/serialization order. Lower comes first; new waypoints get
+	// the highest value so they are always appended at the end of the list.
+	int order = 0;
 };
 
 using WaypointMap = std::map<std::string, std::unique_ptr<Waypoint>>;
@@ -43,6 +48,14 @@ public:
 	Waypoint* getWaypoint(std::string name);
 	Waypoint* getWaypoint(TileLocation* location);
 	void removeWaypoint(std::string name);
+
+	// Returns all waypoints sorted by their manual `order` (ties broken by name).
+	std::vector<Waypoint*> getOrdered() const;
+	// The order value a newly added waypoint should take to land at the end.
+	int getNextOrder() const;
+	// Reassigns order values to 0..n-1 following the current sorted order, so the
+	// stored order stays compact after inserts/removals/reorders.
+	void normalizeOrder();
 
 	WaypointMap waypoints;
 

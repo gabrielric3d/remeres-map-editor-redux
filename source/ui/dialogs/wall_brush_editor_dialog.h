@@ -1,7 +1,8 @@
 //////////////////////////////////////////////////////////////////////
 // This file is part of Remere's Map Editor
 //////////////////////////////////////////////////////////////////////
-// Wall Brush Editor Dialog - Visual editor for wall brushes (walls.xml)
+// Wall Brush Editor Dialog - Visual editor for wall brushes across all material
+// files (walls.xml, doodads.xml, ... — anything included by materials.xml)
 //////////////////////////////////////////////////////////////////////
 
 #ifndef RME_UI_DIALOGS_WALL_BRUSH_EDITOR_DIALOG_H_
@@ -22,6 +23,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 // Reused for the small single-sprite "look" preview next to the Load combo.
@@ -113,6 +115,12 @@ private:
 	wxString GetVersionDataDirectory();
 	uint16_t LookupWallLookId(const wxString& name) const;
 
+	// All material XML files that may hold wall brushes: every <include> in
+	// materials.xml (walls.xml, doodads.xml, grounds.xml, ...), with walls.xml
+	// guaranteed present as the default save target. Wall brushes are not confined
+	// to walls.xml — e.g. "lava stream" is a type="wall" brush inside doodads.xml.
+	wxArrayString GetWallMaterialFiles();
+
 public:
 	// Per-segment authored data.
 	std::vector<WallItemEntry> m_items[WALL_SEG_COUNT];
@@ -154,6 +162,21 @@ public:
 private:
 	// Lowercased wall brush name -> server_lookid, for the Load combo preview.
 	std::map<wxString, uint16_t> m_wallLookIds;
+	// Lowercased wall brush name -> full path of the material file it lives in, so
+	// Save writes back to the right file (e.g. doodads.xml) instead of duplicating
+	// the brush into walls.xml.
+	std::map<wxString, wxString> m_wallSourceFiles;
+
+	// The 4-segment editor only models horizontal/vertical/corner/pole. To avoid
+	// destroying richer wall brushes (e.g. "lava stream" with diagonal/T/end segments),
+	// we capture the parts we don't model on load and re-emit them verbatim on save:
+	//   - m_preservedWallNodes: raw XML of <wall> segments with unmodeled types.
+	//   - m_preservedBrushAttrs: brush-level attributes we don't manage (e.g. activated).
+	std::vector<std::string> m_preservedWallNodes;
+	std::vector<std::pair<std::string, std::string>> m_preservedBrushAttrs;
+	// The brush name the preserved data above was captured for. Only re-emitted when
+	// saving under the same name, so renaming to a new brush doesn't inherit it.
+	wxString m_preservedForName;
 
 	DECLARE_EVENT_TABLE()
 };

@@ -187,10 +187,17 @@ static bool FillItemTooltipData(TooltipData& data, Item* item, const ItemDefinit
 	return true;
 }
 
-void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, const RenderView& view, const DrawingOptions& options, uint32_t current_house_id, int in_draw_x, int in_draw_y, LightBuffer* light_buffer) {
+void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, const RenderView& view, const DrawingOptions& options, uint32_t current_house_id, int in_draw_x, int in_draw_y, LightBuffer* light_buffer, TileRenderPass pass) {
 	if (!location) {
 		return;
 	}
+
+	// Which slices of the tile this invocation renders. Side effects that must
+	// happen exactly once per tile (lights, tooltips, overlays, markers) are
+	// tied to the contents slice.
+	const bool draw_ground = (pass == TileRenderPass::All || pass == TileRenderPass::Ground);
+	const bool draw_borders = (pass == TileRenderPass::All || pass == TileRenderPass::Borders);
+	const bool draw_contents = (pass == TileRenderPass::All || pass == TileRenderPass::Contents);
 	Tile* tile = location->get();
 
 	if (!tile) {
@@ -232,32 +239,48 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 	const bool hidden_invalid_ground = tile->ground && tile->ground->isInvalidOTBMItem() && !options.show_invalid_tiles;
 	const bool unresolved_invalid_ground = tile->ground && tile->ground->isInvalidOTBMItem() && !ground_it;
 
-	// Light Processing (Ground)
-	if (light_buffer && tile->hasLight()) {
-		if (tile->ground && tile->ground->hasLight() && !hidden_invalid_ground && !unresolved_invalid_ground) {
-			light_buffer->AddLight(position.x, position.y, position.z, tile->ground->getLight());
+	// "Structural" grounds (e.g. mountain tops) overhang neighbouring tiles:
+	// either the sprite is bigger than one tile (64x64 extends north-west of
+	// the anchor) or it carries a negative draw offset (extends south-east).
+	// The client draws those over the walls/items of earlier tiles, so they
+	// (and this tile's own borders, which must stay above the ground) are
+	// deferred to the contents pass, where painter order applies.
+	bool ground_overhangs = false;
+	if (tile->ground && ground_it && !hidden_invalid_ground) {
+		if (GameSprite* ground_sprite = tile->ground->getSprite()) {
+			ground_overhangs = ground_sprite->width > 1 || ground_sprite->height > 1
+				|| ground_sprite->drawoffset_x < 0 || ground_sprite->drawoffset_y < 0;
 		}
 	}
 
-	// Blocking tile tracking for shadow occlusion
-	if (light_buffer && (options.show_shadow_occlusion || options.show_forced_light_zones)) {
-		if (tile->isBlocking()) {
-			light_buffer->blocking_grid.setBlocking(position.x, position.y, true);
+	if (draw_contents) {
+		// Light Processing (Ground)
+		if (light_buffer && tile->hasLight()) {
+			if (tile->ground && tile->ground->hasLight() && !hidden_invalid_ground && !unresolved_invalid_ground) {
+				light_buffer->AddLight(position.x, position.y, position.z, tile->ground->getLight());
+			}
 		}
-	}
 
-	// Custom item lights (ground)
-	if (light_buffer && options.show_custom_item_lights && tile->ground) {
-		tryAddCustomItemLight(light_buffer, position, tile->ground->getClientID(), elapsed);
+		// Blocking tile tracking for shadow occlusion
+		if (light_buffer && (options.show_shadow_occlusion || options.show_forced_light_zones)) {
+			if (tile->isBlocking()) {
+				light_buffer->blocking_grid.setBlocking(position.x, position.y, true);
+			}
+		}
+
+		// Custom item lights (ground)
+		if (light_buffer && options.show_custom_item_lights && tile->ground) {
+			tryAddCustomItemLight(light_buffer, position, tile->ground->getClientID(), elapsed);
+		}
 	}
 
 	Waypoint* waypoint = nullptr;
-	if (location->getWaypointCount() > 0) {
+	if (draw_contents && location->getWaypointCount() > 0) {
 		waypoint = editor->map.waypoints.getWaypoint(location);
 	}
 
 	// Waypoint tooltip (one per waypoint)
-	if (options.show_tooltips && waypoint && map_z == view.floor) {
+	if (draw_contents && options.show_tooltips && waypoint && map_z == view.floor) {
 		tooltip_drawer->addWaypointTooltip(position, waypoint->name);
 	}
 
@@ -280,42 +303,48 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 	}
 
 	if (only_colors) {
-		if (as_minimap) {
+		if (!draw_ground) {
+			// Squares are emitted by the ground pass.
+		} else if (as_minimap) {
 			TileColorCalculator::GetMinimapColor(tile, r, g, b);
 			sprite_drawer->glBlitSquare(sprite_batch, draw_x, draw_y, DrawColor(r, g, b, 255));
 		} else if (r != 255 || g != 255 || b != 255) {
 			sprite_drawer->glBlitSquare(sprite_batch, draw_x, draw_y, DrawColor(r, g, b, 128));
 		}
 	} else {
+		// Overhanging grounds blit in the contents pass; everything else in the ground pass.
+		const bool blit_ground_this_pass = ground_overhangs ? draw_contents : draw_ground;
 		if (tile->ground && ground_it && !hidden_invalid_ground) {
-			if (GameSprite* ground_sprite = tile->ground->getSprite()) {
-				SpritePatterns patterns = PatternCalculator::Calculate(ground_sprite, ground_it, tile->ground.get(), tile, position);
+			if (blit_ground_this_pass) {
+				if (GameSprite* ground_sprite = tile->ground->getSprite()) {
+					SpritePatterns patterns = PatternCalculator::Calculate(ground_sprite, ground_it, tile->ground.get(), tile, position);
 
-				// Inline preload check â€” skip function call when sprite is simple and loaded (95%+ case)
-				if (!ground_sprite->isSimpleAndLoaded()) {
-					rme::collectTileSprites(ground_sprite, patterns.x, patterns.y, patterns.z, patterns.frame);
+					// Inline preload check â€” skip function call when sprite is simple and loaded (95%+ case)
+					if (!ground_sprite->isSimpleAndLoaded()) {
+						rme::collectTileSprites(ground_sprite, patterns.x, patterns.y, patterns.z, patterns.frame);
+					}
+
+					BlitItemParams params(position, tile->ground.get(), options);
+					params.tile = tile;
+					params.item_definition = ground_it;
+					params.red = r;
+					params.green = g;
+					params.blue = b;
+					params.patterns = &patterns;
+					item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, params);
+				} else if (!unresolved_invalid_ground) {
+					BlitItemParams params(position, tile->ground.get(), options);
+					params.tile = tile;
+					params.item_definition = ground_it;
+					params.red = r;
+					params.green = g;
+					params.blue = b;
+					item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, params);
 				}
-
-				BlitItemParams params(position, tile->ground.get(), options);
-				params.tile = tile;
-				params.item_definition = ground_it;
-				params.red = r;
-				params.green = g;
-				params.blue = b;
-				params.patterns = &patterns;
-				item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, params);
-			} else if (!unresolved_invalid_ground) {
-				BlitItemParams params(position, tile->ground.get(), options);
-				params.tile = tile;
-				params.item_definition = ground_it;
-				params.red = r;
-				params.green = g;
-				params.blue = b;
-				item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, params);
 			}
 		} else if (unresolved_invalid_ground) {
 			// Missing-definition ground placeholders are represented by the tile-level invalid overlay.
-		} else if (options.always_show_zones && (r != 255 || g != 255 || b != 255)) {
+		} else if (draw_ground && options.always_show_zones && (r != 255 || g != 255 || b != 255)) {
 			// Groundless tile that still carries a map flag (PZ / NoPVP / NoLogout / PVPZone).
 			// Draw a solid colored square so these "ghost zones" are clearly visible for
 			// manual cleanup. Using glBlitSquare (same path as "Show Only Colors") keeps it
@@ -328,7 +357,7 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 	const bool is_house_tile = tile->isHouseTile();
 
 	// Ground tooltip (one per item)
-	if (options.show_tooltips && map_z == view.floor && tile->ground && ground_it) {
+	if (draw_contents && options.show_tooltips && map_z == view.floor && tile->ground && ground_it) {
 		TooltipData& groundData = tooltip_drawer->requestTooltipData();
 		if (FillItemTooltipData(groundData, tile->ground.get(), ground_it, position, is_house_tile, view.zoom)) {
 			if (groundData.hasVisibleFields()) {
@@ -341,7 +370,7 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 
 	// Draw helper border for selected house tiles
 	// Only draw on the current floor (grid)
-	if (options.show_houses && is_house_tile && static_cast<int>(tile->getHouseID()) == current_house_id && map_z == view.floor) {
+	if (draw_contents && options.show_houses && is_house_tile && static_cast<int>(tile->getHouseID()) == current_house_id && map_z == view.floor) {
 
 		uint8_t hr, hg, hb;
 		TileColorCalculator::GetHouseColor(tile->getHouseID(), hr, hg, hb);
@@ -354,7 +383,7 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 	}
 
 	if (!only_colors) {
-		if (view.zoom < 10.0 || !options.hide_items_when_zoomed) {
+		if ((draw_borders || draw_contents) && (view.zoom < 10.0 || !options.hide_items_when_zoomed)) {
 			// Hoist house color calculation out of item loop
 			uint8_t house_r = 255, house_g = 255, house_b = 255;
 			bool calculate_house_color = options.extended_house_shader && options.show_houses && is_house_tile;
@@ -376,11 +405,22 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 				if (options.show_only_grounds && !item->isBorder() && !item->isOptionalBorder())
 					continue;
 
-				if (item->isInvalidOTBMItem() && options.show_invalid_tiles) {
+				// Ground borders (top order 1) belong to the borders pass;
+				// everything else is blitted in the contents pass. When this
+				// tile's ground is deferred to the contents pass (overhanging
+				// ground), its borders defer with it so they stay above it.
+				const bool border_item = item->isAlwaysOnBottom() && item->getTopOrder() == 1;
+				const bool blit_in_this_pass = border_item ? (ground_overhangs ? draw_contents : draw_borders) : draw_contents;
+
+				if (draw_contents && item->isInvalidOTBMItem() && options.show_invalid_tiles) {
 					if (invalid_tile_marker_color != InvalidOTBMItemMarkerColor::Red) {
 						invalid_tile_marker_color = item->invalidOTBMMarkerColor();
 					}
 					has_selected_invalid_item = has_selected_invalid_item || item->isSelected();
+				}
+
+				if (!blit_in_this_pass && !draw_contents) {
+					continue;
 				}
 
 				const ItemDefinitionView it = item->getDefinition();
@@ -389,23 +429,29 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 					continue;
 				}
 
-				if (light_buffer && item->hasLight()) {
-					light_buffer->AddLight(position.x, position.y, position.z, item->getLight());
-				}
+				if (draw_contents) {
+					if (light_buffer && item->hasLight()) {
+						light_buffer->AddLight(position.x, position.y, position.z, item->getLight());
+					}
 
-				// Custom item lights (override or supplement .dat light)
-				if (light_buffer && options.show_custom_item_lights) {
-					tryAddCustomItemLight(light_buffer, position, item->getClientID(), elapsed);
-				}
+					// Custom item lights (override or supplement .dat light)
+					if (light_buffer && options.show_custom_item_lights) {
+						tryAddCustomItemLight(light_buffer, position, item->getClientID(), elapsed);
+					}
 
-				// item tooltip (one per item)
-				if (process_tooltips) {
-					TooltipData& itemData = tooltip_drawer->requestTooltipData();
-					if (FillItemTooltipData(itemData, item.get(), it, position, is_house_tile, view.zoom)) {
-						if (itemData.hasVisibleFields()) {
-							tooltip_drawer->commitTooltip();
+					// item tooltip (one per item)
+					if (process_tooltips) {
+						TooltipData& itemData = tooltip_drawer->requestTooltipData();
+						if (FillItemTooltipData(itemData, item.get(), it, position, is_house_tile, view.zoom)) {
+							if (itemData.hasVisibleFields()) {
+								tooltip_drawer->commitTooltip();
+							}
 						}
 					}
+				}
+
+				if (!blit_in_this_pass) {
+					continue;
 				}
 
 				if (GameSprite* sprite = item->getSprite()) {
@@ -453,7 +499,7 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 				}
 			}
 			// monster/npc on tile
-			if (tile->creature && options.show_creatures) {
+			if (draw_contents && tile->creature && options.show_creatures) {
 				creature_drawer->BlitCreature(sprite_batch, sprite_drawer, draw_x, draw_y, tile->creature.get(), CreatureDrawOptions { .map_pos = position, .transient_selection_bounds = options.transient_selection_bounds });
 				if (creature_name_drawer && options.show_creature_names) {
 					creature_name_drawer->addLabel(position, tile->creature->getName(), tile->creature.get());
@@ -461,16 +507,16 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 			}
 		}
 
-		if (options.show_invalid_zones && !as_minimap && tile->hasInvalidZones()) {
+		if (draw_contents && options.show_invalid_zones && !as_minimap && tile->hasInvalidZones()) {
 			sprite_drawer->glBlitSquare(sprite_batch, tile_draw_x, tile_draw_y, DrawColor(255, 0, 255, 171));
 		}
 
-		if (options.show_invalid_tiles && !as_minimap && invalid_tile_marker_color != InvalidOTBMItemMarkerColor::None) {
+		if (draw_contents && options.show_invalid_tiles && !as_minimap && invalid_tile_marker_color != InvalidOTBMItemMarkerColor::None) {
 			const DrawColor overlay = invalidTileOverlayColor(invalid_tile_marker_color, has_selected_invalid_item);
 			sprite_drawer->glBlitSquare(sprite_batch, tile_draw_x, tile_draw_y, overlay);
 		}
 
-		if (view.zoom < 10.0) {
+		if (draw_contents && view.zoom < 10.0) {
 			// markers (waypoint, house exit, town temple, spawn)
 			marker_drawer->draw(sprite_batch, sprite_drawer, draw_x, draw_y, tile, waypoint, current_house_id, *editor, options);
 		}

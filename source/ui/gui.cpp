@@ -1055,8 +1055,13 @@ void GUI::OpenBrushesEditorForItem(uint16_t itemId, bool preferGround) {
 	if (brushes_editor_dialog->OpenItemInBordersEditor(itemId, preferGround)) {
 		return;
 	}
+	// Doodads live in their own file too; try them last so terrain (ground/border/wall)
+	// items keep their existing routing.
+	if (brushes_editor_dialog->OpenItemInDoodadsEditor(itemId)) {
+		return;
+	}
 
-	wxMessageBox(wxString::Format("Item %u is not used by any wall, border or ground brush.", itemId),
+	wxMessageBox(wxString::Format("Item %u is not used by any wall, border, ground or doodad brush.", itemId),
 		"Open in Brushes Editor", wxICON_INFORMATION, brushes_editor_dialog);
 }
 

@@ -123,6 +123,15 @@ public:
     void OnTilesetSelectionChanged(wxCommandEvent& event);
     void RefreshTilesetBrushList();
     void AddSingleItemById(uint16_t itemId);
+    void OnFindByServerId(wxCommandEvent& event);
+
+    // Loads the doodad brush that uses the given item id (as a single item or inside a
+    // composite) and jumps to the relevant tab. Returns false if no doodad brush uses it.
+    // Used by the "Open in Brushes Editor" flow and the "Find by Server ID" search box.
+    bool OpenItemInEditor(uint16_t itemId);
+
+    // Returns the name of the first doodad brush that owns `itemId`, or empty if none.
+    wxString FindDoodadBrushNameByItemId(uint16_t itemId) const;
 
     // Public methods for grid panel to access
     void ApplyItemToGridPosition(int gridX, int gridY, uint16_t itemId);
@@ -151,6 +160,7 @@ public:
     // UI Elements - public for access from other components
     // Left panel - Doodad list
     wxTextCtrl* m_filterCtrl;
+    wxSpinCtrl* m_findServerIdCtrl;
     wxListCtrl* m_doodadListCtrl;
     wxStaticText* m_pageLabel;
     wxButton* m_prevPageBtn;

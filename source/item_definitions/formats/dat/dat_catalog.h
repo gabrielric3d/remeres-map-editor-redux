@@ -33,8 +33,8 @@ struct DatCatalogEntry {
 	uint8_t frames = 0;
 	uint32_t numsprites = 0;
 	uint16_t draw_height = 0;
-	uint16_t drawoffset_x = 0;
-	uint16_t drawoffset_y = 0;
+	int16_t drawoffset_x = 0;
+	int16_t drawoffset_y = 0;
 	uint16_t minimap_color = 0;
 	bool has_light = false;
 	SpriteLight light {};

@@ -28,6 +28,10 @@ public:
 	// (only switches tabs on success). Returns false if no wall brush uses it.
 	bool OpenItemInWallsEditor(uint16_t itemId);
 
+	// Switch to the Doodads tab and load the doodad brush that uses the given item
+	// (only switches tabs on success). Returns false if no doodad brush uses it.
+	bool OpenItemInDoodadsEditor(uint16_t itemId);
+
 	void OnPageChanged(wxBookCtrlEvent& event);
 	void OnCloseWindow(wxCloseEvent& event);
 

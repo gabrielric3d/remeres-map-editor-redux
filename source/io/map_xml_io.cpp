@@ -369,6 +369,7 @@ bool MapXMLIO::loadWaypoints(Map& map, pugi::xml_node node, bool replace) {
 		return false;
 	}
 
+	int order = 0;
 	for (auto wpNode : node.children("waypoint")) {
 		std::string name = wpNode.attribute("name").as_string();
 		Position pos(
@@ -382,7 +383,10 @@ bool MapXMLIO::loadWaypoints(Map& map, pugi::xml_node node, bool replace) {
 			continue;
 		}
 
-		map.waypoints.addWaypoint(std::make_unique<Waypoint>(name, pos), replace);
+		auto wp = std::make_unique<Waypoint>(name, pos);
+		// Preserve document order so manual ordering round-trips.
+		wp->order = order++;
+		map.waypoints.addWaypoint(std::move(wp), replace);
 	}
 	return true;
 }
@@ -410,7 +414,7 @@ bool MapXMLIO::saveWaypoints(const Map& map, pugi::xml_document& doc) {
 
 	pugi::xml_node rootNode = doc.append_child("waypoints");
 
-	for (const auto& [name, waypoint] : map.waypoints) {
+	for (const Waypoint* waypoint : map.waypoints.getOrdered()) {
 		pugi::xml_node wpNode = rootNode.append_child("waypoint");
 
 		wpNode.append_attribute("name") = waypoint->name.c_str();

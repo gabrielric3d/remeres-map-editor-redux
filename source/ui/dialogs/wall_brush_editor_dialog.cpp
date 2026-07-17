@@ -20,6 +20,7 @@
 #include <wx/statline.h>
 #include <wx/arrstr.h>
 #include <algorithm>
+#include <sstream>
 
 // ============================================================================
 // Local IDs
@@ -101,6 +102,21 @@ WallSegmentType wallSegmentFromString(const std::string& str) {
 	return WALL_SEG_COUNT;
 }
 
+// Serialize a pugixml node (e.g. an unmodeled <wall> segment) to a raw XML string so it
+// can be stashed on load and re-appended verbatim on save.
+static std::string SerializeXmlNode(const pugi::xml_node& node) {
+	std::ostringstream ss;
+	node.print(ss, "", pugi::format_raw);
+	return ss.str();
+}
+
+// True for the brush-level attributes the editor manages itself; every other attribute
+// (e.g. activated="true") is preserved verbatim across a load/save round trip.
+static bool IsManagedWallBrushAttr(const std::string& name) {
+	return name == "name" || name == "type" || name == "server_lookid" || name == "lookid"
+		|| name == "draggable" || name == "on_blocking" || name == "thickness";
+}
+
 // ============================================================================
 // Event tables
 // ============================================================================
@@ -161,6 +177,40 @@ wxString WallBrushEditorDialog::GetVersionDataDirectory() {
 	if (!version) return wxString();
 	FileName data_path = version->getDataPath();
 	return data_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
+}
+
+wxArrayString WallBrushEditorDialog::GetWallMaterialFiles() {
+	wxArrayString files;
+	wxString dataDir = GetVersionDataDirectory();
+	if (dataDir.IsEmpty()) return files;
+
+	// Read the <include> list from materials.xml — a wall brush can live in any of
+	// the included files (walls.xml, doodads.xml, ...), not just walls.xml.
+	wxString materialsFile = dataDir + "materials.xml";
+	if (wxFileExists(materialsFile)) {
+		pugi::xml_document doc;
+		if (doc.load_file(materialsFile.ToStdString().c_str())) {
+			pugi::xml_node materials = doc.child("materials");
+			if (materials) {
+				for (pugi::xml_node inc = materials.child("include"); inc; inc = inc.next_sibling("include")) {
+					wxString f(inc.attribute("file").as_string());
+					if (f.IsEmpty()) continue;
+					wxString full = dataDir + f;
+					if (wxFileExists(full) && files.Index(full) == wxNOT_FOUND) {
+						files.Add(full);
+					}
+				}
+			}
+		}
+	}
+
+	// Always keep walls.xml in the list: it's the default save target and the
+	// canonical home for wall brushes even if materials.xml is missing/unreadable.
+	wxString wallsFile = dataDir + "walls.xml";
+	if (wxFileExists(wallsFile) && files.Index(wallsFile) == wxNOT_FOUND) {
+		files.Add(wallsFile);
+	}
+	return files;
 }
 
 void WallBrushEditorDialog::CreateGUIControls() {
@@ -370,38 +420,42 @@ void WallBrushEditorDialog::LoadExistingWalls() {
 	m_existingWallsCombo->Append("<Create New>");
 	m_existingWallsCombo->SetSelection(0);
 	m_wallLookIds.clear();
+	m_wallSourceFiles.clear();
 
 	auto cleanup = [&]() { m_existingWallsCombo->Thaw(); };
 
-	wxString dataDir = GetVersionDataDirectory();
-	if (dataDir.IsEmpty()) { cleanup(); return; }
-
-	wxString wallsFile = dataDir + "walls.xml";
-	if (!wxFileExists(wallsFile)) { cleanup(); return; }
-
-	pugi::xml_document doc;
-	if (!doc.load_file(wallsFile.ToStdString().c_str())) { cleanup(); return; }
-
-	pugi::xml_node materials = doc.child("materials");
-	if (!materials) { cleanup(); return; }
+	wxArrayString files = GetWallMaterialFiles();
+	if (files.IsEmpty()) { cleanup(); return; }
 
 	wxArrayString names;
-	for (pugi::xml_node brushNode = materials.child("brush"); brushNode; brushNode = brushNode.next_sibling("brush")) {
-		pugi::xml_attribute typeAttr = brushNode.attribute("type");
-		pugi::xml_attribute nameAttr = brushNode.attribute("name");
-		if (!typeAttr || std::string(typeAttr.as_string()) != "wall") continue;
-		if (!nameAttr) continue;
+	for (const wxString& file : files) {
+		pugi::xml_document doc;
+		if (!doc.load_file(file.ToStdString().c_str())) continue;
 
-		wxString name(nameAttr.as_string());
-		names.Add(name);
+		pugi::xml_node materials = doc.child("materials");
+		if (!materials) continue;
 
-		uint16_t lookId = 0;
-		if (pugi::xml_attribute lookAttr = brushNode.attribute("server_lookid")) {
-			lookId = static_cast<uint16_t>(lookAttr.as_uint());
-		} else if (pugi::xml_attribute lookAttr2 = brushNode.attribute("lookid")) {
-			lookId = static_cast<uint16_t>(lookAttr2.as_uint());
+		for (pugi::xml_node brushNode = materials.child("brush"); brushNode; brushNode = brushNode.next_sibling("brush")) {
+			pugi::xml_attribute typeAttr = brushNode.attribute("type");
+			pugi::xml_attribute nameAttr = brushNode.attribute("name");
+			if (!typeAttr || std::string(typeAttr.as_string()) != "wall") continue;
+			if (!nameAttr) continue;
+
+			wxString name(nameAttr.as_string());
+			wxString key = name.Lower();
+			// First file wins if the same wall name appears more than once.
+			if (m_wallSourceFiles.find(key) != m_wallSourceFiles.end()) continue;
+			names.Add(name);
+			m_wallSourceFiles[key] = file;
+
+			uint16_t lookId = 0;
+			if (pugi::xml_attribute lookAttr = brushNode.attribute("server_lookid")) {
+				lookId = static_cast<uint16_t>(lookAttr.as_uint());
+			} else if (pugi::xml_attribute lookAttr2 = brushNode.attribute("lookid")) {
+				lookId = static_cast<uint16_t>(lookAttr2.as_uint());
+			}
+			m_wallLookIds[key] = lookId;
 		}
-		m_wallLookIds[name.Lower()] = lookId;
 	}
 
 	for (size_t i = 0; i < names.GetCount(); ++i) {
@@ -444,31 +498,42 @@ void WallBrushEditorDialog::OnLoadWall(wxCommandEvent& WXUNUSED(event)) {
 }
 
 bool WallBrushEditorDialog::LoadWallByName(const wxString& name) {
-	wxString dataDir = GetVersionDataDirectory();
-	if (dataDir.IsEmpty()) return false;
+	wxArrayString files = GetWallMaterialFiles();
+	if (files.IsEmpty()) return false;
 
-	wxString wallsFile = dataDir + "walls.xml";
-	if (!wxFileExists(wallsFile)) return false;
+	// Look in the file we already know holds this brush first (if any).
+	auto srcIt = m_wallSourceFiles.find(name.Lower());
+	if (srcIt != m_wallSourceFiles.end() && files.Index(srcIt->second) != wxNOT_FOUND) {
+		files.Remove(srcIt->second);
+		files.Insert(srcIt->second, 0);
+	}
 
+	// `doc` is reused across files and must outlive `brushNode` (a handle into it),
+	// so it lives at function scope; we stop reloading it once we find the brush.
 	pugi::xml_document doc;
-	if (!doc.load_file(wallsFile.ToStdString().c_str())) return false;
-
-	pugi::xml_node materials = doc.child("materials");
-	if (!materials) return false;
-
 	pugi::xml_node brushNode;
-	for (pugi::xml_node node = materials.child("brush"); node; node = node.next_sibling("brush")) {
-		pugi::xml_attribute typeAttr = node.attribute("type");
-		pugi::xml_attribute nameAttr = node.attribute("name");
-		if (!typeAttr || std::string(typeAttr.as_string()) != "wall") continue;
-		if (nameAttr && wxString(nameAttr.as_string()) == name) {
-			brushNode = node;
+	for (const wxString& file : files) {
+		if (!doc.load_file(file.ToStdString().c_str())) continue;
+		pugi::xml_node materials = doc.child("materials");
+		if (!materials) continue;
+
+		for (pugi::xml_node node = materials.child("brush"); node; node = node.next_sibling("brush")) {
+			pugi::xml_attribute typeAttr = node.attribute("type");
+			pugi::xml_attribute nameAttr = node.attribute("name");
+			if (!typeAttr || std::string(typeAttr.as_string()) != "wall") continue;
+			if (nameAttr && wxString(nameAttr.as_string()) == name) {
+				brushNode = node;
+				break;
+			}
+		}
+		if (brushNode) {
+			m_wallSourceFiles[name.Lower()] = file;
 			break;
 		}
 	}
 
 	if (!brushNode) {
-		wxMessageBox("Could not find a wall brush named '" + name + "' in walls.xml.", "Not Found", wxICON_INFORMATION);
+		wxMessageBox("Could not find a wall brush named '" + name + "' in the material files.", "Not Found", wxICON_INFORMATION);
 		return false;
 	}
 
@@ -476,6 +541,16 @@ bool WallBrushEditorDialog::LoadWallByName(const wxString& name) {
 	for (int i = 0; i < WALL_SEG_COUNT; ++i) {
 		m_items[i].clear();
 		m_doors[i].clear();
+	}
+	m_preservedWallNodes.clear();
+	m_preservedBrushAttrs.clear();
+	m_preservedForName = name;
+
+	// Preserve brush-level attributes we don't manage (e.g. activated="true").
+	for (pugi::xml_attribute attr = brushNode.first_attribute(); attr; attr = attr.next_attribute()) {
+		if (!IsManagedWallBrushAttr(attr.name())) {
+			m_preservedBrushAttrs.emplace_back(attr.name(), attr.value());
+		}
 	}
 
 	m_nameCtrl->SetValue(name);
@@ -496,7 +571,12 @@ bool WallBrushEditorDialog::LoadWallByName(const wxString& name) {
 	for (pugi::xml_node wallNode = brushNode.child("wall"); wallNode; wallNode = wallNode.next_sibling("wall")) {
 		std::string typeStr = wallNode.attribute("type").as_string();
 		WallSegmentType seg = wallSegmentFromString(typeStr);
-		if (seg == WALL_SEG_COUNT) continue; // unknown segment type (not authored here)
+		if (seg == WALL_SEG_COUNT) {
+			// A segment type the 4-way editor can't show (diagonal, T, end, ...). Keep it
+			// verbatim so saving re-emits it instead of silently dropping it.
+			m_preservedWallNodes.push_back(SerializeXmlNode(wallNode));
+			continue;
+		}
 
 		for (pugi::xml_node child = wallNode.first_child(); child; child = child.next_sibling()) {
 			std::string childName = child.name();
@@ -528,15 +608,14 @@ bool WallBrushEditorDialog::LoadWallByName(const wxString& name) {
 bool WallBrushEditorDialog::FindWallByItemId(uint16_t itemId, wxString& outName, WallSegmentType& outSeg) {
 	if (itemId == 0) return false;
 
-	wxString dataDir = GetVersionDataDirectory();
-	if (dataDir.IsEmpty()) return false;
-	wxString wallsFile = dataDir + "walls.xml";
-	if (!wxFileExists(wallsFile)) return false;
+	wxArrayString files = GetWallMaterialFiles();
+	if (files.IsEmpty()) return false;
 
+	for (const wxString& file : files) {
 	pugi::xml_document doc;
-	if (!doc.load_file(wallsFile.ToStdString().c_str())) return false;
+	if (!doc.load_file(file.ToStdString().c_str())) continue;
 	pugi::xml_node materials = doc.child("materials");
-	if (!materials) return false;
+	if (!materials) continue;
 
 	for (pugi::xml_node brushNode = materials.child("brush"); brushNode; brushNode = brushNode.next_sibling("brush")) {
 		pugi::xml_attribute typeAttr = brushNode.attribute("type");
@@ -550,10 +629,12 @@ bool WallBrushEditorDialog::FindWallByItemId(uint16_t itemId, wxString& outName,
 				if ((cn == "item" || cn == "door") && static_cast<uint16_t>(child.attribute("id").as_uint()) == itemId) {
 					outName = wxString(nameAttr.as_string());
 					outSeg = (seg == WALL_SEG_COUNT) ? WALL_SEG_HORIZONTAL : seg;
+					m_wallSourceFiles[outName.Lower()] = file;
 					return true;
 				}
 			}
 		}
+	}
 	}
 
 	return false;
@@ -708,6 +789,9 @@ void WallBrushEditorDialog::ClearAll() {
 		m_items[i].clear();
 		m_doors[i].clear();
 	}
+	m_preservedWallNodes.clear();
+	m_preservedBrushAttrs.clear();
+	m_preservedForName.clear();
 	m_nameCtrl->SetValue("");
 	m_serverLookIdCtrl->SetValue(0);
 	m_draggableCheck->SetValue(false);
@@ -754,23 +838,30 @@ void WallBrushEditorDialog::SaveWall() {
 	int serverLookId = m_serverLookIdCtrl->GetValue();
 
 	wxString dataDir = GetVersionDataDirectory();
-	wxString wallsFile = dataDir + "walls.xml";
 
-	if (!wxFileExists(wallsFile)) {
-		wxMessageBox("Cannot find walls.xml file in the data directory.", "Error", wxICON_ERROR);
+	// Save back to the file the brush was loaded from (e.g. doodads.xml) so we edit it
+	// in place instead of duplicating it into walls.xml. New brushes default to walls.xml.
+	auto srcIt = m_wallSourceFiles.find(name.Lower());
+	wxString targetFile = (srcIt != m_wallSourceFiles.end()) ? srcIt->second : (dataDir + "walls.xml");
+	// Every candidate path is built as dataDir + <file>, so the bare file name is just
+	// the tail past dataDir (used only for user-facing messages).
+	wxString targetName = targetFile.StartsWith(dataDir) ? targetFile.Mid(dataDir.Length()) : targetFile;
+
+	if (!wxFileExists(targetFile)) {
+		wxMessageBox("Cannot find " + targetName + " file in the data directory.", "Error", wxICON_ERROR);
 		return;
 	}
 
 	pugi::xml_document doc;
-	pugi::xml_parse_result result = doc.load_file(wallsFile.ToStdString().c_str());
+	pugi::xml_parse_result result = doc.load_file(targetFile.ToStdString().c_str());
 	if (!result) {
-		wxMessageBox("Failed to load walls.xml: " + wxString(result.description()), "Error", wxICON_ERROR);
+		wxMessageBox("Failed to load " + targetName + ": " + wxString(result.description()), "Error", wxICON_ERROR);
 		return;
 	}
 
 	pugi::xml_node materials = doc.child("materials");
 	if (!materials) {
-		wxMessageBox("Invalid walls.xml file: missing 'materials' node.", "Error", wxICON_ERROR);
+		wxMessageBox("Invalid " + targetName + " file: missing 'materials' node.", "Error", wxICON_ERROR);
 		return;
 	}
 
@@ -793,6 +884,10 @@ void WallBrushEditorDialog::SaveWall() {
 		materials.remove_child(existingBrush);
 	}
 
+	// Preserved data only applies when we're saving the same brush we loaded it from.
+	const bool reemitPreserved = !m_preservedForName.IsEmpty()
+		&& m_preservedForName.Lower() == name.Lower();
+
 	// Create the new brush node.
 	pugi::xml_node brushNode = materials.append_child("brush");
 	brushNode.append_attribute("name").set_value(name.ToStdString().c_str());
@@ -809,6 +904,13 @@ void WallBrushEditorDialog::SaveWall() {
 	wxString thickness = m_thicknessCtrl->GetValue().Trim(true).Trim(false);
 	if (!thickness.IsEmpty()) {
 		brushNode.append_attribute("thickness").set_value(thickness.ToStdString().c_str());
+	}
+
+	// Re-emit brush attributes the editor doesn't manage (e.g. activated="true").
+	if (reemitPreserved) {
+		for (const auto& attr : m_preservedBrushAttrs) {
+			brushNode.append_attribute(attr.first.c_str()).set_value(attr.second.c_str());
+		}
 	}
 
 	// Write each segment that has any content, in canonical order.
@@ -835,10 +937,25 @@ void WallBrushEditorDialog::SaveWall() {
 		}
 	}
 
-	if (!doc.save_file(wallsFile.ToStdString().c_str())) {
-		wxMessageBox("Failed to save changes to walls.xml.", "Error", wxICON_ERROR);
+	// Re-append the <wall> segments the editor doesn't model (diagonals, T, ends, ...)
+	// exactly as they were loaded, so richer wall brushes survive a save.
+	if (reemitPreserved) {
+		for (const std::string& raw : m_preservedWallNodes) {
+			pugi::xml_document fragment;
+			// Older pugixml: load(const char_t*) is the string overload (later load_string).
+			if (fragment.load(raw.c_str()) && fragment.first_child()) {
+				brushNode.append_copy(fragment.first_child());
+			}
+		}
+	}
+
+	if (!doc.save_file(targetFile.ToStdString().c_str())) {
+		wxMessageBox("Failed to save changes to " + targetName + ".", "Error", wxICON_ERROR);
 		return;
 	}
+
+	// Remember where this brush now lives so a follow-up save stays in the same file.
+	m_wallSourceFiles[name.Lower()] = targetFile;
 
 	wxMessageBox("Wall brush saved successfully.\n"
 		"Restart the editor (or reload the client) to see changes in the palette.",

@@ -80,8 +80,8 @@ void MapPopupMenu::Update() {
 			if (!target) {
 				target = tile->ground.get();
 			}
-			if (target && (target->isBorder() || target->isGroundTile() || target->isWall())) {
-				Append(MAP_POPUP_MENU_OPEN_IN_BRUSHES_EDITOR, "Open in Brushes Editor", "Open this ground, border or wall in the Brushes Editor")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_PAINTBRUSH, wxSize(16, 16)));
+			if (target && (target->isBorder() || target->isGroundTile() || target->isWall() || target->getDoodadBrush())) {
+				Append(MAP_POPUP_MENU_OPEN_IN_BRUSHES_EDITOR, "Open in Brushes Editor", "Open this ground, border, wall or doodad in the Brushes Editor")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_PAINTBRUSH, wxSize(16, 16)));
 			}
 		}
 	}

@@ -57,6 +57,7 @@ enum {
     ID_BROWSE_GRID_ITEM,
     ID_LOAD_TIMER,
     ID_FILTER_TEXT,
+    ID_FIND_SERVER_ID,
     ID_DOODAD_LIST,
     ID_PREV_PAGE,
     ID_NEXT_PAGE,
@@ -174,6 +175,7 @@ BEGIN_EVENT_TABLE(DoodadEditorDialog, wxPanel)
     EVT_NOTEBOOK_PAGE_CHANGED(wxID_ANY, DoodadEditorDialog::OnPageChanged)
     EVT_TIMER(ID_LOAD_TIMER, DoodadEditorDialog::OnLoadTimer)
     EVT_TEXT(ID_FILTER_TEXT, DoodadEditorDialog::OnFilterChanged)
+    EVT_BUTTON(ID_FIND_SERVER_ID, DoodadEditorDialog::OnFindByServerId)
     EVT_BUTTON(ID_ADD_TO_TILESET_DOODAD, DoodadEditorDialog::OnAddToTileset)
     EVT_COMBOBOX(ID_TILESET_COMBO_DOODAD, DoodadEditorDialog::OnTilesetSelectionChanged)
     EVT_TEXT(ID_TILESET_COMBO_DOODAD, DoodadEditorDialog::OnTilesetSelectionChanged)
@@ -242,6 +244,17 @@ void DoodadEditorDialog::CreateGUIControls() {
     m_filterCtrl->SetHint("Type to filter...");
     m_filterCtrl->Enable(false); // Disabled until loaded
     filterSizer->Add(m_filterCtrl, 0, wxEXPAND | wxALL, 5);
+
+    // Find the doodad brush that contains a given server (item) id — mirrors the
+    // "Find by Item ID" search in the Border/Wall editors.
+    wxBoxSizer* findServerSizer = new wxBoxSizer(wxHORIZONTAL);
+    findServerSizer->Add(new wxStaticText(leftPanel, wxID_ANY, "Server ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+    m_findServerIdCtrl = new wxSpinCtrl(leftPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 0, 65535);
+    m_findServerIdCtrl->SetToolTip("Load the doodad brush that uses this item id (single item or composite).");
+    findServerSizer->Add(m_findServerIdCtrl, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+    findServerSizer->Add(new wxButton(leftPanel, ID_FIND_SERVER_ID, "Find", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0);
+    filterSizer->Add(findServerSizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+
     leftSizer->Add(filterSizer, 0, wxEXPAND | wxALL, 5);
 
     // Doodad list
@@ -673,6 +686,59 @@ void DoodadEditorDialog::LoadDoodadBrush(const wxString& brushName) {
     }
 
     UpdatePreview();
+}
+
+wxString DoodadEditorDialog::FindDoodadBrushNameByItemId(uint16_t itemId) const {
+    if (itemId == 0) return wxString();
+
+    const BrushMap& brushMap = g_brushes.getMap();
+    for (const auto& pair : brushMap) {
+        Brush* brush = pair.second.get();
+        if (brush && brush->is<DoodadBrush>()) {
+            auto* doodad = brush->as<DoodadBrush>();
+            if (doodad && doodad->getItems().ownsItem(itemId)) {
+                return wxString(doodad->getName());
+            }
+        }
+    }
+    return wxString();
+}
+
+bool DoodadEditorDialog::OpenItemInEditor(uint16_t itemId) {
+    wxString name = FindDoodadBrushNameByItemId(itemId);
+    if (name.IsEmpty()) {
+        return false;
+    }
+
+    LoadDoodadBrush(name);
+    if (m_findServerIdCtrl) m_findServerIdCtrl->SetValue(itemId);
+
+    // Jump to the tab that actually holds the item: Single Items if it's a single
+    // entry, otherwise the Composites tab.
+    bool isSingle = false;
+    for (const auto& single : m_singleItems) {
+        if (single.itemId == itemId) {
+            isSingle = true;
+            break;
+        }
+    }
+    if (m_notebook) {
+        m_notebook->SetSelection(isSingle ? 0 : 1);
+    }
+    return true;
+}
+
+void DoodadEditorDialog::OnFindByServerId(wxCommandEvent& WXUNUSED(event)) {
+    uint16_t wanted = static_cast<uint16_t>(m_findServerIdCtrl->GetValue());
+    if (wanted == 0) {
+        wxMessageBox("Enter a server (item) ID to search for.", "Find by Server ID", wxICON_INFORMATION);
+        return;
+    }
+
+    if (!OpenItemInEditor(wanted)) {
+        wxMessageBox(wxString::Format("No doodad brush uses item ID %u.", static_cast<unsigned>(wanted)),
+            "Not Found", wxICON_WARNING);
+    }
 }
 
 void DoodadEditorDialog::ClearAll() {

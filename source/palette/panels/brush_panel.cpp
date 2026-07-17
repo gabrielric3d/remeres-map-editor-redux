@@ -173,11 +173,15 @@ void BrushPanel::ClearFilter() {
 }
 
 void BrushPanel::OnSwitchIn() {
-	spdlog::info("BrushPanel::OnSwitchIn");
 	LoadContents();
+	if (brushbox) {
+		brushbox->OnSwitchIn();
+	}
 }
 
 void BrushPanel::OnSwitchOut() {
-	////
+	if (brushbox) {
+		brushbox->OnSwitchOut();
+	}
 }
 

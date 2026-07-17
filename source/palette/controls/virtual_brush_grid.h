@@ -34,6 +34,8 @@ public:
 	Brush* GetSelectedBrush() const override;
 	bool SelectBrush(const Brush* brush) override;
 	bool SelectBrushByOffset(int offset) override;
+	void OnSwitchIn() override;
+	void OnSwitchOut() override;
 
 	enum class DisplayMode {
 		Grid,

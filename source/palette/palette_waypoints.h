@@ -55,8 +55,16 @@ public:
 	void OnClickAddWaypoint(wxCommandEvent& event);
 	void OnClickRemoveWaypoint(wxCommandEvent& event);
 	void OnClickSetPosition(wxCommandEvent& event);
+	void OnClickMoveUp(wxCommandEvent& event);
+	void OnClickMoveDown(wxCommandEvent& event);
 	void OnFilterTextChange(wxCommandEvent& event);
 	void OnFilterCharHook(wxKeyEvent& event);
+
+	// Drag & drop reordering
+	void OnBeginDrag(wxListEvent& event);
+	void OnListMotion(wxMouseEvent& event);
+	void OnListLeftUp(wxMouseEvent& event);
+	void OnListCaptureLost(wxMouseCaptureLostEvent& event);
 
 	void SetMap(Map* map);
 
@@ -64,12 +72,25 @@ protected:
 	void UpdateList();
 	Waypoint* GetSelectedWaypoint() const;
 
+	// Reorder the selected waypoint by delta positions in the visible list.
+	void MoveSelectedWaypoint(int delta);
+	// Refresh the list after an order change and reselect the named waypoint.
+	void FinishReorder(const std::string& select_name);
+	// Waypoint name displayed on the given list row (empty if none).
+	std::string WaypointNameAtRow(long row) const;
+
 	Map* map;
 	wxTextCtrl* filter_text;
 	wxListCtrl* waypoint_list;
 	wxButton* add_waypoint_button;
 	wxButton* remove_waypoint_button;
 	wxButton* set_position_button;
+	wxButton* move_up_button;
+	wxButton* move_down_button;
+
+	// Drag state for reordering
+	bool dragging = false;
+	std::string dragged_name;
 };
 
 #endif

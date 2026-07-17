@@ -130,6 +130,8 @@ namespace {
 			case DatFlagUnwrappable:
 			case DatFlagTopEffect:
 			case DatFlagNoMoveAnimation:
+			case DatFlagDrawLast:
+			case DatFlagFloat:
 			case DatFlagDefault:
 				return true;
 			case DatFlagFullGround:
@@ -177,7 +179,16 @@ namespace {
 			}
 			case DatFlagDisplacement:
 				if (format >= DAT_FORMAT_755) {
-					return file.getU16(entry.drawoffset_x) && file.getU16(entry.drawoffset_y);
+					// The displacement is stored as two's-complement: negative
+					// offsets (e.g. -8 = 0xFFF8) must survive as signed values.
+					uint16_t raw_x = 0;
+					uint16_t raw_y = 0;
+					if (!file.getU16(raw_x) || !file.getU16(raw_y)) {
+						return false;
+					}
+					entry.drawoffset_x = static_cast<int16_t>(raw_x);
+					entry.drawoffset_y = static_cast<int16_t>(raw_y);
+					return true;
 				}
 				entry.drawoffset_x = 8;
 				entry.drawoffset_y = 8;
