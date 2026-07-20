@@ -8,15 +8,19 @@
 
 // JSON serialization macros
 void to_json(nlohmann::json& j, const ReplacementTarget& t) {
-	j = nlohmann::json { { "id", t.id }, { "probability", t.probability } };
+	j = nlohmann::json { { "id", t.id }, { "probability", t.probability }, { "kind", (int)t.kind }, { "brushName", t.brushName } };
 }
 void from_json(const nlohmann::json& j, ReplacementTarget& t) {
 	j.at("id").get_to(t.id);
 	j.at("probability").get_to(t.probability);
+	// Optional for backward compatibility: rule sets saved before brush slots
+	// existed have no "kind"/"brushName", and default to the item behaviour.
+	t.kind = (SlotKind)j.value("kind", 0);
+	t.brushName = j.value("brushName", std::string());
 }
 
 void to_json(nlohmann::json& j, const ReplacementRule& r) {
-	j = nlohmann::json { { "fromId", r.fromId }, { "targets", r.targets }, { "offsetX", r.offsetX }, { "offsetY", r.offsetY } };
+	j = nlohmann::json { { "fromId", r.fromId }, { "targets", r.targets }, { "offsetX", r.offsetX }, { "offsetY", r.offsetY }, { "fromKind", (int)r.fromKind }, { "fromBrushName", r.fromBrushName } };
 }
 void from_json(const nlohmann::json& j, ReplacementRule& r) {
 	j.at("fromId").get_to(r.fromId);
@@ -25,6 +29,8 @@ void from_json(const nlohmann::json& j, ReplacementRule& r) {
 	// before the feature existed.
 	r.offsetX = j.value("offsetX", 0);
 	r.offsetY = j.value("offsetY", 0);
+	r.fromKind = (SlotKind)j.value("fromKind", 0);
+	r.fromBrushName = j.value("fromBrushName", std::string());
 }
 
 void to_json(nlohmann::json& j, const RuleSet& s) {

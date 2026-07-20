@@ -64,6 +64,12 @@ public:
 		name = newName;
 	}
 
+	// Read-only access to the per-alignment item groups. Used by tools that need
+	// to map a concrete item back to its carpet role (e.g. brush->brush replace).
+	const CarpetBrushItems& getItems() const {
+		return m_items;
+	}
+
 protected:
 	uint16_t getRandomCarpet(BorderType alignment);
 

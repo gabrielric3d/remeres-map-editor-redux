@@ -391,6 +391,9 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/item_grid_panel.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/rule_card_renderer.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/visual_similarity_service.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/brush_mapping_service.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/brush_picker_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/brush_swap_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/result_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/tileset_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/welcome_dialog.h
@@ -819,6 +822,9 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/item_grid_panel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/rule_card_renderer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/visual_similarity_service.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/brush_mapping_service.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/brush_picker_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/replace_tool/brush_swap_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/result_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/tileset_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/theme.cpp

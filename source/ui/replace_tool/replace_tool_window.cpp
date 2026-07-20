@@ -33,6 +33,7 @@
 #include "brushes/table/table_brush.h"
 #include "brushes/carpet/carpet_brush.h"
 #include "ui/replace_tool/card_panel.h"
+#include "ui/replace_tool/brush_mapping_service.h"
 #include "util/image_manager.h"
 #include <wx/splitter.h>
 
@@ -383,7 +384,9 @@ void ReplaceToolWindow::OnLibraryItemSelected(uint16_t itemId) {
 void ReplaceToolWindow::OnRuleSelected(const RuleSet& rs) {
 	m_activeRuleSetName = rs.name;
 	ruleBuilder->SetRules(rs.rules);
-	if (!rs.rules.empty()) {
+	// A brush rule has no source item id (fromId == 0), so there is nothing to
+	// seed the similarity panel with.
+	if (!rs.rules.empty() && !rs.rules[0].isBrushRule() && rs.rules[0].fromId != 0) {
 		similarItemsGrid->SetItems(VisualSimilarityService::Get().FindSimilar(rs.rules[0].fromId));
 	} else {
 		similarItemsGrid->SetItems({});
@@ -432,8 +435,10 @@ void ReplaceToolWindow::OnRuleChanged() {
 		auto rules = ruleBuilder->GetRules();
 		if (!rules.empty()) {
 			const auto& lastRule = rules.back();
-			bool hasSource = lastRule.fromId != 0;
-			bool hasTarget = !lastRule.targets.empty() && lastRule.targets[0].id != 0;
+			// "Complete" depends on the slot kind: a brush slot is filled when it
+			// carries a brush name, an item slot when it carries a non-zero id.
+			bool hasSource = lastRule.hasSource();
+			bool hasTarget = !lastRule.targets.empty() && (lastRule.targets[0].kind == SlotKind::Brush ? !lastRule.targets[0].brushName.empty() : lastRule.targets[0].id != 0);
 			if (hasSource && hasTarget) {
 				// Add a new empty rule so the user can keep going
 				ReplacementRule newRule;
@@ -462,6 +467,32 @@ void ReplaceToolWindow::OnExecute(wxCommandEvent&) {
 	if (scope == ReplaceScope::Selection && editor->selection.empty()) {
 		wxMessageBox("No selection active. Please select an area first or change scope.", "Replace", wxOK | wxICON_WARNING);
 		return;
+	}
+
+	// Brush rules referencing a brush that no longer exists are silently dropped by
+	// the engine; warn up front so the user is not left wondering why nothing changed.
+	{
+		std::vector<std::string> brokenBrushes;
+		for (const auto& r : rules) {
+			if (!r.isBrushRule()) {
+				continue;
+			}
+			if (!r.fromBrushName.empty() && !BrushMappingService::FindBrush(r.fromBrushName)) {
+				brokenBrushes.push_back(r.fromBrushName);
+			}
+			for (const auto& t : r.targets) {
+				if (t.kind == SlotKind::Brush && !t.brushName.empty() && !BrushMappingService::FindBrush(t.brushName)) {
+					brokenBrushes.push_back(t.brushName);
+				}
+			}
+		}
+		if (!brokenBrushes.empty()) {
+			wxString msg = "These brushes are referenced by rules but do not exist in the loaded brush set.\nThose rules will be skipped:\n";
+			for (const auto& name : brokenBrushes) {
+				msg << "\n  - " << name;
+			}
+			wxMessageBox(msg, "Unknown Brushes", wxOK | wxICON_WARNING);
+		}
 	}
 
 	int confirm = wxMessageBox(
@@ -552,6 +583,11 @@ void ReplaceToolWindow::OnAddVisibleTiles(wxCommandEvent&) {
 	std::vector<ReplacementRule> currentRules = ruleBuilder->GetRules();
 	std::set<uint16_t> existingIds;
 	for (const auto& r : currentRules) {
+		// Brush rules carry fromId == 0; counting them would make every one of
+		// them collide on the same id and block legitimate additions.
+		if (r.isBrushRule()) {
+			continue;
+		}
 		existingIds.insert(r.fromId);
 	}
 

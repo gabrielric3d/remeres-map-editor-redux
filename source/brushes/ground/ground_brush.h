@@ -98,6 +98,19 @@ public:
 	uint16_t getFirstGroundItemId() const {
 		return border_items.empty() ? 0 : border_items[0].id;
 	}
+	// Every center ground variation, in declaration order. The Advanced Replace
+	// brush-swap dialog needs all of them: emitting a rule only for the first
+	// would silently leave tiles painted with the other variations behind.
+	std::vector<uint16_t> getGroundItemIds() const {
+		std::vector<uint16_t> ids;
+		ids.reserve(border_items.size());
+		for (const auto& block : border_items) {
+			if (block.id != 0) {
+				ids.push_back(block.id);
+			}
+		}
+		return ids;
+	}
 	const AutoBorder* getFirstOuterAutoBorder() const {
 		for (const auto& b : borders) {
 			if (b && b->autoborder && b->outer) return b->autoborder;

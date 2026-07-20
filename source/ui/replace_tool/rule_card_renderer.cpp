@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <format>
 #include "ui/replace_tool/rule_builder_panel.h"
+#include "ui/replace_tool/brush_mapping_service.h"
+#include "brushes/brush.h"
 #include "ui/theme.h"
 
 const int RuleCardRenderer::CARD_W = RuleCardRenderer::ITEM_SIZE + 20;
@@ -102,12 +104,9 @@ void RuleCardRenderer::DrawRuleCard(RuleBuilderPanel* panel, NVGcontext* vg, int
 	int columns = std::max(1, (int)(availableWidth / (CARD_W + ITEM_SPACING)));
 
 	int targetCount = rule.targets.size();
-	bool hasTrash = false;
-	for (const auto& t : rule.targets) {
-		if (t.id == TRASH_ITEM_ID) {
-			hasTrash = true;
-		}
-	}
+	// Shared with HitTest/GetRuleHeight so the drawn ghost slot, the clickable
+	// area and the card height can never disagree.
+	const bool hasTrash = ReplaceToolSuppressAddSlot(rule);
 	if (!hasTrash) {
 		targetCount++;
 	}
@@ -127,9 +126,18 @@ void RuleCardRenderer::DrawRuleCard(RuleBuilderPanel* panel, NVGcontext* vg, int
 	float startX = CARD_MARGIN_X + CARD_PADDING;
 	float itemY = y + CARD_PADDING;
 
-	// 2. Source Item
-	bool hoverSource = (dragHoverType == 1 && dragHoverTargetIdx == -1); // HitResult::Source is index 1 in the enum
-	DrawRuleItemCard(panel, vg, startX, itemY, CARD_W, ITEM_H, rule.fromId, hoverSource, false, false);
+	// Hover types come in as raw ints; compare against the enum instead of magic
+	// numbers so appending to HitResult::Type can never silently change meaning.
+	using Hit = RuleBuilderPanel::HitResult;
+
+	// 2. Source slot (item or brush)
+	bool hoverSource = ((dragHoverType == Hit::Source || dragHoverType == Hit::PickBrush) && dragHoverTargetIdx == -1);
+	if (rule.fromKind == SlotKind::Brush) {
+		DrawRuleBrushCard(panel, vg, startX, itemY, CARD_W, ITEM_H, rule.fromBrushName, hoverSource, false);
+	} else {
+		DrawRuleItemCard(panel, vg, startX, itemY, CARD_W, ITEM_H, rule.fromId, hoverSource, false, false);
+	}
+	DrawSlotKindBadge(vg, startX, itemY, CARD_W, ITEM_H, rule.fromKind == SlotKind::Brush, dragHoverType == Hit::ToggleSourceKind && dragHoverTargetIdx == -1);
 
 	// 3. Arrow
 	float arrowX = startX + CARD_W + 10;
@@ -171,11 +179,17 @@ void RuleCardRenderer::DrawRuleCard(RuleBuilderPanel* panel, NVGcontext* vg, int
 		float tx = txStartX + col * (CARD_W + ITEM_SPACING);
 		float ty = y + CARD_PADDING + row * (ITEM_H + ITEM_SPACING);
 
-		// HitResult::Target is 2, DeleteTarget is 8
-		bool isThisHovered = (dragHoverTargetIdx == (int)j && (dragHoverType == 2 || dragHoverType == 8));
-		bool isTargetTrash = (target.id == TRASH_ITEM_ID);
+		bool isThisHovered = (dragHoverTargetIdx == (int)j && (dragHoverType == Hit::Target || dragHoverType == Hit::DeleteTarget || dragHoverType == Hit::PickBrush));
 
-		DrawRuleItemCard(panel, vg, tx, ty, CARD_W, ITEM_H, target.id, isThisHovered, isTargetTrash, isThisHovered, target.probability);
+		if (target.kind == SlotKind::Brush) {
+			// No delete overlay: the body of a brush slot re-opens the picker,
+			// it does not remove the target (toggle back to ITEM for that).
+			DrawRuleBrushCard(panel, vg, tx, ty, CARD_W, ITEM_H, target.brushName, isThisHovered, false, target.probability);
+		} else {
+			bool isTargetTrash = (target.id == TRASH_ITEM_ID);
+			DrawRuleItemCard(panel, vg, tx, ty, CARD_W, ITEM_H, target.id, isThisHovered, isTargetTrash, isThisHovered, target.probability);
+		}
+		DrawSlotKindBadge(vg, tx, ty, CARD_W, ITEM_H, target.kind == SlotKind::Brush, dragHoverType == Hit::ToggleTargetKind && dragHoverTargetIdx == (int)j);
 	}
 
 	// 5. Ghost Slot (Add Target)
@@ -186,8 +200,7 @@ void RuleCardRenderer::DrawRuleCard(RuleBuilderPanel* panel, NVGcontext* vg, int
 		float tx = txStartX + col * (CARD_W + ITEM_SPACING);
 		float ty = y + CARD_PADDING + row * (ITEM_H + ITEM_SPACING);
 
-		// HitResult::AddTarget is 3
-		bool hoverAdd = (dragHoverType == 3);
+		bool hoverAdd = (dragHoverType == Hit::AddTarget);
 		NVGcolor accentCol = NvgUtils::ToNvColor(Theme::Get(Theme::Role::Accent));
 
 		nvgBeginPath(vg);
@@ -242,14 +255,23 @@ void RuleCardRenderer::DrawRuleArrow(NVGcontext* vg, float x, float y, float h) 
 	nvgStroke(vg);
 }
 
-void RuleCardRenderer::DrawNewRuleArea(NVGcontext* vg, float width, float y, bool isHovered) {
+void RuleCardRenderer::GetSwapButtonRect(float width, float y, float& bx, float& by, float& bw, float& bh) {
+	// Raw constants (no FromDIP), matching the rest of this renderer so the
+	// hit-test lands on the same pixels at any DPI.
+	bw = 132.0f;
+	bh = 28.0f;
+	bx = CARD_MARGIN_X + (width - CARD_MARGIN_X * 2) - bw - 12.0f;
+	by = y + ((float)NEW_RULE_H - bh) / 2.0f;
+}
+
+void RuleCardRenderer::DrawNewRuleArea(NVGcontext* vg, float width, float y, bool isHovered, bool swapHovered) {
 	NVGcolor cardBgTop = NvgUtils::ToNvColor(Theme::Get(Theme::Role::CardBase));
 	NVGcolor cardBgBot = NvgUtils::ToNvColor(Theme::Get(Theme::Role::CardBaseHover));
 	NVGcolor borderColor = NvgUtils::ToNvColor(Theme::Get(Theme::Role::CardBorder));
 	NVGcolor accentCol = NvgUtils::ToNvColor(Theme::Get(Theme::Role::Accent));
 	NVGcolor subTextCol = NvgUtils::ToNvColor(Theme::Get(Theme::Role::TextSubtle));
 
-	float dropH = 60.0f;
+	float dropH = (float)NEW_RULE_H;
 	float cardX = CARD_MARGIN_X;
 	float cardW = width - CARD_MARGIN_X * 2;
 
@@ -270,10 +292,33 @@ void RuleCardRenderer::DrawNewRuleArea(NVGcontext* vg, float width, float y, boo
 	}
 	nvgStroke(vg);
 
+	float bx, by, bw, bh;
+	GetSwapButtonRect(width, y, bx, by, bw, bh);
+
+	// Hint text is centred in what is left of the area once the button is placed,
+	// so the two never overlap on a narrow panel.
 	nvgFontSize(vg, 14.0f);
 	nvgFillColor(vg, subTextCol);
 	nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-	nvgText(vg, width / 2.0f, y + dropH / 2.0f, "Drop Item Here to Add New Rule", nullptr);
+	nvgText(vg, (cardX + bx) / 2.0f, y + dropH / 2.0f, "Drop Item Here to Add New Rule", nullptr);
+
+	// "Swap Brush" button: expands two brushes into one rule per item pair.
+	nvgBeginPath(vg);
+	nvgRoundedRect(vg, bx, by, bw, bh, 4.0f);
+	if (swapHovered) {
+		nvgFillColor(vg, NvgUtils::ToNvColor(Theme::Get(Theme::Role::AccentHover)));
+	} else {
+		nvgFillColor(vg, accentCol);
+	}
+	nvgFill(vg);
+	nvgStrokeColor(vg, borderColor);
+	nvgStrokeWidth(vg, 1.0f);
+	nvgStroke(vg);
+
+	nvgFontSize(vg, 12.0f);
+	nvgFillColor(vg, NvgUtils::ToNvColor(Theme::Get(Theme::Role::TextOnAccent)));
+	nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
+	nvgText(vg, bx + bw / 2.0f, by + bh / 2.0f, "Swap Brush...", nullptr);
 }
 
 void RuleCardRenderer::DrawRuleItemCard(NanoVGCanvas* canvas, NVGcontext* vg, float x, float y, float w, float h, uint16_t id, bool highlight, bool isTrash, bool showDeleteOverlay, int probability) {
@@ -356,4 +401,121 @@ void RuleCardRenderer::DrawRuleItemCard(NanoVGCanvas* canvas, NVGcontext* vg, fl
 		nvgStrokeWidth(vg, 1.5f);
 		nvgStroke(vg);
 	}
+}
+
+void RuleCardRenderer::DrawRuleBrushCard(NanoVGCanvas* canvas, NVGcontext* vg, float x, float y, float w, float h, const std::string& brushName, bool highlight, bool showDeleteOverlay, int probability) {
+	// Same shell as the item card so both slot kinds read as one family.
+	NVGpaint bgPaint = nvgLinearGradient(vg, x, y, x, y + h, NvgUtils::ToNvColor(Theme::Get(Theme::Role::CardBase)), NvgUtils::ToNvColor(Theme::Get(Theme::Role::CardBaseHover)));
+	nvgBeginPath(vg);
+	nvgRoundedRect(vg, x, y, w, h, 4.0f);
+	nvgFillPaint(vg, bgPaint);
+	nvgFill(vg);
+
+	if (highlight) {
+		nvgStrokeColor(vg, NvgUtils::ToNvColor(Theme::Get(Theme::Role::Accent)));
+		nvgStrokeWidth(vg, 2.0f);
+	} else {
+		nvgStrokeColor(vg, NvgUtils::ToNvColor(Theme::Get(Theme::Role::CardBorder)));
+		nvgStrokeWidth(vg, 1.0f);
+	}
+	nvgStroke(vg);
+
+	const float drawSize = 32.0f;
+	Brush* brush = brushName.empty() ? nullptr : BrushMappingService::FindBrush(brushName);
+
+	if (brushName.empty()) {
+		// Slot switched to brush mode but nothing picked yet.
+		nvgFillColor(vg, NvgUtils::ToNvColor(Theme::Get(Theme::Role::TextSubtle)));
+		nvgFontSize(vg, 11.0f);
+		nvgFontFace(vg, "sans");
+		nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
+		nvgText(vg, x + w / 2, y + h / 2 - KIND_BADGE_H / 2.0f, "Pick brush...", nullptr);
+	} else {
+		if (brush) {
+			const uint16_t previewId = BrushMappingService::GetPreviewItemId(brush);
+			if (previewId != 0) {
+				int tex = canvas->GetOrCreateItemImage(previewId);
+				if (tex > 0) {
+					int tw, th;
+					nvgImageSize(vg, tex, &tw, &th);
+					float scale = drawSize / std::max(tw, th);
+					float dw = tw * scale;
+					float dh = th * scale;
+					float dx = x + (w - dw) / 2;
+					float dy = y + 8 + (drawSize - dh) / 2;
+
+					NVGpaint imgPaint = nvgImagePattern(vg, dx, dy, dw, dh, 0.0f, tex, 1.0f);
+					nvgBeginPath(vg);
+					nvgRect(vg, dx, dy, dw, dh);
+					nvgFillPaint(vg, imgPaint);
+					nvgFill(vg);
+				}
+			}
+		}
+
+		// A name that no longer resolves to a brush is drawn in the Error color so
+		// a rule broken by an edited/renamed brush set is immediately visible.
+		nvgFillColor(vg, NvgUtils::ToNvColor(Theme::Get(brush ? Theme::Role::Text : Theme::Role::Error)));
+		nvgFontSize(vg, 11.0f);
+		nvgFontFace(vg, "sans");
+		nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_TOP);
+		nvgTextBox(vg, x + 5, y + 44, w - 10, brushName.c_str(), nullptr);
+
+		if (probability >= 0) {
+			std::string probLabel = std::format("Chance: {}%", probability);
+			nvgFillColor(vg, NvgUtils::ToNvColor(Theme::Get(Theme::Role::TextSubtle)));
+			nvgFontSize(vg, 11.0f);
+			nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_TOP);
+			nvgText(vg, x + w / 2, y + 84, probLabel.c_str(), nullptr);
+		}
+	}
+
+	if (showDeleteOverlay) {
+		float cx = x + w - 8;
+		float cy = y + 8;
+		float r = 8.0f;
+		nvgBeginPath(vg);
+		nvgCircle(vg, cx, cy, r);
+		nvgFillColor(vg, nvgRGBA(200, 50, 50, 255));
+		nvgFill(vg);
+		nvgBeginPath(vg);
+		float crossArr = r * 0.5f;
+		nvgMoveTo(vg, cx - crossArr, cy - crossArr);
+		nvgLineTo(vg, cx + crossArr, cy + crossArr);
+		nvgMoveTo(vg, cx + crossArr, cy - crossArr);
+		nvgLineTo(vg, cx - crossArr, cy + crossArr);
+		nvgStrokeColor(vg, nvgRGBA(255, 255, 255, 255));
+		nvgStrokeWidth(vg, 1.5f);
+		nvgStroke(vg);
+	}
+}
+
+void RuleCardRenderer::DrawSlotKindBadge(NVGcontext* vg, float x, float y, float w, float h, bool isBrush, bool hovered) {
+	// Raw constants (no FromDIP) so the pill lands inside the strip that
+	// RuleBuilderPanel::HitTest reserves for it.
+	const float bh = (float)KIND_BADGE_H - 3.0f;
+	const float by = y + h - (float)KIND_BADGE_H + 1.0f;
+	const float bx = x + 6.0f;
+	const float bw = w - 12.0f;
+
+	NVGcolor accentCol = NvgUtils::ToNvColor(Theme::Get(Theme::Role::Accent));
+	NVGcolor accentHoverCol = NvgUtils::ToNvColor(Theme::Get(Theme::Role::AccentHover));
+
+	nvgBeginPath(vg);
+	nvgRoundedRect(vg, bx, by, bw, bh, bh / 2.0f);
+	if (isBrush) {
+		// Filled pill, mirroring the "active" look of the offset badge.
+		nvgFillColor(vg, hovered ? accentHoverCol : accentCol);
+		nvgFill(vg);
+	} else {
+		nvgStrokeColor(vg, hovered ? accentCol : NvgUtils::ToNvColor(Theme::Get(Theme::Role::CardBorder)));
+		nvgStrokeWidth(vg, 1.0f);
+		nvgStroke(vg);
+	}
+
+	nvgFontSize(vg, 8.0f);
+	nvgFontFace(vg, "sans");
+	nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
+	nvgFillColor(vg, isBrush ? NvgUtils::ToNvColor(Theme::Get(Theme::Role::TextOnAccent)) : NvgUtils::ToNvColor(Theme::Get(Theme::Role::TextSubtle)));
+	nvgText(vg, bx + bw / 2.0f, by + bh / 2.0f, isBrush ? "BRUSH" : "ITEM", nullptr);
 }

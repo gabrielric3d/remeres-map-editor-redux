@@ -16,6 +16,10 @@
 #include <cmath>
 #include "rendering/core/text_renderer.h"
 #include "ui/replace_tool/rule_card_renderer.h"
+#include "ui/replace_tool/brush_picker_dialog.h"
+#include "ui/replace_tool/brush_swap_dialog.h"
+#include "ui/replace_tool/brush_mapping_service.h"
+#include "brushes/brush.h"
 #include <ranges>
 #include <algorithm>
 
@@ -31,6 +35,18 @@ static const int ARROW_WIDTH = 60;
 static const int SECTION_GAP = 20;
 static const int CARD_W = ITEM_SIZE + 20;
 static const int GHOST_SLOT_WIDTH = CARD_W;
+
+// True when the rule must not show the trailing [+] ghost slot: either a REMOVE
+// target is present, or it is a brush rule (which takes exactly one target).
+// Shared by the hit-test, the layout and the renderer so they never disagree.
+bool ReplaceToolSuppressAddSlot(const ReplacementRule& rule) {
+	if (rule.isBrushRule() && !rule.targets.empty()) {
+		return true;
+	}
+	return std::ranges::any_of(rule.targets, [](const auto& t) {
+		return t.kind == SlotKind::Item && t.id == TRASH_ITEM_ID;
+	});
+}
 
 // Small modal asking for the per-rule X/Y offset. Returns true on OK.
 static bool ShowOffsetDialog(wxWindow* parent, int& ioX, int& ioY) {
@@ -82,8 +98,20 @@ bool RuleBuilderPanel::ItemDropTarget::OnDropText(wxCoord x, wxCoord y, const wx
 
 	RuleBuilderPanel::HitResult hit = m_panel->HitTest(x, y);
 
+	// Slots in brush mode (and their kind badges) do not accept item drops.
+	if (hit.type == RuleBuilderPanel::HitResult::PickBrush
+		|| hit.type == RuleBuilderPanel::HitResult::ToggleSourceKind
+		|| hit.type == RuleBuilderPanel::HitResult::ToggleTargetKind) {
+		return false;
+	}
+
 	if (hit.type == RuleBuilderPanel::HitResult::Source) {
 		if (hit.ruleIndex >= 0 && hit.ruleIndex < (int)m_panel->m_rules.size()) {
+			// Reject item drops onto a slot in brush mode: writing fromId there
+			// would be silently ignored by the engine.
+			if (m_panel->m_rules[hit.ruleIndex].fromKind == SlotKind::Brush) {
+				return false;
+			}
 			m_panel->m_rules[hit.ruleIndex].fromId = itemId;
 			m_panel->m_listener->OnRuleChanged();
 			m_panel->Refresh();
@@ -93,6 +121,9 @@ bool RuleBuilderPanel::ItemDropTarget::OnDropText(wxCoord x, wxCoord y, const wx
 		if (hit.ruleIndex >= 0 && hit.ruleIndex < (int)m_panel->m_rules.size()) {
 			// Replace existing target
 			if (hit.targetIndex >= 0 && hit.targetIndex < m_panel->m_rules[hit.ruleIndex].targets.size()) {
+				if (m_panel->m_rules[hit.ruleIndex].targets[hit.targetIndex].kind == SlotKind::Brush) {
+					return false;
+				}
 				m_panel->m_rules[hit.ruleIndex].targets[hit.targetIndex].id = itemId;
 				m_panel->m_listener->OnRuleChanged();
 				m_panel->Refresh();
@@ -102,14 +133,13 @@ bool RuleBuilderPanel::ItemDropTarget::OnDropText(wxCoord x, wxCoord y, const wx
 	} else if (hit.type == RuleBuilderPanel::HitResult::AddTarget) { // Drag to [+] slot
 		if (hit.ruleIndex >= 0 && hit.ruleIndex < (int)m_panel->m_rules.size()) {
 			// TRASH LOGIC: Reject if has trash
-			bool hasTrash = std::ranges::any_of(m_panel->m_rules[hit.ruleIndex].targets, [](const auto& t) {
-				return t.id == TRASH_ITEM_ID;
-			});
-			if (hasTrash) {
+			if (ReplaceToolSuppressAddSlot(m_panel->m_rules[hit.ruleIndex])) {
 				return false;
 			}
 
-			m_panel->m_rules[hit.ruleIndex].targets.push_back({ itemId, 0 });
+			ReplacementTarget nt;
+			nt.id = itemId;
+			m_panel->m_rules[hit.ruleIndex].targets.push_back(nt);
 			m_panel->DistributeProbabilities(hit.ruleIndex);
 			m_panel->m_listener->OnRuleChanged();
 			m_panel->LayoutRules();
@@ -184,9 +214,77 @@ std::vector<ReplacementRule> RuleBuilderPanel::GetRules() const {
 	return m_rules;
 }
 
+void RuleBuilderPanel::ApplyPickedBrush(int ruleIndex, int targetIndex, const std::string& brushName) {
+	// The picker is modeless, so the panel stayed live while it was open: the
+	// rule may have been deleted, or toggled back to item mode. Re-validate
+	// instead of trusting the indices captured when the picker opened.
+	if (ruleIndex < 0 || ruleIndex >= (int)m_rules.size()) {
+		return;
+	}
+	auto& rule = m_rules[ruleIndex];
+
+	if (targetIndex < 0) {
+		if (rule.fromKind != SlotKind::Brush) {
+			return;
+		}
+		rule.fromBrushName = brushName;
+	} else {
+		if (targetIndex >= (int)rule.targets.size()) {
+			return;
+		}
+		auto& target = rule.targets[targetIndex];
+		if (target.kind != SlotKind::Brush) {
+			return;
+		}
+		target.brushName = brushName;
+	}
+
+	if (m_listener) {
+		m_listener->OnRuleChanged();
+	}
+	LayoutRules();
+	Refresh();
+}
+
+void RuleBuilderPanel::AddRules(const std::vector<ReplacementRule>& rules) {
+	if (rules.empty()) {
+		return;
+	}
+
+	for (const auto& incoming : rules) {
+		// ReplacementEngine keys item rules by fromId, so a second rule for the
+		// same source would silently shadow the first. Overwrite instead.
+		auto existing = std::find_if(m_rules.begin(), m_rules.end(), [&incoming](const ReplacementRule& rule) {
+			return !rule.isBrushRule() && rule.fromId == incoming.fromId;
+		});
+		if (existing != m_rules.end()) {
+			*existing = incoming;
+		} else {
+			m_rules.push_back(incoming);
+		}
+	}
+
+	// A trailing blank rule (the auto-add placeholder) would sit in the middle
+	// of the list after appending, so move it back to the end.
+	auto blank = std::find_if(m_rules.begin(), m_rules.end(), [](const ReplacementRule& rule) {
+		return !rule.hasSource() && rule.targets.empty();
+	});
+	if (blank != m_rules.end() && blank + 1 != m_rules.end()) {
+		std::rotate(blank, blank + 1, m_rules.end());
+	}
+
+	if (m_listener) {
+		m_listener->OnRuleChanged();
+	}
+	LayoutRules();
+	Refresh();
+}
+
 void RuleBuilderPanel::ApplyItemAsSource(uint16_t itemId) {
-	// If the last rule has no targets and no source, reuse it; otherwise create a new rule
-	if (!m_rules.empty() && m_rules.back().fromId == 0) {
+	// If the last rule has no targets and no source, reuse it; otherwise create a
+	// new rule. Rules already in brush mode are never recycled, so dropping an
+	// item never contaminates a brush rule.
+	if (!m_rules.empty() && !m_rules.back().isBrushRule() && m_rules.back().fromId == 0) {
 		m_rules.back().fromId = itemId;
 	} else {
 		ReplacementRule newRule;
@@ -201,22 +299,26 @@ void RuleBuilderPanel::ApplyItemAsSource(uint16_t itemId) {
 }
 
 void RuleBuilderPanel::ApplyItemAsTarget(uint16_t itemId) {
-	if (m_rules.empty()) {
+	// Brush rules are single-target and their target is a brush, so an incoming
+	// item always starts a fresh item rule instead of joining them.
+	if (m_rules.empty() || m_rules.back().isBrushRule()) {
 		// Create a new rule with empty source
 		ReplacementRule newRule;
-		newRule.targets.push_back({ itemId, 100 });
+		ReplacementTarget t;
+		t.id = itemId;
+		t.probability = 100;
+		newRule.targets.push_back(t);
 		m_rules.push_back(newRule);
 	} else {
 		// Add to the last rule
 		auto& rule = m_rules.back();
 		// Don't add if it already has a trash target
-		bool hasTrash = std::ranges::any_of(rule.targets, [](const auto& t) {
-			return t.id == TRASH_ITEM_ID;
-		});
-		if (hasTrash) {
+		if (ReplaceToolSuppressAddSlot(rule)) {
 			return;
 		}
-		rule.targets.push_back({ itemId, 0 });
+		ReplacementTarget t;
+		t.id = itemId;
+		rule.targets.push_back(t);
 		DistributeProbabilities(static_cast<int>(m_rules.size()) - 1);
 	}
 	if (m_listener) {
@@ -244,10 +346,7 @@ int RuleBuilderPanel::GetRuleHeight(int index, int width) const {
 	int columns = std::max(1, (int)(availableWidth / (CARD_W + ITEM_SPACING)));
 	int targetCount = m_rules[index].targets.size();
 
-	bool hasTrash = std::ranges::any_of(m_rules[index].targets, [](const auto& t) {
-		return t.id == TRASH_ITEM_ID;
-	});
-	if (!hasTrash) {
+	if (!ReplaceToolSuppressAddSlot(m_rules[index])) {
 		targetCount++; // [+] slot
 	}
 
@@ -343,7 +442,9 @@ void RuleBuilderPanel::OnMouse(wxMouseEvent& event) {
 			LayoutRules();
 			Refresh();
 		} else if (hit.type == HitResult::AddTarget && hit.ruleIndex != -1) {
-			if (m_rules[hit.ruleIndex].targets.empty()) {
+			if (m_rules[hit.ruleIndex].isBrushRule() && !m_rules[hit.ruleIndex].targets.empty()) {
+				// Brush rules are single-target; ignore.
+			} else if (m_rules[hit.ruleIndex].targets.empty()) {
 				ReplacementTarget t;
 				t.id = TRASH_ITEM_ID;
 				t.probability = 100;
@@ -365,6 +466,67 @@ void RuleBuilderPanel::OnMouse(wxMouseEvent& event) {
 				}
 				Refresh();
 			}
+		} else if (hit.type == HitResult::ToggleSourceKind && hit.ruleIndex != -1) {
+			auto& rule = m_rules[hit.ruleIndex];
+			if (rule.fromKind == SlotKind::Brush) {
+				rule.fromKind = SlotKind::Item;
+				rule.fromBrushName.clear();
+			} else {
+				rule.fromKind = SlotKind::Brush;
+				rule.fromId = 0;
+				// A brush rule takes a single target; drop any extras.
+				if (rule.targets.size() > 1) {
+					rule.targets.resize(1);
+				}
+				DistributeProbabilities(hit.ruleIndex);
+				// Pick right away: an empty brush slot is not useful on its own.
+				// The picker is modeless, so the slot flips to BRUSH now and the
+				// name lands later, through the callback.
+				BrushPickerDialog::PickBrush(this, rule.fromBrushName, nullptr, [this, ruleIndex = hit.ruleIndex](const BrushMappingService::Selection& picked) {
+					ApplyPickedBrush(ruleIndex, -1, picked.brushName);
+				});
+			}
+			if (m_listener) {
+				m_listener->OnRuleChanged();
+			}
+			LayoutRules();
+			Refresh();
+		} else if (hit.type == HitResult::ToggleTargetKind && hit.ruleIndex != -1 && hit.targetIndex != -1) {
+			auto& rule = m_rules[hit.ruleIndex];
+			auto& target = rule.targets[hit.targetIndex];
+			if (target.kind == SlotKind::Brush) {
+				target.kind = SlotKind::Item;
+				target.brushName.clear();
+			} else {
+				target.kind = SlotKind::Brush;
+				target.id = 0;
+				const Brush* familyFilter = rule.isBrushRule() ? BrushMappingService::FindBrush(rule.fromBrushName) : nullptr;
+				BrushPickerDialog::PickBrush(this, target.brushName, familyFilter, [this, ruleIndex = hit.ruleIndex, targetIndex = hit.targetIndex](const BrushMappingService::Selection& picked) {
+					ApplyPickedBrush(ruleIndex, targetIndex, picked.brushName);
+				});
+			}
+			if (m_listener) {
+				m_listener->OnRuleChanged();
+			}
+			LayoutRules();
+			Refresh();
+		} else if (hit.type == HitResult::PickBrush && hit.ruleIndex != -1) {
+			auto& rule = m_rules[hit.ruleIndex];
+			if (hit.targetIndex < 0) {
+				BrushPickerDialog::PickBrush(this, rule.fromBrushName, nullptr, [this, ruleIndex = hit.ruleIndex](const BrushMappingService::Selection& picked) {
+					ApplyPickedBrush(ruleIndex, -1, picked.brushName);
+				});
+			} else if (hit.targetIndex < (int)rule.targets.size()) {
+				// On a target, restrict the list to the source brush family.
+				const Brush* familyFilter = rule.isBrushRule() ? BrushMappingService::FindBrush(rule.fromBrushName) : nullptr;
+				BrushPickerDialog::PickBrush(this, rule.targets[hit.targetIndex].brushName, familyFilter, [this, ruleIndex = hit.ruleIndex, targetIndex = hit.targetIndex](const BrushMappingService::Selection& picked) {
+					ApplyPickedBrush(ruleIndex, targetIndex, picked.brushName);
+				});
+			}
+		} else if (hit.type == HitResult::SwapBrush) {
+			BrushSwapDialog::Open(this, [this](const std::vector<ReplacementRule>& rules) {
+				AddRules(rules);
+			});
 		} else if (hit.type == HitResult::Source && hit.ruleIndex != -1) {
 			if (m_listener) {
 				m_listener->OnRuleItemSelected(m_rules[hit.ruleIndex].fromId);
@@ -437,6 +599,13 @@ RuleBuilderPanel::HitResult RuleBuilderPanel::HitTest(int x, int y) const {
 			float sourceY = CARD_PADDING; // Vertical top in card
 
 			if (localX >= startX && localX <= startX + CARD_W && localY >= sourceY && localY <= sourceY + ITEM_HEIGHT) {
+				// Bottom strip of the slot is the ITEM/BRUSH kind toggle.
+				if (localY >= sourceY + ITEM_HEIGHT - RuleCardRenderer::KIND_BADGE_H) {
+					return { HitResult::ToggleSourceKind, (int)i, -1 };
+				}
+				if (m_rules[i].fromKind == SlotKind::Brush) {
+					return { HitResult::PickBrush, (int)i, -1 };
+				}
 				return { HitResult::Source, (int)i, -1 };
 			}
 
@@ -461,14 +630,18 @@ RuleBuilderPanel::HitResult RuleBuilderPanel::HitTest(int x, int y) const {
 				float ty = RuleCardRenderer::CARD_PADDING + row * (ITEM_HEIGHT + RuleCardRenderer::ITEM_SPACING);
 
 				if (localX >= tx && localX <= tx + RuleCardRenderer::CARD_W && localY >= ty && localY <= ty + ITEM_HEIGHT) {
+					if (localY >= ty + ITEM_HEIGHT - RuleCardRenderer::KIND_BADGE_H) {
+						return { HitResult::ToggleTargetKind, (int)i, (int)t };
+					}
+					if (m_rules[i].targets[t].kind == SlotKind::Brush) {
+						return { HitResult::PickBrush, (int)i, (int)t };
+					}
 					return { HitResult::DeleteTarget, (int)i, (int)t };
 				}
 			}
 
 			// Add Target Slot
-			bool hasTrash = std::ranges::any_of(m_rules[i].targets, [](const auto& t) {
-				return t.id == TRASH_ITEM_ID;
-			});
+			bool hasTrash = ReplaceToolSuppressAddSlot(m_rules[i]);
 
 			if (!hasTrash) {
 				int tIdx = m_rules[i].targets.size();
@@ -491,8 +664,13 @@ RuleBuilderPanel::HitResult RuleBuilderPanel::HitTest(int x, int y) const {
 
 	// New Rule Area (At the bottom)
 	int newRuleY = GetRuleY(m_rules.size(), width) + RuleCardRenderer::CARD_MARGIN_Y;
-	float dropH = 60.0f; // Must match OnNanoVGPaint
+	float dropH = (float)RuleCardRenderer::NEW_RULE_H;
 	if (absY >= newRuleY && absY <= newRuleY + dropH) {
+		float bx, by, bw, bh;
+		RuleCardRenderer::GetSwapButtonRect((float)width, (float)newRuleY, bx, by, bw, bh);
+		if (x >= bx && x <= bx + bw && absY >= by && absY <= by + bh) {
+			return { HitResult::SwapBrush, -1, -1 };
+		}
 		return { HitResult::NewRule, -1, -1 };
 	}
 
@@ -534,7 +712,7 @@ void RuleBuilderPanel::OnNanoVGPaint(NVGcontext* vg, int width, int height) {
 	}
 
 	int newRuleY = GetRuleY(m_rules.size(), width) + RuleCardRenderer::CARD_MARGIN_Y;
-	RuleCardRenderer::DrawNewRuleArea(vg, width, newRuleY, m_dragHover.type == HitResult::NewRule);
+	RuleCardRenderer::DrawNewRuleArea(vg, width, newRuleY, m_dragHover.type == HitResult::NewRule, m_dragHover.type == HitResult::SwapBrush);
 }
 
 // ----------------------------------------------------------------------------
