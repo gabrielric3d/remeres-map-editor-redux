@@ -371,6 +371,17 @@ echo [1/3] Configuring CMake with !VS_GENERATOR!... >> "%LOG_FILE%"
 
 if not exist "!BUILD_DIR!" mkdir "!BUILD_DIR!"
 
+REM VCPKG_MAX_CONCURRENCY caps parallel jobs when vcpkg rebuilds dependencies (wxWidgets etc.),
+REM which otherwise uses ALL logical cores and can choke the machine.
+set "VCPKG_MAX_CONCURRENCY=24"
+
+REM Watchdog: while this script runs, keep demoting compiler/linker processes to
+REM BelowNormal priority so the OS keeps the machine responsive during heavy builds.
+set "WATCHDOG_FLAG=%TEMP%\rme_build_watchdog.flag"
+echo watchdog > "%WATCHDOG_FLAG%"
+start "rme-build-watchdog" /min powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "while (Test-Path '%WATCHDOG_FLAG%') { foreach ($n in 'cl','link','MSBuild','ninja','vcpkg','cmake') { Get-Process -Name $n -ErrorAction SilentlyContinue | ForEach-Object { try { if ($_.PriorityClass -ne 'BelowNormal') { $_.PriorityClass = 'BelowNormal' } } catch {} } }; Start-Sleep -Seconds 3 }"
+
 REM -T host=x64 forces the 64-bit cl.exe (no 2 GB per-process limit → avoids C1060).
 REM -DRME_PARALLEL_COMPILE caps /MP inside each project to keep total cl.exe count sane.
 cmake -S "!PROJECT_ROOT!" -B "!BUILD_DIR!" -G "!VS_GENERATOR!" -A x64 -T host=x64 "-DCMAKE_TOOLCHAIN_FILE=!VCPKG_DIR!\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=x64-windows" -DRME_PARALLEL_COMPILE=4 -DRME_PARALLEL_LINK=2 2>&1 | powershell -Command "$input | Tee-Object -Append -FilePath '!LOG_FILE!'"
@@ -388,6 +399,7 @@ if !ERRORLEVEL! neq 0 (
     echo.
     echo   See %CYAN%!LOG_FILE!%RESET% for full output.
     echo.
+    del "%WATCHDOG_FLAG%" >nul 2>&1
     pause
     exit /b 1
 )
@@ -412,10 +424,12 @@ if !ERRORLEVEL! neq 0 (
     echo.
     echo   See %CYAN%!LOG_FILE!%RESET% for full compiler output.
     echo.
+    del "%WATCHDOG_FLAG%" >nul 2>&1
     pause
     exit /b 1
 )
 echo   %GREEN%OK%RESET% - Build complete.
+del "%WATCHDOG_FLAG%" >nul 2>&1
 
 REM ==========================================================
 REM  Step 3/3: Done!
