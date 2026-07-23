@@ -30,6 +30,7 @@ void DrawingOptions::SetDefault() {
 	show_creature_names = true;
 	show_spawns = true;
 	show_houses = true;
+	show_sound_zones = true;
 	show_shade = true;
 	show_special_tiles = true;
 	show_items = true;
@@ -87,6 +88,7 @@ void DrawingOptions::SetIngame() {
 	show_creature_names = true;
 	show_spawns = false;
 	show_houses = false;
+	show_sound_zones = false;
 	show_shade = false;
 	show_special_tiles = false;
 	show_items = true;
@@ -136,6 +138,7 @@ void DrawingOptions::Update() {
 	show_creature_names = g_settings.getBoolean(Config::SHOW_CREATURE_NAMES);
 	show_spawns = g_settings.getBoolean(Config::SHOW_SPAWNS);
 	show_houses = g_settings.getBoolean(Config::SHOW_HOUSES);
+	show_sound_zones = g_settings.getBoolean(Config::SHOW_SOUND_ZONES);
 	show_shade = g_settings.getBoolean(Config::SHOW_SHADE);
 	show_special_tiles = g_settings.getBoolean(Config::SHOW_SPECIAL_TILES);
 	show_items = g_settings.getBoolean(Config::SHOW_ITEMS);

@@ -47,6 +47,9 @@ enum OTBM_ItemAttribute : uint8_t {
 	// Canary RME (parse without loading only)
 	OTBM_ATTR_EXT_SPAWN_NPC_FILE = 23,
 
+	// BlackTalon: ambient sound zone id painted on a tile (24 is free; 23 is Canary's).
+	OTBM_ATTR_SOUND_ZONE = 24,
+
 	OTBM_ATTR_PODIUMOUTFIT = 40,
 	OTBM_ATTR_TIER = 41,
 	OTBM_ATTR_ATTRIBUTE_MAP = 128

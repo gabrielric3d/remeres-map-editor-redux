@@ -45,6 +45,8 @@ void EditorPersistence::loadMap(Editor& editor, const FileName& fn, const MapLoa
 	// Load camera paths from sidecar file
 	spdlog::info("EditorPersistence::loadMap - Loading camera paths...");
 	editor.map.camera_paths.loadFromFile(fn);
+	// BlackTalon: load ambient sound zone metadata from "<map>-sound.xml"
+	editor.map.sound_zones.loadFromFile(fn);
 	spdlog::info("EditorPersistence::loadMap - DONE");
 }
 
@@ -188,6 +190,9 @@ void EditorPersistence::saveMap(Editor& editor, FileName filename, bool showdial
 
 	// Save camera paths to sidecar file
 	editor.map.camera_paths.saveToFile(FileName(wxstr(savefile)));
+
+	// BlackTalon: save ambient sound zone metadata to "<map>-sound.xml"
+	editor.map.sound_zones.saveToFile(FileName(wxstr(savefile)));
 
 	// Move to permanent backup
 	if (!save_as && g_settings.getInteger(Config::ALWAYS_MAKE_BACKUP)) {

@@ -56,6 +56,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/brushes/wall/wall_brush_loader.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/waypoint/waypoint_brush.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/camera/camera_path_brush.h
+    ${CMAKE_CURRENT_LIST_DIR}/brushes/sound_zone/sound_zone_brush.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/action.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/action_queue.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/copybuffer.h
@@ -94,6 +95,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/game/preview_preferences.h
     ${CMAKE_CURRENT_LIST_DIR}/game/waypoints.h
     ${CMAKE_CURRENT_LIST_DIR}/game/camera_paths.h
+    ${CMAKE_CURRENT_LIST_DIR}/game/sound_zones.h
     ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_types.h
     ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_fragments.h
     ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_recipe.h
@@ -176,6 +178,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_creature.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_waypoints.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_camera_paths.h
+    ${CMAKE_CURRENT_LIST_DIR}/palette/palette_sound_zones.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/house_palette.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/edit_house_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_window.h
@@ -501,6 +504,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/brushes/wall/wall_brush_arrays.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/waypoint/waypoint_brush.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/camera/camera_path_brush.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/brushes/sound_zone/sound_zone_brush.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/action.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/action_queue.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/copybuffer.cpp
@@ -533,6 +537,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/game/preview_preferences.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/waypoints.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/camera_paths.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/game/sound_zones.cpp
     ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/asset_bundle_loader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_recipe.cpp
     ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_store.cpp
@@ -606,6 +611,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_creature.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_waypoints.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_camera_paths.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/palette/palette_sound_zones.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/house_palette.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/edit_house_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_window.cpp

@@ -137,6 +137,7 @@ namespace MenuBar {
 		SHOW_ONLY_MODIFIED,
 		SHOW_ONLY_GROUNDS,
 		SHOW_HOUSES,
+		SHOW_SOUND_ZONES, // BlackTalon: tint painted ambient sound zones
 		SHOW_PATHING,
 		SHOW_TOOLTIPS,
 		SHOW_PREVIEW,

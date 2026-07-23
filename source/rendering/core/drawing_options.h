@@ -39,6 +39,7 @@ struct DrawingOptions {
 	bool show_creature_names;
 	bool show_spawns;
 	bool show_houses;
+	bool show_sound_zones; // BlackTalon: tint ambient sound zones by color
 	bool show_shade;
 	bool show_special_tiles;
 	bool show_items;

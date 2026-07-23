@@ -28,6 +28,7 @@
 #include "palette/palette_creature.h"
 #include "palette/palette_waypoints.h"
 #include "palette/palette_camera_paths.h"
+#include "palette/palette_sound_zones.h"
 #include "util/image_manager.h"
 
 // Removed includes for size/tool panels as they are no longer managed here
@@ -48,6 +49,7 @@ PaletteWindow::PaletteWindow(wxWindow* parent, const TilesetContainer& tilesets)
 	creature_palette(nullptr),
 	waypoint_palette(nullptr),
 	camera_path_palette(nullptr),
+	sound_zone_palette(nullptr),
 	raw_palette(nullptr) {
 	SetMinSize(wxSize(225, 250));
 
@@ -89,6 +91,9 @@ PaletteWindow::PaletteWindow(wxWindow* parent, const TilesetContainer& tilesets)
 
 	camera_path_palette = static_cast<CameraPathPalettePanel*>(CreateCameraPathPalette(choicebook, tilesets));
 	choicebook->AddPage(camera_path_palette, camera_path_palette->GetName(), false, 7);
+
+	sound_zone_palette = static_cast<SoundZonePalettePanel*>(CreateSoundZonePalette(choicebook, tilesets));
+	choicebook->AddPage(sound_zone_palette, sound_zone_palette->GetName(), false, 4);
 
 	raw_palette = static_cast<BrushPalettePanel*>(CreateRAWPalette(choicebook, tilesets));
 	choicebook->AddPage(raw_palette, raw_palette->GetName(), false, 6);
@@ -152,6 +157,11 @@ PalettePanel* PaletteWindow::CreateCameraPathPalette(wxWindow* parent, const Til
 	return panel;
 }
 
+PalettePanel* PaletteWindow::CreateSoundZonePalette(wxWindow* parent, const TilesetContainer& tilesets) {
+	SoundZonePalettePanel* panel = newd SoundZonePalettePanel(parent);
+	return panel;
+}
+
 PalettePanel* PaletteWindow::CreateRAWPalette(wxWindow* parent, const TilesetContainer& tilesets) {
 	BrushPalettePanel* panel = newd BrushPalettePanel(parent, tilesets, TILESET_RAW);
 	panel->SetListType(wxstr(g_settings.getString(Config::PALETTE_RAW_STYLE)));
@@ -182,6 +192,9 @@ void PaletteWindow::ReloadSettings(Map* map) {
 	}
 	if (camera_path_palette) {
 		camera_path_palette->SetMap(map);
+	}
+	if (sound_zone_palette) {
+		sound_zone_palette->SetMap(map);
 	}
 	InvalidateContents();
 }
@@ -411,6 +424,10 @@ void PaletteWindow::OnUpdate(Map* map) {
 	if (camera_path_palette) {
 		camera_path_palette->SetMap(map);
 		camera_path_palette->OnUpdate();
+	}
+	if (sound_zone_palette) {
+		sound_zone_palette->SetMap(map);
+		sound_zone_palette->OnUpdate();
 	}
 }
 

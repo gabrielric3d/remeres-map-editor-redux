@@ -37,6 +37,7 @@ void CopyOperations::copy(Editor& editor, CopyBuffer& buffer, int floor) {
 
 		if (tile->ground && tile->ground->isSelected()) {
 			copied_tile->house_id = tile->house_id;
+			copied_tile->soundZoneId = tile->soundZoneId; // BlackTalon
 			copied_tile->setMapFlags(tile->getMapFlags());
 		}
 
@@ -96,6 +97,8 @@ void CopyOperations::cut(Editor& editor, CopyBuffer& buffer, int floor) {
 		if (tile->ground && tile->ground->isSelected()) {
 			copied_tile->house_id = newtile->house_id;
 			newtile->house_id = 0;
+			copied_tile->soundZoneId = newtile->soundZoneId; // BlackTalon
+			newtile->soundZoneId = 0;
 			copied_tile->setMapFlags(tile->getMapFlags());
 			newtile->setMapFlags(TILESTATE_NONE);
 		}

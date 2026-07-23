@@ -185,6 +185,7 @@ namespace {
 
 			if (tile->ground && tile->ground->isSelected()) {
 				copiedTile->house_id = tile->house_id;
+				copiedTile->soundZoneId = tile->soundZoneId; // BlackTalon
 				copiedTile->setMapFlags(tile->getMapFlags());
 			}
 

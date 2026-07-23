@@ -44,6 +44,7 @@ Map::Map() :
 	has_changed(false),
 	unnamed(false),
 	waypoints(*this),
+	sound_zones(*this),
 	generation(g_nextMapGeneration.fetch_add(1, std::memory_order_relaxed)) {
 	spdlog::info("Map created [Map={}]", static_cast<void*>(this));
 	// Earliest version possible

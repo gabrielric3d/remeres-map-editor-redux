@@ -219,6 +219,12 @@ namespace {
 				}
 				return file.skip(static_cast<size_t>(phases) * 16);
 			}
+			case DatFlagSound:
+				// BlackTalon custom flag: ambient proximity sound (U16 soundId +
+				// U16 radius). RME renders sprites only, so it just skips the
+				// payload -- the sound is consumed by the client, edited in the
+				// Object Builder. Skipping keeps the .dat loadable in the editor.
+				return file.skip(4);
 			default:
 				error = wxString::FromUTF8(std::format("DAT catalog: unknown flag {} after {}.", static_cast<int>(flag), static_cast<int>(previous_flag)));
 				return false;

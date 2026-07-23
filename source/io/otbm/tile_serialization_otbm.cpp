@@ -158,6 +158,15 @@ void TileSerializationOTBM::readTileArea(IOMapOTBM& iomap, Map& map, BinaryNode*
 					}
 					break;
 				}
+				case OTBM_ATTR_SOUND_ZONE: {
+					// BlackTalon: ambient sound zone id for this tile (the track/name
+					// lives in the <map>-sound.xml sidecar, not here).
+					uint32_t zoneId = 0;
+					if (tileNode->getU32(zoneId)) {
+						tile->setSoundZoneId(zoneId);
+					}
+					break;
+				}
 				case OTBM_ATTR_ITEM: {
 					auto item = ItemSerializationOTBM::createFromStream(iomap, tileNode);
 					const auto rawItemBytes = copyRawBytes(tileNode->rawData(), attributeOffset, tileNode->getReadOffset());
@@ -320,6 +329,11 @@ void TileSerializationOTBM::serializeTile(const IOMapOTBM& iomap, const Tile* sa
 	if (save_tile->getMapFlags()) {
 		f.addU8(OTBM_ATTR_TILE_FLAGS);
 		f.addU32(save_tile->getMapFlags());
+	}
+
+	if (save_tile->getSoundZoneId() != 0) {
+		f.addU8(OTBM_ATTR_SOUND_ZONE);
+		f.addU32(save_tile->getSoundZoneId());
 	}
 
 	if (save_tile->ground) {

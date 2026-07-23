@@ -27,6 +27,7 @@
 #include "game/complexitem.h"
 #include "game/waypoints.h"
 #include "game/camera_paths.h"
+#include "game/sound_zones.h"
 #include "io/templates.h"
 
 class MapConverter;
@@ -187,6 +188,7 @@ protected:
 public:
 	Waypoints waypoints;
 	CameraPaths camera_paths;
+	SoundZones sound_zones; // BlackTalon: ambient sound zones (painted areas)
 
 private:
 	uint64_t generation;

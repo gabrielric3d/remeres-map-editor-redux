@@ -77,6 +77,7 @@ void ViewSettingsHandler::LoadValues() {
 	menuBar->CheckItem(SHOW_ONLY_MODIFIED, g_settings.getBoolean(Config::SHOW_ONLY_MODIFIED_TILES));
 	menuBar->CheckItem(SHOW_ONLY_GROUNDS, g_settings.getBoolean(Config::SHOW_ONLY_GROUNDS));
 	menuBar->CheckItem(SHOW_HOUSES, g_settings.getBoolean(Config::SHOW_HOUSES));
+	menuBar->CheckItem(SHOW_SOUND_ZONES, g_settings.getBoolean(Config::SHOW_SOUND_ZONES));
 	menuBar->CheckItem(SHOW_PATHING, g_settings.getBoolean(Config::SHOW_BLOCKING));
 	menuBar->CheckItem(SHOW_TOOLTIPS, g_settings.getBoolean(Config::SHOW_TOOLTIPS));
 	menuBar->CheckItem(SHOW_PREVIEW, g_settings.getBoolean(Config::SHOW_PREVIEW));
@@ -141,6 +142,7 @@ void ViewSettingsHandler::OnChangeViewSettings(wxCommandEvent& event) {
 	g_settings.setInteger(Config::SHOW_CREATURE_NAMES, menuBar->IsItemChecked(SHOW_CREATURE_NAMES));
 	g_settings.setInteger(Config::SHOW_SPAWNS, menuBar->IsItemChecked(SHOW_SPAWNS));
 	g_settings.setInteger(Config::SHOW_HOUSES, menuBar->IsItemChecked(SHOW_HOUSES));
+	g_settings.setInteger(Config::SHOW_SOUND_ZONES, menuBar->IsItemChecked(SHOW_SOUND_ZONES));
 	g_settings.setInteger(Config::HIGHLIGHT_ITEMS, menuBar->IsItemChecked(HIGHLIGHT_ITEMS));
 	g_settings.setInteger(Config::HIGHLIGHT_LOCKED_DOORS, menuBar->IsItemChecked(HIGHLIGHT_LOCKED_DOORS));
 	g_settings.setInteger(Config::SHOW_BLOCKING, menuBar->IsItemChecked(SHOW_PATHING));

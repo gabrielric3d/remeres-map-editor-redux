@@ -26,6 +26,7 @@ BrushManager::BrushManager() :
 	house_exit_brush(nullptr),
 	waypoint_brush(nullptr),
 	camera_path_brush(nullptr),
+	sound_zone_brush(nullptr),
 	optional_brush(nullptr),
 	eraser(nullptr),
 	normal_door_brush(nullptr),

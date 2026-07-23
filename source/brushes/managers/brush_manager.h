@@ -23,6 +23,7 @@ class HouseBrush;
 class HouseExitBrush;
 class WaypointBrush;
 class CameraPathBrush;
+class SoundZoneBrush;
 class OptionalBorderBrush;
 class EraserBrush;
 class SpawnBrush;
@@ -178,6 +179,7 @@ public:
 	HouseExitBrush* house_exit_brush;
 	WaypointBrush* waypoint_brush;
 	CameraPathBrush* camera_path_brush;
+	SoundZoneBrush* sound_zone_brush;
 	OptionalBorderBrush* optional_brush;
 	EraserBrush* eraser;
 	SpawnBrush* spawn_brush;

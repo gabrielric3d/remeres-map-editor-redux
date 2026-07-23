@@ -125,6 +125,8 @@ void SelectionOperations::moveSelection(Editor& editor, Position offset) {
 		if (tmp_storage_tile->ground) {
 			tmp_storage_tile->house_id = new_src_tile->house_id;
 			new_src_tile->house_id = 0;
+			tmp_storage_tile->soundZoneId = new_src_tile->soundZoneId; // BlackTalon
+			new_src_tile->soundZoneId = 0;
 			tmp_storage_tile->setMapFlags(new_src_tile->getMapFlags());
 			new_src_tile->setMapFlags(TILESTATE_NONE);
 			doborders = true;
@@ -429,6 +431,8 @@ void SelectionOperations::rotateSelection(Editor& editor, int quarterTurns) {
 		if (tmp_storage_tile->ground) {
 			tmp_storage_tile->house_id = new_src_tile->house_id;
 			new_src_tile->house_id = 0;
+			tmp_storage_tile->soundZoneId = new_src_tile->soundZoneId; // BlackTalon
+			new_src_tile->soundZoneId = 0;
 			tmp_storage_tile->setMapFlags(new_src_tile->getMapFlags());
 			new_src_tile->setMapFlags(TILESTATE_NONE);
 			doborders = true;

@@ -137,6 +137,7 @@ namespace TileOperations {
 		copy->statflags = tile->statflags;
 		copy->minimapColor = tile->minimapColor;
 		copy->house_id = tile->house_id;
+		copy->soundZoneId = tile->soundZoneId; // BlackTalon: keep the sound zone on tile copies
 		if (tile->invalidZones) {
 			copy->invalidZones = std::make_unique<InvalidZoneState>(*tile->invalidZones);
 		}
@@ -165,6 +166,9 @@ namespace TileOperations {
 		}
 		if (src->house_id) {
 			dest->house_id = src->house_id;
+		}
+		if (src->soundZoneId) {
+			dest->soundZoneId = src->soundZoneId; // BlackTalon
 		}
 
 		if (src->ground) {
