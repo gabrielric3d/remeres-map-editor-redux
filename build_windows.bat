@@ -24,6 +24,23 @@ set "REQUIRED_CMAKE_MAJOR=3"
 set "REQUIRED_CMAKE_MINOR=28"
 set "TOTAL_CHECKS=7"
 
+REM --- Parallel jobs (optional 1st argument) ---
+REM Controls /MP for the rme project (RME_PARALLEL_COMPILE) and
+REM VCPKG_MAX_CONCURRENCY for dependency builds.
+REM Defaults: 4 compile / 24 vcpkg. Beware: high /MP values can hit
+REM C1060 (out of heap space) with wxWidgets-heavy translation units.
+set "COMPILE_JOBS=4"
+set "VCPKG_JOBS=24"
+if not "%~1"=="" (
+    echo %~1| findstr /r "^[0-9][0-9]*$" >nul
+    if not errorlevel 1 (
+        set "COMPILE_JOBS=%~1"
+        set "VCPKG_JOBS=%~1"
+    ) else (
+        echo   AVISO: jobs invalido "%~1" - usando padrao.
+    )
+)
+
 echo.
 echo %BOLD%%CYAN%========================================================%RESET%
 echo %BOLD%%CYAN%  RME Windows Build Script%RESET%
@@ -373,7 +390,9 @@ if not exist "!BUILD_DIR!" mkdir "!BUILD_DIR!"
 
 REM VCPKG_MAX_CONCURRENCY caps parallel jobs when vcpkg rebuilds dependencies (wxWidgets etc.),
 REM which otherwise uses ALL logical cores and can choke the machine.
-set "VCPKG_MAX_CONCURRENCY=24"
+set "VCPKG_MAX_CONCURRENCY=%VCPKG_JOBS%"
+echo   Jobs: %COMPILE_JOBS% compile / %VCPKG_JOBS% vcpkg
+echo  Jobs: %COMPILE_JOBS% compile / %VCPKG_JOBS% vcpkg >> "%LOG_FILE%"
 
 REM Watchdog: while this script runs, keep demoting compiler/linker processes to
 REM BelowNormal priority so the OS keeps the machine responsive during heavy builds.
@@ -384,7 +403,7 @@ start "rme-build-watchdog" /min powershell -NoProfile -ExecutionPolicy Bypass -C
 
 REM -T host=x64 forces the 64-bit cl.exe (no 2 GB per-process limit → avoids C1060).
 REM -DRME_PARALLEL_COMPILE caps /MP inside each project to keep total cl.exe count sane.
-cmake -S "!PROJECT_ROOT!" -B "!BUILD_DIR!" -G "!VS_GENERATOR!" -A x64 -T host=x64 "-DCMAKE_TOOLCHAIN_FILE=!VCPKG_DIR!\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=x64-windows" -DRME_PARALLEL_COMPILE=4 -DRME_PARALLEL_LINK=2 2>&1 | powershell -Command "$input | Tee-Object -Append -FilePath '!LOG_FILE!'"
+cmake -S "!PROJECT_ROOT!" -B "!BUILD_DIR!" -G "!VS_GENERATOR!" -A x64 -T host=x64 "-DCMAKE_TOOLCHAIN_FILE=!VCPKG_DIR!\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=x64-windows" -DRME_PARALLEL_COMPILE=!COMPILE_JOBS! -DRME_PARALLEL_LINK=2 2>&1 | powershell -Command "$input | Tee-Object -Append -FilePath '!LOG_FILE!'"
 
 if !ERRORLEVEL! neq 0 (
     echo.

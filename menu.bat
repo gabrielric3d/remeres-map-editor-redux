@@ -36,7 +36,8 @@ goto menu
 
 :compilar
 echo.
-call "%ROOT%build_windows.bat"
+call :ask_jobs
+call "%ROOT%build_windows.bat" %JOBS%
 echo.
 pause
 goto menu
@@ -50,7 +51,8 @@ goto menu
 
 :ambos
 echo.
-call "%ROOT%build_windows.bat"
+call :ask_jobs
+call "%ROOT%build_windows.bat" %JOBS%
 if %ERRORLEVEL% neq 0 (
     echo.
     echo   [ERRO] Compilacao falhou. Deploy cancelado.
@@ -63,6 +65,20 @@ call "%ROOT%deploy_release.bat"
 echo.
 pause
 goto menu
+
+:ask_jobs
+REM Pergunta quantos jobs paralelos usar na compilacao.
+REM Enter = padrao do build_windows.bat (4 compile / 24 vcpkg).
+set "JOBS="
+set /p "JOBS=Jobs paralelos [Enter = padrao, 4-16 recomendado]: "
+if not defined JOBS goto :eof
+REM Valida: apenas digitos
+echo %JOBS%| findstr /r "^[0-9][0-9]*$" >nul
+if errorlevel 1 (
+    echo   Valor invalido "%JOBS%" - usando padrao.
+    set "JOBS="
+)
+goto :eof
 
 :fim
 endlocal
