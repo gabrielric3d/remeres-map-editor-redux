@@ -201,6 +201,7 @@ enum DatFlags : uint8_t {
 	DatFlagBonesAnimated = 41, // Custom client flag: per-frame bone positions for hasBones outfits
 	DatFlagFloat = 42, // BlackTalon custom flag: mount bobs up/down (no payload; on-disk byte 0x2B)
 	DatFlagSound = 45, // BlackTalon custom flag: ambient proximity sound (on-disk byte 0x2E). Payload: U16 soundId + U16 radius. RME only skips it (renders sprites, does not play/re-save sound).
+	DatFlagMountBones = 61, // BlackTalon custom flag: wing bone offset while mounted (on-disk byte 0x3E). Payload: 4 directions x (i16 dx, i16 dy) = 16 bytes. RME only skips it (the offset is applied by the client, edited in the Object Builder).
 
 	DatFlagFloorChange = 252,
 	DatFlagNoMoveAnimation = 253, // 10.10: real value is 16, but we need to do this for backwards compatibility

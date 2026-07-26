@@ -225,6 +225,11 @@ namespace {
 				// payload -- the sound is consumed by the client, edited in the
 				// Object Builder. Skipping keeps the .dat loadable in the editor.
 				return file.skip(4);
+			case DatFlagMountBones:
+				// BlackTalon custom flag: wing bone offset applied while an outfit
+				// is mounted. 4 directions x (i16 dx, i16 dy) = 16 bytes. Same deal
+				// as the sound flag -- RME just skips it so the .dat stays loadable.
+				return file.skip(16);
 			default:
 				error = wxString::FromUTF8(std::format("DAT catalog: unknown flag {} after {}.", static_cast<int>(flag), static_cast<int>(previous_flag)));
 				return false;
