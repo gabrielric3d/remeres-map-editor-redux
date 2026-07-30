@@ -430,9 +430,12 @@ REM ==========================================================
 echo %BOLD%[Build 2/3]%RESET% Building Release...
 echo [2/3] Building Release... >> "%LOG_FILE%"
 
-REM /maxcpucount:1 → MSBuild builds one project at a time; /MP4 (from CMakeLists) gives per-project parallelism.
-REM This caps total cl.exe instances at ~4 instead of 4×4=16, preventing heap exhaustion.
-cmake --build "!BUILD_DIR!" --config Release --target rme -- /maxcpucount:1 2>&1 | powershell -Command "$input | Tee-Object -Append -FilePath '!LOG_FILE!'"
+REM /maxcpucount:1 -> MSBuild builds one project at a time.
+REM /p:CL_MPCount=N -> LIMITA o /MP a N processos cl.exe. CRITICO: o gerador Visual
+REM Studio do CMake converte "/MP4" em <MultiProcessorCompilation>true</...> e DESCARTA
+REM o numero, entao sem isso o cl.exe usa TODOS os nucleos (ex: 32) e trava a maquina.
+REM CL_MPCount preenche o <ProcessorNumber> que o /MP realmente respeita.
+cmake --build "!BUILD_DIR!" --config Release --target rme -- /maxcpucount:1 /p:CL_MPCount=!COMPILE_JOBS! 2>&1 | powershell -Command "$input | Tee-Object -Append -FilePath '!LOG_FILE!'"
 
 if !ERRORLEVEL! neq 0 (
     echo.

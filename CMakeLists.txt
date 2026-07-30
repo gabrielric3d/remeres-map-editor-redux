@@ -16,6 +16,13 @@ project(rme)
 set(RME_PARALLEL_COMPILE "4" CACHE STRING "Max parallel compile jobs")
 set(RME_PARALLEL_LINK    "2" CACHE STRING "Max parallel link jobs")
 
+# Threads de geracao de codigo por cl.exe (/cgthreads, MSVC). O padrao do
+# compilador e 4; cada thread mantem seu proprio heap do otimizador, entao
+# reduzir para 2 corta o PICO de RAM por processo sem perder throughput (o
+# paralelismo real vem do /MP acima, que ja distribui por arquivo).
+# Baixe para 1 se a maquina ainda faltar memoria durante o build.
+set(RME_CODEGEN_THREADS  "2" CACHE STRING "Codegen threads per cl.exe (/cgthreads); lower = less RAM")
+
 if(MSVC)
 	add_compile_options(/MP${RME_PARALLEL_COMPILE})
 else()
@@ -38,7 +45,7 @@ set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo;MinSizeRel" CACHE ST
 
 # Compiler-specific flags
 if(MSVC)
-	set(CMAKE_CXX_FLAGS                "/W3 /wd4996 /wd4800 /wd4100 /wd4706 /EHsc")
+	set(CMAKE_CXX_FLAGS                "/W3 /wd4996 /wd4800 /wd4100 /wd4706 /EHsc /cgthreads${RME_CODEGEN_THREADS}")
 	set(CMAKE_CXX_FLAGS_DEBUG          "/Od /Zi /D__DEBUG__")
 	set(CMAKE_CXX_FLAGS_MINSIZEREL     "/O1 /DNDEBUG")
 	set(CMAKE_CXX_FLAGS_RELEASE        "/O2 /DNDEBUG")
@@ -99,7 +106,31 @@ add_executable(rme ${rme_H} ${rme_SRC})
 set_target_properties(rme PROPERTIES CXX_STANDARD 20)
 set_target_properties(rme PROPERTIES CXX_STANDARD_REQUIRED ON)
 target_compile_definitions(rme PRIVATE WXWIN_COMPATIBILITY_3_3 NANOVG_GL3)
- 
+
+# ------------------------------------------------------------------
+# Reduz o PICO de RAM na compilacao dos poucos arquivos-fonte gigantes.
+# Estes dialogs/telas tem 2000-3600 linhas e o otimizador /O2 do MSVC
+# consome varios GB de RAM em CADA um. Como nao sao codigo de desempenho
+# critico (UI/dialogos/scripts), compilamos com /O1 (otimiza tamanho, bem
+# mais leve para o otimizador). Isso corta o pico de RAM exatamente nos
+# arquivos que fazem o PC travar/paginar durante o build, sem tocar na
+# velocidade do resto do projeto. Nao se aplica em Debug (mantem /Od).
+# ------------------------------------------------------------------
+if(MSVC)
+	set(RME_HEAVY_SOURCES
+		${CMAKE_CURRENT_SOURCE_DIR}/source/ui/dialogs/border_editor_dialog.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/source/ui/dialogs/area_decoration_dialog.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/source/lua/lua_dialog.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/source/editor/area_decoration.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/source/ui/dialogs/structure_manager_window.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/source/ui/dialogs/doodad_editor_dialog.cpp
+	)
+	# /O1 sobrepoe o /O2 herdado das flags de Release/RelWithDebInfo (o ultimo
+	# vence). O warning D9025 (overriding /O2 with /O1) e esperado e inofensivo.
+	set_source_files_properties(${RME_HEAVY_SOURCES} PROPERTIES
+		COMPILE_OPTIONS "$<$<NOT:$<CONFIG:Debug>>:/O1>")
+endif()
+
 # Copy assets to build directory
 add_custom_command(TARGET rme POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy_directory

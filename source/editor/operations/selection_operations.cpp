@@ -127,6 +127,8 @@ void SelectionOperations::moveSelection(Editor& editor, Position offset) {
 			new_src_tile->house_id = 0;
 			tmp_storage_tile->soundZoneId = new_src_tile->soundZoneId; // BlackTalon
 			new_src_tile->soundZoneId = 0;
+			tmp_storage_tile->instanceZoneId = new_src_tile->instanceZoneId; // BlackTalon
+			new_src_tile->instanceZoneId = 0;
 			tmp_storage_tile->setMapFlags(new_src_tile->getMapFlags());
 			new_src_tile->setMapFlags(TILESTATE_NONE);
 			doborders = true;
@@ -433,6 +435,8 @@ void SelectionOperations::rotateSelection(Editor& editor, int quarterTurns) {
 			new_src_tile->house_id = 0;
 			tmp_storage_tile->soundZoneId = new_src_tile->soundZoneId; // BlackTalon
 			new_src_tile->soundZoneId = 0;
+			tmp_storage_tile->instanceZoneId = new_src_tile->instanceZoneId; // BlackTalon
+			new_src_tile->instanceZoneId = 0;
 			tmp_storage_tile->setMapFlags(new_src_tile->getMapFlags());
 			new_src_tile->setMapFlags(TILESTATE_NONE);
 			doborders = true;
@@ -699,6 +703,13 @@ void SelectionOperations::destroySelection(Editor& editor) {
 		int item_count = 0;
 		PositionList tilestoborder;
 
+		// Global toggle (Edit > Other Options > Delete Removes Zone Flags): wipe the
+		// zone mapflags from tiles whose ground is deleted, so erasing an area does
+		// not leave orphaned PZ/PVP markers behind.
+		const bool remove_zones = g_settings.getBoolean(Config::DELETE_REMOVES_ZONES);
+		constexpr uint32_t ZONE_MAPFLAGS = TILESTATE_PROTECTIONZONE | TILESTATE_NOPVP | TILESTATE_NOLOGOUT | TILESTATE_PVPZONE;
+		int zone_count = 0;
+
 		std::unique_ptr<BatchAction> batch = editor.actionQueue->createBatch(ACTION_DELETE_TILES);
 		std::unique_ptr<Action> action = editor.actionQueue->createAction(batch.get());
 
@@ -719,6 +730,11 @@ void SelectionOperations::destroySelection(Editor& editor) {
 
 			if (newtile->spawn && newtile->spawn->isSelected()) {
 				newtile->spawn.reset();
+			}
+
+			if (remove_zones && !newtile->ground && (newtile->getMapFlags() & ZONE_MAPFLAGS) != 0) {
+				newtile->unsetMapFlags(ZONE_MAPFLAGS);
+				++zone_count;
 			}
 
 			if (g_settings.getInteger(Config::USE_AUTOMAGIC)) {
@@ -767,6 +783,9 @@ void SelectionOperations::destroySelection(Editor& editor) {
 		editor.addBatch(std::move(batch));
 		wxString ss;
 		ss << "Deleted " << tile_count << " tile" << (tile_count > 1 ? "s" : "") << " (" << item_count << " item" << (item_count > 1 ? "s" : "") << ")";
+		if (zone_count > 0) {
+			ss << ", cleared zones on " << zone_count << " tile" << (zone_count > 1 ? "s" : "");
+		}
 		g_gui.SetStatusText(ss);
 	}
 }

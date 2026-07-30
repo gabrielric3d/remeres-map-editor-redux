@@ -28,6 +28,7 @@
 #include "game/waypoints.h"
 #include "game/camera_paths.h"
 #include "game/sound_zones.h"
+#include "game/instance_zones.h"
 #include "io/templates.h"
 
 class MapConverter;
@@ -189,6 +190,7 @@ public:
 	Waypoints waypoints;
 	CameraPaths camera_paths;
 	SoundZones sound_zones; // BlackTalon: ambient sound zones (painted areas)
+	InstanceZones instance_zones; // BlackTalon: instance zones (painted areas)
 
 private:
 	uint64_t generation;

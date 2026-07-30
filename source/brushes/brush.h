@@ -56,6 +56,7 @@ class HouseExitBrush;
 class WaypointBrush;
 class CameraPathBrush;
 class SoundZoneBrush;
+class InstanceZoneBrush;
 class FlagBrush;
 class EraserBrush;
 

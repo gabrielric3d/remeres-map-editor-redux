@@ -5,6 +5,9 @@
 #include "app/main.h"
 #include "game/sound_zones.h"
 
+#include "map/map.h"
+#include "map/tile.h"
+
 #include "ext/pugixml.hpp"
 
 #include <algorithm>
@@ -58,6 +61,27 @@ std::vector<SoundZone*> SoundZones::getOrdered() const {
 		ordered.push_back(entry.second.get());
 	}
 	return ordered;
+}
+
+void SoundZones::recalculateBounds() {
+	for (const auto& entry : zones) {
+		entry.second->clearBounds();
+	}
+
+	// Full map walk. Only worth doing on demand (palette "Recenter") and once at
+	// load: the label drawer tops the boxes up incrementally during normal use.
+	for (MapIterator it = map.begin(); it != map.end(); ++it) {
+		Tile* tile = (*it).get();
+		if (!tile || !tile->isSoundZoneTile()) {
+			continue;
+		}
+		SoundZone* zone = getZone(tile->getSoundZoneId());
+		if (!zone) {
+			continue;
+		}
+		const Position pos = tile->getPosition();
+		zone->expandBounds(pos.x, pos.y, pos.z);
+	}
 }
 
 FileName SoundZones::BuildSidecarPath(const FileName& mapFile) {

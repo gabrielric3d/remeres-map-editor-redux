@@ -50,6 +50,10 @@ enum OTBM_ItemAttribute : uint8_t {
 	// BlackTalon: ambient sound zone id painted on a tile (24 is free; 23 is Canary's).
 	OTBM_ATTR_SOUND_ZONE = 24,
 
+	// BlackTalon: instance zone id painted on a tile. The instance COUNT lives in
+	// the <map>-instance.xml sidecar, not here -- only the id travels in the OTBM.
+	OTBM_ATTR_INSTANCE_ZONE = 25,
+
 	OTBM_ATTR_PODIUMOUTFIT = 40,
 	OTBM_ATTR_TIER = 41,
 	OTBM_ATTR_ATTRIBUTE_MAP = 128

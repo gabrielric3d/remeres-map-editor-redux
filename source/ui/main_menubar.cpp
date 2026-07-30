@@ -506,6 +506,10 @@ void MainMenuBar::OnToggleDisableCarpetInteraction(wxCommandEvent& event) {
 	viewSettingsHandler->OnToggleDisableCarpetInteraction(event);
 }
 
+void MainMenuBar::OnToggleDeleteRemovesZones(wxCommandEvent& event) {
+	viewSettingsHandler->OnToggleDeleteRemovesZones(event);
+}
+
 void MainMenuBar::OnToggleShowLights(wxCommandEvent& event) {
 	viewSettingsHandler->OnToggleShowLights(event);
 }

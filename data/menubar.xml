@@ -80,6 +80,8 @@
 			<item name="Randomize Map" action="RANDOMIZE_MAP" help="Randomizes all tiles of the entire map."/>
 		</menu>
 		<menu name="Other Options">
+			<item name="Delete Removes Zone Flags" action="DELETE_REMOVES_ZONES" help="When deleting a selection, also clears the zone flags (Protection Zone, PVP Zone, No PVP, No Logout) from the deleted tiles."/>
+			<separator/>
 			<item name="Remove Items by ID..." hotkey="Ctrl+Shift+R" action="MAP_REMOVE_ITEMS" help="Removes all items with the selected ID from the map."/>
 			<item name="Remove all Corpses..." action="MAP_REMOVE_CORPSES" help="Removes all corpses from the map."/>
 			<item name="Remove all Unreachable Tiles..." action="MAP_REMOVE_UNREACHABLE_TILES" help="Removes all tiles that cannot be reached (or seen) by the player from the map."/>
@@ -192,6 +194,8 @@
 		<item name="Show special" hotkey="E" action="SHOW_SPECIAL" help="Show special tiles on the map, like PZ."/>
 		<item name="Show houses" hotkey="Ctrl+H" action="SHOW_HOUSES" help="Show houses on the map."/>
 		<item name="Show sound zones" hotkey="" action="SHOW_SOUND_ZONES" help="Show painted ambient sound zones (each zone tinted with its own color)."/>
+		<item name="Show instance zones" hotkey="" action="SHOW_INSTANCE_ZONES" help="Show painted instance zones (each zone tinted with its own color, with its name and instance count labelled on the map)."/>
+		<item name="Instance zones: solid fill" hotkey="" action="INSTANCE_ZONE_SOLID_FILL" help="Paint each instance zone as a solid block of its own color instead of a translucent tint. Makes the zone outline obvious, but hides the selection and brush preview underneath. Requires Show instance zones."/>
 		<item name="Show pathing" hotkey="O" action="SHOW_PATHING" help="Show blocking tiles."/>
 		<item name="Show towns" hotkey="" action="SHOW_TOWNS" help="Show temple positions."/>
 		<item name="Show waypoints" hotkey="Shift+W" action="SHOW_WAYPOINTS" help="Show waypoints."/>

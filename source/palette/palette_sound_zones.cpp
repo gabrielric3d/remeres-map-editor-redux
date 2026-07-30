@@ -13,11 +13,15 @@
 #include "palette/palette_sound_zones.h"
 #include "map/map.h"
 #include "game/sound_zones.h"
+#include "app/settings.h"
+#include "ui/main_frame.h"
+#include "ui/main_menubar.h"
 
 #include <wx/dialog.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
+#include <wx/checkbox.h>
 #include <wx/msgdlg.h>
 
 // ----------------------------------------------------------------------------
@@ -95,7 +99,17 @@ SoundZonePalettePanel::SoundZonePalettePanel(wxWindow* parent, wxWindowID id) :
 	tmpsizer->Add(edit_button, 1, wxEXPAND);
 	remove_button = newd wxButton(static_cast<wxStaticBoxSizer*>(sidesizer)->GetStaticBox(), PALETTE_SOUNDZONE_REMOVE, "Remove", wxDefaultPosition, wxSize(70, -1));
 	tmpsizer->Add(remove_button, 1, wxEXPAND);
+	recenter_button = newd wxButton(static_cast<wxStaticBoxSizer*>(sidesizer)->GetStaticBox(), PALETTE_SOUNDZONE_RECENTER, "Recenter", wxDefaultPosition, wxSize(80, -1));
+	tmpsizer->Add(recenter_button, 1, wxEXPAND);
 	sidesizer->Add(tmpsizer, 0, wxEXPAND);
+
+	// Toggle for the map overlay, mirroring the View menu entry. Same setting, so
+	// flipping it here moves the menu check too (see OnToggleShow). Parented to the
+	// static box like the buttons above it, so it sits inside the same group.
+	show_toggle = newd wxCheckBox(static_cast<wxStaticBoxSizer*>(sidesizer)->GetStaticBox(), PALETTE_SOUNDZONE_TOGGLE_SHOW, "Show sound zones on map");
+	show_toggle->SetToolTip("Tint the painted tiles of every sound zone. Same as View > Show sound zones.");
+	show_toggle->SetValue(g_settings.getBoolean(Config::SHOW_SOUND_ZONES));
+	sidesizer->Add(show_toggle, 0, wxEXPAND | wxTOP, 4);
 
 	topsizer->Add(sidesizer, 1, wxEXPAND);
 
@@ -110,10 +124,16 @@ SoundZonePalettePanel::SoundZonePalettePanel(wxWindow* parent, wxWindowID id) :
 	Bind(wxEVT_BUTTON, &SoundZonePalettePanel::OnClickRemove, this, PALETTE_SOUNDZONE_REMOVE);
 	Bind(wxEVT_LISTBOX, &SoundZonePalettePanel::OnClickZone, this, PALETTE_SOUNDZONE_LISTBOX);
 	Bind(wxEVT_LISTBOX_DCLICK, &SoundZonePalettePanel::OnDoubleClickZone, this, PALETTE_SOUNDZONE_LISTBOX);
+	Bind(wxEVT_BUTTON, &SoundZonePalettePanel::OnClickRecenter, this, PALETTE_SOUNDZONE_RECENTER);
+	Bind(wxEVT_CHECKBOX, &SoundZonePalettePanel::OnToggleShow, this, PALETTE_SOUNDZONE_TOGGLE_SHOW);
 }
 
 void SoundZonePalettePanel::OnSwitchIn() {
 	PalettePanel::OnSwitchIn();
+	// The View menu can change this behind our back, so re-read on every switch in.
+	if (show_toggle) {
+		show_toggle->SetValue(g_settings.getBoolean(Config::SHOW_SOUND_ZONES));
+	}
 }
 
 void SoundZonePalettePanel::SetMap(Map* m) {
@@ -244,4 +264,27 @@ void SoundZonePalettePanel::OnClickRemove(wxCommandEvent& WXUNUSED(event)) {
 	map->sound_zones.removeZone(id);
 	map->doChange();
 	UpdateList();
+}
+
+void SoundZonePalettePanel::OnToggleShow(wxCommandEvent& WXUNUSED(event)) {
+	g_settings.setInteger(Config::SHOW_SOUND_ZONES, show_toggle->GetValue() ? 1 : 0);
+	// Keep the View menu check in sync -- it reads the same setting, and leaving
+	// the two disagreeing is worse than the extra call.
+	if (g_gui.root) {
+		if (MainMenuBar* menu = g_gui.root->GetMainMenuBar()) {
+			menu->LoadValues();
+		}
+	}
+	g_gui.RefreshView();
+}
+
+void SoundZonePalettePanel::OnClickRecenter(wxCommandEvent& WXUNUSED(event)) {
+	if (!map) {
+		return;
+	}
+	// The incremental bounds only ever grow, so erasing tiles from a zone edge
+	// leaves the map label off-center. This walks the map once and rebuilds every
+	// zone box from what is actually painted.
+	map->sound_zones.recalculateBounds();
+	g_gui.RefreshView();
 }

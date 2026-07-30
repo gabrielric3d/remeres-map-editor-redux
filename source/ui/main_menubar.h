@@ -76,6 +76,7 @@ namespace MenuBar {
 		CARPET_LIKE_GROUND_BORDERS,
 		CARPET_FILL_BORDERS,
 		DISABLE_CARPET_INTERACTION,
+		DELETE_REMOVES_ZONES,
 		BORDERIZE_SELECTION,
 		BORDERIZE_MAP,
 		RANDOMIZE_SELECTION,
@@ -138,6 +139,8 @@ namespace MenuBar {
 		SHOW_ONLY_GROUNDS,
 		SHOW_HOUSES,
 		SHOW_SOUND_ZONES, // BlackTalon: tint painted ambient sound zones
+		SHOW_INSTANCE_ZONES, // BlackTalon: tint painted instance zones + map labels
+		INSTANCE_ZONE_SOLID_FILL, // BlackTalon: pintar a zona opaca em vez de tint
 		SHOW_PATHING,
 		SHOW_TOOLTIPS,
 		SHOW_PREVIEW,
@@ -319,6 +322,7 @@ public:
 	void OnToggleCarpetLikeGroundBorders(wxCommandEvent& event);
 	void OnToggleCarpetFillBorders(wxCommandEvent& event);
 	void OnToggleDisableCarpetInteraction(wxCommandEvent& event);
+	void OnToggleDeleteRemovesZones(wxCommandEvent& event);
 	void OnToggleShowLights(wxCommandEvent& event);
 	void OnToggleScreenShader(wxCommandEvent& event);
 

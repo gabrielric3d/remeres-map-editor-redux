@@ -12,6 +12,7 @@
 #define RME_SOUND_ZONES_H_
 
 #include "app/main.h" // FileName (= wxFileName) alias
+#include "game/zone_bounds.h"
 
 #include <cstdint>
 #include <map>
@@ -19,7 +20,7 @@
 #include <string>
 #include <vector>
 
-class SoundZone {
+class SoundZone : public ZoneBoundsHolder {
 public:
 	SoundZone() = default;
 	SoundZone(uint32_t id, std::string name, std::string track) :
@@ -53,6 +54,11 @@ public:
 
 	// Zones sorted by id (for the palette list).
 	std::vector<SoundZone*> getOrdered() const;
+
+	// Walks the map and rebuilds every zone's bounds from scratch. Only needed
+	// after erasing tiles (the incremental path never shrinks a box) -- the palette
+	// exposes it as "Recenter". O(map), so never call it per frame.
+	void recalculateBounds();
 
 	// Sidecar "<map>-sound.xml" persistence (server reads this file).
 	bool loadFromFile(const FileName& mapFile);

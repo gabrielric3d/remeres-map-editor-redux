@@ -9,15 +9,20 @@ REM ============================================================
 setlocal
 set "ROOT=%~dp0"
 
+REM Jobs usados no modo economico (baixa memoria). Menos jobs = menor pico
+REM de RAM/CPU, build um pouco mais lento. Ajuste aqui se precisar.
+set "ECO_JOBS=2"
+
 :menu
 cls
 echo ========================================================
 echo   RME Redux - Menu
 echo ========================================================
 echo.
-echo   [1] Compilar         (build_windows.bat)
-echo   [2] Deploy Release   (deploy_release.bat)
+echo   [1] Compilar             (build_windows.bat)
+echo   [2] Deploy Release       (deploy_release.bat)
 echo   [3] Compilar + Deploy
+echo   [4] Compilar economico   (baixa memoria - %ECO_JOBS% jobs)
 echo.
 echo   [0] Sair
 echo.
@@ -27,6 +32,7 @@ set /p "OPC=Escolha uma opcao: "
 if "%OPC%"=="1" goto compilar
 if "%OPC%"=="2" goto deploy
 if "%OPC%"=="3" goto ambos
+if "%OPC%"=="4" goto compilar_eco
 if "%OPC%"=="0" goto fim
 
 echo.
@@ -38,6 +44,14 @@ goto menu
 echo.
 call :ask_jobs
 call "%ROOT%build_windows.bat" %JOBS%
+echo.
+pause
+goto menu
+
+:compilar_eco
+echo.
+echo   Modo economico: %ECO_JOBS% jobs paralelos ^(menor uso de RAM/CPU^).
+call "%ROOT%build_windows.bat" %ECO_JOBS%
 echo.
 pause
 goto menu

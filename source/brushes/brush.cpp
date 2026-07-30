@@ -32,6 +32,7 @@
 #include "brushes/waypoint/waypoint_brush.h"
 #include "brushes/camera/camera_path_brush.h"
 #include "brushes/sound_zone/sound_zone_brush.h"
+#include "brushes/instance_zone/instance_zone_brush.h"
 #include "brushes/managers/brush_manager.h"
 
 #include "brushes/flag/flag_brush.h"
@@ -100,6 +101,7 @@ void Brushes::init() {
 	addManagedBrush(g_brush_manager.waypoint_brush);
 	addManagedBrush(g_brush_manager.camera_path_brush);
 	addManagedBrush(g_brush_manager.sound_zone_brush);
+	addManagedBrush(g_brush_manager.instance_zone_brush);
 
 	addManagedBrush(g_brush_manager.pz_brush, TILESTATE_PROTECTIONZONE);
 	addManagedBrush(g_brush_manager.rook_brush, TILESTATE_NOPVP);

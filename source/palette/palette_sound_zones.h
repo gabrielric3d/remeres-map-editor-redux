@@ -9,6 +9,7 @@
 #ifndef RME_PALETTE_SOUND_ZONES_H_
 #define RME_PALETTE_SOUND_ZONES_H_
 
+#include <wx/checkbox.h>
 #include <wx/listbox.h>
 
 #include <cstdint>
@@ -42,16 +43,20 @@ public:
 	void OnClickEdit(wxCommandEvent& event);
 	void OnClickRemove(wxCommandEvent& event);
 	void OnDoubleClickZone(wxCommandEvent& event);
+	void OnToggleShow(wxCommandEvent& event);
+	void OnClickRecenter(wxCommandEvent& event);
 
 protected:
 	void UpdateList(uint32_t select_id = 0);
 	uint32_t GetSelectedZoneId() const;
 
 	Map* map;
+	wxCheckBox* show_toggle;
 	wxListBox* zone_list;
 	wxButton* add_button;
 	wxButton* edit_button;
 	wxButton* remove_button;
+	wxButton* recenter_button;
 
 	// zone id for each visible list row (parallel to zone_list rows)
 	std::vector<uint32_t> row_ids;

@@ -1,0 +1,19 @@
+[2026-07-30 19:12:38.767] [rme] [info] RME starting up - logging enabled (file: rme_debug.log)
+[2026-07-30 19:12:38.767] [rme] [info] Crash diagnostics installed (terminate/purecall/invalid-parameter handlers).
+[2026-07-30 19:12:38.768] [rme] [info] This is free software: you are free to change and redistribute it.
+[2026-07-30 19:12:38.768] [rme] [info] There is NO WARRANTY, to the extent permitted by law.
+[2026-07-30 19:12:38.768] [rme] [info] Review COPYING in RME distribution for details.
+[2026-07-30 19:12:38.769] [rme] [info] [ForcedLightZoneManager] Loaded 11 zones from B:\Github\rme_redux\data\forced_light\forced_light_zones.lua
+[2026-07-30 19:12:38.769] [rme] [info] [CustomItemLightManager] Loaded 5 custom item lights from B:\Github\rme_redux\data\forced_light\custom_item_lights.lua
+[2026-07-30 19:12:40.475] [rme] [info] PaletteManager::DestroyPalettes called - destroying 0 palettes
+[2026-07-30 19:12:40.475] [rme] [info] PaletteManager::DestroyPalettes - clearing palettes list
+[2026-07-30 19:12:40.475] [rme] [info] PaletteManager::DestroyPalettes - updating aui_manager
+[2026-07-30 19:12:40.476] [rme] [info] PaletteManager::DestroyPalettes finished
+[2026-07-30 19:12:40.476] [rme] [info] MinimapManager::Destroy called
+[2026-07-30 19:12:40.476] [rme] [info] MinimapManager::Destroy finished
+[2026-07-30 19:12:40.477] [rme] [info] EditorManager::CloseAllEditors - Closing all tabs
+[2026-07-30 19:12:40.477] [rme] [info] EditorManager::CloseAllEditors - All tabs closed
+[2026-07-30 19:12:40.567] [rme] [info] PaletteManager destructor started
+[2026-07-30 19:12:40.567] [rme] [info] PaletteManager destructor finished
+[2026-07-30 19:12:40.567] [rme] [info] GUI destructor started
+[2026-07-30 19:12:40.567] [rme] [info] GUI destructor finished

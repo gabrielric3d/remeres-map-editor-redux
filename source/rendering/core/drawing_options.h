@@ -40,6 +40,8 @@ struct DrawingOptions {
 	bool show_spawns;
 	bool show_houses;
 	bool show_sound_zones; // BlackTalon: tint ambient sound zones by color
+	bool show_instance_zones; // BlackTalon: tint instance zones by color
+	bool solid_instance_zones; // BlackTalon: opaque fill instead of tint (needs the above)
 	bool show_shade;
 	bool show_special_tiles;
 	bool show_items;

@@ -16,6 +16,7 @@ public:
 	void OnToggleCarpetLikeGroundBorders(wxCommandEvent& event);
 	void OnToggleCarpetFillBorders(wxCommandEvent& event);
 	void OnToggleDisableCarpetInteraction(wxCommandEvent& event);
+	void OnToggleDeleteRemovesZones(wxCommandEvent& event);
 	void OnSelectionTypeChange(wxCommandEvent& event);
 	void OnSelectionLassoToggle(wxCommandEvent& event);
 	void OnToggleShowLights(wxCommandEvent& event);

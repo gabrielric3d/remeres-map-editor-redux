@@ -167,6 +167,15 @@ void TileSerializationOTBM::readTileArea(IOMapOTBM& iomap, Map& map, BinaryNode*
 					}
 					break;
 				}
+				case OTBM_ATTR_INSTANCE_ZONE: {
+					// BlackTalon: instance zone id for this tile (the instance count
+					// lives in the <map>-instance.xml sidecar, not here).
+					uint32_t instanceZoneId = 0;
+					if (tileNode->getU32(instanceZoneId)) {
+						tile->setInstanceZoneId(instanceZoneId);
+					}
+					break;
+				}
 				case OTBM_ATTR_ITEM: {
 					auto item = ItemSerializationOTBM::createFromStream(iomap, tileNode);
 					const auto rawItemBytes = copyRawBytes(tileNode->rawData(), attributeOffset, tileNode->getReadOffset());
@@ -334,6 +343,11 @@ void TileSerializationOTBM::serializeTile(const IOMapOTBM& iomap, const Tile* sa
 	if (save_tile->getSoundZoneId() != 0) {
 		f.addU8(OTBM_ATTR_SOUND_ZONE);
 		f.addU32(save_tile->getSoundZoneId());
+	}
+
+	if (save_tile->getInstanceZoneId() != 0) {
+		f.addU8(OTBM_ATTR_INSTANCE_ZONE);
+		f.addU32(save_tile->getInstanceZoneId());
 	}
 
 	if (save_tile->ground) {

@@ -67,6 +67,17 @@ void TileColorCalculator::Calculate(const Tile* tile, const DrawingOptions& opti
 		b = static_cast<uint8_t>((b * zb + b) >> 8);
 	}
 
+	// BlackTalon: same treatment for instance zones. A tile can carry a sound zone
+	// AND an instance zone at once -- the two tints then compose, which is fine:
+	// the mapper toggles one of the layers off to read the other.
+	if (options.show_instance_zones && tile->isInstanceZoneTile()) {
+		uint8_t zr = 255, zg = 255, zb = 255;
+		GetInstanceZoneColor(tile->getInstanceZoneId(), zr, zg, zb);
+		r = static_cast<uint8_t>((r * zr + r) >> 8);
+		g = static_cast<uint8_t>((g * zg + g) >> 8);
+		b = static_cast<uint8_t>((b * zb + b) >> 8);
+	}
+
 	if (showspecial && tile->getMapFlags() & TILESTATE_PVPZONE) {
 		g = r >> 2;
 		b = (b * 171) >> 8;
@@ -122,6 +133,26 @@ void TileColorCalculator::GetSoundZoneColor(uint32_t zone_id, uint8_t& r, uint8_
 	// Same integer hash as GetHouseColor but with a different salt, so zone N and
 	// house N don't share a color. Deterministic -> stable across sessions.
 	uint32_t hash = zone_id * 2654435761u + 0x9e3779b9u;
+	hash = ((hash >> 16) ^ hash) * 0x45d9f3b;
+	hash = ((hash >> 16) ^ hash) * 0x45d9f3b;
+	hash = (hash >> 16) ^ hash;
+
+	r = (hash & 0xFF);
+	g = ((hash >> 8) & 0xFF);
+	b = ((hash >> 16) & 0xFF);
+
+	// Keep it from being too dark to see over the tile.
+	if (r < 60 && g < 60 && b < 60) {
+		r += 110;
+		g += 110;
+		b += 110;
+	}
+}
+
+void TileColorCalculator::GetInstanceZoneColor(uint32_t zone_id, uint8_t& r, uint8_t& g, uint8_t& b) {
+	// Same integer hash as GetSoundZoneColor with a THIRD salt, so instance zone N,
+	// sound zone N and house N never land on the same color. Deterministic.
+	uint32_t hash = zone_id * 2654435761u + 0x85ebca6bu;
 	hash = ((hash >> 16) ^ hash) * 0x45d9f3b;
 	hash = ((hash >> 16) ^ hash) * 0x45d9f3b;
 	hash = (hash >> 16) ^ hash;

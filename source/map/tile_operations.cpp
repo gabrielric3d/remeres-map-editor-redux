@@ -170,6 +170,9 @@ namespace TileOperations {
 		if (src->soundZoneId) {
 			dest->soundZoneId = src->soundZoneId; // BlackTalon
 		}
+		if (src->instanceZoneId) {
+			dest->instanceZoneId = src->instanceZoneId; // BlackTalon
+		}
 
 		if (src->ground) {
 			dest->ground = std::move(src->ground);

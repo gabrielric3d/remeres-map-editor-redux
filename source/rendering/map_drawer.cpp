@@ -79,8 +79,14 @@
 #include "rendering/drawers/overlays/wall_border_drawer.h"
 #include "rendering/drawers/overlays/mountain_overlay_drawer.h"
 #include "rendering/drawers/overlays/pathing_overlay_drawer.h"
+#include "rendering/drawers/overlays/solid_zone_fill_drawer.h"
 #include "rendering/drawers/overlays/stair_direction_drawer.h"
 #include "rendering/drawers/overlays/zone_overlay_drawer.h"
+#include "rendering/drawers/overlays/zone_label_drawer.h"
+#include "game/instance_zones.h"
+#include "game/sound_zones.h"
+#include "map/tile.h"
+#include <vector>
 #include "rendering/core/forced_light_zone.h"
 #include "rendering/core/custom_item_light.h"
 
@@ -139,9 +145,11 @@ MapDrawer::MapDrawer(MapCanvas* canvas) :
 	wall_border_drawer = std::make_unique<WallBorderDrawer>();
 	mountain_overlay_drawer = std::make_unique<MountainOverlayDrawer>();
 	pathing_overlay_drawer = std::make_unique<PathingOverlayDrawer>();
+	solid_zone_fill_drawer = std::make_unique<SolidZoneFillDrawer>();
 	stair_direction_drawer = std::make_unique<StairDirectionDrawer>();
 	lua_overlay_drawer = std::make_unique<LuaOverlayDrawer>(this);
 	zone_overlay_drawer = std::make_unique<ZoneOverlayDrawer>();
+	zone_label_drawer = std::make_unique<ZoneLabelDrawer>();
 
 	sprite_batch = std::make_unique<SpriteBatch>();
 	primitive_renderer = std::make_unique<PrimitiveRenderer>();
@@ -579,6 +587,100 @@ void MapDrawer::DrawZoneOverlay() {
 
 void MapDrawer::DrawZoneLabels(NVGcontext* vg) {
 	zone_overlay_drawer->drawLabels(vg, view, options, canvas->floor);
+}
+
+// Collects the labels for every painted-zone system that is currently switched on,
+// then hands the list to the shared drawer. Two jobs happen in the same pass over
+// the visible tiles: deciding what is on screen, and topping up each zone's
+// bounding box with tiles painted since the last full recount.
+//
+// The tile pass is gated on zoom: the visible window measured in TILES grows with
+// the zoom factor, so at heavy zoom out it would cover hundreds of thousands of
+// tiles every frame. Past the threshold we stop feeding and rely on what the boxes
+// already hold -- they were seeded at load, and nobody paints tiles at that zoom.
+void MapDrawer::DrawPaintedZoneLabels(NVGcontext* vg) {
+	constexpr float FEED_BOUNDS_MAX_ZOOM = 2.0f;
+	const int floor = canvas->floor;
+
+	const int min_tile_x = view.view_scroll_x / TILE_SIZE - 2;
+	const int min_tile_y = view.view_scroll_y / TILE_SIZE - 2;
+	const int max_tile_x = static_cast<int>((view.view_scroll_x + view.screensize_x * view.zoom) / TILE_SIZE) + 2;
+	const int max_tile_y = static_cast<int>((view.view_scroll_y + view.screensize_y * view.zoom) / TILE_SIZE) + 2;
+
+	const bool want_instance = options.show_instance_zones && !editor.map.instance_zones.empty();
+	const bool want_sound = options.show_sound_zones && !editor.map.sound_zones.empty();
+	if (!want_instance && !want_sound) {
+		return;
+	}
+
+	if (view.zoom <= FEED_BOUNDS_MAX_ZOOM) {
+		for (int y = std::max(0, min_tile_y); y <= max_tile_y; ++y) {
+			for (int x = std::max(0, min_tile_x); x <= max_tile_x; ++x) {
+				Tile* tile = editor.map.getTile(x, y, floor);
+				if (!tile) {
+					continue;
+				}
+				if (want_instance && tile->isInstanceZoneTile()) {
+					if (InstanceZone* zone = editor.map.instance_zones.getZone(tile->getInstanceZoneId())) {
+						zone->expandBounds(x, y, floor);
+					}
+				}
+				if (want_sound && tile->isSoundZoneTile()) {
+					if (SoundZone* zone = editor.map.sound_zones.getZone(tile->getSoundZoneId())) {
+						zone->expandBounds(x, y, floor);
+					}
+				}
+			}
+		}
+	}
+
+	// Which zones get a label: the ones whose painted box on THIS floor overlaps the
+	// visible window. Testing the box instead of hunting for a visible tile keeps this
+	// O(zones) and shows the label even when only the zone interior is on screen.
+	std::vector<ZoneLabel> labels;
+	auto overlaps = [&](const ZoneBounds* b) {
+		return b && !(b->max_x < min_tile_x || b->min_x > max_tile_x || b->max_y < min_tile_y || b->min_y > max_tile_y);
+	};
+
+	if (want_instance) {
+		for (const InstanceZone* zone : editor.map.instance_zones.getOrdered()) {
+			const ZoneBounds* b = zone->boundsForFloor(floor);
+			if (!overlaps(b) || zone->name.empty()) {
+				continue;
+			}
+			ZoneLabel label;
+			label.text = zone->name;
+			label.subtext = "x" + std::to_string(zone->instances);
+			label.min_x = b->min_x; label.min_y = b->min_y;
+			label.max_x = b->max_x; label.max_y = b->max_y;
+			TileColorCalculator::GetInstanceZoneColor(zone->id, label.r, label.g, label.b);
+			label.icon = ZoneLabelIcon::Instance;
+			labels.push_back(std::move(label));
+		}
+	}
+
+	if (want_sound) {
+		for (const SoundZone* zone : editor.map.sound_zones.getOrdered()) {
+			const ZoneBounds* b = zone->boundsForFloor(floor);
+			if (!overlaps(b) || zone->name.empty()) {
+				continue;
+			}
+			ZoneLabel label;
+			label.text = zone->name;
+			label.subtext = zone->track;
+			label.min_x = b->min_x; label.min_y = b->min_y;
+			label.max_x = b->max_x; label.max_y = b->max_y;
+			TileColorCalculator::GetSoundZoneColor(zone->id, label.r, label.g, label.b);
+			label.icon = ZoneLabelIcon::Music;
+			labels.push_back(std::move(label));
+		}
+	}
+
+	zone_label_drawer->draw(vg, view, floor, labels);
+}
+
+void MapDrawer::DrawSolidInstanceZones(NVGcontext* vg) {
+	solid_zone_fill_drawer->draw(vg, view, editor);
 }
 
 void MapDrawer::DrawWallBorders(NVGcontext* vg) {

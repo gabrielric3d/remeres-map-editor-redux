@@ -47,6 +47,12 @@ void EditorPersistence::loadMap(Editor& editor, const FileName& fn, const MapLoa
 	editor.map.camera_paths.loadFromFile(fn);
 	// BlackTalon: load ambient sound zone metadata from "<map>-sound.xml"
 	editor.map.sound_zones.loadFromFile(fn);
+	editor.map.instance_zones.loadFromFile(fn);
+	// Bounds are not stored in the sidecar -- they come from the painted tiles. The
+	// OTBM is already loaded at this point, so one walk here seeds every zone; from
+	// then on the label drawer keeps them up to date incrementally.
+	editor.map.instance_zones.recalculateBounds();
+	editor.map.sound_zones.recalculateBounds();
 	spdlog::info("EditorPersistence::loadMap - DONE");
 }
 
@@ -193,6 +199,7 @@ void EditorPersistence::saveMap(Editor& editor, FileName filename, bool showdial
 
 	// BlackTalon: save ambient sound zone metadata to "<map>-sound.xml"
 	editor.map.sound_zones.saveToFile(FileName(wxstr(savefile)));
+	editor.map.instance_zones.saveToFile(FileName(wxstr(savefile)));
 
 	// Move to permanent backup
 	if (!save_as && g_settings.getInteger(Config::ALWAYS_MAKE_BACKUP)) {

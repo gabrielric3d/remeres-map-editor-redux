@@ -50,6 +50,7 @@ void ViewSettingsHandler::LoadValues() {
 	menuBar->CheckItem(AUTOMAGIC, g_settings.getBoolean(Config::USE_AUTOMAGIC));
 	menuBar->CheckItem(CARPET_LIKE_GROUND_BORDERS, g_settings.getBoolean(Config::CARPET_LIKE_GROUND_BORDERS));
 	menuBar->CheckItem(CARPET_FILL_BORDERS, g_settings.getBoolean(Config::CARPET_FILL_BORDERS));
+	menuBar->CheckItem(DELETE_REMOVES_ZONES, g_settings.getBoolean(Config::DELETE_REMOVES_ZONES));
 	menuBar->CheckItem(DISABLE_CARPET_INTERACTION, g_settings.getBoolean(Config::DISABLE_CARPET_INTERACTION));
 
 	menuBar->CheckItem(SHOW_SHADE, g_settings.getBoolean(Config::SHOW_SHADE));
@@ -78,6 +79,8 @@ void ViewSettingsHandler::LoadValues() {
 	menuBar->CheckItem(SHOW_ONLY_GROUNDS, g_settings.getBoolean(Config::SHOW_ONLY_GROUNDS));
 	menuBar->CheckItem(SHOW_HOUSES, g_settings.getBoolean(Config::SHOW_HOUSES));
 	menuBar->CheckItem(SHOW_SOUND_ZONES, g_settings.getBoolean(Config::SHOW_SOUND_ZONES));
+	menuBar->CheckItem(SHOW_INSTANCE_ZONES, g_settings.getBoolean(Config::SHOW_INSTANCE_ZONES));
+	menuBar->CheckItem(INSTANCE_ZONE_SOLID_FILL, g_settings.getBoolean(Config::INSTANCE_ZONE_SOLID_FILL));
 	menuBar->CheckItem(SHOW_PATHING, g_settings.getBoolean(Config::SHOW_BLOCKING));
 	menuBar->CheckItem(SHOW_TOOLTIPS, g_settings.getBoolean(Config::SHOW_TOOLTIPS));
 	menuBar->CheckItem(SHOW_PREVIEW, g_settings.getBoolean(Config::SHOW_PREVIEW));
@@ -143,6 +146,8 @@ void ViewSettingsHandler::OnChangeViewSettings(wxCommandEvent& event) {
 	g_settings.setInteger(Config::SHOW_SPAWNS, menuBar->IsItemChecked(SHOW_SPAWNS));
 	g_settings.setInteger(Config::SHOW_HOUSES, menuBar->IsItemChecked(SHOW_HOUSES));
 	g_settings.setInteger(Config::SHOW_SOUND_ZONES, menuBar->IsItemChecked(SHOW_SOUND_ZONES));
+	g_settings.setInteger(Config::SHOW_INSTANCE_ZONES, menuBar->IsItemChecked(SHOW_INSTANCE_ZONES));
+	g_settings.setInteger(Config::INSTANCE_ZONE_SOLID_FILL, menuBar->IsItemChecked(INSTANCE_ZONE_SOLID_FILL));
 	g_settings.setInteger(Config::HIGHLIGHT_ITEMS, menuBar->IsItemChecked(HIGHLIGHT_ITEMS));
 	g_settings.setInteger(Config::HIGHLIGHT_LOCKED_DOORS, menuBar->IsItemChecked(HIGHLIGHT_LOCKED_DOORS));
 	g_settings.setInteger(Config::SHOW_BLOCKING, menuBar->IsItemChecked(SHOW_PATHING));
@@ -245,6 +250,19 @@ void ViewSettingsHandler::OnToggleCarpetFillBorders(wxCommandEvent& WXUNUSED(eve
 	} else {
 		g_gui.SetStatusText("Carpet fill borders disabled.");
 		g_toast.Show("Carpet Fill Borders: Off");
+	}
+}
+
+void ViewSettingsHandler::OnToggleDeleteRemovesZones(wxCommandEvent& WXUNUSED(event)) {
+	using namespace MenuBar;
+	bool enabled = menuBar->IsItemChecked(DELETE_REMOVES_ZONES);
+	g_settings.setInteger(Config::DELETE_REMOVES_ZONES, enabled ? 1 : 0);
+	if (enabled) {
+		g_gui.SetStatusText("Delete removes zone flags: deleting tiles also clears PZ/PVP/No-PVP/No-Logout.");
+		g_toast.Show("Delete Removes Zone Flags: On");
+	} else {
+		g_gui.SetStatusText("Delete removes zone flags disabled: zone flags are kept when deleting.");
+		g_toast.Show("Delete Removes Zone Flags: Off");
 	}
 }
 

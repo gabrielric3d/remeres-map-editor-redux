@@ -300,6 +300,8 @@ void Settings::IO(IOMode mode) {
 	Bool(SHOW_CREATURES, true);
 	Bool(SHOW_HOUSES, true);
 	Bool(SHOW_SOUND_ZONES, true);
+	Bool(SHOW_INSTANCE_ZONES, true);
+	Bool(INSTANCE_ZONE_SOLID_FILL, false);
 	Bool(SHOW_BLOCKING, false);
 	Bool(SHOW_TOOLTIPS, true);
 	Bool(SHOW_ONLY_TILEFLAGS, false);
@@ -363,6 +365,7 @@ void Settings::IO(IOMode mode) {
 	Bool(USE_AUTOMAGIC, true);
 	Bool(PRESERVE_MANUAL_BORDERS, true);
 	Bool(HOUSE_BRUSH_REMOVE_ITEMS, false);
+	Bool(DELETE_REMOVES_ZONES, false);
 	Bool(AUTO_ASSIGN_DOORID, true);
 	Bool(ERASER_LEAVE_UNIQUE, true);
 	Bool(DOODAD_BRUSH_ERASE_LIKE, false);

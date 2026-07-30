@@ -75,6 +75,7 @@ public: // Members
 	std::unique_ptr<Spawn> spawn;
 	uint32_t house_id; // House id for this tile (pointer not safe)
 	uint32_t soundZoneId; // BlackTalon: ambient sound zone id painted on this tile (0 = none)
+	uint32_t instanceZoneId; // BlackTalon: instance zone id painted on this tile (0 = none)
 	uint32_t mapflags;
 	uint16_t statflags;
 	uint8_t minimapColor;
@@ -242,6 +243,10 @@ public: // Functions
 	uint32_t getSoundZoneId() const;
 	void setSoundZoneId(uint32_t newSoundZoneId);
 
+	bool isInstanceZoneTile() const;
+	uint32_t getInstanceZoneId() const;
+	void setInstanceZoneId(uint32_t newInstanceZoneId);
+
 	// Mapflags (PZ, PVPZONE etc.)
 	void setMapFlags(uint32_t _flags);
 	void unsetMapFlags(uint32_t _flags);
@@ -283,6 +288,18 @@ inline uint32_t Tile::getSoundZoneId() const {
 
 inline void Tile::setSoundZoneId(uint32_t newSoundZoneId) {
 	soundZoneId = newSoundZoneId;
+}
+
+inline bool Tile::isInstanceZoneTile() const {
+	return instanceZoneId != 0;
+}
+
+inline uint32_t Tile::getInstanceZoneId() const {
+	return instanceZoneId;
+}
+
+inline void Tile::setInstanceZoneId(uint32_t newInstanceZoneId) {
+	instanceZoneId = newInstanceZoneId;
 }
 
 inline InvalidZoneState& Tile::getOrCreateInvalidZones() {

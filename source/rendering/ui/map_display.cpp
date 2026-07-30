@@ -333,6 +333,14 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 	if (options.show_lights && options.show_zone_boundaries) {
 		drawer->DrawZoneLabels(vg);
 	}
+	// Antes dos rotulos de proposito: o preenchimento e opaco e cobriria o nome da
+	// zona se viesse depois.
+	if (options.show_instance_zones && options.solid_instance_zones) {
+		drawer->DrawSolidInstanceZones(vg);
+	}
+	if (options.show_instance_zones || options.show_sound_zones) {
+		drawer->DrawPaintedZoneLabels(vg);
+	}
 	if (drawer->getLuaOverlayDrawer()) {
 		drawer->getLuaOverlayDrawer()->DrawUI(vg, drawer->getView(), options);
 	}

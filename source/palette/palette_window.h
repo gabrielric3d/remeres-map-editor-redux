@@ -25,6 +25,7 @@ class CreaturePalettePanel;
 class WaypointPalettePanel;
 class CameraPathPalettePanel;
 class SoundZonePalettePanel;
+class InstanceZonePalettePanel;
 
 class PaletteWindow : public wxPanel {
 public:
@@ -79,6 +80,7 @@ protected:
 	static PalettePanel* CreateRAWPalette(wxWindow* parent, const TilesetContainer& tilesets);
 	static PalettePanel* CreateCameraPathPalette(wxWindow* parent, const TilesetContainer& tilesets);
 	static PalettePanel* CreateSoundZonePalette(wxWindow* parent, const TilesetContainer& tilesets);
+	static PalettePanel* CreateInstanceZonePalette(wxWindow* parent, const TilesetContainer& tilesets);
 
 	wxChoicebook* choicebook;
 
@@ -90,6 +92,7 @@ protected:
 	WaypointPalettePanel* waypoint_palette;
 	CameraPathPalettePanel* camera_path_palette;
 	SoundZonePalettePanel* sound_zone_palette;
+	InstanceZonePalettePanel* instance_zone_palette;
 	BrushPalettePanel* raw_palette;
 };
 
