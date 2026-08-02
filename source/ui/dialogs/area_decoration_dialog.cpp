@@ -1599,9 +1599,13 @@ bool FloorRuleEditDialog::BuildClusterTilesFromSelection(std::vector<AreaDecorat
 		maxPos.z = std::max(maxPos.z, pos.z);
 	}
 
+	// X/Y are anchored on the middle of the selection, but Z is anchored on the floor the
+	// user is standing on: the tiles of that floor get offset.z == 0, so they land on the
+	// tile being decorated and the remaining floors stack relative to it. Anchoring on the
+	// middle of the Z range instead would place a multi-floor cluster on an arbitrary floor.
 	Position center((minPos.x + maxPos.x) / 2,
 	                (minPos.y + maxPos.y) / 2,
-	                (minPos.z + maxPos.z) / 2);
+	                g_gui.GetCurrentFloor());
 
 	outTiles.reserve(tiles.size());
 
@@ -1682,10 +1686,23 @@ void FloorRuleEditDialog::OnAddClusterFromSelection(wxCommandEvent& event) {
 	// The cluster is added directly; use the Preview button to inspect it
 	// and define a center point if needed.
 	const size_t tileCount = clusterTiles.size();
+
+	int minOffZ = clusterTiles.front().offset.z;
+	int maxOffZ = minOffZ;
+	for (const auto& tile : clusterTiles) {
+		minOffZ = std::min(minOffZ, tile.offset.z);
+		maxOffZ = std::max(maxOffZ, tile.offset.z);
+	}
+
 	AreaDecoration::ItemEntry newEntry = AreaDecoration::ItemEntry::MakeCluster(clusterTiles, weight, count, radius, minDist);
 	m_rule.items.push_back(std::move(newEntry));
 	UpdateItemsList();
-	g_gui.SetStatusText(wxString::Format("Cluster with %zu tile(s) added.", tileCount));
+	if (minOffZ != maxOffZ) {
+		g_gui.SetStatusText(wxString::Format("Cluster with %zu tile(s) added (%d floors, anchored on floor %d).",
+			tileCount, maxOffZ - minOffZ + 1, g_gui.GetCurrentFloor()));
+	} else {
+		g_gui.SetStatusText(wxString::Format("Cluster with %zu tile(s) added.", tileCount));
+	}
 }
 
 //=============================================================================
