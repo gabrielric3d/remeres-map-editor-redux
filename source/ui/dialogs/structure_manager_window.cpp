@@ -99,6 +99,38 @@ namespace {
 		}
 	};
 
+	// Written into the structure OTBM description so the paste anchor floor survives a
+	// round-trip. The value is the floor the user was standing on when saving, expressed
+	// relative to the topmost floor of the structure.
+	const std::string kAnchorZTag = "rme_anchor_z=";
+
+	std::string BuildStructureDescription(int anchorRelZ) {
+		return kAnchorZTag + std::to_string(anchorRelZ);
+	}
+
+	bool ParseAnchorRelZ(const std::string& description, int& outAnchorRelZ) {
+		size_t pos = description.find(kAnchorZTag);
+		if (pos == std::string::npos) {
+			return false;
+		}
+		pos += kAnchorZTag.length();
+
+		size_t end = pos;
+		if (end < description.length() && (description[end] == '-' || description[end] == '+')) {
+			++end;
+		}
+		size_t digitsStart = end;
+		while (end < description.length() && description[end] >= '0' && description[end] <= '9') {
+			++end;
+		}
+		if (end == digitsStart) {
+			return false;
+		}
+
+		outAnchorRelZ = std::stoi(description.substr(pos, end - pos));
+		return true;
+	}
+
 	class CategoryItemData : public wxTreeItemData {
 	public:
 		explicit CategoryItemData(const wxString& path) : categoryPath(path) {}
@@ -222,7 +254,7 @@ namespace {
 		return hasPos;
 	}
 
-	bool SaveStructureFile(BaseMap& source, const Position& minPos, const Position& maxPos, const MapVersion& version, const wxString& path, wxString& errorOut) {
+	bool SaveStructureFile(BaseMap& source, const Position& minPos, const Position& maxPos, const MapVersion& version, int anchorFloor, const wxString& path, wxString& errorOut) {
 		Map structureMap;
 		structureMap.convert(version, false);
 
@@ -231,16 +263,32 @@ namespace {
 		structureMap.setWidth(width);
 		structureMap.setHeight(height);
 
+		// The loader re-bases the structure on the topmost floor that actually holds tiles,
+		// so the anchor has to be relative to that floor (minPos.z may sit above it when the
+		// fixed-area mode covers empty floors).
+		int realMinZ = maxPos.z;
+		bool hasTile = false;
+
 		for (auto it = source.begin(); it != source.end(); ++it) {
 			Tile* tile = it->get();
 			if (!tile || tile->size() == 0) {
 				continue;
 			}
 
-			Position relPos = tile->getPosition() - minPos;
+			const Position& pos = tile->getPosition();
+			if (!hasTile) {
+				realMinZ = pos.z;
+				hasTile = true;
+			} else {
+				realMinZ = std::min(realMinZ, pos.z);
+			}
+
+			Position relPos = pos - minPos;
 			auto copiedTile = TileOperations::deepCopy(tile, structureMap);
 			(void)structureMap.setTile(relPos, std::move(copiedTile));
 		}
+
+		structureMap.setMapDescription(BuildStructureDescription(anchorFloor - realMinZ));
 
 		StructureIOMapOTBM saver(structureMap.getVersion());
 		DiskNodeFileWriteHandle handle(nstr(path), "OTBM");
@@ -327,7 +375,12 @@ namespace {
 			outRealMap->setHeight(height);
 		}
 
-		outCopyPos = Position(0, 0, maxPos.z - minPos.z);
+		// Legacy structures (saved before the anchor tag existed) keep their old behaviour:
+		// the lowest floor of the structure lands on the floor being pasted onto.
+		int anchorRelZ = maxPos.z - minPos.z;
+		ParseAnchorRelZ(tempMap.getMapDescription(), anchorRelZ);
+
+		outCopyPos = Position(0, 0, anchorRelZ);
 		return true;
 	}
 
@@ -1951,8 +2004,12 @@ void StructureManagerDialog::OnSaveSelection(wxCommandEvent& WXUNUSED(event)) {
 		}
 	}
 
+	// The floor the user is standing on becomes the paste anchor: pasting later places
+	// that same floor of the structure on whatever floor is being viewed.
+	const int anchorFloor = g_gui.GetCurrentFloor();
+
 	wxString error;
-	if (!SaveStructureFile(buffer, minPos, maxPos, editor->map.getVersion(), path, error)) {
+	if (!SaveStructureFile(buffer, minPos, maxPos, editor->map.getVersion(), anchorFloor, path, error)) {
 		wxMessageBox("Failed to save structure:\n" + error, "Structure Manager", wxOK | wxICON_ERROR, this);
 		return;
 	}
@@ -1963,18 +2020,20 @@ void StructureManagerDialog::OnSaveSelection(wxCommandEvent& WXUNUSED(event)) {
 	if (useFixed) {
 		int zFrom = m_fixedZFromSpin ? m_fixedZFromSpin->GetValue() : minPos.z;
 		int zTo = m_fixedZToSpin ? m_fixedZToSpin->GetValue() : maxPos.z;
-		SetStatusText(wxString::Format("Saved '%s' (%d x %d, Z %d-%d, %d tile%s).",
+		SetStatusText(wxString::Format("Saved '%s' (%d x %d, Z %d-%d, anchor Z %d, %d tile%s).",
 			safeName,
 			(maxPos.x - minPos.x + 1),
 			(maxPos.y - minPos.y + 1),
 			std::min(zFrom, zTo),
 			std::max(zFrom, zTo),
+			anchorFloor,
 			tileCount, tileCount == 1 ? "" : "s"));
 	} else {
-		SetStatusText(wxString::Format("Saved '%s' (%d tile%s, %d item%s).",
+		SetStatusText(wxString::Format("Saved '%s' (%d tile%s, %d item%s, Z %d-%d, anchor Z %d).",
 			safeName,
 			tileCount, tileCount == 1 ? "" : "s",
-			itemCount, itemCount == 1 ? "" : "s"));
+			itemCount, itemCount == 1 ? "" : "s",
+			minPos.z, maxPos.z, anchorFloor));
 	}
 	g_gui.SetStatusText("Structure saved.");
 	UpdateSaveOptionsUi();
