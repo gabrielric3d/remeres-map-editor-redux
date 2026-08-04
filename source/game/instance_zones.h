@@ -64,6 +64,22 @@ public:
 	// Zones sorted by id (for the palette list).
 	std::vector<InstanceZone*> getOrdered() const;
 
+	// Quantos tiles do mapa estao pintados com esta zona. O(map) -- e para o
+	// dialogo do Remove poder dizer a escala antes de o mapper decidir.
+	size_t countPaintedTiles(uint32_t id) const;
+	// Apaga o carimbo desta zona de todo tile que a tenha, e devolve quantos.
+	//
+	// POR QUE ISTO EXISTE: o id vive em DOIS lugares -- no tile (OTBM attr 25) e
+	// no sidecar (metadata). removeZone() so tira o segundo, entao a area seguia
+	// carimbada e o server continuava lendo aquele id; como o id e um espaco
+	// global, ela passava a responder como a zona de OUTRO mapa que usasse o
+	// mesmo numero. Despintar a mao nao e alternativa: mapa real chega a milhoes
+	// de tiles marcados.
+	//
+	// NAO passa pelo sistema de undo: guardar o estado de milhoes de tiles custaria
+	// mais que a operacao. Quem chama avisa o usuario.
+	size_t clearPaintedTiles(uint32_t id);
+
 	// Walks the map and rebuilds every zone's bounds from scratch. Only needed
 	// after erasing tiles (the incremental path never shrinks a box) -- the palette
 	// exposes it as "Recenter". O(map), so never call it per frame.

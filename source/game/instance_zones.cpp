@@ -65,6 +65,46 @@ std::vector<InstanceZone*> InstanceZones::getOrdered() const {
 	return ordered;
 }
 
+size_t InstanceZones::countPaintedTiles(uint32_t id) const {
+	if (id == 0) {
+		return 0;
+	}
+	size_t count = 0;
+	for (MapIterator it = map.begin(); it != map.end(); ++it) {
+		const Tile* tile = (*it).get();
+		if (tile && tile->getInstanceZoneId() == id) {
+			++count;
+		}
+	}
+	return count;
+}
+
+size_t InstanceZones::clearPaintedTiles(uint32_t id) {
+	// Guard: 0 e "nenhuma zona", entao varrer por ele apagaria nada e percorreria
+	// o mapa inteiro a toa.
+	if (id == 0) {
+		return 0;
+	}
+
+	size_t cleared = 0;
+	for (MapIterator it = map.begin(); it != map.end(); ++it) {
+		Tile* tile = (*it).get();
+		if (!tile || tile->getInstanceZoneId() != id) {
+			continue;
+		}
+		tile->setInstanceZoneId(0);
+		++cleared;
+	}
+
+	// Os bounds da zona morrem junto com ela; se a zona continuar existindo (uso
+	// futuro: "limpar sem remover"), o box precisa deixar de apontar para a area
+	// que acabou de ser apagada -- ele so cresce, entao nao encolhe sozinho.
+	if (InstanceZone* zone = getZone(id)) {
+		zone->clearBounds();
+	}
+	return cleared;
+}
+
 void InstanceZones::recalculateBounds() {
 	for (const auto& entry : zones) {
 		entry.second->clearBounds();

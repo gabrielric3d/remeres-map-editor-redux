@@ -270,14 +270,47 @@ void InstanceZonePalettePanel::OnClickRemove(wxCommandEvent& WXUNUSED(event)) {
 	if (id == 0) {
 		return;
 	}
-	const int answer = wxMessageBox("Remove this instance zone? Tiles painted with it will keep the id until repainted.",
-		"Remove Instance Zone", wxYES_NO | wxICON_WARNING | wxCENTER, this);
-	if (answer != wxYES) {
-		return;
+	// O id vive em DOIS lugares: no tile (OTBM attr 25) e aqui no metadata. Remover
+	// so o metadata deixava a area carimbada, e como o id e um espaco GLOBAL ela
+	// passava a responder como a zona de outro mapa que usasse o mesmo numero --
+	// silenciosamente, porque o server le o TILE. Contar antes de perguntar porque
+	// a escala e o que decide a resposta: mapa de producao chega a milhoes de tiles
+	// marcados, e ali "eu despinto depois na mao" nao e uma opcao real.
+	const size_t painted = map->instance_zones.countPaintedTiles(id);
+
+	size_t cleared = 0;
+	if (painted == 0) {
+		if (wxMessageBox("Remove this instance zone?", "Remove Instance Zone",
+				wxYES_NO | wxICON_QUESTION | wxCENTER, this) != wxYES) {
+			return;
+		}
+	} else {
+		wxString question;
+		question << "Remove this instance zone?\n\n"
+			<< static_cast<unsigned long>(painted) << " tile(s) are painted with it.\n\n"
+			<< "Yes     -  remove the zone AND clear those tiles (cannot be undone)\n"
+			<< "No      -  remove only the zone, leaving the tiles painted\n"
+			<< "Cancel  -  keep everything";
+		const int answer = wxMessageBox(question, "Remove Instance Zone",
+			wxYES_NO | wxCANCEL | wxICON_WARNING | wxCENTER, this);
+		if (answer == wxCANCEL) {
+			return;
+		}
+		// wxNO mantem o comportamento antigo de proposito: e o caminho de RENUMERAR
+		// (tirar o metadata, repintar os tiles com outro id depois). So deixou de ser
+		// o default, que era o que fazia a pintura sobreviver sem ninguem perceber.
+		if (answer == wxYES) {
+			cleared = map->instance_zones.clearPaintedTiles(id);
+		}
 	}
+
 	map->instance_zones.removeZone(id);
 	map->doChange();
 	UpdateList();
+	if (cleared > 0) {
+		// Redesenha: o tint da zona sai dos tiles no mesmo instante.
+		g_gui.RefreshView();
+	}
 }
 
 void InstanceZonePalettePanel::OnClickRecenter(wxCommandEvent& WXUNUSED(event)) {
