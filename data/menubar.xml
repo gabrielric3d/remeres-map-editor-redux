@@ -196,6 +196,7 @@
 		<item name="Show sound zones" hotkey="" action="SHOW_SOUND_ZONES" help="Show painted ambient sound zones (each zone tinted with its own color)."/>
 		<item name="Show instance zones" hotkey="" action="SHOW_INSTANCE_ZONES" help="Show painted instance zones (each zone tinted with its own color, with its name and instance count labelled on the map)."/>
 		<item name="Instance zones: solid fill" hotkey="" action="INSTANCE_ZONE_SOLID_FILL" help="Paint each instance zone as a solid block of its own color instead of a translucent tint. Makes the zone outline obvious, but hides the selection and brush preview underneath. Requires Show instance zones."/>
+		<item name="Show world boss areas" hotkey="" action="SHOW_WORLDBOSS_ZONES" help="Tint tiles flagged as World Boss (amber) and write &quot;World Boss&quot; over the middle of each painted area. The flag makes the server send combat effects only to whoever caused them."/>
 		<item name="Show pathing" hotkey="O" action="SHOW_PATHING" help="Show blocking tiles."/>
 		<item name="Show towns" hotkey="" action="SHOW_TOWNS" help="Show temple positions."/>
 		<item name="Show waypoints" hotkey="Shift+W" action="SHOW_WAYPOINTS" help="Show waypoints."/>
