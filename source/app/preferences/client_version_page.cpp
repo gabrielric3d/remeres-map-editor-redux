@@ -341,6 +341,12 @@ void ClientVersionPage::PopulateClientTree() {
 	}
 	populating_tree = true;
 
+	// Silencia a arvore durante TODA a reconstrucao, e nao so na hora de
+	// selecionar: DeleteAllItems tambem dispara selecao. Salva/restaura em vez de
+	// zerar porque quem chama pode ja estar silenciando por conta propria.
+	const bool previous_ignore_tree_selection = ignore_tree_selection;
+	ignore_tree_selection = true;
+
 	ClientVersion* preferred_selection = active_client;
 	client_tree_ctrl->Freeze();
 	client_tree_ctrl->DeleteAllItems();
@@ -391,7 +397,6 @@ void ClientVersionPage::PopulateClientTree() {
 		client_tree_ctrl->Expand(group_to_expand);
 	}
 
-	ignore_tree_selection = true;
 	if (item_to_select.IsOk()) {
 		client_tree_ctrl->SelectItem(item_to_select);
 		client_tree_ctrl->EnsureVisible(item_to_select);
@@ -401,7 +406,7 @@ void ClientVersionPage::PopulateClientTree() {
 	} else {
 		client_tree_ctrl->UnselectAll();
 	}
-	ignore_tree_selection = false;
+	ignore_tree_selection = previous_ignore_tree_selection;
 	client_tree_ctrl->Thaw();
 	populating_tree = false;
 }
@@ -978,8 +983,13 @@ void ClientVersionPage::OnSelectItemsFile(wxCommandEvent& WXUNUSED(event)) {
 	RefreshSummary();
 }
 
-void ClientVersionPage::OnClientSelected(wxTreeEvent& WXUNUSED(event)) {
+void ClientVersionPage::OnClientSelected(wxTreeEvent& event) {
 	if (ignore_tree_selection) {
+		return;
+	}
+
+	// Ignore selection events queued for items removed during a tree rebuild.
+	if (!event.GetItem().IsOk() || event.GetItem() != client_tree_ctrl->GetSelection()) {
 		return;
 	}
 
@@ -998,7 +1008,7 @@ void ClientVersionPage::OnClientSelected(wxTreeEvent& WXUNUSED(event)) {
 		return;
 	}
 
-	if (had_dirty_changes) {
+	if (had_dirty_changes && !previous_client->isDirty()) {
 		PopulateDefaultVersionChoice();
 		PopulateClientTree();
 		ignore_tree_selection = true;
