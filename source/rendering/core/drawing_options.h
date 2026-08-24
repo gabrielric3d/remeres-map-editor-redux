@@ -42,6 +42,7 @@ struct DrawingOptions {
 	bool show_sound_zones; // BlackTalon: tint ambient sound zones by color
 	bool show_instance_zones; // BlackTalon: tint instance zones by color
 	bool solid_instance_zones; // BlackTalon: opaque fill instead of tint (needs the above)
+	bool show_worldboss_zones; // BlackTalon: tint + rotulo "World Boss" nas arenas com a flag 0x40
 	bool show_shade;
 	bool show_special_tiles;
 	bool show_items;

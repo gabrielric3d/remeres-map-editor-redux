@@ -262,6 +262,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/stair_direction_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/zone_overlay_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/zone_label_drawer.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/worldboss_label_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/floor_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/shade_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/tile_color_calculator.h
@@ -696,6 +697,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/stair_direction_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/zone_overlay_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/zone_label_drawer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/worldboss_label_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/floor_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/shade_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/tile_color_calculator.cpp

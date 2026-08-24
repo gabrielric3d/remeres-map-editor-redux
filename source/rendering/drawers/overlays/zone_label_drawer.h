@@ -36,6 +36,7 @@ enum class ZoneLabelIcon {
 	None,
 	Music,    // sound zones
 	Instance, // instance zones -- stacked copies
+	Boss,     // arenas World Boss -- caveira
 };
 
 struct ZoneLabel {

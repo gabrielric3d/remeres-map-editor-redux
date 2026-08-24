@@ -56,6 +56,7 @@ namespace Config {
 		SHOW_SOUND_ZONES,
 		SHOW_INSTANCE_ZONES,
 		INSTANCE_ZONE_SOLID_FILL, // BlackTalon: pintar a zona opaca em vez de tint
+		SHOW_WORLDBOSS_ZONES, // BlackTalon: tint + rotulo das arenas World Boss
 		SHOW_SHADE,
 		SHOW_SPECIAL_TILES,
 		HIGHLIGHT_ITEMS,

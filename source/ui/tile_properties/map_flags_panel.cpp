@@ -21,11 +21,14 @@ MapFlagsPanel::MapFlagsPanel(wxWindow* parent) :
 	chk_nopvp = newd wxCheckBox(sizer->GetStaticBox(), wxID_ANY, "No PvP");
 	chk_nologout = newd wxCheckBox(sizer->GetStaticBox(), wxID_ANY, "No Logout");
 	chk_pvpzone = newd wxCheckBox(sizer->GetStaticBox(), wxID_ANY, "PvP Zone");
+	// BlackTalon: flag 0x40 -- efeitos de combate so para quem causou.
+	chk_worldboss = newd wxCheckBox(sizer->GetStaticBox(), wxID_ANY, "World Boss");
 
 	sizer->Add(chk_pz, wxSizerFlags(0).Left().Border(wxALL, 2));
 	sizer->Add(chk_nopvp, wxSizerFlags(0).Left().Border(wxALL, 2));
 	sizer->Add(chk_nologout, wxSizerFlags(0).Left().Border(wxALL, 2));
 	sizer->Add(chk_pvpzone, wxSizerFlags(0).Left().Border(wxALL, 2));
+	sizer->Add(chk_worldboss, wxSizerFlags(0).Left().Border(wxALL, 2));
 
 	SetSizer(sizer);
 
@@ -33,6 +36,7 @@ MapFlagsPanel::MapFlagsPanel(wxWindow* parent) :
 	chk_nopvp->Bind(wxEVT_CHECKBOX, &MapFlagsPanel::OnToggleFlag, this);
 	chk_nologout->Bind(wxEVT_CHECKBOX, &MapFlagsPanel::OnToggleFlag, this);
 	chk_pvpzone->Bind(wxEVT_CHECKBOX, &MapFlagsPanel::OnToggleFlag, this);
+	chk_worldboss->Bind(wxEVT_CHECKBOX, &MapFlagsPanel::OnToggleFlag, this);
 }
 
 MapFlagsPanel::~MapFlagsPanel() {
@@ -47,21 +51,25 @@ void MapFlagsPanel::SetTile(Tile* tile, Map* map) {
 		chk_nopvp->SetValue(tile->getMapFlags() & TILESTATE_NOPVP);
 		chk_nologout->SetValue(tile->getMapFlags() & TILESTATE_NOLOGOUT);
 		chk_pvpzone->SetValue(tile->getMapFlags() & TILESTATE_PVPZONE);
+		chk_worldboss->SetValue(tile->isWorldBoss());
 
 		chk_pz->Enable(true);
 		chk_nopvp->Enable(true);
 		chk_nologout->Enable(true);
 		chk_pvpzone->Enable(true);
+		chk_worldboss->Enable(true);
 	} else {
 		chk_pz->SetValue(false);
 		chk_nopvp->SetValue(false);
 		chk_nologout->SetValue(false);
 		chk_pvpzone->SetValue(false);
+		chk_worldboss->SetValue(false);
 
 		chk_pz->Enable(false);
 		chk_nopvp->Enable(false);
 		chk_nologout->Enable(false);
 		chk_pvpzone->Enable(false);
+		chk_worldboss->Enable(false);
 	}
 }
 
@@ -94,6 +102,12 @@ void MapFlagsPanel::OnToggleFlag(wxCommandEvent& event) {
 		new_tile->setMapFlags(new_tile->getMapFlags() | TILESTATE_PVPZONE);
 	} else {
 		new_tile->unsetMapFlags(TILESTATE_PVPZONE);
+	}
+
+	if (chk_worldboss->GetValue()) {
+		new_tile->setMapFlags(new_tile->getMapFlags() | TILESTATE_WORLDBOSS);
+	} else {
+		new_tile->unsetMapFlags(TILESTATE_WORLDBOSS);
 	}
 
 	Tile* old_ptr = new_tile.get();

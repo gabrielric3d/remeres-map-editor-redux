@@ -19,7 +19,12 @@ namespace {
 		TILESTATE_NOPVP |
 		TILESTATE_NOLOGOUT |
 		TILESTATE_PVPZONE |
-		TILESTATE_REFRESH;
+		TILESTATE_REFRESH |
+		// BlackTalon: sem o World Boss aqui o bit 0x40 cairia em
+		// recordUnknownMapFlags() -- o tile viraria "mismatch estrutural" e a flag
+		// ficaria presa em invalidZones, que setMapFlags() re-injeta a cada escrita
+		// (ou seja: o brush pintaria mas nunca conseguiria apagar).
+		TILESTATE_WORLDBOSS;
 
 	uint16_t decodeServerIdFromInlineBytes(const std::vector<uint8_t>& rawBytes) {
 		if (rawBytes.size() < 3) {

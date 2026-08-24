@@ -90,6 +90,18 @@ void TileColorCalculator::Calculate(const Tile* tile, const DrawingOptions& opti
 	if (showspecial && tile->getMapFlags() & TILESTATE_NOPVP) {
 		g >>= 1;
 	}
+
+	// BlackTalon: World Boss puxa o tile para o ambar/dourado. Sem esse tint o
+	// mapper pintaria a flag e nao veria nada mudar no mapa.
+	//
+	// Interruptor PROPRIO, e nao o showspecial das flags vanilla (PZ/PVP/NOLOGOUT):
+	// esta flag e uma otimizacao so nossa e vem acompanhada de um rotulo no mapa,
+	// entao ela liga e desliga junto com o rotulo, num unico item de View. Pendurar
+	// no showspecial daria dois interruptores para a mesma coisa.
+	if (options.show_worldboss_zones && (tile->getMapFlags() & TILESTATE_WORLDBOSS)) {
+		g = static_cast<uint8_t>((g * 200) >> 8);
+		b >>= 2;
+	}
 }
 
 void TileColorCalculator::GetHouseColor(uint32_t house_id, uint8_t& r, uint8_t& g, uint8_t& b) {

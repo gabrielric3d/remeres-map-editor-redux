@@ -102,6 +102,46 @@ namespace {
 		}
 	}
 
+	// Caveira: UM unico path, com as orbitas e o nariz entrando como FUROS
+	// (nvgPathWinding + NVG_HOLE). Furo em vez de desenhar por cima porque o icone
+	// e pintado duas vezes -- uma copia escura deslocada, para contorno, e a real --
+	// e as duas passadas recebem UMA cor so: um "olho" pintado de escuro sumiria
+	// na copia de contorno e viraria borrao.
+	void drawBossIcon(NVGcontext* vg, float cx, float cy, float size, NVGcolor color) {
+		const float skull_w = size * 0.72f;
+		const float skull_h = size * 0.60f;
+		const float top = cy - size * 0.42f;
+		const float left = cx - skull_w * 0.5f;
+		const float jaw_w = skull_w * 0.52f;
+		const float jaw_h = size * 0.22f;
+		const float eye_r = skull_w * 0.155f;
+		const float eye_y = top + skull_h * 0.44f;
+
+		nvgFillColor(vg, color);
+		nvgBeginPath(vg);
+
+		// cranio + mandibula: dois retangulos solidos que se sobrepoem de proposito,
+		// o preenchimento nonzero funde os dois numa silhueta so.
+		nvgRoundedRect(vg, left, top, skull_w, skull_h, skull_w * 0.42f);
+		nvgRoundedRect(vg, cx - jaw_w * 0.5f, top + skull_h - jaw_h * 0.3f, jaw_w, jaw_h, jaw_w * 0.18f);
+
+		// orbitas
+		nvgCircle(vg, cx - skull_w * 0.21f, eye_y, eye_r);
+		nvgPathWinding(vg, NVG_HOLE);
+		nvgCircle(vg, cx + skull_w * 0.21f, eye_y, eye_r);
+		nvgPathWinding(vg, NVG_HOLE);
+
+		// nariz: triangulo pequeno entre as orbitas, o que faz a silhueta ler como
+		// caveira em vez de "rosto redondo" nos tamanhos pequenos.
+		nvgMoveTo(vg, cx, eye_y + eye_r * 0.55f);
+		nvgLineTo(vg, cx - size * 0.055f, top + skull_h * 0.80f);
+		nvgLineTo(vg, cx + size * 0.055f, top + skull_h * 0.80f);
+		nvgClosePath(vg);
+		nvgPathWinding(vg, NVG_HOLE);
+
+		nvgFill(vg);
+	}
+
 	void drawIcon(NVGcontext* vg, ZoneLabelIcon icon, float cx, float cy, float size, NVGcolor color) {
 		switch (icon) {
 			case ZoneLabelIcon::Music:
@@ -109,6 +149,9 @@ namespace {
 				break;
 			case ZoneLabelIcon::Instance:
 				drawInstanceIcon(vg, cx, cy, size, color);
+				break;
+			case ZoneLabelIcon::Boss:
+				drawBossIcon(vg, cx, cy, size, color);
 				break;
 			case ZoneLabelIcon::None:
 			default:

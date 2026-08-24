@@ -302,6 +302,14 @@ void Settings::IO(IOMode mode) {
 	Bool(SHOW_SOUND_ZONES, true);
 	Bool(SHOW_INSTANCE_ZONES, true);
 	Bool(INSTANCE_ZONE_SOLID_FILL, false);
+	// BlackTalon: nasce DESLIGADO, ao contrario das outras zonas. As zonas de som e
+	// de instancia tem registro proprio no Map, entao o drawer delas sai por um
+	// `empty()` quando o mapa nao tem nenhuma. World Boss e so um bit no tile: nao
+	// ha o que consultar, e o rotulo precisa varrer a viewport para descobrir as
+	// areas. Ligado por padrao, isso custaria ~14 mil getTile por frame em TODO
+	// mapa, inclusive nos que nao tem um unico tile marcado -- que e o caso de
+	// todos hoje. Quem for mapear arena de boss liga no menu View.
+	Bool(SHOW_WORLDBOSS_ZONES, false);
 	Bool(SHOW_BLOCKING, false);
 	Bool(SHOW_TOOLTIPS, true);
 	Bool(SHOW_ONLY_TILEFLAGS, false);

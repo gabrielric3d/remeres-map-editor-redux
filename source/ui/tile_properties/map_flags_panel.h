@@ -25,6 +25,7 @@ protected:
 	wxCheckBox* chk_nopvp;
 	wxCheckBox* chk_nologout;
 	wxCheckBox* chk_pvpzone;
+	wxCheckBox* chk_worldboss;
 
 	Tile* current_tile;
 	Map* current_map;

@@ -33,6 +33,7 @@ void DrawingOptions::SetDefault() {
 	show_sound_zones = true;
 	show_instance_zones = true;
 	solid_instance_zones = false; // opt-in: esconde selecao e brush enquanto ligado
+	show_worldboss_zones = true;
 	show_shade = true;
 	show_special_tiles = true;
 	show_items = true;
@@ -93,6 +94,7 @@ void DrawingOptions::SetIngame() {
 	show_sound_zones = false;
 	show_instance_zones = false;
 	solid_instance_zones = false;
+	show_worldboss_zones = false;
 	show_shade = false;
 	show_special_tiles = false;
 	show_items = true;
@@ -145,6 +147,7 @@ void DrawingOptions::Update() {
 	show_sound_zones = g_settings.getBoolean(Config::SHOW_SOUND_ZONES);
 	show_instance_zones = g_settings.getBoolean(Config::SHOW_INSTANCE_ZONES);
 	solid_instance_zones = g_settings.getBoolean(Config::INSTANCE_ZONE_SOLID_FILL);
+	show_worldboss_zones = g_settings.getBoolean(Config::SHOW_WORLDBOSS_ZONES);
 	show_shade = g_settings.getBoolean(Config::SHOW_SHADE);
 	show_special_tiles = g_settings.getBoolean(Config::SHOW_SPECIAL_TILES);
 	show_items = g_settings.getBoolean(Config::SHOW_ITEMS);

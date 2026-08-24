@@ -24,6 +24,7 @@ BrushToolBar::BrushToolBar(wxWindow* parent) {
 	wxBitmap nopvp_bitmap = IMAGE_MANAGER.GetBitmap(IMAGE_NO_PVP_ZONE_SMALL, icon_size);
 	wxBitmap nologout_bitmap = IMAGE_MANAGER.GetBitmap(IMAGE_NO_LOGOUT_ZONE_SMALL, icon_size);
 	wxBitmap pvp_bitmap = IMAGE_MANAGER.GetBitmap(IMAGE_PVP_ZONE_SMALL, icon_size);
+	wxBitmap world_boss_bitmap = IMAGE_MANAGER.GetBitmap(IMAGE_WORLD_BOSS_SMALL, icon_size);
 	wxBitmap normal_bitmap = IMAGE_MANAGER.GetBitmap(IMAGE_DOOR_NORMAL_SMALL, icon_size);
 	wxBitmap locked_bitmap = IMAGE_MANAGER.GetBitmap(IMAGE_DOOR_LOCKED_SMALL, icon_size);
 	wxBitmap magic_bitmap = IMAGE_MANAGER.GetBitmap(IMAGE_DOOR_MAGIC_SMALL, icon_size);
@@ -34,7 +35,11 @@ BrushToolBar::BrushToolBar(wxWindow* parent) {
 	wxBitmap hatch_bitmap = IMAGE_MANAGER.GetBitmap(IMAGE_WINDOW_HATCH_SMALL, icon_size);
 	wxBitmap window_bitmap = IMAGE_MANAGER.GetBitmap(IMAGE_WINDOW_NORMAL_SMALL, icon_size);
 
-	toolbar = newd wxAuiToolBar(parent, TOOLBAR_BRUSHES, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE);
+	// BlackTalon: wxAUI_TB_OVERFLOW junto do estilo padrao (que e 0). Sem ele, o
+	// toolbar recorta em silencio o que nao couber na largura salva no layout --
+	// e a largura salva foi medida com uma ferramenta a menos, entao o botao do
+	// FIM da fila sumiria sem aviso. Com o chevron o excedente vira menu.
+	toolbar = newd wxAuiToolBar(parent, TOOLBAR_BRUSHES, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_OVERFLOW);
 	toolbar->SetToolBitmapSize(icon_size);
 	toolbar->AddTool(PALETTE_TERRAIN_OPTIONAL_BORDER_TOOL, wxEmptyString, border_bitmap, wxNullBitmap, wxITEM_CHECK, "Border (Add borders to ground)", "Add automatic borders to ground tiles", nullptr);
 	toolbar->AddTool(PALETTE_TERRAIN_ERASER, wxEmptyString, eraser_bitmap, wxNullBitmap, wxITEM_CHECK, "Eraser (Clear tile content)", "Clear content from tiles", nullptr);
@@ -43,6 +48,9 @@ BrushToolBar::BrushToolBar(wxWindow* parent) {
 	toolbar->AddTool(PALETTE_TERRAIN_NOPVP_TOOL, wxEmptyString, nopvp_bitmap, wxNullBitmap, wxITEM_CHECK, "No PvP Zone (Non-PvP area)", "Mark area as No PvP Zone", nullptr);
 	toolbar->AddTool(PALETTE_TERRAIN_NOLOGOUT_TOOL, wxEmptyString, nologout_bitmap, wxNullBitmap, wxITEM_CHECK, "No Logout Zone (Prevents logout)", "Mark area as No Logout Zone", nullptr);
 	toolbar->AddTool(PALETTE_TERRAIN_PVPZONE_TOOL, wxEmptyString, pvp_bitmap, wxNullBitmap, wxITEM_CHECK, "PvP Zone (Combat area)", "Mark area as PvP Zone", nullptr);
+	// BlackTalon: fica logo ao lado do PvP Zone de proposito -- e a flag 0x40 que
+	// faz o servidor mandar os efeitos de combate so para quem causou.
+	toolbar->AddTool(PALETTE_TERRAIN_WORLDBOSS_TOOL, wxEmptyString, world_boss_bitmap, wxNullBitmap, wxITEM_CHECK, "World Boss Zone (Combat effects only to the source)", "Mark area as World Boss Zone", nullptr);
 	toolbar->AddSeparator();
 
 	toolbar->AddTool(PALETTE_TERRAIN_NORMAL_DOOR, wxEmptyString, normal_bitmap, wxNullBitmap, wxITEM_CHECK, "Normal Door", "Place normal door", nullptr);
@@ -78,6 +86,7 @@ void BrushToolBar::Update() {
 	updateTool(PALETTE_TERRAIN_NOPVP_TOOL, "No PvP Zone (Non-PvP area)");
 	updateTool(PALETTE_TERRAIN_NOLOGOUT_TOOL, "No Logout Zone (Prevents logout)");
 	updateTool(PALETTE_TERRAIN_PVPZONE_TOOL, "PvP Zone (Combat area)");
+	updateTool(PALETTE_TERRAIN_WORLDBOSS_TOOL, "World Boss Zone (Combat effects only to the source)");
 	updateTool(PALETTE_TERRAIN_NORMAL_DOOR, "Normal Door");
 	updateTool(PALETTE_TERRAIN_LOCKED_DOOR, "Locked Door");
 	updateTool(PALETTE_TERRAIN_MAGIC_DOOR, "Magic Door");
@@ -95,6 +104,7 @@ void BrushToolBar::Update() {
 		toolbar->ToggleTool(PALETTE_TERRAIN_NOPVP_TOOL, brush == g_brush_manager.rook_brush);
 		toolbar->ToggleTool(PALETTE_TERRAIN_NOLOGOUT_TOOL, brush == g_brush_manager.nolog_brush);
 		toolbar->ToggleTool(PALETTE_TERRAIN_PVPZONE_TOOL, brush == g_brush_manager.pvp_brush);
+		toolbar->ToggleTool(PALETTE_TERRAIN_WORLDBOSS_TOOL, brush == g_brush_manager.world_boss_brush);
 		toolbar->ToggleTool(PALETTE_TERRAIN_NORMAL_DOOR, brush == g_brush_manager.normal_door_brush);
 		toolbar->ToggleTool(PALETTE_TERRAIN_LOCKED_DOOR, brush == g_brush_manager.locked_door_brush);
 		toolbar->ToggleTool(PALETTE_TERRAIN_MAGIC_DOOR, brush == g_brush_manager.magic_door_brush);
@@ -111,6 +121,7 @@ void BrushToolBar::Update() {
 		toolbar->ToggleTool(PALETTE_TERRAIN_NOPVP_TOOL, false);
 		toolbar->ToggleTool(PALETTE_TERRAIN_NOLOGOUT_TOOL, false);
 		toolbar->ToggleTool(PALETTE_TERRAIN_PVPZONE_TOOL, false);
+		toolbar->ToggleTool(PALETTE_TERRAIN_WORLDBOSS_TOOL, false);
 		toolbar->ToggleTool(PALETTE_TERRAIN_NORMAL_DOOR, false);
 		toolbar->ToggleTool(PALETTE_TERRAIN_LOCKED_DOOR, false);
 		toolbar->ToggleTool(PALETTE_TERRAIN_MAGIC_DOOR, false);
@@ -147,6 +158,9 @@ void BrushToolBar::OnToolbarClick(wxCommandEvent& event) {
 			break;
 		case PALETTE_TERRAIN_PVPZONE_TOOL:
 			g_gui.SelectBrush(g_brush_manager.pvp_brush);
+			break;
+		case PALETTE_TERRAIN_WORLDBOSS_TOOL:
+			g_gui.SelectBrush(g_brush_manager.world_boss_brush);
 			break;
 		case PALETTE_TERRAIN_NORMAL_DOOR:
 			g_gui.SelectBrush(g_brush_manager.normal_door_brush);

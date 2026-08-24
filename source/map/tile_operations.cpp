@@ -173,6 +173,12 @@ namespace TileOperations {
 		if (src->instanceZoneId) {
 			dest->instanceZoneId = src->instanceZoneId; // BlackTalon
 		}
+		// BlackTalon: World Boss junto do PZ. Sem esta linha, colar com MERGE_PASTE
+		// ligado por cima de chao existente perderia a flag -- e ficaria a assimetria
+		// de o PZ sobreviver e o World Boss nao.
+		if (src->getMapFlags() & TILESTATE_WORLDBOSS) {
+			dest->setWorldBoss(true);
+		}
 
 		if (src->ground) {
 			dest->ground = std::move(src->ground);

@@ -42,6 +42,7 @@ BrushManager::BrushManager() :
 	rook_brush(nullptr),
 	nolog_brush(nullptr),
 	pvp_brush(nullptr),
+	world_boss_brush(nullptr),
 
 	current_brush(nullptr),
 	previous_brush(nullptr),
@@ -154,6 +155,7 @@ void BrushManager::Clear() {
 	rook_brush = nullptr;
 	nolog_brush = nullptr;
 	pvp_brush = nullptr;
+	world_boss_brush = nullptr;
 }
 
 BrushShape BrushManager::GetBrushShape() const {

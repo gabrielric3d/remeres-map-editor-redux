@@ -477,6 +477,10 @@ std::vector<Brush*> ToolOptionsSurface::GetDefaultTools() const {
 	if (g_brush_manager.pvp_brush) {
 		brushes.push_back(g_brush_manager.pvp_brush);
 	}
+	// BlackTalon: World Boss entra logo depois do PvP Zone, mesma fileira de flags.
+	if (g_brush_manager.world_boss_brush) {
+		brushes.push_back(g_brush_manager.world_boss_brush);
+	}
 	if (g_brush_manager.normal_door_brush) {
 		brushes.push_back(g_brush_manager.normal_door_brush);
 	}

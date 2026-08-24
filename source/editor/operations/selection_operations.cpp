@@ -707,7 +707,9 @@ void SelectionOperations::destroySelection(Editor& editor) {
 		// zone mapflags from tiles whose ground is deleted, so erasing an area does
 		// not leave orphaned PZ/PVP markers behind.
 		const bool remove_zones = g_settings.getBoolean(Config::DELETE_REMOVES_ZONES);
-		constexpr uint32_t ZONE_MAPFLAGS = TILESTATE_PROTECTIONZONE | TILESTATE_NOPVP | TILESTATE_NOLOGOUT | TILESTATE_PVPZONE;
+		// World Boss entra junto: apagar o chao de uma arena e deixar o 0x40 orfao
+		// faria o servidor otimizar efeitos num lugar que nao existe mais.
+		constexpr uint32_t ZONE_MAPFLAGS = TILESTATE_PROTECTIONZONE | TILESTATE_NOPVP | TILESTATE_NOLOGOUT | TILESTATE_PVPZONE | TILESTATE_WORLDBOSS;
 		int zone_count = 0;
 
 		std::unique_ptr<BatchAction> batch = editor.actionQueue->createBatch(ACTION_DELETE_TILES);

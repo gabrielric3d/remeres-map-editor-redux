@@ -341,6 +341,9 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 	if (options.show_instance_zones || options.show_sound_zones) {
 		drawer->DrawPaintedZoneLabels(vg);
 	}
+	if (options.show_worldboss_zones) {
+		drawer->DrawWorldBossLabels(vg);
+	}
 	if (drawer->getLuaOverlayDrawer()) {
 		drawer->getLuaOverlayDrawer()->DrawUI(vg, drawer->getView(), options);
 	}

@@ -197,6 +197,8 @@ public:
 	FlagBrush* rook_brush;
 	FlagBrush* nolog_brush;
 	FlagBrush* pvp_brush;
+	// BlackTalon: pinta TILESTATE_WORLDBOSS (0x40), a otimizacao de efeitos do servidor.
+	FlagBrush* world_boss_brush;
 
 private:
 	Brush* current_brush;

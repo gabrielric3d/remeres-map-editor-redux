@@ -48,6 +48,12 @@ enum {
 	TILESTATE_NOLOGOUT = 0x0008,
 	TILESTATE_PVPZONE = 0x0010,
 	TILESTATE_REFRESH = 0x0020,
+	// BlackTalon: World Boss. O valor bate com OTBM_TILEFLAG_WORLDBOSS = 1 << 6
+	// do servidor (src/iomap.h), que e o que o iomap.cpp le do OTBM para setar
+	// TILESTATE_WORLDBOSS no tile. Mora em Tile::mapflags (as externas), por isso
+	// nao colide com o TILESTATE_MODIFIED interno que tambem e 0x0040 mas vive em
+	// Tile::statflags -- mesmo padrao de PROTECTIONZONE 0x0001 vs SELECTED 0x0001.
+	TILESTATE_WORLDBOSS = 0x0040,
 	// Internal
 	TILESTATE_SELECTED = 0x0001,
 	TILESTATE_UNIQUE = 0x0002,
@@ -145,6 +151,20 @@ public: // Functions
 			mapflags |= TILESTATE_PROTECTIONZONE;
 		} else {
 			mapflags &= ~TILESTATE_PROTECTIONZONE;
+		}
+	}
+
+	// World Boss: nesses tiles o servidor manda numero de dano / efeito magico /
+	// efeito de distancia so para quem causou, em vez de para todos os espectadores.
+	// E a otimizacao que segura a carga nas arenas de boss lotadas.
+	bool isWorldBoss() const {
+		return testFlags(mapflags, TILESTATE_WORLDBOSS);
+	}
+	void setWorldBoss(bool worldBoss) {
+		if (worldBoss) {
+			mapflags |= TILESTATE_WORLDBOSS;
+		} else {
+			mapflags &= ~TILESTATE_WORLDBOSS;
 		}
 	}
 

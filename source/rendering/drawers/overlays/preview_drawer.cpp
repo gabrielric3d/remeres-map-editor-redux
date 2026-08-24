@@ -90,6 +90,17 @@ void PreviewDrawer::draw(SpriteBatch& sprite_batch, MapCanvas* canvas, const Ren
 						if (options.show_special_tiles && tile->getMapFlags() & TILESTATE_NOPVP) {
 							g /= 2;
 						}
+						// BlackTalon: mesmo tint ambar do World Boss usado no mapa, para o
+						// preview de colagem nao mentir sobre o que vai ser colado.
+						//
+						// MESMO interruptor e MESMA conta do tile_color_calculator: com
+						// gates diferentes, desligar "Show world boss areas" tirava o ambar
+						// do mapa e deixava o do preview (e vice-versa com o showspecial);
+						// com contas diferentes, as duas ambares apareciam lado a lado.
+						if (options.show_worldboss_zones && tile->getMapFlags() & TILESTATE_WORLDBOSS) {
+							g = static_cast<uint8_t>((g * 200) >> 8);
+							b >>= 2;
+						}
 						if (tile->ground) {
 							BlitItemParams params(tile, tile->ground.get(), options);
 							params.ephemeral = true;

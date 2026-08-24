@@ -72,6 +72,7 @@ class StairDirectionDrawer;
 class LuaOverlayDrawer;
 class ZoneOverlayDrawer;
 class ZoneLabelDrawer;
+class WorldBossLabelDrawer;
 
 class MapDrawer {
 	MapCanvas* canvas;
@@ -111,6 +112,7 @@ class MapDrawer {
 	std::unique_ptr<LuaOverlayDrawer> lua_overlay_drawer;
 	std::unique_ptr<ZoneOverlayDrawer> zone_overlay_drawer;
 	std::unique_ptr<ZoneLabelDrawer> zone_label_drawer;
+	std::unique_ptr<WorldBossLabelDrawer> worldboss_label_drawer;
 	std::unique_ptr<SpriteBatch> sprite_batch;
 	std::unique_ptr<PrimitiveRenderer> primitive_renderer;
 
@@ -168,6 +170,7 @@ public:
 	void DrawZoneOverlay();
 	void DrawZoneLabels(NVGcontext* vg);
 	void DrawPaintedZoneLabels(NVGcontext* vg);
+	void DrawWorldBossLabels(NVGcontext* vg);
 	void DrawSolidInstanceZones(NVGcontext* vg);
 
 	void TakeScreenshot(uint8_t* screenshot_buffer);

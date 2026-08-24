@@ -83,6 +83,7 @@
 #include "rendering/drawers/overlays/stair_direction_drawer.h"
 #include "rendering/drawers/overlays/zone_overlay_drawer.h"
 #include "rendering/drawers/overlays/zone_label_drawer.h"
+#include "rendering/drawers/overlays/worldboss_label_drawer.h"
 #include "game/instance_zones.h"
 #include "game/sound_zones.h"
 #include "map/tile.h"
@@ -150,6 +151,7 @@ MapDrawer::MapDrawer(MapCanvas* canvas) :
 	lua_overlay_drawer = std::make_unique<LuaOverlayDrawer>(this);
 	zone_overlay_drawer = std::make_unique<ZoneOverlayDrawer>();
 	zone_label_drawer = std::make_unique<ZoneLabelDrawer>();
+	worldboss_label_drawer = std::make_unique<WorldBossLabelDrawer>();
 
 	sprite_batch = std::make_unique<SpriteBatch>();
 	primitive_renderer = std::make_unique<PrimitiveRenderer>();
@@ -677,6 +679,19 @@ void MapDrawer::DrawPaintedZoneLabels(NVGcontext* vg) {
 	}
 
 	zone_label_drawer->draw(vg, view, floor, labels);
+}
+
+// BlackTalon: rotulo "World Boss" no centro de cada arena marcada.
+//
+// Nao cabe no DrawPaintedZoneLabels acima porque aquele caminho depende de a zona
+// ter IDENTIDADE (id no tile + bounds guardados no sidecar). World Boss e so um
+// bit: a regiao tem de ser descoberta por agrupamento a cada frame. Todo o custo
+// e as travas moram em worldboss_label_drawer.cpp.
+//
+// O ZoneLabelDrawer e o MESMO objeto usado pelas outras zonas, passado por
+// referencia: garante que fonte, contorno e clamp de borda nunca divirjam.
+void MapDrawer::DrawWorldBossLabels(NVGcontext* vg) {
+	worldboss_label_drawer->draw(vg, view, editor, canvas->floor, *zone_label_drawer);
 }
 
 void MapDrawer::DrawSolidInstanceZones(NVGcontext* vg) {

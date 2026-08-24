@@ -1770,6 +1770,10 @@ constexpr std::string_view IMAGE_PROTECTION_ZONE = "png/protection_zone.png";
 constexpr std::string_view IMAGE_PROTECTION_ZONE_SMALL = "png/protection_zone_small.png";
 constexpr std::string_view IMAGE_PVP_ZONE = "png/pvp_zone.png";
 constexpr std::string_view IMAGE_PVP_ZONE_SMALL = "png/pvp_zone_small.png";
+// BlackTalon: brush da flag World Boss (0x40). Vermelho/dourado de proposito,
+// para nao ser confundido com o azul do PZ nem com o laranja do PvP.
+constexpr std::string_view IMAGE_WORLD_BOSS = "png/world_boss.png";
+constexpr std::string_view IMAGE_WORLD_BOSS_SMALL = "png/world_boss_small.png";
 constexpr std::string_view IMAGE_NO_PVP_ZONE = "png/no_pvp.png";
 constexpr std::string_view IMAGE_NO_PVP_ZONE_SMALL = "png/no_pvp_small.png";
 constexpr std::string_view IMAGE_NO_LOGOUT_ZONE = "png/no_logout.png";

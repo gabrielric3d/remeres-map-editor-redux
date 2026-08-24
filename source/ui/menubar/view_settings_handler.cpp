@@ -81,6 +81,7 @@ void ViewSettingsHandler::LoadValues() {
 	menuBar->CheckItem(SHOW_SOUND_ZONES, g_settings.getBoolean(Config::SHOW_SOUND_ZONES));
 	menuBar->CheckItem(SHOW_INSTANCE_ZONES, g_settings.getBoolean(Config::SHOW_INSTANCE_ZONES));
 	menuBar->CheckItem(INSTANCE_ZONE_SOLID_FILL, g_settings.getBoolean(Config::INSTANCE_ZONE_SOLID_FILL));
+	menuBar->CheckItem(SHOW_WORLDBOSS_ZONES, g_settings.getBoolean(Config::SHOW_WORLDBOSS_ZONES));
 	menuBar->CheckItem(SHOW_PATHING, g_settings.getBoolean(Config::SHOW_BLOCKING));
 	menuBar->CheckItem(SHOW_TOOLTIPS, g_settings.getBoolean(Config::SHOW_TOOLTIPS));
 	menuBar->CheckItem(SHOW_PREVIEW, g_settings.getBoolean(Config::SHOW_PREVIEW));
@@ -148,6 +149,7 @@ void ViewSettingsHandler::OnChangeViewSettings(wxCommandEvent& event) {
 	g_settings.setInteger(Config::SHOW_SOUND_ZONES, menuBar->IsItemChecked(SHOW_SOUND_ZONES));
 	g_settings.setInteger(Config::SHOW_INSTANCE_ZONES, menuBar->IsItemChecked(SHOW_INSTANCE_ZONES));
 	g_settings.setInteger(Config::INSTANCE_ZONE_SOLID_FILL, menuBar->IsItemChecked(INSTANCE_ZONE_SOLID_FILL));
+	g_settings.setInteger(Config::SHOW_WORLDBOSS_ZONES, menuBar->IsItemChecked(SHOW_WORLDBOSS_ZONES));
 	g_settings.setInteger(Config::HIGHLIGHT_ITEMS, menuBar->IsItemChecked(HIGHLIGHT_ITEMS));
 	g_settings.setInteger(Config::HIGHLIGHT_LOCKED_DOORS, menuBar->IsItemChecked(HIGHLIGHT_LOCKED_DOORS));
 	g_settings.setInteger(Config::SHOW_BLOCKING, menuBar->IsItemChecked(SHOW_PATHING));
