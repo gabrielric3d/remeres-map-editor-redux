@@ -1201,7 +1201,8 @@ void StructureManagerDialog::BuildCategoryTree() {
 		m_categoryTree->Expand(child);
 		child = m_categoryTree->GetNextChild(root, cookie);
 	}
-	if (firstChild.IsOk()) {
+	// A arvore usa wxTR_HIDE_ROOT: selecionar a raiz oculta dispara assert no MSW.
+	if (firstChild.IsOk() && firstChild != root) {
 		m_categoryTree->SelectItem(firstChild);
 	} else {
 		m_currentCategoryPath.clear();
@@ -1670,10 +1671,14 @@ void StructureManagerDialog::SelectCategoryByPath(const wxString& path) {
 		if (!node.IsOk()) {
 			return false;
 		}
-		CategoryItemData* data = static_cast<CategoryItemData*>(m_categoryTree->GetItemData(node));
-		if (data && data->categoryPath.CmpNoCase(path) == 0) {
-			m_categoryTree->SelectItem(node);
-			return true;
+		// A raiz e oculta (wxTR_HIDE_ROOT) e carrega categoryPath vazio: precisa ser
+		// percorrida para chegar aos filhos, mas seleciona-la dispara assert no MSW.
+		if (node != root) {
+			CategoryItemData* data = static_cast<CategoryItemData*>(m_categoryTree->GetItemData(node));
+			if (data && data->categoryPath.CmpNoCase(path) == 0) {
+				m_categoryTree->SelectItem(node);
+				return true;
+			}
 		}
 		wxTreeItemIdValue cookie;
 		wxTreeItemId child = m_categoryTree->GetFirstChild(node, cookie);
