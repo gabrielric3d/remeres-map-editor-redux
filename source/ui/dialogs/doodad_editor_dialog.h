@@ -42,19 +42,32 @@ class DoodadPreviewPanel;
 class DoodadListPanel;
 class DoodadSingleItemsPanel;
 
-// Grid size constants
-const int DOODAD_GRID_SIZE = 10;      // 10x10 grid
-const int DOODAD_GRID_CENTER = 5;     // Center position (0,0) is at index 5
+// Grid size constants.
+// The grid is a *window* over the composite, not the composite itself: a composite may
+// hold tiles at any offset (and on any floor), and the 10x10 grid shows one 10x10 slice
+// of one floor at a time. DOODAD_GRID_CENTER is only the default window origin, the one
+// that reproduces the historical -5..+4 view.
+const int DOODAD_GRID_SIZE = 10;      // 10x10 visible window
+const int DOODAD_GRID_CENTER = 5;     // Default origin: column 0 shows relative -5
 const int DOODAD_CELL_SIZE = 38;      // Pixel size of each cell
+
+// Z offsets accepted by the doodad loader.
+const int DOODAD_MIN_Z = -7;
+const int DOODAD_MAX_Z = 7;
+
+// X/Y range accepted by the doodad loader. The grid window origin is clamped to it, and the
+// View spin controls use the same range so panel and controls can never disagree.
+const int DOODAD_MAX_ORIGIN = 0x7FFF;
 
 // Pagination constants
 const int DOODADS_PER_PAGE = 50;
 
-// Represents a tile in the composite doodad
+// Represents a tile in the composite doodad.
+// Several entries may share the same (x, y, z): they form a stack, bottom first.
 struct DoodadTileItem {
-    int x;           // Relative X offset from center (-5 to +4)
-    int y;           // Relative Y offset from center (-5 to +4)
-    int z;           // Z offset (usually 0)
+    int x;           // Relative X offset from the composite anchor (any value)
+    int y;           // Relative Y offset from the composite anchor (any value)
+    int z;           // Z offset (-7 to +7, 0 = the floor the brush is painted on)
     uint16_t itemId;
 
     DoodadTileItem() : x(0), y(0), z(0), itemId(0) {}
@@ -108,6 +121,10 @@ public:
     void OnCompositeSelected(wxCommandEvent& event);
     void OnCompositeChanceChanged(wxSpinEvent& event);
     void OnClearGrid(wxCommandEvent& event);
+    void OnClearAllTiles(wxCommandEvent& event);
+    void OnAddCompositeFromSelection(wxCommandEvent& event);
+    void OnGridViewChanged(wxSpinEvent& event);
+    void OnGridFitView(wxCommandEvent& event);
     void OnSave(wxCommandEvent& event);
     void OnSaveToFile(wxCommandEvent& event);
     void OnBrowseGridItem(wxCommandEvent& event);
@@ -133,14 +150,42 @@ public:
     // Returns the name of the first doodad brush that owns `itemId`, or empty if none.
     wxString FindDoodadBrushNameByItemId(uint16_t itemId) const;
 
-    // Public methods for grid panel to access
-    void ApplyItemToGridPosition(int gridX, int gridY, uint16_t itemId);
+    // Public methods for grid panel to access.
+    // allowStack is the difference between a painting gesture (the mouse, a drop) and
+    // editing a value (the Item ID spin): only the former may grow a stack, otherwise every
+    // click on the spin arrows would pile one more item onto the cell.
+    void ApplyItemToGridPosition(int gridX, int gridY, uint16_t itemId, bool allowStack = true);
+    void RemoveTopItemFromGridPosition(int gridX, int gridY);
+    // Makes sure there is a composite to write into, without touching the grid window.
+    void EnsureCurrentComposite();
     void UpdateCompositeFromGrid();
     void UpdateGridFromComposite();
     uint16_t GetCurrentItemId() const;
     void LoadDoodadBrush(const wxString& brushName);
     void RemoveSingleItemAt(int index);
     void SelectSingleItemAt(int index);
+
+    // Turns the current map selection into composite tiles. X/Y are anchored on the
+    // selection bounding box (center or top-left, per the Anchor choice), Z is anchored on
+    // the floor the user is standing on — so tiles of that floor get z == 0 and land on the
+    // tile being painted. Same rule as Area Decoration's "Add Cluster From Selection"
+    // (area_decoration_dialog.cpp).
+    // The out params are diagnostics for the summary message.
+    // Returns false (after showing a message) when there is nothing usable.
+    bool BuildCompositeTilesFromSelection(std::vector<DoodadTileItem>& outTiles,
+                                          int& outFloorCount,
+                                          int& outDroppedZ);
+
+    // How many items of the current composite fall outside the grid window as it stands.
+    int CountItemsOutsideGridWindow() const;
+
+    // Moves the grid window so it shows the busiest part of the current composite.
+    void FitGridViewToComposite();
+    // Syncs the view spin controls with the grid panel without firing their events.
+    void SyncGridViewControls();
+    void UpdateGridInfoLabel();
+    // Rebuilds the composites listbox and restores m_currentCompositeIndex as selection.
+    void RefreshCompositeListLabels();
 
 protected:
     void CreateGUIControls();
@@ -193,6 +238,18 @@ public:
     wxSpinCtrl* m_compositeChanceCtrl;
     wxSpinCtrl* m_gridItemIdCtrl;
 
+    // Grid window controls (layer + origin of the visible 10x10 slice)
+    wxSpinCtrl* m_gridLayerCtrl;
+    wxSpinCtrl* m_gridOriginXCtrl;
+    wxSpinCtrl* m_gridOriginYCtrl;
+    wxStaticText* m_gridInfoLabel;
+    wxCheckBox* m_gridStackCheck;
+
+    // "From Selection" options
+    wxCheckBox* m_fromSelIncludeGroundCheck;
+    wxCheckBox* m_fromSelReplaceCheck;
+    wxChoice* m_fromSelAnchorChoice;
+
     // Grid panel for composite editing
     DoodadGridPanel* m_gridPanel;
 
@@ -224,37 +281,61 @@ private:
     DECLARE_EVENT_TABLE()
 };
 
-// Custom panel for the 10x10 grid editor
+// Custom panel for the 10x10 grid editor.
+// It is a movable window over the composite: SetView() picks which floor (layer) and which
+// 10x10 region of relative coordinates is on screen. Each cell holds a stack of items,
+// index 0 at the bottom and back() on top — the same order the map stacks them.
 class DoodadGridPanel : public wxPanel {
 public:
     DoodadGridPanel(wxWindow* parent, wxWindowID id = wxID_ANY);
     virtual ~DoodadGridPanel();
 
-    void SetItemAt(int gridX, int gridY, uint16_t itemId);
-    uint16_t GetItemAt(int gridX, int gridY) const;
-    void Clear();
+    void SetItemAt(int gridX, int gridY, uint16_t itemId);      // replaces the whole stack (0 clears it)
+    void PushItemAt(int gridX, int gridY, uint16_t itemId);     // stacks on top
+    void ReplaceTopItemAt(int gridX, int gridY, uint16_t itemId); // swaps the top item, keeps the stack
+    void PopItemAt(int gridX, int gridY);                       // removes the top item
+    uint16_t GetItemAt(int gridX, int gridY) const;          // top of the stack, 0 when empty
+    const std::vector<uint16_t>& GetStackAt(int gridX, int gridY) const;
+    void Clear();                                            // clears the visible window only
 
     void SetSelectedCell(int gridX, int gridY);
     void GetSelectedCell(int& gridX, int& gridY) const;
 
-    // Get all items in the grid
+    // Window placement. originX/originY are the relative coordinates shown by grid cell 0.
+    void SetView(int originX, int originY, int layer);
+    int GetOriginX() const { return m_originX; }
+    int GetOriginY() const { return m_originY; }
+    int GetLayer() const { return m_layer; }
+
+    // Items of the visible window only, stamped with the current layer as z.
     std::vector<DoodadTileItem> GetAllItems() const;
+    // Keeps only the items on the current layer that fall inside the window.
     void SetItems(const std::vector<DoodadTileItem>& items);
 
-    // Convert grid coordinates (0-9) to relative coordinates (-5 to +4)
-    static int GridToRelative(int gridCoord) { return gridCoord - DOODAD_GRID_CENTER; }
-    static int RelativeToGrid(int relCoord) { return relCoord + DOODAD_GRID_CENTER; }
+    // Convert grid coordinates (0-9) to composite-relative coordinates and back
+    int GridToRelativeX(int gridCoord) const { return gridCoord + m_originX; }
+    int GridToRelativeY(int gridCoord) const { return gridCoord + m_originY; }
+    int RelativeToGridX(int relCoord) const { return relCoord - m_originX; }
+    int RelativeToGridY(int relCoord) const { return relCoord - m_originY; }
+    bool IsInWindow(int relX, int relY) const {
+        return relX >= m_originX && relX < m_originX + DOODAD_GRID_SIZE &&
+               relY >= m_originY && relY < m_originY + DOODAD_GRID_SIZE;
+    }
 
     void OnPaint(wxPaintEvent& event);
     void OnMouseClick(wxMouseEvent& event);
     void OnMouseDown(wxMouseEvent& event);
+    void OnMouseRightUp(wxMouseEvent& event);
 
     // Public for drop target
     void GetCellFromCoordinates(int px, int py, int& gridX, int& gridY) const;
 
 private:
-    // Grid data: [gridX][gridY] -> itemId (0 = empty)
-    uint16_t m_grid[DOODAD_GRID_SIZE][DOODAD_GRID_SIZE];
+    // Grid data: [gridX][gridY] -> item stack (bottom first, empty = no item)
+    std::vector<uint16_t> m_grid[DOODAD_GRID_SIZE][DOODAD_GRID_SIZE];
+    int m_originX;   // relative X shown by grid column 0
+    int m_originY;   // relative Y shown by grid row 0
+    int m_layer;     // z offset currently on screen
     int m_selectedX;
     int m_selectedY;
 

@@ -20,6 +20,9 @@
 #include "ui/find_item_window.h"
 #include "rendering/core/graphics.h"
 #include "ui/gui.h"
+#include "editor/editor.h"
+#include "editor/selection.h"
+#include "map/tile.h"
 #include "brushes/brush.h"
 #include "brushes/doodad/doodad_brush.h"
 #include "brushes/raw/raw_brush.h"
@@ -38,6 +41,7 @@
 #include <wx/dnd.h>
 #include <wx/clipbrd.h>
 #include <algorithm>
+#include <climits>
 #include <map>
 #include <set>
 #include <sstream>
@@ -52,6 +56,12 @@ enum {
     ID_NEW_COMPOSITE,
     ID_REMOVE_COMPOSITE,
     ID_CLEAR_GRID,
+    ID_CLEAR_ALL_TILES,
+    ID_COMPOSITE_FROM_SELECTION,
+    ID_GRID_LAYER,
+    ID_GRID_ORIGIN_X,
+    ID_GRID_ORIGIN_Y,
+    ID_GRID_FIT_VIEW,
     ID_COMPOSITE_CHANCE,
     ID_GRID_ITEM_ID,
     ID_BROWSE_GRID_ITEM,
@@ -162,6 +172,12 @@ BEGIN_EVENT_TABLE(DoodadEditorDialog, wxPanel)
     EVT_BUTTON(ID_NEW_COMPOSITE, DoodadEditorDialog::OnNewComposite)
     EVT_BUTTON(ID_REMOVE_COMPOSITE, DoodadEditorDialog::OnRemoveComposite)
     EVT_BUTTON(ID_CLEAR_GRID, DoodadEditorDialog::OnClearGrid)
+    EVT_BUTTON(ID_CLEAR_ALL_TILES, DoodadEditorDialog::OnClearAllTiles)
+    EVT_BUTTON(ID_COMPOSITE_FROM_SELECTION, DoodadEditorDialog::OnAddCompositeFromSelection)
+    EVT_BUTTON(ID_GRID_FIT_VIEW, DoodadEditorDialog::OnGridFitView)
+    EVT_SPINCTRL(ID_GRID_LAYER, DoodadEditorDialog::OnGridViewChanged)
+    EVT_SPINCTRL(ID_GRID_ORIGIN_X, DoodadEditorDialog::OnGridViewChanged)
+    EVT_SPINCTRL(ID_GRID_ORIGIN_Y, DoodadEditorDialog::OnGridViewChanged)
     EVT_BUTTON(ID_BROWSE_GRID_ITEM, DoodadEditorDialog::OnBrowseGridItem)
     EVT_BUTTON(wxID_SAVE, DoodadEditorDialog::OnSave)
     EVT_BUTTON(ID_SAVE_TO_FILE, DoodadEditorDialog::OnSaveToFile)
@@ -185,6 +201,7 @@ BEGIN_EVENT_TABLE(DoodadGridPanel, wxPanel)
     EVT_PAINT(DoodadGridPanel::OnPaint)
     EVT_LEFT_UP(DoodadGridPanel::OnMouseClick)
     EVT_LEFT_DOWN(DoodadGridPanel::OnMouseDown)
+    EVT_RIGHT_UP(DoodadGridPanel::OnMouseRightUp)
 END_EVENT_TABLE()
 
 BEGIN_EVENT_TABLE(DoodadPreviewPanel, wxPanel)
@@ -203,6 +220,17 @@ DoodadEditorDialog::DoodadEditorDialog(wxWindow* parent) :
     m_isLoading(true),
     m_currentPage(0),
     m_totalPages(0) {
+
+    // Nulled before CreateGUIControls() so the null guards in UpdateGridInfoLabel() and
+    // friends are meaningful even if something calls them mid-construction.
+    m_gridLayerCtrl = nullptr;
+    m_gridOriginXCtrl = nullptr;
+    m_gridOriginYCtrl = nullptr;
+    m_gridInfoLabel = nullptr;
+    m_gridStackCheck = nullptr;
+    m_fromSelIncludeGroundCheck = nullptr;
+    m_fromSelReplaceCheck = nullptr;
+    m_fromSelAnchorChoice = nullptr;
 
     // Compact font (-1pt) cascades to every child control. Matches the Border editor.
     wxFont compactFont = GetFont();
@@ -420,6 +448,32 @@ void DoodadEditorDialog::CreateGUIControls() {
     chanceCtrlSizer->Add(m_compositeChanceCtrl, 0);
     compositeListSizer->Add(chanceCtrlSizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 
+    // Build a whole composite out of the current map selection instead of placing every
+    // item by hand. Mirrors "Add Cluster From Selection" in the Area Decoration dialog.
+    compositeListSizer->Add(new wxStaticLine(m_compositePanel), 0, wxEXPAND | wxLEFT | wxRIGHT, 5);
+
+    wxButton* fromSelBtn = new wxButton(m_compositePanel, ID_COMPOSITE_FROM_SELECTION, "From Selection");
+    fromSelBtn->SetToolTip("Turn the current map selection into a composite.\n"
+                           "X/Y are anchored on the selection, Z on the floor you are standing on.\n"
+                           "The Brushes Editor is not modal: select on the map, then click here.");
+    compositeListSizer->Add(fromSelBtn, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 5);
+
+    wxString anchorChoices[] = { "Anchor: Center", "Anchor: Top-left" };
+    m_fromSelAnchorChoice = new wxChoice(m_compositePanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, 2, anchorChoices);
+    m_fromSelAnchorChoice->SetSelection(0);
+    m_fromSelAnchorChoice->SetToolTip("Where the (0,0) tile of the composite lands inside the selection.");
+    compositeListSizer->Add(m_fromSelAnchorChoice, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 5);
+
+    m_fromSelIncludeGroundCheck = new wxCheckBox(m_compositePanel, wxID_ANY, "Include ground");
+    m_fromSelIncludeGroundCheck->SetValue(false);
+    m_fromSelIncludeGroundCheck->SetToolTip("Off by default: a ground inside a doodad overwrites the terrain where the brush is painted.");
+    compositeListSizer->Add(m_fromSelIncludeGroundCheck, 0, wxLEFT | wxRIGHT | wxTOP, 5);
+
+    m_fromSelReplaceCheck = new wxCheckBox(m_compositePanel, wxID_ANY, "Replace current");
+    m_fromSelReplaceCheck->SetValue(false);
+    m_fromSelReplaceCheck->SetToolTip("Overwrite the selected composite instead of appending a new one.");
+    compositeListSizer->Add(m_fromSelReplaceCheck, 0, wxLEFT | wxRIGHT | wxBOTTOM, 5);
+
     compositeSizer->Add(compositeListSizer, 0, wxEXPAND | wxALL, 5);
 
     // Center: Grid Editor
@@ -430,16 +484,53 @@ void DoodadEditorDialog::CreateGUIControls() {
     gridSizer->Add(m_gridPanel, 0, wxALL | wxALIGN_CENTER, 5);
 
     wxStaticText* instructions = new wxStaticText(m_compositePanel, wxID_ANY,
-        "Click cell to select, then use current brush or enter Item ID.\nCenter (green) = position (0,0)");
+        "Click cell to select, then use current brush or enter Item ID. Right-click removes the top item.\n"
+        "Green cell = position (0,0). The grid is a window: use Layer/View to reach tiles outside it.");
     instructions->SetForegroundColour(wxColour(100, 100, 200));
     gridSizer->Add(instructions, 0, wxALL, 5);
+
+    // Window controls: which floor and which 10x10 region of the composite is on screen.
+    wxBoxSizer* viewCtrlSizer = new wxBoxSizer(wxHORIZONTAL);
+    viewCtrlSizer->Add(new wxStaticText(m_compositePanel, wxID_ANY, "Layer z:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 3);
+    m_gridLayerCtrl = new wxSpinCtrl(m_compositePanel, ID_GRID_LAYER, "0", wxDefaultPosition, wxSize(55, -1),
+        wxSP_ARROW_KEYS, DOODAD_MIN_Z, DOODAD_MAX_Z, 0);
+    m_gridLayerCtrl->SetToolTip("Floor offset being edited. 0 = the floor the brush is painted on, -1 = one floor above.");
+    viewCtrlSizer->Add(m_gridLayerCtrl, 0, wxRIGHT, 10);
+
+    viewCtrlSizer->Add(new wxStaticText(m_compositePanel, wxID_ANY, "View X/Y:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 3);
+    m_gridOriginXCtrl = new wxSpinCtrl(m_compositePanel, ID_GRID_ORIGIN_X, "-5", wxDefaultPosition, wxSize(60, -1),
+        wxSP_ARROW_KEYS, -DOODAD_MAX_ORIGIN, DOODAD_MAX_ORIGIN, -DOODAD_GRID_CENTER);
+    m_gridOriginXCtrl->SetToolTip("Relative X shown by the leftmost column — pan the window over big composites.");
+    viewCtrlSizer->Add(m_gridOriginXCtrl, 0, wxRIGHT, 3);
+    m_gridOriginYCtrl = new wxSpinCtrl(m_compositePanel, ID_GRID_ORIGIN_Y, "-5", wxDefaultPosition, wxSize(60, -1),
+        wxSP_ARROW_KEYS, -DOODAD_MAX_ORIGIN, DOODAD_MAX_ORIGIN, -DOODAD_GRID_CENTER);
+    m_gridOriginYCtrl->SetToolTip("Relative Y shown by the topmost row.");
+    viewCtrlSizer->Add(m_gridOriginYCtrl, 0, wxRIGHT, 5);
+
+    wxButton* fitBtn = new wxButton(m_compositePanel, ID_GRID_FIT_VIEW, "Fit", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+    fitBtn->SetToolTip("Move the window to the busiest layer/region of this composite.");
+    viewCtrlSizer->Add(fitBtn, 0, wxRIGHT, 10);
+
+    m_gridStackCheck = new wxCheckBox(m_compositePanel, wxID_ANY, "Stack");
+    m_gridStackCheck->SetToolTip("When checked, painting adds the item on top of the cell instead of replacing it.");
+    viewCtrlSizer->Add(m_gridStackCheck, 0, wxALIGN_CENTER_VERTICAL);
+    gridSizer->Add(viewCtrlSizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+
+    m_gridInfoLabel = new wxStaticText(m_compositePanel, wxID_ANY, "");
+    m_gridInfoLabel->SetForegroundColour(wxColour(100, 100, 200));
+    gridSizer->Add(m_gridInfoLabel, 0, wxLEFT | wxRIGHT | wxBOTTOM, 5);
 
     wxBoxSizer* gridCtrlSizer = new wxBoxSizer(wxHORIZONTAL);
     gridCtrlSizer->Add(new wxStaticText(m_compositePanel, wxID_ANY, "Item ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
     m_gridItemIdCtrl = new wxSpinCtrl(m_compositePanel, ID_GRID_ITEM_ID, "0", wxDefaultPosition, wxSize(90, -1), wxSP_ARROW_KEYS, 0, 65535);
     gridCtrlSizer->Add(m_gridItemIdCtrl, 0, wxRIGHT, 5);
     gridCtrlSizer->Add(new wxButton(m_compositePanel, ID_BROWSE_GRID_ITEM, "Browse...", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxRIGHT, 5);
-    gridCtrlSizer->Add(new wxButton(m_compositePanel, ID_CLEAR_GRID, "Clear Grid", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0);
+    wxButton* clearLayerBtn = new wxButton(m_compositePanel, ID_CLEAR_GRID, "Clear Layer", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+    clearLayerBtn->SetToolTip("Clears only what the grid window is showing right now.");
+    gridCtrlSizer->Add(clearLayerBtn, 0, wxRIGHT, 5);
+    wxButton* clearAllBtn = new wxButton(m_compositePanel, ID_CLEAR_ALL_TILES, "Clear All", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+    clearAllBtn->SetToolTip("Clears every tile of this composite, on every layer.");
+    gridCtrlSizer->Add(clearAllBtn, 0);
     gridSizer->Add(gridCtrlSizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 
     compositeSizer->Add(gridSizer, 1, wxEXPAND | wxALL, 5);
@@ -682,6 +773,9 @@ void DoodadEditorDialog::LoadDoodadBrush(const wxString& brushName) {
     if (!m_composites.empty()) {
         m_compositesList->SetSelection(0);
         m_currentCompositeIndex = 0;
+        // Existing composites may sit anywhere in relative space (and on other floors) —
+        // point the grid window at them instead of showing an empty -5..+4 slice.
+        FitGridViewToComposite();
         UpdateGridFromComposite();
     }
 
@@ -765,8 +859,11 @@ void DoodadEditorDialog::ClearEditor() {
 
     UpdateSingleItemsList();
     UpdateCompositesList();
+    m_gridPanel->SetView(-DOODAD_GRID_CENTER, -DOODAD_GRID_CENTER, 0);
+    SyncGridViewControls();
     m_gridPanel->Clear();
     m_previewPanel->Clear();
+    UpdateGridInfoLabel();
 }
 
 void DoodadEditorDialog::OnAddSingleItem(wxCommandEvent& event) {
@@ -832,30 +929,41 @@ void DoodadEditorDialog::OnNewComposite(wxCommandEvent& event) {
     comp.chance = 10;
     m_composites.push_back(comp);
 
-    UpdateCompositesList();
-    m_compositesList->SetSelection(m_composites.size() - 1);
-    m_currentCompositeIndex = m_composites.size() - 1;
+    m_currentCompositeIndex = (int)m_composites.size() - 1;
+    RefreshCompositeListLabels();
     m_compositeChanceCtrl->SetValue(comp.chance);
 
+    // A brand new composite always starts on the default window (-5..+4 of layer 0).
+    m_gridPanel->SetView(-DOODAD_GRID_CENTER, -DOODAD_GRID_CENTER, 0);
+    SyncGridViewControls();
     m_gridPanel->Clear();
+    UpdateGridInfoLabel();
     UpdatePreview();
 }
 
 void DoodadEditorDialog::OnRemoveComposite(wxCommandEvent& event) {
     int sel = m_compositesList->GetSelection();
     if (sel != wxNOT_FOUND && sel < (int)m_composites.size()) {
+        // Removing a composite other than the one on the grid must not drop its edits.
+        if (m_currentCompositeIndex >= 0 && m_currentCompositeIndex != sel) {
+            UpdateCompositeFromGrid();
+        }
         m_composites.erase(m_composites.begin() + sel);
         m_currentCompositeIndex = -1;
 
-        UpdateCompositesList();
         m_gridPanel->Clear();
         m_previewPanel->Clear();
 
         if (!m_composites.empty()) {
-            m_compositesList->SetSelection(0);
-            m_currentCompositeIndex = 0;
+            // Keep the selection next to what was just removed instead of jumping to the top.
+            m_currentCompositeIndex = std::min(sel, (int)m_composites.size() - 1);
+            m_compositeChanceCtrl->SetValue(m_composites[m_currentCompositeIndex].chance);
+            FitGridViewToComposite();
             UpdateGridFromComposite();
         }
+        RefreshCompositeListLabels();
+        UpdateGridInfoLabel();
+        UpdatePreview();
     }
 }
 
@@ -868,6 +976,8 @@ void DoodadEditorDialog::OnCompositeSelected(wxCommandEvent& event) {
     if (sel != wxNOT_FOUND && sel < (int)m_composites.size()) {
         m_currentCompositeIndex = sel;
         m_compositeChanceCtrl->SetValue(m_composites[sel].chance);
+        // Composites may live anywhere in relative space — point the window at this one.
+        FitGridViewToComposite();
         UpdateGridFromComposite();
         UpdatePreview();
     }
@@ -882,11 +992,189 @@ void DoodadEditorDialog::OnCompositeChanceChanged(wxSpinEvent& event) {
 }
 
 void DoodadEditorDialog::OnClearGrid(wxCommandEvent& event) {
+    // Clears the visible window only. UpdateCompositeFromGrid() merges that emptiness back
+    // into the composite, leaving other layers and off-window tiles alone.
     m_gridPanel->Clear();
-    if (m_currentCompositeIndex >= 0 && m_currentCompositeIndex < (int)m_composites.size()) {
-        m_composites[m_currentCompositeIndex].tiles.clear();
-    }
+    UpdateCompositeFromGrid();
+    RefreshCompositeListLabels();
+    UpdateGridInfoLabel();
     UpdatePreview();
+}
+
+void DoodadEditorDialog::OnClearAllTiles(wxCommandEvent& event) {
+    if (m_currentCompositeIndex < 0 || m_currentCompositeIndex >= (int)m_composites.size()) {
+        return;
+    }
+
+    const size_t count = m_composites[m_currentCompositeIndex].tiles.size();
+    if (count > 0) {
+        if (wxMessageBox(wxString::Format("Remove all %zu item(s) of this composite, on every layer?", count),
+                "Clear All", wxYES_NO | wxICON_QUESTION, this) != wxYES) {
+            return;
+        }
+    }
+
+    m_composites[m_currentCompositeIndex].tiles.clear();
+    m_gridPanel->Clear();
+    RefreshCompositeListLabels();
+    UpdateGridInfoLabel();
+    UpdatePreview();
+}
+
+bool DoodadEditorDialog::BuildCompositeTilesFromSelection(std::vector<DoodadTileItem>& outTiles,
+                                                          int& outFloorCount,
+                                                          int& outDroppedZ) {
+    outTiles.clear();
+    outFloorCount = 0;
+    outDroppedZ = 0;
+
+    // GetCurrentFloor() reads the current map tab, so make sure there is one.
+    if (!g_gui.IsEditorOpen()) {
+        wxMessageBox("No map open. Open a map and select some tiles first.", "Error", wxOK | wxICON_ERROR, this);
+        return false;
+    }
+
+    Editor* editor = g_gui.GetCurrentEditor();
+    if (!editor) {
+        wxMessageBox("No editor available.", "Error", wxOK | wxICON_ERROR, this);
+        return false;
+    }
+
+    const Selection& selection = editor->selection;
+    if (selection.size() == 0) {
+        wxMessageBox("No tiles selected. Select some tiles on the map first.", "Error", wxOK | wxICON_ERROR, this);
+        return false;
+    }
+
+    Position minPos(INT_MAX, INT_MAX, INT_MAX);
+    Position maxPos(INT_MIN, INT_MIN, INT_MIN);
+
+    const auto& tiles = selection.getTiles();
+    for (Tile* tile : tiles) {
+        const Position& pos = tile->getPosition();
+        minPos.x = std::min(minPos.x, pos.x);
+        minPos.y = std::min(minPos.y, pos.y);
+        maxPos.x = std::max(maxPos.x, pos.x);
+        maxPos.y = std::max(maxPos.y, pos.y);
+    }
+
+    // X/Y are anchored on the selection (center by default, top-left on request), but Z is
+    // anchored on the floor the user is standing on: tiles of that floor get z == 0 so they
+    // land on the tile being painted and the remaining floors stack relative to it. Same
+    // rule as Area Decoration's cluster import.
+    const bool anchorTopLeft = m_fromSelAnchorChoice && m_fromSelAnchorChoice->GetSelection() == 1;
+    const Position anchor(anchorTopLeft ? minPos.x : (minPos.x + maxPos.x) / 2,
+                          anchorTopLeft ? minPos.y : (minPos.y + maxPos.y) / 2,
+                          g_gui.GetCurrentFloor());
+
+    const bool includeGround = m_fromSelIncludeGroundCheck && m_fromSelIncludeGroundCheck->GetValue();
+    std::set<int> floors;
+
+    outTiles.reserve(tiles.size());
+
+    for (Tile* tile : tiles) {
+        const Position& pos = tile->getPosition();
+        const int relX = pos.x - anchor.x;
+        const int relY = pos.y - anchor.y;
+        const int relZ = pos.z - anchor.z;
+
+        // The doodad loader rejects anything outside this range.
+        if (relZ < DOODAD_MIN_Z || relZ > DOODAD_MAX_Z) {
+            ++outDroppedZ;
+            continue;
+        }
+
+        const size_t before = outTiles.size();
+
+        // Bottom to top, matching the order the map itself stacks them. Meta items are
+        // editor-only markers (they have no client sprite), so they never belong in a brush.
+        if (includeGround && tile->ground && tile->ground->isSelected() &&
+            tile->ground->getID() > 0 && !tile->ground->isMetaItem()) {
+            outTiles.push_back(DoodadTileItem(relX, relY, relZ, tile->ground->getID()));
+        }
+        for (const auto& item : tile->items) {
+            if (item && item->isSelected() && item->getID() > 0 && !item->isMetaItem()) {
+                outTiles.push_back(DoodadTileItem(relX, relY, relZ, item->getID()));
+            }
+        }
+
+        if (outTiles.size() > before) {
+            floors.insert(relZ);
+        }
+    }
+
+    outFloorCount = (int)floors.size();
+
+    if (outTiles.empty()) {
+        wxMessageBox("The selected tiles contain no selected items.\n\n"
+                     "Tiles can be selected with only their creature or spawn selected, and "
+                     "\"Include ground\" is off by default.",
+                     "Error", wxOK | wxICON_ERROR, this);
+        return false;
+    }
+
+    return true;
+}
+
+void DoodadEditorDialog::OnAddCompositeFromSelection(wxCommandEvent& event) {
+    std::vector<DoodadTileItem> newTiles;
+    int floorCount = 0;
+    int droppedZ = 0;
+    if (!BuildCompositeTilesFromSelection(newTiles, floorCount, droppedZ)) {
+        return;
+    }
+
+    // A whole-map selection would produce a doodads.xml nobody wants — ask first.
+    if (newTiles.size() > 2000) {
+        if (wxMessageBox(wxString::Format("This selection produces %zu item entries. Continue?", newTiles.size()),
+                "Large composite", wxYES_NO | wxICON_WARNING, this) != wxYES) {
+            return;
+        }
+    }
+
+    if (m_currentCompositeIndex >= 0) {
+        UpdateCompositeFromGrid();
+    }
+
+    const bool replace = m_fromSelReplaceCheck && m_fromSelReplaceCheck->GetValue() &&
+                         m_currentCompositeIndex >= 0 && m_currentCompositeIndex < (int)m_composites.size();
+    if (replace) {
+        m_composites[m_currentCompositeIndex].tiles = std::move(newTiles);
+    } else {
+        DoodadComposite comp;
+        comp.chance = m_compositeChanceCtrl ? m_compositeChanceCtrl->GetValue() : 10;
+        comp.tiles = std::move(newTiles);
+        m_composites.push_back(std::move(comp));
+        m_currentCompositeIndex = (int)m_composites.size() - 1;
+    }
+
+    FitGridViewToComposite();
+    UpdateGridFromComposite();
+    RefreshCompositeListLabels();
+    m_compositeChanceCtrl->SetValue(m_composites[m_currentCompositeIndex].chance);
+    UpdatePreview();
+
+    const size_t total = m_composites[m_currentCompositeIndex].tiles.size();
+    // Counted only now: the window just moved (Fit), so anything measured before would be
+    // reported against a window the user never saw.
+    const int offWindow = CountItemsOutsideGridWindow();
+
+    wxString msg = wxString::Format("Composite %d filled with %zu item(s)", m_currentCompositeIndex + 1, total);
+    if (floorCount > 1) {
+        msg << wxString::Format(", %d floors (anchored on floor %d)", floorCount, g_gui.GetCurrentFloor());
+    }
+    if (offWindow > 0) {
+        msg << wxString::Format(", %d item(s) outside the grid window (kept - use Layer / View X/Y to reach them)", offWindow);
+    }
+    if (droppedZ > 0) {
+        msg << wxString::Format(", %d tile(s) dropped for being more than %d floors away", droppedZ, DOODAD_MAX_Z);
+    }
+    msg << ".";
+
+    g_gui.SetStatusText(msg);
+    if (droppedZ > 0) {
+        wxMessageBox(msg, "Composite imported", wxOK | wxICON_INFORMATION, this);
+    }
 }
 
 void DoodadEditorDialog::OnBrowseGridItem(wxCommandEvent& event) {
@@ -899,7 +1187,8 @@ void DoodadEditorDialog::OnBrowseGridItem(wxCommandEvent& event) {
             int gridX, gridY;
             m_gridPanel->GetSelectedCell(gridX, gridY);
             if (gridX >= 0 && gridY >= 0) {
-                ApplyItemToGridPosition(gridX, gridY, itemId);
+                // Picking an id replaces what the cell shows; it never grows the stack.
+                ApplyItemToGridPosition(gridX, gridY, itemId, false);
             }
         }
     }
@@ -911,20 +1200,56 @@ void DoodadEditorDialog::OnGridItemIdChanged(wxSpinEvent& event) {
         int gridX, gridY;
         m_gridPanel->GetSelectedCell(gridX, gridY);
         if (gridX >= 0 && gridY >= 0) {
-            ApplyItemToGridPosition(gridX, gridY, itemId);
+            // Every arrow click fires this handler — replace the top item instead of
+            // stacking, or holding the arrow would bury the cell in items.
+            ApplyItemToGridPosition(gridX, gridY, itemId, false);
         }
     }
 }
 
-void DoodadEditorDialog::ApplyItemToGridPosition(int gridX, int gridY, uint16_t itemId) {
-    if (m_currentCompositeIndex < 0) {
-        wxCommandEvent evt;
-        OnNewComposite(evt);
+void DoodadEditorDialog::EnsureCurrentComposite() {
+    if (m_currentCompositeIndex >= 0 && m_currentCompositeIndex < (int)m_composites.size()) {
+        return;
     }
 
-    m_gridPanel->SetItemAt(gridX, gridY, itemId);
+    // Deliberately does NOT touch the grid window: the caller already resolved a cell
+    // against the window on screen, so moving it here would send the item to another
+    // layer/offset than the one the user clicked.
+    DoodadComposite comp;
+    comp.chance = m_compositeChanceCtrl ? m_compositeChanceCtrl->GetValue() : 10;
+    m_composites.push_back(comp);
+    m_currentCompositeIndex = (int)m_composites.size() - 1;
+    RefreshCompositeListLabels();
+}
+
+void DoodadEditorDialog::ApplyItemToGridPosition(int gridX, int gridY, uint16_t itemId, bool allowStack) {
+    EnsureCurrentComposite();
+
+    const bool stackMode = m_gridStackCheck && m_gridStackCheck->GetValue();
+    if (itemId == 0 || !stackMode) {
+        m_gridPanel->SetItemAt(gridX, gridY, itemId);
+    } else if (allowStack) {
+        m_gridPanel->PushItemAt(gridX, gridY, itemId);
+    } else {
+        m_gridPanel->ReplaceTopItemAt(gridX, gridY, itemId);
+    }
     m_gridPanel->Refresh();
     UpdateCompositeFromGrid();
+    RefreshCompositeListLabels();
+    UpdateGridInfoLabel();
+    UpdatePreview();
+}
+
+void DoodadEditorDialog::RemoveTopItemFromGridPosition(int gridX, int gridY) {
+    if (m_currentCompositeIndex < 0 || m_currentCompositeIndex >= (int)m_composites.size()) {
+        return;
+    }
+
+    m_gridPanel->PopItemAt(gridX, gridY);
+    m_gridPanel->Refresh();
+    UpdateCompositeFromGrid();
+    RefreshCompositeListLabels();
+    UpdateGridInfoLabel();
     UpdatePreview();
 }
 
@@ -933,19 +1258,162 @@ void DoodadEditorDialog::UpdateCompositeFromGrid() {
         return;
     }
 
-    m_composites[m_currentCompositeIndex].tiles = m_gridPanel->GetAllItems();
+    auto& tiles = m_composites[m_currentCompositeIndex].tiles;
+    const int layer = m_gridPanel->GetLayer();
+    const int originX = m_gridPanel->GetOriginX();
+    const int originY = m_gridPanel->GetOriginY();
+
+    // Only the region the grid window currently owns is rewritten. Tiles on other layers or
+    // outside the window survive untouched — that is what lets a composite be bigger than
+    // 10x10, span floors and stack items without the grid eating it on the next click.
+    tiles.erase(std::remove_if(tiles.begin(), tiles.end(), [&](const DoodadTileItem& tile) {
+        return tile.z == layer &&
+               tile.x >= originX && tile.x < originX + DOODAD_GRID_SIZE &&
+               tile.y >= originY && tile.y < originY + DOODAD_GRID_SIZE;
+    }), tiles.end());
+
+    const std::vector<DoodadTileItem> visible = m_gridPanel->GetAllItems();
+    tiles.insert(tiles.end(), visible.begin(), visible.end());
+
+    // Stable sort keeps the stacking order inside each (x, y, z) group, so the grouped XML
+    // emitter can merge adjacent entries and a save/load round trip preserves the stack.
+    std::stable_sort(tiles.begin(), tiles.end(), [](const DoodadTileItem& a, const DoodadTileItem& b) {
+        if (a.z != b.z) return a.z < b.z;
+        if (a.y != b.y) return a.y < b.y;
+        return a.x < b.x;
+    });
 }
 
 void DoodadEditorDialog::UpdateGridFromComposite() {
     m_gridPanel->Clear();
 
     if (m_currentCompositeIndex < 0 || m_currentCompositeIndex >= (int)m_composites.size()) {
+        UpdateGridInfoLabel();
         return;
     }
 
     m_gridPanel->SetItems(m_composites[m_currentCompositeIndex].tiles);
     m_gridPanel->Refresh();
     m_previewPanel->SetItems(m_composites[m_currentCompositeIndex].tiles);
+    UpdateGridInfoLabel();
+}
+
+void DoodadEditorDialog::SyncGridViewControls() {
+    // SetValue() does not fire wxEVT_SPINCTRL, so this never re-enters OnGridViewChanged.
+    if (m_gridLayerCtrl) m_gridLayerCtrl->SetValue(m_gridPanel->GetLayer());
+    if (m_gridOriginXCtrl) m_gridOriginXCtrl->SetValue(m_gridPanel->GetOriginX());
+    if (m_gridOriginYCtrl) m_gridOriginYCtrl->SetValue(m_gridPanel->GetOriginY());
+}
+
+void DoodadEditorDialog::OnGridViewChanged(wxSpinEvent& event) {
+    // Order matters: flush what the grid holds using the OLD window, only then move it.
+    // Moving first would make the merge erase the wrong region of the composite.
+    UpdateCompositeFromGrid();
+    m_gridPanel->SetView(m_gridOriginXCtrl->GetValue(),
+                         m_gridOriginYCtrl->GetValue(),
+                         m_gridLayerCtrl->GetValue());
+    UpdateGridFromComposite();
+    RefreshCompositeListLabels();
+    UpdatePreview();
+}
+
+void DoodadEditorDialog::OnGridFitView(wxCommandEvent& event) {
+    UpdateCompositeFromGrid();
+    FitGridViewToComposite();
+    UpdateGridFromComposite();
+    UpdatePreview();
+}
+
+void DoodadEditorDialog::FitGridViewToComposite() {
+    if (m_currentCompositeIndex < 0 || m_currentCompositeIndex >= (int)m_composites.size() ||
+        m_composites[m_currentCompositeIndex].tiles.empty()) {
+        m_gridPanel->SetView(-DOODAD_GRID_CENTER, -DOODAD_GRID_CENTER, 0);
+        SyncGridViewControls();
+        return;
+    }
+
+    const auto& tiles = m_composites[m_currentCompositeIndex].tiles;
+
+    // Show the layer holding the most items; ties go to the layer closest to 0.
+    std::map<int, int> perLayer;
+    for (const auto& tile : tiles) {
+        perLayer[tile.z]++;
+    }
+    auto distanceFromZero = [](int z) { return z < 0 ? -z : z; };
+    int layer = 0;
+    int best = -1;
+    for (const auto& entry : perLayer) {
+        if (entry.second > best ||
+            (entry.second == best && distanceFromZero(entry.first) < distanceFromZero(layer))) {
+            layer = entry.first;
+            best = entry.second;
+        }
+    }
+
+    int minX = INT_MAX, maxX = INT_MIN, minY = INT_MAX, maxY = INT_MIN;
+    for (const auto& tile : tiles) {
+        if (tile.z != layer) continue;
+        minX = std::min(minX, tile.x);
+        maxX = std::max(maxX, tile.x);
+        minY = std::min(minY, tile.y);
+        maxY = std::max(maxY, tile.y);
+    }
+
+    // Center the window on the layer bounding box when it fits, anchor on its top-left
+    // corner when it does not — the user pans from there with the View spins.
+    int originX = (maxX - minX + 1 <= DOODAD_GRID_SIZE)
+        ? minX - (DOODAD_GRID_SIZE - (maxX - minX + 1)) / 2
+        : minX;
+    int originY = (maxY - minY + 1 <= DOODAD_GRID_SIZE)
+        ? minY - (DOODAD_GRID_SIZE - (maxY - minY + 1)) / 2
+        : minY;
+
+    m_gridPanel->SetView(originX, originY, layer);
+    SyncGridViewControls();
+}
+
+int DoodadEditorDialog::CountItemsOutsideGridWindow() const {
+    if (m_currentCompositeIndex < 0 || m_currentCompositeIndex >= (int)m_composites.size()) {
+        return 0;
+    }
+
+    int count = 0;
+    for (const auto& tile : m_composites[m_currentCompositeIndex].tiles) {
+        if (tile.z != m_gridPanel->GetLayer() || !m_gridPanel->IsInWindow(tile.x, tile.y)) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+void DoodadEditorDialog::UpdateGridInfoLabel() {
+    if (!m_gridInfoLabel) return;
+
+    if (m_currentCompositeIndex < 0 || m_currentCompositeIndex >= (int)m_composites.size()) {
+        m_gridInfoLabel->SetLabel("");
+        return;
+    }
+
+    const auto& tiles = m_composites[m_currentCompositeIndex].tiles;
+    std::set<int> layers;
+    for (const auto& tile : tiles) {
+        layers.insert(tile.z);
+    }
+    const int offWindow = CountItemsOutsideGridWindow();
+
+    wxString label = wxString::Format("Layer z=%d | %zu item(s)", m_gridPanel->GetLayer(), tiles.size());
+    if (layers.size() > 1) {
+        wxString layerList;
+        for (int z : layers) {
+            if (!layerList.IsEmpty()) layerList << ", ";
+            layerList << z;
+        }
+        label << " | layers: " << layerList;
+    }
+    if (offWindow > 0) {
+        label << wxString::Format(" | %d item(s) outside this window", offWindow);
+    }
+    m_gridInfoLabel->SetLabel(label);
 }
 
 uint16_t DoodadEditorDialog::GetCurrentItemId() const {
@@ -963,6 +1431,16 @@ void DoodadEditorDialog::UpdateCompositesList() {
         wxString label = wxString::Format("Composite %d (C:%d T:%zu)",
             index++, comp.chance, comp.tiles.size());
         m_compositesList->Append(label);
+    }
+}
+
+void DoodadEditorDialog::RefreshCompositeListLabels() {
+    // Rebuilding the listbox drops its selection, which would leave the highlight out of
+    // sync with m_currentCompositeIndex — restore it here so the item count on the label
+    // can be refreshed after every edit.
+    UpdateCompositesList();
+    if (m_currentCompositeIndex >= 0 && m_currentCompositeIndex < (int)m_composites.size()) {
+        m_compositesList->SetSelection(m_currentCompositeIndex);
     }
 }
 
@@ -1039,12 +1517,25 @@ wxString DoodadEditorDialog::GenerateXML() {
         if (comp.tiles.empty()) continue;
 
         xml << compIndent << "<composite chance=\"" << comp.chance << "\">\n";
-        for (const auto& tile : comp.tiles) {
-            xml << tileIndent << "<tile x=\"" << tile.x << "\" y=\"" << tile.y << "\"";
-            if (tile.z != 0) {
-                xml << " z=\"" << tile.z << "\"";
+        // Entries sharing a position are one stacked tile: emit a single <tile> holding
+        // every <item>, bottom first. UpdateCompositeFromGrid() keeps them adjacent.
+        for (size_t i = 0; i < comp.tiles.size(); ) {
+            const DoodadTileItem& first = comp.tiles[i];
+            xml << tileIndent << "<tile x=\"" << first.x << "\" y=\"" << first.y << "\"";
+            if (first.z != 0) {
+                xml << " z=\"" << first.z << "\"";
             }
-            xml << "> <item id=\"" << tile.itemId << "\" /> </tile>\n";
+            xml << ">";
+
+            size_t j = i;
+            while (j < comp.tiles.size() && comp.tiles[j].x == first.x &&
+                   comp.tiles[j].y == first.y && comp.tiles[j].z == first.z) {
+                xml << " <item id=\"" << comp.tiles[j].itemId << "\" />";
+                ++j;
+            }
+
+            xml << " </tile>\n";
+            i = j;
         }
         xml << compIndent << "</composite>\n";
     }
@@ -1389,9 +1880,23 @@ void DoodadEditorDialog::OnSaveToFile(wxCommandEvent& event) {
     }
 
     if (existing) {
-        int answer = wxMessageBox(
-            wxString::Format("A brush named \"%s\" already exists in doodads.xml.\n\nReplace it?", brushName),
-            "Brush exists", wxYES_NO | wxICON_QUESTION);
+        // The editor only ever loads the first <alternate> block, so saving over a brush
+        // that has several would silently drop the extra variations. Say so out loud.
+        int alternateCount = 0;
+        for (pugi::xml_node alt = existing.child("alternate"); alt; alt = alt.next_sibling("alternate")) {
+            ++alternateCount;
+        }
+
+        wxString question = wxString::Format(
+            "A brush named \"%s\" already exists in doodads.xml.\n\nReplace it?", brushName);
+        if (alternateCount > 1) {
+            question << wxString::Format(
+                "\n\nWARNING: it has %d <alternate> variations and the editor only loaded the first one. "
+                "Replacing it keeps just that one and discards the other %d.",
+                alternateCount, alternateCount - 1);
+        }
+
+        int answer = wxMessageBox(question, "Brush exists", wxYES_NO | wxICON_QUESTION);
         if (answer != wxYES) {
             return;
         }
@@ -1418,39 +1923,88 @@ DoodadGridPanel::DoodadGridPanel(wxWindow* parent, wxWindowID id) :
     wxPanel(parent, id, wxDefaultPosition,
         wxSize(DOODAD_GRID_SIZE * DOODAD_CELL_SIZE + 1, DOODAD_GRID_SIZE * DOODAD_CELL_SIZE + 1),
         wxBORDER_SIMPLE),
+    m_originX(-DOODAD_GRID_CENTER),
+    m_originY(-DOODAD_GRID_CENTER),
+    m_layer(0),
     m_selectedX(DOODAD_GRID_CENTER),
     m_selectedY(DOODAD_GRID_CENTER) {
 
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetMinSize(wxSize(DOODAD_GRID_SIZE * DOODAD_CELL_SIZE + 1, DOODAD_GRID_SIZE * DOODAD_CELL_SIZE + 1));
-
-    for (int x = 0; x < DOODAD_GRID_SIZE; x++) {
-        for (int y = 0; y < DOODAD_GRID_SIZE; y++) {
-            m_grid[x][y] = 0;
-        }
-    }
 }
 
 DoodadGridPanel::~DoodadGridPanel() {
 }
 
 void DoodadGridPanel::SetItemAt(int gridX, int gridY, uint16_t itemId) {
-    if (gridX >= 0 && gridX < DOODAD_GRID_SIZE && gridY >= 0 && gridY < DOODAD_GRID_SIZE) {
-        m_grid[gridX][gridY] = itemId;
+    if (gridX < 0 || gridX >= DOODAD_GRID_SIZE || gridY < 0 || gridY >= DOODAD_GRID_SIZE) {
+        return;
+    }
+
+    m_grid[gridX][gridY].clear();
+    if (itemId > 0) {
+        m_grid[gridX][gridY].push_back(itemId);
+    }
+}
+
+void DoodadGridPanel::PushItemAt(int gridX, int gridY, uint16_t itemId) {
+    if (gridX < 0 || gridX >= DOODAD_GRID_SIZE || gridY < 0 || gridY >= DOODAD_GRID_SIZE || itemId == 0) {
+        return;
+    }
+
+    m_grid[gridX][gridY].push_back(itemId);
+}
+
+void DoodadGridPanel::ReplaceTopItemAt(int gridX, int gridY, uint16_t itemId) {
+    if (gridX < 0 || gridX >= DOODAD_GRID_SIZE || gridY < 0 || gridY >= DOODAD_GRID_SIZE || itemId == 0) {
+        return;
+    }
+
+    if (m_grid[gridX][gridY].empty()) {
+        m_grid[gridX][gridY].push_back(itemId);
+    } else {
+        m_grid[gridX][gridY].back() = itemId;
+    }
+}
+
+void DoodadGridPanel::PopItemAt(int gridX, int gridY) {
+    if (gridX < 0 || gridX >= DOODAD_GRID_SIZE || gridY < 0 || gridY >= DOODAD_GRID_SIZE) {
+        return;
+    }
+
+    if (!m_grid[gridX][gridY].empty()) {
+        m_grid[gridX][gridY].pop_back();
     }
 }
 
 uint16_t DoodadGridPanel::GetItemAt(int gridX, int gridY) const {
+    if (gridX >= 0 && gridX < DOODAD_GRID_SIZE && gridY >= 0 && gridY < DOODAD_GRID_SIZE &&
+        !m_grid[gridX][gridY].empty()) {
+        return m_grid[gridX][gridY].back();
+    }
+    return 0;
+}
+
+const std::vector<uint16_t>& DoodadGridPanel::GetStackAt(int gridX, int gridY) const {
+    static const std::vector<uint16_t> empty;
     if (gridX >= 0 && gridX < DOODAD_GRID_SIZE && gridY >= 0 && gridY < DOODAD_GRID_SIZE) {
         return m_grid[gridX][gridY];
     }
-    return 0;
+    return empty;
+}
+
+void DoodadGridPanel::SetView(int originX, int originY, int layer) {
+    // Clamped to the same range as the View spin controls, so GetOriginX() and the control
+    // can never disagree and make the window jump on the next adjustment.
+    m_originX = std::max(-DOODAD_MAX_ORIGIN, std::min(DOODAD_MAX_ORIGIN, originX));
+    m_originY = std::max(-DOODAD_MAX_ORIGIN, std::min(DOODAD_MAX_ORIGIN, originY));
+    m_layer = std::max(DOODAD_MIN_Z, std::min(DOODAD_MAX_Z, layer));
 }
 
 void DoodadGridPanel::Clear() {
     for (int x = 0; x < DOODAD_GRID_SIZE; x++) {
         for (int y = 0; y < DOODAD_GRID_SIZE; y++) {
-            m_grid[x][y] = 0;
+            m_grid[x][y].clear();
         }
     }
     Refresh();
@@ -1473,13 +2027,10 @@ std::vector<DoodadTileItem> DoodadGridPanel::GetAllItems() const {
     std::vector<DoodadTileItem> items;
     for (int x = 0; x < DOODAD_GRID_SIZE; x++) {
         for (int y = 0; y < DOODAD_GRID_SIZE; y++) {
-            if (m_grid[x][y] > 0) {
-                DoodadTileItem item;
-                item.x = GridToRelative(x);
-                item.y = GridToRelative(y);
-                item.z = 0;
-                item.itemId = m_grid[x][y];
-                items.push_back(item);
+            // One entry per stack slot, bottom first — the caller merges them back into the
+            // composite as a single stacked tile.
+            for (uint16_t itemId : m_grid[x][y]) {
+                items.push_back(DoodadTileItem(GridToRelativeX(x), GridToRelativeY(y), m_layer, itemId));
             }
         }
     }
@@ -1489,10 +2040,13 @@ std::vector<DoodadTileItem> DoodadGridPanel::GetAllItems() const {
 void DoodadGridPanel::SetItems(const std::vector<DoodadTileItem>& items) {
     Clear();
     for (const auto& item : items) {
-        int gridX = RelativeToGrid(item.x);
-        int gridY = RelativeToGrid(item.y);
+        if (item.z != m_layer || item.itemId == 0) {
+            continue;
+        }
+        int gridX = RelativeToGridX(item.x);
+        int gridY = RelativeToGridY(item.y);
         if (gridX >= 0 && gridX < DOODAD_GRID_SIZE && gridY >= 0 && gridY < DOODAD_GRID_SIZE) {
-            m_grid[gridX][gridY] = item.itemId;
+            m_grid[gridX][gridY].push_back(item.itemId);
         }
     }
     Refresh();
@@ -1554,7 +2108,7 @@ void DoodadGridPanel::OnPaint(wxPaintEvent& event) {
 
     for (int x = 0; x < DOODAD_GRID_SIZE; x++) {
         for (int y = 0; y < DOODAD_GRID_SIZE; y++) {
-            uint16_t itemId = m_grid[x][y];
+            uint16_t itemId = GetItemAt(x, y);
             if (itemId == 0) continue;
 
             auto itemDef = g_item_definitions.get(static_cast<ServerItemId>(itemId));
@@ -1583,9 +2137,13 @@ void DoodadGridPanel::OnPaint(wxPaintEvent& event) {
             int px = x * DOODAD_CELL_SIZE;
             int py = y * DOODAD_CELL_SIZE;
 
+            // (0,0) is the anchor tile of the composite. It only shows when the window is
+            // panned over it, which is not always the case on big composites.
+            const bool isAnchorCell = (GridToRelativeX(x) == 0 && GridToRelativeY(y) == 0);
+
             if (x == m_selectedX && y == m_selectedY) {
                 dc.SetBrush(wxBrush(wxColour(80, 80, 120)));
-            } else if (x == DOODAD_GRID_CENTER && y == DOODAD_GRID_CENTER) {
+            } else if (isAnchorCell) {
                 dc.SetBrush(wxBrush(wxColour(50, 80, 50)));
             } else {
                 dc.SetBrush(wxBrush(wxColour(50, 50, 60)));
@@ -1594,13 +2152,13 @@ void DoodadGridPanel::OnPaint(wxPaintEvent& event) {
             dc.SetPen(wxPen(wxColour(80, 80, 90)));
             dc.DrawRectangle(px, py, DOODAD_CELL_SIZE, DOODAD_CELL_SIZE);
 
-            if (x == DOODAD_GRID_CENTER && y == DOODAD_GRID_CENTER) {
+            if (isAnchorCell) {
                 dc.SetPen(wxPen(wxColour(0, 200, 0), 2));
                 dc.SetBrush(*wxTRANSPARENT_BRUSH);
                 dc.DrawRectangle(px + 1, py + 1, DOODAD_CELL_SIZE - 2, DOODAD_CELL_SIZE - 2);
             }
 
-            uint16_t itemId = m_grid[x][y];
+            uint16_t itemId = GetItemAt(x, y);
             if (itemId > 0) {
                 // This is a real item cell — draw the anchor tile (cx=0, cy=0) of the sprite
                 auto itemDef = g_item_definitions.get(static_cast<ServerItemId>(itemId));
@@ -1639,8 +2197,23 @@ void DoodadGridPanel::OnPaint(wxPaintEvent& event) {
                 dc.DrawRectangle(px + 1, py + 1, DOODAD_CELL_SIZE - 2, DOODAD_CELL_SIZE - 2);
             }
 
-            int relX = GridToRelative(x);
-            int relY = GridToRelative(y);
+            // Stacked cells only show their top sprite — the badge says how deep the stack is.
+            const size_t stackSize = GetStackAt(x, y).size();
+            if (stackSize > 1) {
+                wxString badge = wxString::Format("x%zu", stackSize);
+                dc.SetFont(wxFont(7, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
+                wxSize badgeSize = dc.GetTextExtent(badge);
+                int bx = px + DOODAD_CELL_SIZE - badgeSize.GetWidth() - 3;
+                int by = py + DOODAD_CELL_SIZE - badgeSize.GetHeight() - 2;
+                dc.SetPen(*wxTRANSPARENT_PEN);
+                dc.SetBrush(wxBrush(wxColour(20, 20, 30)));
+                dc.DrawRectangle(bx - 1, by - 1, badgeSize.GetWidth() + 2, badgeSize.GetHeight() + 2);
+                dc.SetTextForeground(wxColour(255, 200, 0));
+                dc.DrawText(badge, bx, by);
+            }
+
+            int relX = GridToRelativeX(x);
+            int relY = GridToRelativeY(y);
             if (y == 0) {
                 dc.SetTextForeground(wxColour(150, 150, 150));
                 dc.SetFont(wxFont(7, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
@@ -1677,6 +2250,25 @@ void DoodadGridPanel::OnMouseDown(wxMouseEvent& event) {
     if (dialog) {
         uint16_t currentItem = GetItemAt(gridX, gridY);
         dialog->m_gridItemIdCtrl->SetValue(currentItem);
+    }
+
+    event.Skip();
+}
+
+void DoodadGridPanel::OnMouseRightUp(wxMouseEvent& event) {
+    int gridX, gridY;
+    GetCellFromCoordinates(event.GetX(), event.GetY(), gridX, gridY);
+    SetSelectedCell(gridX, gridY);
+
+    wxWindow* parent = GetParent();
+    while (parent && !dynamic_cast<DoodadEditorDialog*>(parent)) {
+        parent = parent->GetParent();
+    }
+
+    DoodadEditorDialog* dialog = dynamic_cast<DoodadEditorDialog*>(parent);
+    if (dialog) {
+        dialog->RemoveTopItemFromGridPosition(gridX, gridY);
+        dialog->m_gridItemIdCtrl->SetValue(GetItemAt(gridX, gridY));
     }
 
     event.Skip();
@@ -1733,14 +2325,29 @@ void DoodadPreviewPanel::OnPaint(wxPaintEvent& event) {
     wxSize size = GetClientSize();
     int centerX = size.GetWidth() / 2;
     int centerY = size.GetHeight() / 2;
-    int cellSize = 32;
 
     dc.SetBackground(wxBrush(wxColour(30, 30, 40)));
     dc.Clear();
 
+    // Shrink the cells until the whole composite fits — imported composites are routinely
+    // much larger than the ±3 tiles this panel used to assume.
+    int extent = 3;
+    for (const auto& item : m_items) {
+        extent = std::max(extent, std::max(std::max(item.x, -item.x), std::max(item.y, -item.y)));
+    }
+
+    // Below ~6px a cell shows nothing useful anyway, so that is the floor. Past it the
+    // preview stops shrinking and shows the middle of the composite instead.
+    const int available = std::max(1, std::min(size.GetWidth(), size.GetHeight()));
+    const int cellSize = std::max(6, std::min(32, available / (2 * extent + 1)));
+
+    // Never paint more cells than fit on screen: a composite imported from a large map
+    // selection would otherwise ask for tens of thousands of rectangles on every repaint.
+    const int drawExtent = std::min(extent, std::max(1, available / (2 * cellSize)));
+
     dc.SetPen(wxPen(wxColour(50, 50, 60)));
-    for (int x = -3; x <= 3; x++) {
-        for (int y = -3; y <= 3; y++) {
+    for (int x = -drawExtent; x <= drawExtent; x++) {
+        for (int y = -drawExtent; y <= drawExtent; y++) {
             int px = centerX + x * cellSize - cellSize / 2;
             int py = centerY + y * cellSize - cellSize / 2;
             dc.DrawRectangle(px, py, cellSize, cellSize);
@@ -1771,10 +2378,20 @@ void DoodadPreviewPanel::OnPaint(wxPaintEvent& event) {
         }
     }
 
-    // Draw real items (anchor tiles)
-    for (const auto& item : m_items) {
+    // Draw real items (anchor tiles). Lower floors (higher z) go down first so the floors
+    // above them end up on top, and stacked items keep their bottom-to-top order.
+    std::vector<DoodadTileItem> ordered = m_items;
+    std::stable_sort(ordered.begin(), ordered.end(),
+        [](const DoodadTileItem& a, const DoodadTileItem& b) { return a.z > b.z; });
+
+    for (const auto& item : ordered) {
         int px = centerX + item.x * cellSize - cellSize / 2;
         int py = centerY + item.y * cellSize - cellSize / 2;
+
+        // Sprite generation is expensive — skip anything scrolled off the panel.
+        if (px + cellSize < 0 || py + cellSize < 0 || px > size.GetWidth() || py > size.GetHeight()) {
+            continue;
+        }
 
         auto itemDef = g_item_definitions.get(static_cast<ServerItemId>(item.itemId));
         if (itemDef.serverId() != 0) {
@@ -1803,20 +2420,22 @@ void DoodadPreviewPanel::OnPaint(wxPaintEvent& event) {
         }
     }
 
+    // Positions taken by a real item, gathered once — scanning m_items per propagated cell
+    // is quadratic and imported composites make that bite.
+    std::set<std::pair<int, int>> occupied;
+    for (const auto& item : m_items) {
+        occupied.insert({ item.x, item.y });
+    }
+
     // Draw propagation cells (sprite pieces from multi-tile neighbors)
     for (const auto& [pos, prop] : propagation) {
-        // Skip if a real item already occupies this position
-        bool hasRealItem = false;
-        for (const auto& item : m_items) {
-            if (item.x == pos.first && item.y == pos.second) {
-                hasRealItem = true;
-                break;
-            }
-        }
-        if (hasRealItem) continue;
+        if (occupied.count(pos) > 0) continue;
 
         int px = centerX + pos.first * cellSize - cellSize / 2;
         int py = centerY + pos.second * cellSize - cellSize / 2;
+        if (px + cellSize < 0 || py + cellSize < 0 || px > size.GetWidth() || py > size.GetHeight()) {
+            continue;
+        }
 
         auto propDef = g_item_definitions.get(static_cast<ServerItemId>(prop.srcItemId));
         if (propDef.serverId() != 0) {
