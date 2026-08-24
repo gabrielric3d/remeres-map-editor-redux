@@ -934,7 +934,7 @@ void ClientVersionPage::OnSelectClientFolder(wxCommandEvent& WXUNUSED(event)) {
 		? active_client->getClientPath().GetFullPath()
 		: wxString();
 
-	wxDirDialog dialog(this, "Select the folder containing Tibia.dat and Tibia.spr", initial_path, wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+	wxDirDialog dialog(this, "Select the folder containing Tibia.dat and Tibia.spr (or Tibia.cat)", initial_path, wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
 	if (dialog.ShowModal() != wxID_OK) {
 		return;
 	}

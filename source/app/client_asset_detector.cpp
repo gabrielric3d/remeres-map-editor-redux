@@ -12,6 +12,7 @@
 
 #include "app/definitions.h"
 #include "io/filehandle.h"
+#include "rendering/core/sprite_archive.h"
 #include "item_definitions/core/item_definition_fragments.h"
 #include "item_definitions/formats/dat/dat_item_parser.h"
 
@@ -317,7 +318,17 @@ ClientAssetDetectionResult ClientAssetDetector::detect(const ClientVersion& clie
 	}
 
 	const auto dat_file = resolveClientFile(client_path, client.getMetadataFile(), std::string { ASSETS_NAME } + ".dat");
-	const auto spr_file = resolveClientFile(client_path, client.getSpritesFile(), std::string { ASSETS_NAME } + ".spr");
+	auto spr_file = resolveClientFile(client_path, client.getSpritesFile(), std::string { ASSETS_NAME } + ".spr");
+
+	// A fragmented set may have no .spr at all — only the catalog. Fall back to
+	// it so detection reports the client as usable instead of "SPR not found".
+	if (!spr_file.exists) {
+		if (const auto catalog = SpriteArchive::resolveCatalogPath(spr_file.path); catalog.IsOk()) {
+			spr_file.path = catalog;
+			spr_file.filename = catalog.GetFullName().ToStdString();
+			spr_file.exists = true;
+		}
+	}
 
 	if (!dat_file.exists) {
 		const auto message = "Client asset detection failed: DAT file was not found in the selected client path.";
@@ -334,7 +345,16 @@ ClientAssetDetectionResult ClientAssetDetector::detect(const ClientVersion& clie
 		result.warnings.emplace_back(message);
 	} else {
 		result.sprites_file_name = spr_file.filename;
-		result.spr_signature = readSignature(spr_file.path, "SPR", result.warnings);
+		// Not readSignature(): in a catalog the first u32 is the "SCAT" magic, not
+		// the sprite signature.
+		uint32_t spr_signature = 0;
+		if (SpriteArchive::readSourceSignature(spr_file.path, spr_signature)) {
+			result.spr_signature = spr_signature;
+		} else {
+			const auto message = std::format("SPR signature detection failed: could not read header from {}", spr_file.path.GetFullPath().ToStdString());
+			spdlog::warn(message);
+			result.warnings.push_back(message);
+		}
 	}
 
 	if (result.dat_signature.has_value()) {

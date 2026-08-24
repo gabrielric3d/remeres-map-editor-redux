@@ -28,6 +28,7 @@
 #include "util/file_system.h"
 #include "ui/dialog_util.h"
 #include "app/client_version.h"
+#include "rendering/core/sprite_archive.h"
 
 #include <wx/dir.h>
 #include <wx/filename.h>
@@ -489,14 +490,16 @@ bool ClientVersion::hasValidPaths() {
 	metadata_path = wxFileName(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), wxString(metadata_file));
 	sprites_path = wxFileName(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), wxString(sprites_file));
 
-	if (!metadata_path.FileExists() || !sprites_path.FileExists()) {
+	// The sprites may be a single .spr or a fragmented set, in which case only a
+	// sibling .cat is on disk — SpriteArchive::sourceExists accepts both.
+	if (!metadata_path.FileExists() || !SpriteArchive::sourceExists(sprites_path)) {
 		// Fallback to "Tibia.dat" / "Tibia.spr" if the configured files don't exist
 		// This maintains some backward compatibility if the toml config is slightly off but files are standard
 		metadata_path = wxFileName(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), wxString(ASSETS_NAME) + ".dat");
 		sprites_path = wxFileName(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), wxString(ASSETS_NAME) + ".spr");
 	}
 
-	if (!metadata_path.FileExists() || !sprites_path.FileExists()) {
+	if (!metadata_path.FileExists() || !SpriteArchive::sourceExists(sprites_path)) {
 		return false;
 	}
 
@@ -515,15 +518,14 @@ bool ClientVersion::hasValidPaths() {
 	dat_file.getU32(datSignature);
 	dat_file.close();
 
-	FileReadHandle spr_file(static_cast<const char*>(sprites_path.GetFullPath().mb_str()));
-	if (!spr_file.isOk()) {
+	// Reads the signature from whichever layout is on disk: a catalog keeps it at
+	// offset 8, behind the magic and version, so a raw getU32 here would compare
+	// "SCAT" against the expected signature and always fail.
+	uint32_t sprSignature = 0;
+	if (!SpriteArchive::readSourceSignature(sprites_path, sprSignature)) {
 		wxLogError("Could not open sprites file.");
 		return false;
 	}
-
-	uint32_t sprSignature;
-	spr_file.getU32(sprSignature);
-	spr_file.close();
 
 	for (const auto& clientData : data_versions) {
 		if (clientData.sprSignature == sprSignature && clientData.datSignature == datSignature) {
