@@ -198,6 +198,40 @@ HotkeysPage::HotkeysPage(wxWindow* parent) :
 	eraseAboveRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "(Hold + Left Click to erase the ground on the floor above the cursor)"), 0, wxALIGN_CENTER_VERTICAL);
 	modifierBox->Add(eraseAboveRow, 0, wxEXPAND | wxALL, FromDIP(4));
 
+	auto* borderVariantRow = new wxBoxSizer(wxHORIZONTAL);
+	borderVariantRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "Border Variant Key:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+
+	wxArrayString borderVariantChoices;
+	borderVariantChoices.Add("None");
+	borderVariantChoices.Add("F2");
+	borderVariantChoices.Add("F3");
+	borderVariantChoices.Add("F4");
+	borderVariantChoices.Add("F6");
+	borderVariantChoices.Add("F7");
+	borderVariantChoices.Add("F8");
+	m_borderVariantHotkey = new wxChoice(modBoxWin, wxID_ANY, wxDefaultPosition, wxDefaultSize, borderVariantChoices);
+
+	std::string currentBorderVariant = g_settings.getString(Config::BORDER_VARIANT_HOTKEY);
+	int borderVariantSel = wxNOT_FOUND;
+	for (unsigned int i = 0; i < borderVariantChoices.GetCount(); ++i) {
+		if (borderVariantChoices[i].CmpNoCase(wxString(currentBorderVariant)) == 0) {
+			borderVariantSel = static_cast<int>(i);
+			break;
+		}
+	}
+	if (borderVariantSel == wxNOT_FOUND) {
+		if (!currentBorderVariant.empty()) {
+			// Hand-edited values (any F-key or single letter) still work at runtime.
+			borderVariantSel = static_cast<int>(m_borderVariantHotkey->Append(wxString(currentBorderVariant).Upper()));
+		} else {
+			borderVariantSel = 0; // "None"
+		}
+	}
+	m_borderVariantHotkey->SetSelection(borderVariantSel);
+	borderVariantRow->Add(m_borderVariantHotkey, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+	borderVariantRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "(Press to cycle which border shape ground brushes paint with)"), 0, wxALIGN_CENTER_VERTICAL);
+	modifierBox->Add(borderVariantRow, 0, wxEXPAND | wxALL, FromDIP(4));
+
 	sizer->Add(modifierBox, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(8));
 
 	SetSizer(sizer);
@@ -255,6 +289,12 @@ void HotkeysPage::Apply() {
 		int sel = m_eraseAboveHotkey->GetSelection();
 		wxString choice = (sel != wxNOT_FOUND) ? m_eraseAboveHotkey->GetString(sel) : wxString("C");
 		g_settings.setString(Config::ERASE_ABOVE_HOTKEY, std::string(choice.mb_str()));
+	}
+
+	if (m_borderVariantHotkey) {
+		int sel = m_borderVariantHotkey->GetSelection();
+		wxString choice = (sel != wxNOT_FOUND) ? m_borderVariantHotkey->GetString(sel) : wxString("F3");
+		g_settings.setString(Config::BORDER_VARIANT_HOTKEY, std::string(choice.mb_str()));
 	}
 }
 

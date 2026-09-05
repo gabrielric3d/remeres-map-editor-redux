@@ -445,6 +445,13 @@ public:
 	// Subtype (count, fluid, charges)
 	int getCount() const;
 	uint16_t getSubtype() const;
+	// O valor cru, sem o hasSubtype() na frente. Existe para quem JA sabe que o
+	// item tem subtype -- o caminho de desenho pergunta isSplash/isFluidContainer/
+	// Stackable antes, que e exatamente o que hasSubtype() reconsultaria, e cada
+	// hasSubtype() e um getDefinition() mais cinco perguntas a definicao.
+	[[nodiscard]] uint16_t rawSubtype() const noexcept {
+		return subtype;
+	}
 	void setSubtype(uint16_t n);
 	bool hasSubtype() const;
 

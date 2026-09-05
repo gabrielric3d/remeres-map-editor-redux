@@ -63,6 +63,12 @@ public:
 		ClearLassoSelection();
 	}
 
+	// Magic wand selection (Selection Mode > Magic Wand Selection)
+	bool IsMagicWandEnabled() const;
+	// Runs the wand for a click in selection mode. False when the wand is off, the
+	// tile has no ground brush, or the click should drag an already selected patch.
+	bool TryMagicWandClick(const Position& mouse_map_pos, bool ctrl_down);
+
 	// Lasso selection
 	bool IsLassoEnabled() const;
 	bool HasLassoSelection() const;
@@ -86,6 +92,9 @@ private:
 	bool boundbox_select_creatures;
 	bool lasso_active;
 	bool drag_axis_constrained = false;
+	// Set when a click was consumed by the magic wand, so the matching release does
+	// not run the plain-click selection (which would add the tile's top item).
+	bool magic_wand_click = false;
 
 	Position drag_start_pos;
 

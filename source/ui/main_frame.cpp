@@ -22,6 +22,7 @@
 #include "rendering/ui/minimap_window.h"
 #include "rendering/ui/map_display.h"
 #include "rendering/ui/keyboard_handler.h"
+#include "rendering/ui/border_variant_hud.h"
 #include "ui/about_window.h"
 #include "ui/main_menubar.h"
 #include "app/updater.h"
@@ -170,6 +171,21 @@ void MainFrame::OnUpdateMenus(wxCommandEvent&) {
 }
 
 #ifdef __WINDOWS__
+namespace {
+	// wx keycode -> Windows virtual-key code for the keys the hotkey editor can
+	// capture. Letters/digits/punctuation share their ASCII value with the VK code;
+	// function keys need the VK_F1 base. Returns 0 (never matches) for anything else.
+	int HotkeyVirtualKey(int wx_keycode) {
+		if (wx_keycode >= WXK_F1 && wx_keycode <= WXK_F24) {
+			return 0x70 + (wx_keycode - WXK_F1); // VK_F1..VK_F24
+		}
+		if (wx_keycode >= 'a' && wx_keycode <= 'z') {
+			return wx_keycode - 'a' + 'A';
+		}
+		return (wx_keycode >= 0x20 && wx_keycode <= 0x7F) ? wx_keycode : 0;
+	}
+}
+
 bool MainFrame::MSWTranslateMessage(WXMSG* msg) {
 	// Don't let single-letter menu accelerators swallow the configurable "erase ground
 	// above" hold-hotkey while the map canvas has focus (e.g. the default C is also the
@@ -182,6 +198,35 @@ bool MainFrame::MSWTranslateMessage(WXMSG* msg) {
 		&& !wxGetKeyState(WXK_CONTROL) && !wxGetKeyState(WXK_ALT) && !wxGetKeyState(WXK_SHIFT)
 		&& dynamic_cast<MapCanvas*>(wxWindow::FindFocus()) != nullptr) {
 		return wxWindow::MSWTranslateMessage(msg);
+	}
+
+	// Same treatment for the border-variant toggle: its default F3 is also the
+	// "Goto Website" menu accelerator, which would otherwise open a browser
+	// instead of switching the border shape while painting.
+	const int border_variant_key = BorderVariantHUD::GetHotkeyVirtualKey();
+	if (border_variant_key != 0 && msg->message == WM_KEYDOWN
+		&& static_cast<int>(msg->wParam) == border_variant_key
+		&& !wxGetKeyState(WXK_CONTROL) && !wxGetKeyState(WXK_ALT) && !wxGetKeyState(WXK_SHIFT)
+		&& dynamic_cast<MapCanvas*>(wxWindow::FindFocus()) != nullptr) {
+		return wxWindow::MSWTranslateMessage(msg);
+	}
+
+	// Holding the "Fill Selection" shortcut (default Ctrl+D) must not fill once per
+	// key auto-repeat: a doodad fill would pile up items and a ground fill would
+	// re-randomize the area on every repeat. Bit 30 of lParam flags a WM_KEYDOWN whose
+	// key was already down, so swallow those and let only the first press reach the
+	// accelerator table. Holding the key is also how the classic ground flood fill is
+	// armed, and that only needs the first press too.
+	if (msg->message == WM_KEYDOWN && (msg->lParam & (1 << 30)) && menu_bar) {
+		HotkeyData fill_hotkey;
+		if (menu_bar->GetActionHotkey(MenuBar::FILL_SELECTION, fill_hotkey)
+			&& fill_hotkey.mouseButton == HotkeyMouseButton::None
+			&& static_cast<int>(msg->wParam) == HotkeyVirtualKey(fill_hotkey.keycode)
+			&& ((fill_hotkey.flags & wxACCEL_CTRL) != 0) == wxGetKeyState(WXK_CONTROL)
+			&& ((fill_hotkey.flags & wxACCEL_ALT) != 0) == wxGetKeyState(WXK_ALT)
+			&& ((fill_hotkey.flags & wxACCEL_SHIFT) != 0) == wxGetKeyState(WXK_SHIFT)) {
+			return true;
+		}
 	}
 
 	if (g_hotkeys.AreHotkeysEnabled()) {

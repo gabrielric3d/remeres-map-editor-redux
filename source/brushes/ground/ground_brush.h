@@ -47,8 +47,42 @@ public:
 	static const BorderBlock* getBrushTo(GroundBrush* first, GroundBrush* second);
 	static std::vector<const BorderBlock*> getBrushesTo(GroundBrush* first, GroundBrush* second);
 
+	// --- Border variants -------------------------------------------------
+	// A ground brush can declare the same align/to border twice with different
+	// shapes, tagged variant="1" / variant="2" in grounds.xml. Only the blocks
+	// matching the active variant are used while painting, so the shape can be
+	// switched with a hotkey instead of editing and reloading the brushes.
+	// Blocks without a variant (variant == 0) always apply.
+	static int getActiveBorderVariant();
+	static void setActiveBorderVariant(int variant);
+	// Cycles to the next variant declared by `context` (or, without a ground
+	// brush in hand, by any loaded brush) and returns the new active variant.
+	static int cycleActiveBorderVariant(const GroundBrush* context);
+	// Bitmask of the variant numbers declared across every loaded ground brush.
+	static uint32_t getGlobalVariantMask() {
+		return global_variant_mask;
+	}
+	static void clearGlobalVariantMask() {
+		global_variant_mask = 0;
+	}
+
+	// Bitmask of variant numbers this brush declares (bit N-1 = variant N).
+	uint32_t getVariantMask() const {
+		return variant_mask;
+	}
+	bool hasBorderVariants() const {
+		// More than one bit set: the brush actually offers a choice.
+		return variant_mask != 0 && (variant_mask & (variant_mask - 1)) != 0;
+	}
+	// The variant this brush really paints with right now: the active one when
+	// declared, otherwise the lowest it does declare (so brushes that never opted
+	// into variants keep their single border set).
+	int getEffectiveVariant() const;
+
 private:
 	static bool isExcludedBrush(const BorderBlock* bb, uint32_t brushId);
+	// True when `bb` (owned by `owner`) belongs to the variant currently painted.
+	static bool isVariantActive(const GroundBrush* owner, const BorderBlock* bb);
 
 public:
 
@@ -77,21 +111,39 @@ public:
 	bool hasOptionalBorder() const {
 		return optional_border != nullptr;
 	}
-	// Declared with carpet_fill="true" in grounds.xml: this brush paints in
-	// Carpet Fill mode (edge pieces inwards, center only when surrounded).
-	// Brushes without it always use the traditional auto-border pipeline.
+	// True when the item id is one of the border pieces this brush places (any of its
+	// border sets, every variant, plus the optional border). Used to pick "this
+	// ground's borders" out of a tile, e.g. by the magic wand selection.
+	bool ownsBorderItem(uint16_t item_id) const;
+	// Declared with carpet_fill="true" in grounds.xml ("Carpet fill" in the
+	// Brushes Editor): this brush paints like a carpet brush - edge pieces go
+	// on the painted tiles themselves and the ground only fills tiles
+	// surrounded by the brush. Brushes without it always use the traditional
+	// auto-border pipeline and are never touched by the carpet one.
 	bool isCarpetFill() const {
 		return carpet_fill;
 	}
+	// isCarpetFill() gated by the global master switch (Edit > Border Options >
+	// Carpet Fill Borders). Everything carpet-related keys off this.
+	bool paintsAsCarpet() const;
+
+	// True if `itemId` is an edge piece of any of this brush's outer borders
+	// (every variant). Carpet Fill uses the pieces as the membership marker of
+	// margin tiles, which keep their old ground underneath.
+	bool ownsCarpetPiece(uint16_t itemId) const;
 
 	// Random center ground id using the <item chance> weights.
 	uint16_t getRandomGroundItemId() const;
 
-	// Carpet Fill support: reverse index from edge-piece item ids to the ground
-	// brush whose outer border owns them. Margin tiles keep their old ground,
-	// so the edge piece is the only marker of which brush is being painted.
-	static GroundBrush* getCarpetPieceOwner(uint16_t itemId);
-	static void registerCarpetPieceOwner(uint16_t itemId, GroundBrush* brush);
+	// Carpet Fill support: reverse index from edge-piece item ids to the
+	// carpet_fill ground brushes whose outer borders use them. Margin tiles
+	// keep their old ground, so the edge piece is the only marker of which
+	// brush is painted there. Several brushes may share a border set; the
+	// calculator then picks the one already present around the tile.
+	static const std::vector<GroundBrush*>& getCarpetPieceOwners(uint16_t itemId);
+	// Returns false when the piece was already registered by ANOTHER brush (the
+	// registration still happens); registering the same pair twice is a no-op.
+	static bool registerCarpetPieceOwner(uint16_t itemId, GroundBrush* brush);
 	static void clearCarpetPieceOwners();
 
 	// Accessors for dungeon generator / preset editor
@@ -111,6 +163,10 @@ public:
 		}
 		return ids;
 	}
+	// Outer border of the variant currently being painted, falling back to the
+	// first outer border. Carpet Fill places edge pieces directly instead of
+	// going through getBrushesTo(), so it needs the variant filter here.
+	const AutoBorder* getActiveOuterAutoBorder() const;
 	const AutoBorder* getFirstOuterAutoBorder() const {
 		for (const auto& b : borders) {
 			if (b && b->autoborder && b->outer) return b->autoborder;
@@ -141,6 +197,7 @@ protected: // Members
 	bool use_only_optional; // If this is true, there will be no normal border under the gravel
 	bool randomize;
 	bool carpet_fill;
+	uint32_t variant_mask = 0;
 
 	struct SpecificCaseBlock {
 		SpecificCaseBlock() :
@@ -158,6 +215,9 @@ protected: // Members
 		bool outer;
 		bool super;
 		uint32_t to;
+		// 0 = no variant declared (always used); 1..32 = only used while that
+		// variant is the active one. See getActiveBorderVariant().
+		int32_t variant = 0;
 		std::vector<uint32_t> not_to; // Brushes to exclude from this border
 		int32_t layer_order = 0; // Order within same z-level (0 = bottom, higher = on top)
 
@@ -180,6 +240,10 @@ protected: // Members
 		// with `border`, so the same AutoBorder reused in <border to="X"> and <border to="Y">
 		// keeps its direction bitmasks separate instead of merging into one broken alignment.
 		uint32_t to = 0xFFFFFFFF;
+		// Carpet Fill layer: when set, the cluster stamps exactly this piece on
+		// the tile (a member of the carpet region) instead of composing pieces
+		// from `alignment` through border_types.
+		BorderType carpet_piece = BORDER_NONE;
 
 		bool operator<(const BorderCluster& other) const {
 			if (z != other.z) {
@@ -195,6 +259,8 @@ protected: // Members
 
 public: // Static global members
 	static uint32_t border_types[256];
+	// Union of every brush's variant_mask, rebuilt as the materials load.
+	static uint32_t global_variant_mask;
 };
 
 #endif

@@ -103,9 +103,14 @@ struct GroundBorderRef {
 	std::string to;      // "" (unset/any), "none", or a brush name
 	int borderId;
 	bool enabled;        // false => serialized with enabled="false" and ignored by loader
+	// Border variant: 0 = always used (no variant attribute written), 1..32 = only
+	// used while that variant is the active one, cycled in-editor by the Border
+	// Variant hotkey. Lets one brush carry two border shapes and switch between
+	// them while painting instead of being edited and reloaded.
+	int variant;
 
-	GroundBorderRef() : align("outer"), to(""), borderId(0), enabled(true) { }
-	GroundBorderRef(const std::string& a, const std::string& t, int id) : align(a), to(t), borderId(id), enabled(true) { }
+	GroundBorderRef() : align("outer"), to(""), borderId(0), enabled(true), variant(0) { }
+	GroundBorderRef(const std::string& a, const std::string& t, int id, int v = 0) : align(a), to(t), borderId(id), enabled(true), variant(v) { }
 };
 
 // Visual panel that displays edge items as sprite cells with X button
@@ -326,6 +331,7 @@ public:
 	wxSpinCtrl* m_findGroundItemIdCtrl;
 	wxSpinCtrl* m_serverLookIdCtrl;
 	wxSpinCtrl* m_zOrderCtrl;
+	wxCheckBox* m_carpetFillCheck = nullptr;
 	wxSpinCtrl* m_groundItemIdCtrl;
 	wxSpinCtrl* m_groundItemChanceCtrl;
 	GroundItemsPanel* m_groundItemsPanel;
@@ -339,6 +345,7 @@ public:
 	// Border references for the Ground brush
 	GroundBordersPanel* m_groundBordersList;
 	wxChoice* m_groundBorderAlignCtrl;
+	wxSpinCtrl* m_groundBorderVariantCtrl = nullptr;
 	wxComboBox* m_groundBorderIdCtrl;
 	BorderNorthPreview* m_groundBorderPreview;
 	wxComboBox* m_groundBorderToCtrl;

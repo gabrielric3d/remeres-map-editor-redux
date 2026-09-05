@@ -9,6 +9,7 @@
 #include "item_definitions/core/item_definition_store.h"
 #include "ext/pugixml.hpp"
 #include <wx/string.h>
+#include <spdlog/spdlog.h>
 #include <sstream>
 
 extern Brushes g_brushes;
@@ -49,6 +50,11 @@ bool GroundBrushLoader::load(GroundBrush& brush, pugi::xml_node node, std::vecto
 	// pieces inwards; everything else keeps the traditional auto-border.
 	if ((attribute = node.attribute("carpet_fill"))) {
 		brush.carpet_fill = attribute.as_bool();
+		if (brush.carpet_fill) {
+			// One line per carpet brush at load time, so rme_debug.log shows which
+			// grounds.xml the editor really read and whether the attribute reached it.
+			spdlog::info("Ground brush '{}' loaded with carpet_fill (paints like a carpet while Carpet Fill Borders is on)", node.attribute("name").as_string());
+		}
 	}
 
 	for (pugi::xml_node childNode : node.children()) {
@@ -267,6 +273,25 @@ bool GroundBrushLoader::load(GroundBrush& brush, pugi::xml_node node, std::vecto
 				isSuper = true;
 			}
 
+			// Border variants: several <border> entries can describe the same
+			// align/to pair with different shapes, each tagged variant="1",
+			// variant="2", ... Only the active variant is used while painting
+			// (see GroundBrush::getActiveBorderVariant); untagged borders always
+			// apply, which keeps every existing brush behaving as before.
+			int32_t variantValue = 0;
+			if ((attribute = childNode.attribute("variant"))) {
+				variantValue = attribute.as_int();
+				if (variantValue < 0 || variantValue > 32) {
+					warnings.push_back("\nBorder variant must be between 1 and 32, ignoring value " + std::to_string(variantValue));
+					variantValue = 0;
+				}
+			}
+			if (variantValue > 0) {
+				const uint32_t bit = 1u << (variantValue - 1);
+				brush.variant_mask |= bit;
+				GroundBrush::global_variant_mask |= bit;
+			}
+
 			if ((attribute = childNode.attribute("align"))) {
 				const std::string_view value = attribute.as_string();
 				if (value == "outer") {
@@ -302,6 +327,7 @@ bool GroundBrushLoader::load(GroundBrush& brush, pugi::xml_node node, std::vecto
 				borderBlock->super = isSuper;
 				borderBlock->outer = isOuter;
 				borderBlock->to = toValue;
+				borderBlock->variant = variantValue;
 				borderBlock->not_to = notToValues;
 				borderBlock->layer_order = layerOrder++;
 				if (cb.owned) {
@@ -315,12 +341,16 @@ bool GroundBrushLoader::load(GroundBrush& brush, pugi::xml_node node, std::vecto
 				// used as TRADITIONAL outer borders by other brushes must not
 				// drag those tiles into the carpet pipeline.
 				if (isOuter && borderBlock->autoborder && brush.carpet_fill) {
+					bool shared = false;
 					for (const auto& direction_items : borderBlock->autoborder->tiles) {
 						for (const auto& bic : direction_items) {
-							if (bic.id != 0) {
-								GroundBrush::registerCarpetPieceOwner(bic.id, &brush);
+							if (bic.id != 0 && !GroundBrush::registerCarpetPieceOwner(bic.id, &brush)) {
+								shared = true;
 							}
 						}
+					}
+					if (shared) {
+						warnings.push_back("\nCarpet fill brush '" + brush.getName() + "' shares border " + std::to_string(borderBlock->autoborder->id) + " with another carpet fill brush; tiles carrying its pieces are attributed by neighbourhood.");
 					}
 				}
 
@@ -509,6 +539,7 @@ bool GroundBrushLoader::load(GroundBrush& brush, pugi::xml_node node, std::vecto
 			brush.hate_friends = true;
 		} else if (std::ranges::equal(childName, std::string_view("clear_borders"), iequal)) {
 			brush.borders.clear();
+			brush.variant_mask = 0; // The variants those borders declared are gone with them.
 		} else if (std::ranges::equal(childName, std::string_view("clear_friends"), iequal)) {
 			brush.friends.clear();
 			brush.hate_friends = false;

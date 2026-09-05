@@ -17,6 +17,7 @@
 
 #include "app/main.h"
 #include "ui/dialogs/doodad_editor_dialog.h"
+#include "ui/dialogs/carpet_editor_panel.h"
 #include "ui/find_item_window.h"
 #include "rendering/core/graphics.h"
 #include "ui/gui.h"
@@ -25,6 +26,7 @@
 #include "map/tile.h"
 #include "brushes/brush.h"
 #include "brushes/doodad/doodad_brush.h"
+#include "brushes/carpet/carpet_brush.h"
 #include "brushes/raw/raw_brush.h"
 #include "item_definitions/core/item_definition_store.h"
 #include "rendering/core/game_sprite.h"
@@ -75,7 +77,15 @@ enum {
     ID_SAVE_TO_FILE,
     ID_ADD_TO_TILESET_DOODAD,
     ID_TILESET_COMBO_DOODAD,
-    ID_TILESET_BRUSH_LIST_DOODAD
+    ID_TILESET_BRUSH_LIST_DOODAD,
+    ID_BRUSH_TYPE_CHOICE,
+    ID_TILESET_SECTION_CHOICE
+};
+
+// Choice indices of the brush type selector.
+enum {
+    BRUSH_TYPE_DOODAD = 0,
+    BRUSH_TYPE_CARPET = 1
 };
 
 // Helper function to get item ID from current brush
@@ -195,6 +205,8 @@ BEGIN_EVENT_TABLE(DoodadEditorDialog, wxPanel)
     EVT_BUTTON(ID_ADD_TO_TILESET_DOODAD, DoodadEditorDialog::OnAddToTileset)
     EVT_COMBOBOX(ID_TILESET_COMBO_DOODAD, DoodadEditorDialog::OnTilesetSelectionChanged)
     EVT_TEXT(ID_TILESET_COMBO_DOODAD, DoodadEditorDialog::OnTilesetSelectionChanged)
+    EVT_CHOICE(ID_TILESET_SECTION_CHOICE, DoodadEditorDialog::OnTilesetSectionChanged)
+    EVT_CHOICE(ID_BRUSH_TYPE_CHOICE, DoodadEditorDialog::OnBrushTypeChanged)
 END_EVENT_TABLE()
 
 BEGIN_EVENT_TABLE(DoodadGridPanel, wxPanel)
@@ -231,6 +243,16 @@ DoodadEditorDialog::DoodadEditorDialog(wxWindow* parent) :
     m_fromSelIncludeGroundCheck = nullptr;
     m_fromSelReplaceCheck = nullptr;
     m_fromSelAnchorChoice = nullptr;
+    m_brushTypeChoice = nullptr;
+    m_carpetPanel = nullptr;
+    m_propsSizer = nullptr;
+    m_doodadOptionsRow = nullptr;
+    m_thicknessRow = nullptr;
+    m_rightSizer = nullptr;
+    m_rightPanel = nullptr;
+    m_tilesetSectionLabel = nullptr;
+    m_tilesetSectionChoice = nullptr;
+    m_tilesetBrushesLabel = nullptr;
 
     // Compact font (-1pt) cascades to every child control. Matches the Border editor.
     wxFont compactFont = GetFont();
@@ -278,7 +300,7 @@ void DoodadEditorDialog::CreateGUIControls() {
     wxBoxSizer* findServerSizer = new wxBoxSizer(wxHORIZONTAL);
     findServerSizer->Add(new wxStaticText(leftPanel, wxID_ANY, "Server ID:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
     m_findServerIdCtrl = new wxSpinCtrl(leftPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 0, 65535);
-    m_findServerIdCtrl->SetToolTip("Load the doodad brush that uses this item id (single item or composite).");
+    m_findServerIdCtrl->SetToolTip("Load the doodad or carpet brush that uses this item id.");
     findServerSizer->Add(m_findServerIdCtrl, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
     findServerSizer->Add(new wxButton(leftPanel, ID_FIND_SERVER_ID, "Find", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0);
     filterSizer->Add(findServerSizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
@@ -286,7 +308,7 @@ void DoodadEditorDialog::CreateGUIControls() {
     leftSizer->Add(filterSizer, 0, wxEXPAND | wxALL, 5);
 
     // Doodad list
-    wxStaticBoxSizer* listSizer = new wxStaticBoxSizer(wxVERTICAL, leftPanel, "Doodad Brushes");
+    wxStaticBoxSizer* listSizer = new wxStaticBoxSizer(wxVERTICAL, leftPanel, "Doodad & Carpet Brushes");
 
     m_doodadListCtrl = new wxListCtrl(leftPanel, ID_DOODAD_LIST, wxDefaultPosition, wxSize(250, -1),
         wxLC_REPORT | wxLC_SINGLE_SEL | wxLC_NO_HEADER);
@@ -314,7 +336,8 @@ void DoodadEditorDialog::CreateGUIControls() {
     listSizer->Add(pageSizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 
     // Create New button
-    wxButton* createNewBtn = new wxButton(leftPanel, ID_CREATE_NEW, "Create New Doodad");
+    wxButton* createNewBtn = new wxButton(leftPanel, ID_CREATE_NEW, "Create New");
+    createNewBtn->SetToolTip("Starts an empty brush of the type selected in Brush Properties (Doodad or Carpet).");
     listSizer->Add(createNewBtn, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 
     leftSizer->Add(listSizer, 1, wxEXPAND | wxALL, 5);
@@ -327,7 +350,8 @@ void DoodadEditorDialog::CreateGUIControls() {
     wxBoxSizer* rightSizer = new wxBoxSizer(wxVERTICAL);
 
     // === Doodad Properties Section ===
-    wxStaticBoxSizer* propsSizer = new wxStaticBoxSizer(wxVERTICAL, rightPanel, "Doodad Properties");
+    wxStaticBoxSizer* propsSizer = new wxStaticBoxSizer(wxVERTICAL, rightPanel, "Brush Properties");
+    m_propsSizer = propsSizer;
 
     // Row 1: Name and Look ID
     wxBoxSizer* row1Sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -337,6 +361,17 @@ void DoodadEditorDialog::CreateGUIControls() {
     m_nameCtrl = new wxTextCtrl(rightPanel, wxID_ANY, "", wxDefaultPosition, wxSize(200, -1));
     nameSizer->Add(m_nameCtrl, 0, wxEXPAND | wxTOP, 2);
     row1Sizer->Add(nameSizer, 1, wxEXPAND | wxRIGHT, 10);
+
+    // Brush type: doodad (items + composites) or carpet (13 alignment slots). Both
+    // are saved to doodads.xml; only the editor area and the doodad-only options change.
+    wxBoxSizer* typeSizer = new wxBoxSizer(wxVERTICAL);
+    typeSizer->Add(new wxStaticText(rightPanel, wxID_ANY, "Type:"), 0);
+    wxString brushTypes[] = { "Doodad", "Carpet" };
+    m_brushTypeChoice = new wxChoice(rightPanel, ID_BRUSH_TYPE_CHOICE, wxDefaultPosition, wxSize(100, -1), 2, brushTypes);
+    m_brushTypeChoice->SetSelection(BRUSH_TYPE_DOODAD);
+    m_brushTypeChoice->SetToolTip("Doodad: single items and composites.\nCarpet: auto-bordering brush with one item set per alignment (n, e, s, w, corners, diagonals, center).");
+    typeSizer->Add(m_brushTypeChoice, 0, wxEXPAND | wxTOP, 2);
+    row1Sizer->Add(typeSizer, 0, wxEXPAND | wxRIGHT, 10);
 
     wxBoxSizer* lookIdSizer = new wxBoxSizer(wxVERTICAL);
     lookIdSizer->Add(new wxStaticText(rightPanel, wxID_ANY, "Server Look ID:"), 0);
@@ -370,6 +405,7 @@ void DoodadEditorDialog::CreateGUIControls() {
     row2Sizer->Add(m_saveAsAlternateCheck, 0);
 
     propsSizer->Add(row2Sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+    m_doodadOptionsRow = row2Sizer;
 
     // Row 3: Thickness
     wxBoxSizer* row3Sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -381,6 +417,7 @@ void DoodadEditorDialog::CreateGUIControls() {
     row3Sizer->Add(m_thicknessCeilingCtrl, 0);
 
     propsSizer->Add(row3Sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+    m_thicknessRow = row3Sizer;
 
     rightSizer->Add(propsSizer, 0, wxEXPAND | wxALL, 5);
 
@@ -546,6 +583,12 @@ void DoodadEditorDialog::CreateGUIControls() {
 
     rightSizer->Add(m_notebook, 1, wxEXPAND | wxALL, 5);
 
+    // Carpet sub-editor: takes the notebook's place while the brush type is Carpet.
+    m_carpetPanel = new CarpetEditorPanel(rightPanel);
+    rightSizer->Add(m_carpetPanel, 1, wxEXPAND | wxALL, 5);
+    m_rightSizer = rightSizer;
+    m_rightPanel = rightPanel;
+
     // === Assign to Tileset ===
     wxStaticBoxSizer* tilesetAssignSizer = new wxStaticBoxSizer(wxVERTICAL, rightPanel, "Assign to Tileset");
 
@@ -553,12 +596,23 @@ void DoodadEditorDialog::CreateGUIControls() {
     wxBoxSizer* tilesetRow = new wxBoxSizer(wxHORIZONTAL);
     tilesetRow->Add(new wxStaticText(rightPanel, wxID_ANY, "Tileset:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
     m_tilesetCombo = new wxComboBox(rightPanel, ID_TILESET_COMBO_DOODAD, "", wxDefaultPosition, wxSize(220, -1), 0, nullptr, wxCB_DROPDOWN);
-    m_tilesetCombo->SetToolTip("Pick a tileset. The (Doodad) suffix shows where the brush will be inserted.");
+    m_tilesetCombo->SetToolTip("Pick a tileset. The suffix shows which section the brush will be inserted in.");
     tilesetRow->Add(m_tilesetCombo, 1, wxEXPAND);
+
+    // Carpets are listed under <terrain> in the shipped tilesets.xml (next to grounds),
+    // but some also live under <doodad> - let the user pick. Doodads always go to <doodad>.
+    m_tilesetSectionLabel = new wxStaticText(rightPanel, wxID_ANY, "Section:");
+    tilesetRow->Add(m_tilesetSectionLabel, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 5);
+    wxString sections[] = { "terrain", "doodad" };
+    m_tilesetSectionChoice = new wxChoice(rightPanel, ID_TILESET_SECTION_CHOICE, wxDefaultPosition, wxSize(90, -1), 2, sections);
+    m_tilesetSectionChoice->SetSelection(0);
+    m_tilesetSectionChoice->SetToolTip("tilesets.xml section the carpet brush is added to. Shipped carpets sit under <terrain>.");
+    tilesetRow->Add(m_tilesetSectionChoice, 0, wxALIGN_CENTER_VERTICAL);
     tilesetAssignSizer->Add(tilesetRow, 0, wxEXPAND | wxALL, 5);
 
     // Row 2: Existing brushes list
-    tilesetAssignSizer->Add(new wxStaticText(rightPanel, wxID_ANY, "Existing brushes in this tileset (Doodad):"), 0, wxLEFT | wxRIGHT, 5);
+    m_tilesetBrushesLabel = new wxStaticText(rightPanel, wxID_ANY, "Existing brushes in this tileset (Doodad):");
+    tilesetAssignSizer->Add(m_tilesetBrushesLabel, 0, wxLEFT | wxRIGHT, 5);
     m_tilesetBrushList = new wxListBox(rightPanel, ID_TILESET_BRUSH_LIST_DOODAD, wxDefaultPosition, wxSize(-1, 110));
     m_tilesetBrushList->SetToolTip("Select a brush to use as reference for the 'After selected' insert option.");
     tilesetAssignSizer->Add(m_tilesetBrushList, 1, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 5);
@@ -574,7 +628,7 @@ void DoodadEditorDialog::CreateGUIControls() {
     wxBoxSizer* tilesetBtnRow = new wxBoxSizer(wxHORIZONTAL);
     tilesetBtnRow->AddStretchSpacer();
     m_addToTilesetButton = new wxButton(rightPanel, ID_ADD_TO_TILESET_DOODAD, "Add brush to Tileset");
-    m_addToTilesetButton->SetToolTip("Adds the current doodad brush to the selected tileset's <doodad> section at the chosen position.");
+    m_addToTilesetButton->SetToolTip("Adds the current brush to the selected tileset section at the chosen position.");
     tilesetBtnRow->Add(m_addToTilesetButton, 0);
     tilesetAssignSizer->Add(tilesetBtnRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 
@@ -591,6 +645,9 @@ void DoodadEditorDialog::CreateGUIControls() {
     mainSizer->Add(rightPanel, 1, wxEXPAND);
 
     SetSizer(mainSizer);
+
+    // Start in doodad mode: hides the carpet panel and the carpet-only tileset controls.
+    ApplyBrushTypeLayout();
 }
 
 void DoodadEditorDialog::LoadExistingDoodads() {
@@ -618,6 +675,8 @@ void DoodadEditorDialog::LoadExistingDoodads() {
         }
     }
 
+    LoadExistingCarpets();
+
     // Sort alphabetically
     std::sort(m_allDoodads.begin(), m_allDoodads.end(),
         [](const DoodadBrushInfo& a, const DoodadBrushInfo& b) {
@@ -642,7 +701,9 @@ void DoodadEditorDialog::UpdateDoodadList() {
         long itemIdx = m_doodadListCtrl->InsertItem(i - startIdx, info.name);
 
         wxString infoStr;
-        if (info.compositeCount > 0 && info.singleCount > 0) {
+        if (info.isCarpet) {
+            infoStr = wxString::Format("Carpet %d", info.alignCount);
+        } else if (info.compositeCount > 0 && info.singleCount > 0) {
             infoStr = wxString::Format("C:%d S:%d", info.compositeCount, info.singleCount);
         } else if (info.compositeCount > 0) {
             infoStr = wxString::Format("C:%d", info.compositeCount);
@@ -683,7 +744,12 @@ void DoodadEditorDialog::OnDoodadListSelected(wxListEvent& event) {
     int actualIdx = m_currentPage * DOODADS_PER_PAGE + listIdx;
 
     if (actualIdx >= 0 && actualIdx < (int)m_filteredDoodads.size()) {
-        LoadDoodadBrush(m_filteredDoodads[actualIdx].name);
+        const DoodadBrushInfo& info = m_filteredDoodads[actualIdx];
+        if (info.isCarpet) {
+            LoadCarpetBrush(info.name);
+        } else {
+            LoadDoodadBrush(info.name);
+        }
     }
 }
 
@@ -703,7 +769,7 @@ void DoodadEditorDialog::OnNextPage(wxCommandEvent& event) {
 
 void DoodadEditorDialog::OnCreateNew(wxCommandEvent& event) {
     ClearEditor();
-    m_nameCtrl->SetValue("new_doodad");
+    m_nameCtrl->SetValue(IsCarpetMode() ? "new_carpet" : "new_doodad");
     m_nameCtrl->SetFocus();
     m_nameCtrl->SelectAll();
 }
@@ -718,6 +784,7 @@ void DoodadEditorDialog::LoadDoodadBrush(const wxString& brushName) {
     if (!doodad) return;
 
     ClearEditor();
+    SetBrushType(false);
 
     // Load properties
     m_nameCtrl->SetValue(wxString(doodad->getName()));
@@ -801,7 +868,17 @@ wxString DoodadEditorDialog::FindDoodadBrushNameByItemId(uint16_t itemId) const 
 bool DoodadEditorDialog::OpenItemInEditor(uint16_t itemId) {
     wxString name = FindDoodadBrushNameByItemId(itemId);
     if (name.IsEmpty()) {
-        return false;
+        // Not a doodad item - maybe a carpet piece.
+        BorderType align = BORDER_NONE;
+        wxString carpetName = FindCarpetBrushNameByItemId(itemId, align);
+        if (carpetName.IsEmpty() || !LoadCarpetBrush(carpetName)) {
+            return false;
+        }
+        if (m_findServerIdCtrl) m_findServerIdCtrl->SetValue(itemId);
+        if (m_carpetPanel && align != BORDER_NONE) {
+            m_carpetPanel->SelectAlignment(align);
+        }
+        return true;
     }
 
     LoadDoodadBrush(name);
@@ -830,7 +907,7 @@ void DoodadEditorDialog::OnFindByServerId(wxCommandEvent& WXUNUSED(event)) {
     }
 
     if (!OpenItemInEditor(wanted)) {
-        wxMessageBox(wxString::Format("No doodad brush uses item ID %u.", static_cast<unsigned>(wanted)),
+        wxMessageBox(wxString::Format("No doodad or carpet brush uses item ID %u.", static_cast<unsigned>(wanted)),
             "Not Found", wxICON_WARNING);
     }
 }
@@ -864,6 +941,10 @@ void DoodadEditorDialog::ClearEditor() {
     m_gridPanel->Clear();
     m_previewPanel->Clear();
     UpdateGridInfoLabel();
+
+    if (m_carpetPanel) m_carpetPanel->Clear();
+    m_carpetPreservedAttrs.clear();
+    m_carpetPreservedForName.Clear();
 }
 
 void DoodadEditorDialog::OnAddSingleItem(wxCommandEvent& event) {
@@ -1464,6 +1545,10 @@ void DoodadEditorDialog::OnPageChanged(wxBookCtrlEvent& event) {
 }
 
 wxString DoodadEditorDialog::GenerateXML() {
+    if (IsCarpetMode()) {
+        return GenerateCarpetXML();
+    }
+
     std::ostringstream xml;
 
     wxString name = m_nameCtrl->GetValue();
@@ -1550,6 +1635,10 @@ wxString DoodadEditorDialog::GenerateXML() {
 }
 
 bool DoodadEditorDialog::ValidateDoodad() {
+    if (IsCarpetMode()) {
+        return ValidateCarpet();
+    }
+
     if (m_nameCtrl->GetValue().IsEmpty()) {
         wxMessageBox("Please enter a brush name.", "Validation Error", wxOK | wxICON_ERROR);
         return false;
@@ -1570,16 +1659,24 @@ bool DoodadEditorDialog::ValidateDoodad() {
     return true;
 }
 
-// Strips the " (Doodad)" / " (Doodad - new)" suffix from a combobox label, returning
-// the bare tileset name. Returns the input unchanged if no recognized suffix is present.
-static wxString StripDoodadSuffix(const wxString& label) {
+// Strips the " (Doodad)" / " (Doodad - new)" / " (Terrain)" / " (Terrain - new)" suffix
+// from a combobox label, returning the bare tileset name. Returns the input unchanged if
+// no recognized suffix is present.
+static wxString StripSectionSuffix(const wxString& label) {
     wxString trimmed = label;
     trimmed.Trim(true).Trim(false);
-    size_t parenIdx = trimmed.rfind(" (Doodad");
-    if (parenIdx != wxString::npos) {
-        return wxString(trimmed.Mid(0, parenIdx)).Trim(true).Trim(false);
+    for (const char* suffix : { " (Doodad", " (Terrain" }) {
+        size_t parenIdx = trimmed.rfind(suffix);
+        if (parenIdx != wxString::npos) {
+            return wxString(trimmed.Mid(0, parenIdx)).Trim(true).Trim(false);
+        }
     }
     return trimmed;
+}
+
+// Display name of a tilesets.xml section ("doodad" -> "Doodad").
+static wxString SectionLabel(const wxString& section) {
+    return section == "terrain" ? wxString("Terrain") : wxString("Doodad");
 }
 
 void DoodadEditorDialog::LoadExistingTilesets() {
@@ -1598,16 +1695,22 @@ void DoodadEditorDialog::LoadExistingTilesets() {
     pugi::xml_node materials = doc.child("materials");
     if (!materials) return;
 
+    const std::string section = CurrentTilesetSection().ToStdString();
+    const wxString sectionLabel = SectionLabel(section);
+    if (m_tilesetBrushesLabel) {
+        m_tilesetBrushesLabel->SetLabel("Existing brushes in this tileset (" + sectionLabel + "):");
+    }
+
     // A tileset name can appear in multiple <tileset> blocks (terrain block,
     // doodad block, etc.). Aggregate them and tag each with whether any block
-    // already has a <doodad> section.
+    // already has the target section.
     std::map<std::string, bool> nameHasDoodad;
     std::vector<std::string> orderedNames;
     for (pugi::xml_node tilesetNode = materials.child("tileset"); tilesetNode; tilesetNode = tilesetNode.next_sibling("tileset")) {
         pugi::xml_attribute nameAttr = tilesetNode.attribute("name");
         if (!nameAttr) continue;
         std::string name = nameAttr.as_string();
-        bool hasDoodad = static_cast<bool>(tilesetNode.child("doodad"));
+        bool hasDoodad = static_cast<bool>(tilesetNode.child(section.c_str()));
         auto it = nameHasDoodad.find(name);
         if (it == nameHasDoodad.end()) {
             nameHasDoodad[name] = hasDoodad;
@@ -1619,7 +1722,7 @@ void DoodadEditorDialog::LoadExistingTilesets() {
 
     for (const std::string& name : orderedNames) {
         wxString label = wxString(name);
-        label += nameHasDoodad[name] ? " (Doodad)" : " (Doodad - new)";
+        label += nameHasDoodad[name] ? (" (" + sectionLabel + ")") : (" (" + sectionLabel + " - new)");
         m_tilesetCombo->Append(label);
     }
 
@@ -1630,7 +1733,7 @@ void DoodadEditorDialog::RefreshTilesetBrushList() {
     if (!m_tilesetBrushList) return;
     m_tilesetBrushList->Clear();
 
-    wxString tilesetName = StripDoodadSuffix(m_tilesetCombo->GetValue());
+    wxString tilesetName = StripSectionSuffix(m_tilesetCombo->GetValue());
     if (tilesetName.IsEmpty()) return;
 
     ClientVersion* version = g_version.getLoadedVersion();
@@ -1644,10 +1747,11 @@ void DoodadEditorDialog::RefreshTilesetBrushList() {
     pugi::xml_node materials = doc.child("materials");
     if (!materials) return;
 
+    const std::string section = CurrentTilesetSection().ToStdString();
     for (pugi::xml_node tilesetNode = materials.child("tileset"); tilesetNode; tilesetNode = tilesetNode.next_sibling("tileset")) {
         pugi::xml_attribute nameAttr = tilesetNode.attribute("name");
         if (!nameAttr || wxString(nameAttr.as_string()) != tilesetName) continue;
-        pugi::xml_node doodad = tilesetNode.child("doodad");
+        pugi::xml_node doodad = tilesetNode.child(section.c_str());
         if (!doodad) continue;
         for (pugi::xml_node brushNode = doodad.child("brush"); brushNode; brushNode = brushNode.next_sibling("brush")) {
             pugi::xml_attribute bn = brushNode.attribute("name");
@@ -1663,11 +1767,15 @@ void DoodadEditorDialog::OnTilesetSelectionChanged(wxCommandEvent& WXUNUSED(even
 void DoodadEditorDialog::OnAddToTileset(wxCommandEvent& WXUNUSED(event)) {
     wxString brushName = m_nameCtrl->GetValue().Trim(true).Trim(false);
     if (brushName.IsEmpty()) {
-        wxMessageBox("Please enter a name for the doodad brush first.", "Error", wxOK | wxICON_ERROR);
+        wxMessageBox("Please enter a name for the brush first.", "Error", wxOK | wxICON_ERROR);
         return;
     }
 
-    wxString tilesetName = StripDoodadSuffix(m_tilesetCombo->GetValue());
+    // <doodad> for doodads; terrain/doodad per the Section choice for carpets.
+    const std::string section = CurrentTilesetSection().ToStdString();
+    const wxString sectionLabel = SectionLabel(section);
+
+    wxString tilesetName = StripSectionSuffix(m_tilesetCombo->GetValue());
     if (tilesetName.IsEmpty()) {
         wxMessageBox("Please select or type a tileset name.", "Error", wxOK | wxICON_ERROR);
         return;
@@ -1714,15 +1822,15 @@ void DoodadEditorDialog::OnAddToTileset(wxCommandEvent& WXUNUSED(event)) {
         return;
     }
 
-    // Prefer a tileset block that already has <doodad>; otherwise fall back to
-    // the first block with the matching name (so we can append a <doodad> to it).
+    // Prefer a tileset block that already has the target section; otherwise fall
+    // back to the first block with the matching name (so we can append it there).
     pugi::xml_node targetTileset;
     pugi::xml_node fallbackTileset;
     for (pugi::xml_node tilesetNode = materials.child("tileset"); tilesetNode; tilesetNode = tilesetNode.next_sibling("tileset")) {
         pugi::xml_attribute nameAttr = tilesetNode.attribute("name");
         if (!nameAttr || wxString(nameAttr.as_string()) != tilesetName) continue;
         if (!fallbackTileset) fallbackTileset = tilesetNode;
-        if (tilesetNode.child("doodad")) {
+        if (tilesetNode.child(section.c_str())) {
             targetTileset = tilesetNode;
             break;
         }
@@ -1738,10 +1846,10 @@ void DoodadEditorDialog::OnAddToTileset(wxCommandEvent& WXUNUSED(event)) {
         targetTileset.append_attribute("name").set_value(tilesetName.ToStdString().c_str());
     }
 
-    // Find or create the <doodad> child (doodad brushes live under doodad category)
-    pugi::xml_node doodad = targetTileset.child("doodad");
+    // Find or create the section child.
+    pugi::xml_node doodad = targetTileset.child(section.c_str());
     if (!doodad) {
-        doodad = targetTileset.append_child("doodad");
+        doodad = targetTileset.append_child(section.c_str());
     }
 
     // Check for duplicates
@@ -1787,7 +1895,7 @@ void DoodadEditorDialog::OnAddToTileset(wxCommandEvent& WXUNUSED(event)) {
         "Success", wxOK | wxICON_INFORMATION);
 
     LoadExistingTilesets();
-    m_tilesetCombo->SetValue(tilesetName + " (Doodad)");
+    m_tilesetCombo->SetValue(tilesetName + " (" + sectionLabel + ")");
     RefreshTilesetBrushList();
 }
 
@@ -1832,11 +1940,26 @@ void DoodadEditorDialog::OnSaveToFile(wxCommandEvent& event) {
         return;
     }
 
-    wxFileName doodadsFile(version->getDataPath().GetFullPath(), "doodads.xml");
-    const std::string filePath = doodadsFile.GetFullPath().ToStdString();
+    const bool carpet = IsCarpetMode();
+    const std::string brushName = m_nameCtrl->GetValue().IsEmpty()
+        ? std::string(carpet ? "new_carpet" : "new_doodad")
+        : m_nameCtrl->GetValue().ToStdString();
 
-    if (!doodadsFile.FileExists()) {
-        wxMessageBox(wxString::Format("doodads.xml not found at:\n%s", doodadsFile.GetFullPath()),
+    // Doodads always go to doodads.xml. A carpet goes back to the file it was loaded
+    // from (normally doodads.xml as well), so editing never duplicates it elsewhere.
+    wxFileName doodadsFile(version->getDataPath().GetFullPath(), "doodads.xml");
+    wxString targetPath = doodadsFile.GetFullPath();
+    if (carpet) {
+        auto srcIt = m_carpetSourceFiles.find(wxString(brushName).Lower());
+        if (srcIt != m_carpetSourceFiles.end()) {
+            targetPath = srcIt->second;
+        }
+    }
+    const wxString targetName = wxFileName(targetPath).GetFullName();
+    const std::string filePath = targetPath.ToStdString();
+
+    if (!wxFileExists(targetPath)) {
+        wxMessageBox(wxString::Format("%s not found at:\n%s", targetName, targetPath),
             "Error", wxOK | wxICON_ERROR);
         return;
     }
@@ -1844,14 +1967,14 @@ void DoodadEditorDialog::OnSaveToFile(wxCommandEvent& event) {
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(filePath.c_str());
     if (!result) {
-        wxMessageBox(wxString::Format("Failed to parse doodads.xml:\n%s", result.description()),
+        wxMessageBox(wxString::Format("Failed to parse %s:\n%s", targetName, result.description()),
             "Error", wxOK | wxICON_ERROR);
         return;
     }
 
     pugi::xml_node root = doc.child("materials");
     if (!root) {
-        wxMessageBox("Invalid doodads.xml: missing <materials> root.", "Error", wxOK | wxICON_ERROR);
+        wxMessageBox(wxString::Format("Invalid %s: missing <materials> root.", targetName), "Error", wxOK | wxICON_ERROR);
         return;
     }
 
@@ -1867,20 +1990,21 @@ void DoodadEditorDialog::OnSaveToFile(wxCommandEvent& event) {
         return;
     }
 
-    const std::string brushName = m_nameCtrl->GetValue().IsEmpty()
-        ? std::string("new_doodad")
-        : m_nameCtrl->GetValue().ToStdString();
-
+    // Match on name AND type: saving a doodad must never swallow a carpet of the same
+    // name, nor the other way round.
+    const char* wantedType = carpet ? "carpet" : "doodad";
     pugi::xml_node existing;
     for (pugi::xml_node b = root.child("brush"); b; b = b.next_sibling("brush")) {
-        if (brushName == b.attribute("name").as_string()) {
+        if (brushName != b.attribute("name").as_string()) continue;
+        const std::string type = b.attribute("type").as_string("doodad");
+        if (type == wantedType) {
             existing = b;
             break;
         }
     }
 
     if (existing) {
-        // The editor only ever loads the first <alternate> block, so saving over a brush
+        // The editor only ever loads the first <alternate> block, so saving over a doodad
         // that has several would silently drop the extra variations. Say so out loud.
         int alternateCount = 0;
         for (pugi::xml_node alt = existing.child("alternate"); alt; alt = alt.next_sibling("alternate")) {
@@ -1888,7 +2012,7 @@ void DoodadEditorDialog::OnSaveToFile(wxCommandEvent& event) {
         }
 
         wxString question = wxString::Format(
-            "A brush named \"%s\" already exists in doodads.xml.\n\nReplace it?", brushName);
+            "A %s brush named \"%s\" already exists in %s.\n\nReplace it?", wantedType, brushName, targetName);
         if (alternateCount > 1) {
             question << wxString::Format(
                 "\n\nWARNING: it has %d <alternate> variations and the editor only loaded the first one. "
@@ -1907,11 +2031,21 @@ void DoodadEditorDialog::OnSaveToFile(wxCommandEvent& event) {
     }
 
     if (!doc.save_file(filePath.c_str(), "\t")) {
-        wxMessageBox("Failed to write doodads.xml.", "Error", wxOK | wxICON_ERROR);
+        wxMessageBox(wxString::Format("Failed to write %s.", targetName), "Error", wxOK | wxICON_ERROR);
         return;
     }
 
-    wxMessageBox(wxString::Format("Brush \"%s\" saved to doodads.xml.\n\nReload the client version to see the changes in-editor.", brushName),
+    if (carpet) {
+        // The carpet list is read from the files, so a new or renamed carpet shows up
+        // right away. Remember where it lives so the next save stays in the same file.
+        m_carpetSourceFiles[wxString(brushName).Lower()] = targetPath;
+        m_carpetPreservedForName = wxString(brushName);
+        LoadExistingDoodads();
+        wxCommandEvent refilter;
+        OnFilterChanged(refilter);
+    }
+
+    wxMessageBox(wxString::Format("Brush \"%s\" saved to %s.\n\nReload the client version to see the changes in-editor.", brushName, targetName),
         "Success", wxOK | wxICON_INFORMATION);
 }
 
@@ -2637,4 +2771,284 @@ void DoodadSingleItemsPanel::OnMouseClick(wxMouseEvent& event) {
 
     m_selectedIndex = -1;
     Refresh();
+}
+
+// ============================================================================
+// Carpet brushes (type="carpet") - listed, loaded and saved next to the doodads
+// ============================================================================
+
+bool DoodadEditorDialog::IsCarpetMode() const {
+    return m_brushTypeChoice && m_brushTypeChoice->GetSelection() == BRUSH_TYPE_CARPET;
+}
+
+void DoodadEditorDialog::SetBrushType(bool carpet) {
+    if (!m_brushTypeChoice) return;
+    const int wanted = carpet ? BRUSH_TYPE_CARPET : BRUSH_TYPE_DOODAD;
+    if (m_brushTypeChoice->GetSelection() == wanted) {
+        return;
+    }
+    m_brushTypeChoice->SetSelection(wanted);
+    ApplyBrushTypeLayout();
+    // The tileset labels depend on the section, which depends on the brush type.
+    LoadExistingTilesets();
+    RefreshTilesetBrushList();
+}
+
+void DoodadEditorDialog::OnBrushTypeChanged(wxCommandEvent& WXUNUSED(event)) {
+    ApplyBrushTypeLayout();
+    LoadExistingTilesets();
+    RefreshTilesetBrushList();
+
+    // Only the placeholder name follows the type; a real brush name is the user's.
+    const wxString name = m_nameCtrl->GetValue();
+    if (IsCarpetMode() && name == "new_doodad") {
+        m_nameCtrl->SetValue("new_carpet");
+    } else if (!IsCarpetMode() && name == "new_carpet") {
+        m_nameCtrl->SetValue("new_doodad");
+    }
+}
+
+void DoodadEditorDialog::ApplyBrushTypeLayout() {
+    const bool carpet = IsCarpetMode();
+
+    // Doodad-only property rows (draggable, thickness, ...) mean nothing to a carpet.
+    if (m_propsSizer) {
+        if (m_doodadOptionsRow) m_propsSizer->Show(m_doodadOptionsRow, !carpet, true);
+        if (m_thicknessRow) m_propsSizer->Show(m_thicknessRow, !carpet, true);
+    }
+    // The editor area: items/composites notebook or the carpet alignment editor.
+    if (m_rightSizer) {
+        if (m_notebook) m_rightSizer->Show(m_notebook, !carpet, true);
+        if (m_carpetPanel) m_rightSizer->Show(m_carpetPanel, carpet, true);
+    }
+    if (m_tilesetSectionLabel) m_tilesetSectionLabel->Show(carpet);
+    if (m_tilesetSectionChoice) m_tilesetSectionChoice->Show(carpet);
+
+    if (m_rightPanel) m_rightPanel->Layout();
+    Layout();
+}
+
+wxString DoodadEditorDialog::CurrentTilesetSection() const {
+    if (!IsCarpetMode()) return "doodad";
+    if (m_tilesetSectionChoice && m_tilesetSectionChoice->GetSelection() == 1) return "doodad";
+    return "terrain";
+}
+
+void DoodadEditorDialog::OnTilesetSectionChanged(wxCommandEvent& WXUNUSED(event)) {
+    // Keep the chosen tileset, relabelled for the new section.
+    const wxString current = StripSectionSuffix(m_tilesetCombo->GetValue());
+    LoadExistingTilesets();
+    if (!current.IsEmpty()) {
+        for (unsigned int i = 0; i < m_tilesetCombo->GetCount(); ++i) {
+            if (StripSectionSuffix(m_tilesetCombo->GetString(i)) == current) {
+                m_tilesetCombo->SetSelection(static_cast<int>(i));
+                break;
+            }
+        }
+    }
+    RefreshTilesetBrushList();
+}
+
+wxArrayString DoodadEditorDialog::GetMaterialFiles() const {
+    wxArrayString files;
+    ClientVersion* version = g_version.getLoadedVersion();
+    if (!version) return files;
+
+    const wxString dataDir = version->getDataPath().GetFullPath();
+    auto addFile = [&](const wxString& name) {
+        wxFileName fn(dataDir, name);
+        const wxString full = fn.GetFullPath();
+        if (fn.FileExists() && files.Index(full) == wxNOT_FOUND) {
+            files.Add(full);
+        }
+    };
+
+    // doodads.xml first: it is where the shipped carpets live and the default save target.
+    addFile("doodads.xml");
+
+    // Then every <include> of materials.xml - a carpet brush may sit in any of them.
+    wxFileName materialsFile(dataDir, "materials.xml");
+    if (materialsFile.FileExists()) {
+        pugi::xml_document doc;
+        if (doc.load_file(materialsFile.GetFullPath().ToStdString().c_str())) {
+            if (pugi::xml_node materials = doc.child("materials")) {
+                for (pugi::xml_node inc = materials.child("include"); inc; inc = inc.next_sibling("include")) {
+                    const wxString f(inc.attribute("file").as_string());
+                    if (!f.IsEmpty()) addFile(f);
+                }
+            }
+        }
+    }
+    return files;
+}
+
+void DoodadEditorDialog::LoadExistingCarpets() {
+    m_carpetSourceFiles.clear();
+
+    std::set<wxString> seen;
+    for (const wxString& file : GetMaterialFiles()) {
+        pugi::xml_document doc;
+        if (!doc.load_file(file.ToStdString().c_str())) continue;
+        pugi::xml_node materials = doc.child("materials");
+        if (!materials) continue;
+
+        for (pugi::xml_node brushNode = materials.child("brush"); brushNode; brushNode = brushNode.next_sibling("brush")) {
+            if (std::string(brushNode.attribute("type").as_string()) != "carpet") continue;
+            const wxString name(brushNode.attribute("name").as_string());
+            if (name.IsEmpty()) continue;
+
+            // First file wins if the same carpet name appears more than once.
+            const wxString key = name.Lower();
+            if (!seen.insert(key).second) continue;
+            m_carpetSourceFiles[key] = file;
+
+            DoodadBrushInfo info;
+            info.name = name;
+            info.isCarpet = true;
+            std::set<std::string> aligns;
+            for (pugi::xml_node c = brushNode.child("carpet"); c; c = c.next_sibling("carpet")) {
+                aligns.insert(c.attribute("align").as_string());
+            }
+            info.alignCount = static_cast<int>(aligns.size());
+            m_allDoodads.push_back(info);
+        }
+    }
+}
+
+bool DoodadEditorDialog::LoadCarpetBrush(const wxString& brushName) {
+    wxArrayString files = GetMaterialFiles();
+
+    // Look in the file we already know holds this brush first (if any).
+    auto srcIt = m_carpetSourceFiles.find(brushName.Lower());
+    if (srcIt != m_carpetSourceFiles.end() && files.Index(srcIt->second) != wxNOT_FOUND) {
+        files.Remove(srcIt->second);
+        files.Insert(srcIt->second, 0);
+    }
+
+    // `doc` must outlive `brushNode` (a handle into it), so it lives at function scope.
+    pugi::xml_document doc;
+    pugi::xml_node brushNode;
+    wxString sourceFile;
+    for (const wxString& file : files) {
+        if (!doc.load_file(file.ToStdString().c_str())) continue;
+        pugi::xml_node materials = doc.child("materials");
+        if (!materials) continue;
+
+        for (pugi::xml_node node = materials.child("brush"); node; node = node.next_sibling("brush")) {
+            if (std::string(node.attribute("type").as_string()) != "carpet") continue;
+            if (brushName == wxString(node.attribute("name").as_string())) {
+                brushNode = node;
+                break;
+            }
+        }
+        if (brushNode) {
+            sourceFile = file;
+            break;
+        }
+    }
+
+    if (!brushNode) {
+        return false;
+    }
+
+    ClearEditor();
+    SetBrushType(true);
+    m_carpetSourceFiles[brushName.Lower()] = sourceFile;
+
+    m_nameCtrl->SetValue(brushName);
+    m_lookIdCtrl->SetValue(static_cast<int>(brushNode.attribute("server_lookid").as_uint(0)));
+
+    // Everything the editor does not manage (activated="false", a legacy lookid, ...)
+    // is kept verbatim and re-emitted when saving under the same name.
+    m_carpetPreservedAttrs.clear();
+    for (pugi::xml_attribute attr = brushNode.first_attribute(); attr; attr = attr.next_attribute()) {
+        const std::string attrName = attr.name();
+        if (attrName == "name" || attrName == "type" || attrName == "server_lookid") continue;
+        m_carpetPreservedAttrs.emplace_back(attrName, attr.value());
+    }
+    m_carpetPreservedForName = brushName;
+
+    if (m_carpetPanel) {
+        m_carpetPanel->LoadFromBrushNode(brushNode);
+    }
+    return true;
+}
+
+wxString DoodadEditorDialog::FindCarpetBrushNameByItemId(uint16_t itemId, BorderType& outAlign) const {
+    outAlign = BORDER_NONE;
+    if (itemId == 0) return wxString();
+
+    for (const auto& pair : g_brushes.getMap()) {
+        Brush* brush = pair.second.get();
+        if (!brush || !brush->is<CarpetBrush>()) continue;
+        auto* carpet = brush->as<CarpetBrush>();
+        if (!carpet) continue;
+
+        const auto& groups = carpet->getItems().getGroups();
+        for (size_t align = 1; align < groups.size(); ++align) {
+            for (const auto& entry : groups[align].items) {
+                if (entry.id == itemId) {
+                    outAlign = static_cast<BorderType>(align);
+                    return wxString(carpet->getName());
+                }
+            }
+        }
+    }
+    return wxString();
+}
+
+wxString DoodadEditorDialog::GenerateCarpetXML() {
+    wxString name = m_nameCtrl->GetValue();
+    if (name.IsEmpty()) {
+        name = "new_carpet";
+    }
+
+    // Built with pugixml (unlike the hand-written doodad emitter) so the name and any
+    // preserved attribute values are escaped correctly.
+    pugi::xml_document doc;
+    pugi::xml_node brushNode = doc.append_child("brush");
+    brushNode.append_attribute("name").set_value(name.ToStdString().c_str());
+    brushNode.append_attribute("type").set_value("carpet");
+    if (m_lookIdCtrl->GetValue() > 0) {
+        brushNode.append_attribute("server_lookid").set_value(m_lookIdCtrl->GetValue());
+    }
+
+    // Preserved attributes only apply to the brush they were captured from.
+    if (!m_carpetPreservedForName.IsEmpty() && m_carpetPreservedForName.Lower() == name.Lower()) {
+        for (const auto& attr : m_carpetPreservedAttrs) {
+            brushNode.append_attribute(attr.first.c_str()).set_value(attr.second.c_str());
+        }
+    }
+
+    if (m_carpetPanel) {
+        m_carpetPanel->WriteCarpetNodes(brushNode);
+    }
+
+    std::ostringstream out;
+    doc.print(out, "\t", pugi::format_default | pugi::format_no_declaration);
+    return wxString(out.str());
+}
+
+bool DoodadEditorDialog::ValidateCarpet() {
+    if (m_nameCtrl->GetValue().IsEmpty()) {
+        wxMessageBox("Please enter a brush name.", "Validation Error", wxOK | wxICON_ERROR);
+        return false;
+    }
+
+    if (!m_carpetPanel || !m_carpetPanel->HasAnyItems()) {
+        wxMessageBox("Add at least one item to an alignment slot.", "Validation Error", wxOK | wxICON_ERROR);
+        return false;
+    }
+
+    if (m_carpetPanel->ItemsFor(CARPET_CENTER).empty()) {
+        // Not fatal (the loader accepts it) but almost always a mistake: a lone tile
+        // and every fully surrounded tile resolve to "center".
+        if (wxMessageBox("The center slot is empty. Painting a single tile or the inside of an "
+                         "area with this brush will place nothing there.\n\nSave anyway?",
+                "Carpet", wxYES_NO | wxICON_WARNING) != wxYES) {
+            return false;
+        }
+    }
+
+    return true;
 }

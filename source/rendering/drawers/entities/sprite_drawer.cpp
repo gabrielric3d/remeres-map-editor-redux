@@ -8,6 +8,24 @@
 #include "rendering/core/sprite_batch.h"
 #include "rendering/core/atlas_manager.h"
 
+#include <array>
+
+namespace {
+	// i/255 pre-calculado. As doze divisoes que estavam espalhadas por estas tres
+	// funcoes rodam uma vez por quad emitido -- centenas de milhares de vezes por
+	// frame numa vista afastada -- sempre sobre um dos mesmos 256 valores. A tabela
+	// e bit-identica a divisao e cabe em 1 KB.
+	constexpr std::array<float, 256> makeByteToFloatTable() {
+		std::array<float, 256> table {};
+		for (int i = 0; i < 256; ++i) {
+			table[i] = static_cast<float>(i) / 255.0f;
+		}
+		return table;
+	}
+
+	constexpr std::array<float, 256> kByteToFloat = makeByteToFloatTable();
+}
+
 SpriteDrawer::SpriteDrawer() {
 }
 
@@ -16,10 +34,10 @@ SpriteDrawer::~SpriteDrawer() {
 
 void SpriteDrawer::glBlitAtlasQuad(SpriteBatch& sprite_batch, int sx, int sy, const AtlasRegion* region, DrawColor color) {
 	if (region) {
-		float normalizedR = color.r / 255.0f;
-		float normalizedG = color.g / 255.0f;
-		float normalizedB = color.b / 255.0f;
-		float normalizedA = color.a / 255.0f;
+		const float normalizedR = kByteToFloat[color.r];
+		const float normalizedG = kByteToFloat[color.g];
+		const float normalizedB = kByteToFloat[color.b];
+		const float normalizedA = kByteToFloat[color.a];
 
 		sprite_batch.draw(
 			static_cast<float>(sx), static_cast<float>(sy),
@@ -35,10 +53,10 @@ void SpriteDrawer::glBlitSquare(SpriteBatch& sprite_batch, int sx, int sy, DrawC
 		size = TILE_SIZE;
 	}
 
-	float normalizedR = color.r / 255.0f;
-	float normalizedG = color.g / 255.0f;
-	float normalizedB = color.b / 255.0f;
-	float normalizedA = color.a / 255.0f;
+	const float normalizedR = kByteToFloat[color.r];
+	const float normalizedG = kByteToFloat[color.g];
+	const float normalizedB = kByteToFloat[color.b];
+	const float normalizedA = kByteToFloat[color.a];
 
 	// Use Graphics::getAtlasManager() to get the atlas manager for white pixel access
 	// This assumes Graphics and AtlasManager are available
@@ -48,10 +66,10 @@ void SpriteDrawer::glBlitSquare(SpriteBatch& sprite_batch, int sx, int sy, DrawC
 }
 
 void SpriteDrawer::glDrawBox(SpriteBatch& sprite_batch, int sx, int sy, int width, int height, DrawColor color) {
-	float normalizedR = color.r / 255.0f;
-	float normalizedG = color.g / 255.0f;
-	float normalizedB = color.b / 255.0f;
-	float normalizedA = color.a / 255.0f;
+	const float normalizedR = kByteToFloat[color.r];
+	const float normalizedG = kByteToFloat[color.g];
+	const float normalizedB = kByteToFloat[color.b];
+	const float normalizedA = kByteToFloat[color.a];
 
 	if (g_gui.gfx.hasAtlasManager()) {
 		sprite_batch.drawRectLines(static_cast<float>(sx), static_cast<float>(sy), static_cast<float>(width), static_cast<float>(height), glm::vec4(normalizedR, normalizedG, normalizedB, normalizedA), *g_gui.gfx.getAtlasManager());
@@ -66,7 +84,7 @@ void SpriteDrawer::glSetColor(wxColor color) {
 
 void SpriteDrawer::BlitSprite(SpriteBatch& sprite_batch, int screenx, int screeny, ServerItemId server_item_id, DrawColor color) {
 	const auto definition = g_item_definitions.get(server_item_id);
-	GameSprite* spr = definition ? dynamic_cast<GameSprite*>(g_gui.gfx.getSprite(definition.clientId())) : nullptr;
+	GameSprite* spr = definition ? g_gui.gfx.getGameSprite(definition.clientId()) : nullptr;
 	if (spr == nullptr) {
 		return;
 	}

@@ -183,6 +183,10 @@ void MapDrawer::SetupVars() {
 	options.highlight_pulse = (float)((sin(now * speed) + 1.0) / 2.0);
 
 	view.Setup(canvas, options);
+
+	// O zoom so existe depois do Setup, e os drawers de tile/item nao recebem a
+	// view: copiar aqui e o que permite a eles decidirem o nivel de detalhe.
+	options.zoom = view.zoom;
 }
 
 void MapDrawer::SetupGL() {
@@ -352,6 +356,7 @@ void MapDrawer::Release() {
 
 void MapDrawer::Draw() {
 	g_gui.gfx.updateTime();
+	sprite_batch->beginFrameStats();
 
 	light_buffer.Clear();
 

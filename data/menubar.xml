@@ -70,14 +70,16 @@
 		<separator/>
 		<menu name="Border Options">
 			<item name="Border Automagic" hotkey="A" action="AUTOMAGIC" help="Turns on all automatic border functions."/>
-			<item name="Carpet-like Ground Borders" action="CARPET_LIKE_GROUND_BORDERS" help="Replaces full diagonal ground borders with smaller cardinal-pair borders, producing cleaner silhouettes like the carpet brush. Only affects newly painted or borderized tiles."/>
-			<item name="Carpet Fill Borders" action="CARPET_FILL_BORDERS" help="Draws border pieces inwards on the painted tiles themselves (like a carpet brush) instead of spilling outer borders onto neighbouring tiles. Only affects newly painted or borderized tiles."/>
+			<item name="Carpet Fill Borders" action="CARPET_FILL_BORDERS" help="Ground brushes marked 'Carpet fill' in the Brushes Editor (carpet_fill=&quot;true&quot; in grounds.xml) paint like a carpet brush: edge pieces are drawn on the painted tiles themselves and the ground only fills tiles surrounded by the same brush. Other ground brushes are never affected. Keep it on while such brushes are on the map: re-bordering with it off treats them as normal grounds."/>
 			<item name="Disable Carpet Interaction" action="DISABLE_CARPET_INTERACTION" help="Carpet brushes no longer remove carpets from other brushes, so different carpets can be stacked on the same tile without breaking each other."/>
 			<separator/>
 			<item name="Borderize Selection" hotkey="Ctrl+B" action="BORDERIZE_SELECTION" help="Creates automatic borders in the entire selected area."/>
 			<item name="Borderize Map" action="BORDERIZE_MAP" help="Reborders the entire map."/>
 			<item name="Randomize Selection" action="RANDOMIZE_SELECTION" help="Randomizes the ground tiles of the selected area."/>
 			<item name="Randomize Map" action="RANDOMIZE_MAP" help="Randomizes all tiles of the entire map."/>
+			<separator/>
+			<item name="Fill Selection" hotkey="Ctrl+D" action="FILL_SELECTION" help="Paint bucket: draws the current brush on every selected tile (lasso or rectangle selection) and keeps the area selected. Without a selection, hold the key and Ctrl+click with a ground brush to flood fill that ground instead."/>
+			<item name="Fill Selection Swaps Borders" action="FILL_SELECTION_SWAP_BORDERS" help="When filling a selection with a ground brush, also swap the old ground's border pieces (on the filled tiles and around them) for the new brush's equivalent pieces, like the Replace Tool's brush swap. No auto-border pass runs, so it works with Border Automagic off and never changes the surrounding grounds or hand-placed borders."/>
 		</menu>
 		<menu name="Other Options">
 			<item name="Delete Removes Zone Flags" action="DELETE_REMOVES_ZONES" help="When deleting a selection, also clears the zone flags (Protection Zone, PVP Zone, No PVP, No Logout) from the deleted tiles."/>
@@ -149,6 +151,7 @@
 		<separator/>
 		<menu name="Selection Mode">
 			<item name="Lasso Selection" action="SELECT_MODE_LASSO" help="Enable lasso (freeform polygon) selection tool."/>
+			<item name="Magic Wand Selection" action="SELECT_MODE_MAGIC_WAND" help="Magic wand: clicking a ground selects the whole contiguous patch painted with that ground brush, including its border pieces. Ctrl+click adds another patch; click a selected patch again to drag it."/>
 			<item name="Compensate Selection" action="SELECT_MODE_COMPENSATE" help="Compensate for floor difference when selecting."/>
 			<separator/>
 			<item name="Current Floor" action="SELECT_MODE_CURRENT" help="Select only current floor."/>
@@ -158,6 +161,7 @@
 		<separator/>
 		<item name="Borderize Selection" action="BORDERIZE_SELECTION" help="Creates automatic borders in the entire selected area."/>
 		<item name="Randomize Selection" action="RANDOMIZE_SELECTION" help="Randomizes the ground tiles of the selected area."/>
+		<item name="Fill Selection" action="FILL_SELECTION" help="Paint bucket: draws the current brush on every selected tile and keeps the area selected."/>
 	</menu>
 	<menu name="View">
 		<!-- mapeditor view options -->

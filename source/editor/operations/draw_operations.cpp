@@ -829,7 +829,7 @@ void DrawOperations::draw(Editor& editor, const PositionVector& tilestodraw, Pos
 	}
 }
 
-void DrawOperations::eraseGroundWithBorders(Editor& editor, const PositionVector& positions) {
+void DrawOperations::eraseGroundWithBorders(Editor& editor, const PositionVector& positions, bool whole_tile) {
 	// ACTION_DRAW (not ACTION_DELETE_TILES) so these batches merge with the brush-stroke
 	// batches they interleave with while drawing on the floor below: the action queue only
 	// merges consecutive batches of the same type, and one stroke should be one undo step.
@@ -837,40 +837,54 @@ void DrawOperations::eraseGroundWithBorders(Editor& editor, const PositionVector
 	std::unique_ptr<Action> action = editor.actionQueue->createAction(batch.get());
 
 	// 1) Remove the ground (and its auto-borders) from every footprint tile that has one.
+	//    In whole_tile mode the eraser brush wipes the items as well, so tiles that only
+	//    carry items (mountain walls on the floor below, decoration) count as erasable too.
 	PositionVector erased;
 	for (const auto& pos : positions) {
 		Tile* tile = editor.map.getTile(pos);
-		if (!tile || !tile->hasGround()) {
+		if (!tile) {
+			continue;
+		}
+		if (!tile->hasGround() && !(whole_tile && g_brush_manager.eraser && !tile->items.empty())) {
 			continue;
 		}
 		std::unique_ptr<Tile> new_tile = TileOperations::deepCopy(tile, editor.map);
-		if (g_settings.getBoolean(Config::PRESERVE_MANUAL_BORDERS)) {
-			TileOperations::cleanAutoBorders(new_tile.get());
+		if (whole_tile && g_brush_manager.eraser) {
+			// Same semantics as the Eraser brush, so ERASER_LEAVE_UNIQUE still protects
+			// complex items (uniques, containers, ...) from being wiped by accident.
+			g_brush_manager.eraser->undraw(&editor.map, new_tile.get());
 		} else {
-			TileOperations::cleanBorders(new_tile.get());
+			if (g_settings.getBoolean(Config::PRESERVE_MANUAL_BORDERS)) {
+				TileOperations::cleanAutoBorders(new_tile.get());
+			} else {
+				TileOperations::cleanBorders(new_tile.get());
+			}
+			new_tile->ground = nullptr;
 		}
-		new_tile->ground = nullptr;
 		action->addChange(std::make_unique<Change>(std::move(new_tile)));
 		erased.push_back(pos);
 	}
 	if (erased.empty()) {
-		return; // Nothing to remove on the floor above; drop the uncommitted batch.
+		return; // Nothing to remove on the target floors; drop the uncommitted batch.
 	}
 	batch->addAndCommitAction(std::move(action));
 
 	// 2) Re-borderize the erased tiles and their 8 neighbors (deduped across overlapping
 	//    neighborhoods) so the surrounding grounds reform their borders against the
 	//    now-open hole. Forced on regardless of the global USE_AUTOMAGIC setting,
-	//    matching the "as if auto-border is enabled" intent.
+	//    matching the "as if auto-border is enabled" intent. The key carries z because
+	//    the positions may span several floors (erase floors above/below).
 	action = editor.actionQueue->createAction(batch.get());
 	std::unordered_set<int64_t> border_seen;
-	const auto borderKey = [](int x, int y) -> int64_t {
-		return (static_cast<int64_t>(static_cast<uint32_t>(y)) << 32) | static_cast<uint32_t>(x);
+	const auto borderKey = [](int x, int y, int z) -> int64_t {
+		return (static_cast<int64_t>(z & 0xFF) << 48)
+			| (static_cast<int64_t>(x & 0xFFFFFF) << 24)
+			| static_cast<int64_t>(y & 0xFFFFFF);
 	};
 	for (const auto& pos : erased) {
 		for (int dy = -1; dy <= 1; ++dy) {
 			for (int dx = -1; dx <= 1; ++dx) {
-				if (!border_seen.insert(borderKey(pos.x + dx, pos.y + dy)).second) {
+				if (!border_seen.insert(borderKey(pos.x + dx, pos.y + dy, pos.z)).second) {
 					continue;
 				}
 				Tile* border_tile = editor.map.getTile(pos.x + dx, pos.y + dy, pos.z);
@@ -885,4 +899,50 @@ void DrawOperations::eraseGroundWithBorders(Editor& editor, const PositionVector
 	batch->addAndCommitAction(std::move(action));
 
 	editor.addBatch(std::move(batch), 2);
+}
+
+bool DrawOperations::extraFloorEraseEnabled() {
+	const bool above = g_settings.getBoolean(Config::ERASE_FLOORS_ABOVE_ENABLED)
+		&& g_settings.getInteger(Config::ERASE_FLOORS_ABOVE_COUNT) > 0;
+	const bool below = g_settings.getBoolean(Config::ERASE_FLOORS_BELOW_ENABLED)
+		&& g_settings.getInteger(Config::ERASE_FLOORS_BELOW_COUNT) > 0;
+	return above || below;
+}
+
+void DrawOperations::eraseExtraFloors(Editor& editor, const PositionVector& footprint) {
+	if (footprint.empty() || !extraFloorEraseEnabled()) {
+		return;
+	}
+
+	const auto floorCount = [](Config::Key enabled_key, Config::Key count_key) -> int {
+		if (!g_settings.getBoolean(enabled_key)) {
+			return 0;
+		}
+		return std::clamp(g_settings.getInteger(count_key), 0, MAP_MAX_LAYER);
+	};
+	const int floors_above = floorCount(Config::ERASE_FLOORS_ABOVE_ENABLED, Config::ERASE_FLOORS_ABOVE_COUNT);
+	const int floors_below = floorCount(Config::ERASE_FLOORS_BELOW_ENABLED, Config::ERASE_FLOORS_BELOW_COUNT);
+
+	// Lower z is physically above, higher z is below (floor 0 is the top of the map).
+	PositionVector targets;
+	targets.reserve(footprint.size() * static_cast<size_t>(floors_above + floors_below));
+	for (const auto& pos : footprint) {
+		for (int step = 1; step <= floors_above; ++step) {
+			const int z = pos.z - step;
+			if (z >= 0) {
+				targets.emplace_back(pos.x, pos.y, z);
+			}
+		}
+		for (int step = 1; step <= floors_below; ++step) {
+			const int z = pos.z + step;
+			if (z <= MAP_MAX_LAYER) {
+				targets.emplace_back(pos.x, pos.y, z);
+			}
+		}
+	}
+	if (targets.empty()) {
+		return;
+	}
+
+	eraseGroundWithBorders(editor, targets, g_settings.getBoolean(Config::ERASE_FLOORS_WHOLE_TILE));
 }

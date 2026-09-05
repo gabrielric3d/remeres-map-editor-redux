@@ -15,7 +15,17 @@ public:
 	mutable std::atomic<int64_t> lastaccess;
 	uint32_t generation_id = 0;
 
+	// Marca o acesso para o LRU do atlas. A versao sem argumento le o relogio
+	// cacheado do GraphicManager e por isso mora no .cpp (dependeria de gui.h aqui).
 	void visit() const;
+
+	// Mesma coisa, com o instante ja em maos: o fast path de
+	// GameSprite::getAtlasRegion chama isto uma vez por sprite simples desenhado,
+	// e o build nao usa LTCG -- fora de linha, seria a chamada nao inlinavel que o
+	// resto deste trabalho esta justamente removendo do laco.
+	void visit(int64_t now) const {
+		lastaccess.store(now, std::memory_order_relaxed);
+	}
 	virtual void clean(time_t time, int longevity);
 
 	virtual std::unique_ptr<uint8_t[]> getRGBData() = 0;

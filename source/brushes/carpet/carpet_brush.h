@@ -70,6 +70,13 @@ public:
 		return m_items;
 	}
 
+	// Alignment the border calculator picks for a carpet tile whose same-brush
+	// neighbours are given as a TileAlignement bitmask (TILE_NORTHWEST..TILE_SOUTHEAST).
+	// Lets the Brushes Editor preview a carpet shape exactly as the map would paint it.
+	static BorderType alignmentForNeighbours(uint8_t neighbourMask) {
+		return static_cast<BorderType>(carpet_types[neighbourMask]);
+	}
+
 protected:
 	uint16_t getRandomCarpet(BorderType alignment);
 

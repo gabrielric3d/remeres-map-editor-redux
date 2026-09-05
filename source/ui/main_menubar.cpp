@@ -478,6 +478,10 @@ void MainMenuBar::OnSelectionLassoToggle(wxCommandEvent& event) {
 	viewSettingsHandler->OnSelectionLassoToggle(event);
 }
 
+void MainMenuBar::OnSelectionMagicWandToggle(wxCommandEvent& event) {
+	viewSettingsHandler->OnSelectionMagicWandToggle(event);
+}
+
 void MainMenuBar::OnCopy(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.DoCopy();
 }
@@ -494,10 +498,6 @@ void MainMenuBar::OnToggleAutomagic(wxCommandEvent& event) {
 	viewSettingsHandler->OnToggleAutomagic(event);
 }
 
-void MainMenuBar::OnToggleCarpetLikeGroundBorders(wxCommandEvent& event) {
-	viewSettingsHandler->OnToggleCarpetLikeGroundBorders(event);
-}
-
 void MainMenuBar::OnToggleCarpetFillBorders(wxCommandEvent& event) {
 	viewSettingsHandler->OnToggleCarpetFillBorders(event);
 }
@@ -512,6 +512,10 @@ void MainMenuBar::OnToggleDeleteRemovesZones(wxCommandEvent& event) {
 
 void MainMenuBar::OnToggleShowLights(wxCommandEvent& event) {
 	viewSettingsHandler->OnToggleShowLights(event);
+}
+
+void MainMenuBar::OnToggleFillSwapBorders(wxCommandEvent& event) {
+	viewSettingsHandler->OnToggleFillSwapBorders(event);
 }
 
 void MainMenuBar::OnToggleScreenShader(wxCommandEvent& event) {
@@ -532,6 +536,10 @@ void MainMenuBar::OnRandomizeSelection(wxCommandEvent& event) {
 
 void MainMenuBar::OnRandomizeMap(wxCommandEvent& event) {
 	mapActionsHandler->OnRandomizeMap(event);
+}
+
+void MainMenuBar::OnFillSelection(wxCommandEvent& event) {
+	mapActionsHandler->OnFillSelection(event);
 }
 
 void MainMenuBar::OnRotateSelectionCW(wxCommandEvent& event) {
@@ -993,6 +1001,14 @@ void MainMenuBar::ApplyMenuHotkeys(const std::vector<MenuHotkeyEntry>& entries) 
 	PersistHotkeyOverrides();
 	UpdateAllMenuLabels();
 	RefreshAcceleratorTable();
+}
+
+bool MainMenuBar::GetActionHotkey(MenuBar::ActionID id, HotkeyData& out) const {
+	auto it = menu_hotkeys.find(id);
+	if (it == menu_hotkeys.end() || it->second.currentHotkey.empty()) {
+		return false;
+	}
+	return ParseHotkeyText(it->second.currentHotkey, out);
 }
 
 bool MainMenuBar::MatchesActionHotkey(MenuBar::ActionID id, const wxKeyEvent& event) const {

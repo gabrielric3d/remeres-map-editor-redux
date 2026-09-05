@@ -71,6 +71,7 @@
 #include "rendering/ui/map_menu_handler.h"
 #include "rendering/ui/radial_wheel.h"
 #include "rendering/ui/toast_renderer.h"
+#include "rendering/ui/border_variant_hud.h"
 #include "rendering/drawers/overlays/lua_overlay_drawer.h"
 
 #include "brushes/doodad/doodad_brush.h"
@@ -348,6 +349,9 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 		drawer->getLuaOverlayDrawer()->DrawUI(vg, drawer->getView(), options);
 	}
 
+	// Which ground border variant is being painted (bottom-left badge)
+	BorderVariantHUD::Draw(vg, GetSize().x, GetSize().y);
+
 	// Draw toast notifications
 	if (g_toast.HasActiveToasts()) {
 		g_toast.Draw(vg, GetSize().x, GetSize().y);
@@ -439,7 +443,15 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 	SwapBuffers();
 
 	// FPS tracking and limiting
-	frame_pacer.UpdateAndLimit(g_settings.getInteger(Config::FRAME_RATE_LIMIT), g_settings.getBoolean(Config::SHOW_FPS_COUNTER));
+	int frame_sprites = -1;
+	int frame_draws = -1;
+	if (drawer) {
+		if (const SpriteBatch* batch = drawer->getSpriteBatch()) {
+			frame_sprites = batch->getFrameSpriteCount();
+			frame_draws = batch->getFrameDrawCallCount();
+		}
+	}
+	frame_pacer.UpdateAndLimit(g_settings.getInteger(Config::FRAME_RATE_LIMIT), g_settings.getBoolean(Config::SHOW_FPS_COUNTER), frame_sprites, frame_draws);
 
 	// Send newd node requests
 	if (editor.live_manager.GetClient()) {

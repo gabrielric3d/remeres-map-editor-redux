@@ -1,6 +1,8 @@
 #include "ui/menubar/view_settings_handler.h"
 #include "ui/main_menubar.h"
+#include "ui/main_frame.h"
 #include "ui/gui.h"
+#include "ui/tool_options_window.h"
 #include "app/preferences.h"
 #include "rendering/ui/toast_renderer.h"
 #include "rendering/core/forced_light_zone.h"
@@ -25,6 +27,7 @@ void ViewSettingsHandler::LoadValues() {
 
 	menuBar->CheckItem(SELECT_MODE_COMPENSATE, g_settings.getBoolean(Config::COMPENSATED_SELECT));
 	menuBar->CheckItem(SELECT_MODE_LASSO, g_settings.getBoolean(Config::SELECTION_LASSO));
+	menuBar->CheckItem(SELECT_MODE_MAGIC_WAND, g_settings.getBoolean(Config::SELECTION_MAGIC_WAND));
 
 	if (menuBar->IsItemChecked(MenuBar::SELECT_MODE_CURRENT)) {
 		g_settings.setInteger(Config::SELECTION_TYPE, SELECT_CURRENT_FLOOR);
@@ -48,8 +51,8 @@ void ViewSettingsHandler::LoadValues() {
 	}
 
 	menuBar->CheckItem(AUTOMAGIC, g_settings.getBoolean(Config::USE_AUTOMAGIC));
-	menuBar->CheckItem(CARPET_LIKE_GROUND_BORDERS, g_settings.getBoolean(Config::CARPET_LIKE_GROUND_BORDERS));
 	menuBar->CheckItem(CARPET_FILL_BORDERS, g_settings.getBoolean(Config::CARPET_FILL_BORDERS));
+	menuBar->CheckItem(FILL_SELECTION_SWAP_BORDERS, g_settings.getBoolean(Config::FILL_SWAP_BORDERS));
 	menuBar->CheckItem(DELETE_REMOVES_ZONES, g_settings.getBoolean(Config::DELETE_REMOVES_ZONES));
 	menuBar->CheckItem(DISABLE_CARPET_INTERACTION, g_settings.getBoolean(Config::DISABLE_CARPET_INTERACTION));
 
@@ -229,16 +232,16 @@ void ViewSettingsHandler::OnToggleAutomagic(wxCommandEvent& WXUNUSED(event)) {
 	}
 }
 
-void ViewSettingsHandler::OnToggleCarpetLikeGroundBorders(wxCommandEvent& WXUNUSED(event)) {
+void ViewSettingsHandler::OnToggleFillSwapBorders(wxCommandEvent& WXUNUSED(event)) {
 	using namespace MenuBar;
-	bool enabled = menuBar->IsItemChecked(CARPET_LIKE_GROUND_BORDERS);
-	g_settings.setInteger(Config::CARPET_LIKE_GROUND_BORDERS, enabled ? 1 : 0);
+	bool enabled = menuBar->IsItemChecked(FILL_SELECTION_SWAP_BORDERS);
+	g_settings.setInteger(Config::FILL_SWAP_BORDERS, enabled ? 1 : 0);
 	if (enabled) {
-		g_gui.SetStatusText("Carpet-like ground borders enabled.");
-		g_toast.Show("Carpet-like Ground Borders: On");
+		g_gui.SetStatusText("Fill Selection now swaps the old ground's borders for the new brush's (Replace Tool style), even with auto-border off.");
+		g_toast.Show("Fill Swaps Borders: On");
 	} else {
-		g_gui.SetStatusText("Carpet-like ground borders disabled.");
-		g_toast.Show("Carpet-like Ground Borders: Off");
+		g_gui.SetStatusText("Fill Selection back to normal: borders follow the auto-border setting.");
+		g_toast.Show("Fill Swaps Borders: Off");
 	}
 }
 
@@ -247,7 +250,7 @@ void ViewSettingsHandler::OnToggleCarpetFillBorders(wxCommandEvent& WXUNUSED(eve
 	bool enabled = menuBar->IsItemChecked(CARPET_FILL_BORDERS);
 	g_settings.setInteger(Config::CARPET_FILL_BORDERS, enabled ? 1 : 0);
 	if (enabled) {
-		g_gui.SetStatusText("Carpet fill borders enabled: tiles draw their own edge pieces inwards.");
+		g_gui.SetStatusText("Carpet fill borders enabled: 'Carpet fill' ground brushes paint like carpets, edge pieces on their own tiles.");
 		g_toast.Show("Carpet Fill Borders: On");
 	} else {
 		g_gui.SetStatusText("Carpet fill borders disabled.");
@@ -305,6 +308,30 @@ void ViewSettingsHandler::OnSelectionLassoToggle(wxCommandEvent& WXUNUSED(event)
 	} else {
 		g_gui.SetStatusText("Lasso selection disabled.");
 		g_toast.Show("Lasso Tool Disabled");
+	}
+}
+
+void ViewSettingsHandler::OnSelectionMagicWandToggle(wxCommandEvent& WXUNUSED(event)) {
+	using namespace MenuBar;
+	SetMagicWandEnabled(menuBar->IsItemChecked(SELECT_MODE_MAGIC_WAND));
+}
+
+void ViewSettingsHandler::SetMagicWandEnabled(bool enabled) {
+	g_settings.setInteger(Config::SELECTION_MAGIC_WAND, enabled ? 1 : 0);
+
+	if (g_gui.root && g_gui.root->GetMainMenuBar()) {
+		g_gui.root->GetMainMenuBar()->CheckItem(MenuBar::SELECT_MODE_MAGIC_WAND, enabled);
+	}
+	if (g_gui.tool_options) {
+		g_gui.tool_options->ReloadSettings();
+	}
+
+	if (enabled) {
+		g_gui.SetStatusText("Magic wand enabled: click a ground to select its whole patch (Ctrl+click adds another patch).");
+		g_toast.Show("Magic Wand Enabled");
+	} else {
+		g_gui.SetStatusText("Magic wand disabled.");
+		g_toast.Show("Magic Wand Disabled");
 	}
 }
 

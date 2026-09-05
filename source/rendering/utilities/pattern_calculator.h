@@ -42,8 +42,12 @@ public:
 
 		patterns.frame = (spr->animator) ? spr->animator->getFrame() : 0;
 
-		if (it.isSplash() || it.isFluidContainer()) {
-			patterns.subtype = item->getSubtype();
+		// group() lido uma vez: isSplash e isFluidContainer sao literalmente duas
+		// comparacoes contra ele.
+		const ItemGroup_t group = it.group();
+		if (group == ITEM_GROUP_SPLASH || group == ITEM_GROUP_FLUID) {
+			// rawSubtype: o proprio teste acima ja e o que hasSubtype() perguntaria.
+			patterns.subtype = item->rawSubtype();
 		} else if (it.hasFlag(ItemFlag::IsHangable)) {
 			if (tile && tile->hasHookSouth()) {
 				patterns.x = 1;
@@ -53,7 +57,7 @@ public:
 				patterns.x = 0;
 			}
 		} else if (it.hasFlag(ItemFlag::Stackable)) {
-			uint16_t itemSubtype = item->getSubtype();
+			uint16_t itemSubtype = item->rawSubtype();
 			if (itemSubtype <= 1) {
 				patterns.subtype = 0;
 			} else if (itemSubtype <= 2) {

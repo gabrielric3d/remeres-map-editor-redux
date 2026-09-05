@@ -47,6 +47,7 @@ namespace {
 
 		ID_ADD_RULE,
 		ID_EDIT_RULE,
+		ID_DUPLICATE_RULE,
 		ID_REMOVE_RULE,
 		ID_RULES_LIST,
 
@@ -2160,6 +2161,7 @@ wxBEGIN_EVENT_TABLE(AreaDecorationDialog, wxDialog)
 
 	EVT_BUTTON(ID_ADD_RULE, AreaDecorationDialog::OnAddRule)
 	EVT_BUTTON(ID_EDIT_RULE, AreaDecorationDialog::OnEditRule)
+	EVT_BUTTON(ID_DUPLICATE_RULE, AreaDecorationDialog::OnDuplicateRule)
 	EVT_BUTTON(ID_REMOVE_RULE, AreaDecorationDialog::OnRemoveRule)
 	EVT_LIST_ITEM_ACTIVATED(ID_RULES_LIST, AreaDecorationDialog::OnRuleDoubleClick)
 	EVT_LIST_ITEM_CHECKED(ID_RULES_LIST, AreaDecorationDialog::OnRuleCheckChanged)
@@ -2446,10 +2448,13 @@ void AreaDecorationDialog::CreateRulesTab(wxNotebook* notebook) {
 	wxBoxSizer* btnSizer = new wxBoxSizer(wxHORIZONTAL);
 	wxButton* addBtn = new wxButton(panel, ID_ADD_RULE, "Add Rule");
 	wxButton* editBtn = new wxButton(panel, ID_EDIT_RULE, "Edit");
+	wxButton* duplicateBtn = new wxButton(panel, ID_DUPLICATE_RULE, "Duplicate");
+	duplicateBtn->SetToolTip("Copy the selected rule (items, floors, density, spacing...) as a new rule right below it.");
 	wxButton* removeBtn = new wxButton(panel, ID_REMOVE_RULE, "Remove");
 
 	btnSizer->Add(addBtn, 0, wxRIGHT, 5);
 	btnSizer->Add(editBtn, 0, wxRIGHT, 5);
+	btnSizer->Add(duplicateBtn, 0, wxRIGHT, 5);
 	btnSizer->Add(removeBtn, 0);
 
 	sizer->Add(btnSizer, 0, wxALL, 5);
@@ -2635,9 +2640,11 @@ void AreaDecorationDialog::UpdateRuleButtons() {
 	bool enable = !m_editDialogOpen;
 	wxWindow* addBtn = FindWindowById(ID_ADD_RULE, this);
 	wxWindow* editBtn = FindWindowById(ID_EDIT_RULE, this);
+	wxWindow* duplicateBtn = FindWindowById(ID_DUPLICATE_RULE, this);
 	wxWindow* removeBtn = FindWindowById(ID_REMOVE_RULE, this);
 	if (addBtn) addBtn->Enable(enable);
 	if (editBtn) editBtn->Enable(enable);
+	if (duplicateBtn) duplicateBtn->Enable(enable);
 	if (removeBtn) removeBtn->Enable(enable);
 }
 
@@ -3056,6 +3063,30 @@ void AreaDecorationDialog::OnEditRule(wxCommandEvent& event) {
 		}
 	);
 	dialog->Show();
+}
+
+void AreaDecorationDialog::OnDuplicateRule(wxCommandEvent& event) {
+	long selected = m_rulesListCtrl->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	if (selected < 0 || selected >= static_cast<long>(m_preset.floorRules.size())) {
+		wxMessageBox("Select a rule to duplicate", "Error", wxOK | wxICON_ERROR);
+		return;
+	}
+
+	// A full copy (items, floors, density, spacing, enabled flag...) inserted right
+	// below the original, so related rules stay together in the priority order.
+	AreaDecoration::FloorRule copy = m_preset.floorRules[static_cast<size_t>(selected)];
+	copy.name += " (copy)";
+	const size_t newIndex = static_cast<size_t>(selected) + 1;
+	m_preset.floorRules.insert(m_preset.floorRules.begin() + newIndex, copy);
+	UpdateRulesList();
+
+	// Leave the copy selected so Edit / Remove act on it straight away.
+	if (newIndex < static_cast<size_t>(m_rulesListCtrl->GetItemCount())) {
+		m_rulesListCtrl->SetItemState(static_cast<long>(newIndex),
+			wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED,
+			wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED);
+		m_rulesListCtrl->EnsureVisible(static_cast<long>(newIndex));
+	}
 }
 
 void AreaDecorationDialog::OnRemoveRule(wxCommandEvent& event) {

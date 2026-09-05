@@ -72,8 +72,8 @@ namespace MenuBar {
 		SELECT_MODE_LOWER,
 		SELECT_MODE_VISIBLE,
 		SELECT_MODE_LASSO,
+		SELECT_MODE_MAGIC_WAND,
 		AUTOMAGIC,
-		CARPET_LIKE_GROUND_BORDERS,
 		CARPET_FILL_BORDERS,
 		DISABLE_CARPET_INTERACTION,
 		DELETE_REMOVES_ZONES,
@@ -81,6 +81,8 @@ namespace MenuBar {
 		BORDERIZE_MAP,
 		RANDOMIZE_SELECTION,
 		RANDOMIZE_MAP,
+		FILL_SELECTION,
+		FILL_SELECTION_SWAP_BORDERS,
 		ROTATE_SELECTION_CW,
 		ROTATE_SELECTION_CCW,
 		ROTATE_SELECTION_180,
@@ -261,6 +263,9 @@ public:
 	std::vector<MenuHotkeyEntry> GetMenuHotkeys() const;
 	void ApplyMenuHotkeys(const std::vector<MenuHotkeyEntry>& entries);
 	bool MatchesActionHotkey(MenuBar::ActionID id, const wxKeyEvent& event) const;
+	// Currently configured keyboard/mouse hotkey of a menu action. False when the
+	// action has no hotkey (cleared by the user) or the text does not parse.
+	bool GetActionHotkey(MenuBar::ActionID id, HotkeyData& out) const;
 	// Dispatches a menu action bound to a mouse button + modifier combo.
 	// Returns true if a binding matched and the action was fired.
 	bool DispatchMouseHotkey(const wxMouseEvent& event, HotkeyMouseButton button);
@@ -314,14 +319,15 @@ public:
 
 	void OnSelectionTypeChange(wxCommandEvent& event);
 	void OnSelectionLassoToggle(wxCommandEvent& event);
+	void OnSelectionMagicWandToggle(wxCommandEvent& event);
 
 	void OnCopy(wxCommandEvent& event);
 	void OnCut(wxCommandEvent& event);
 	void OnPaste(wxCommandEvent& event);
 
 	void OnToggleAutomagic(wxCommandEvent& event);
-	void OnToggleCarpetLikeGroundBorders(wxCommandEvent& event);
 	void OnToggleCarpetFillBorders(wxCommandEvent& event);
+	void OnToggleFillSwapBorders(wxCommandEvent& event);
 	void OnToggleDisableCarpetInteraction(wxCommandEvent& event);
 	void OnToggleDeleteRemovesZones(wxCommandEvent& event);
 	void OnToggleShowLights(wxCommandEvent& event);
@@ -331,6 +337,7 @@ public:
 	void OnBorderizeMap(wxCommandEvent& event);
 	void OnRandomizeSelection(wxCommandEvent& event);
 	void OnRandomizeMap(wxCommandEvent& event);
+	void OnFillSelection(wxCommandEvent& event);
 	void OnRotateSelectionCW(wxCommandEvent& event);
 	void OnRotateSelectionCCW(wxCommandEvent& event);
 	void OnRotateSelection180(wxCommandEvent& event);

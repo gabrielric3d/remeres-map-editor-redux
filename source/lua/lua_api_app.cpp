@@ -760,8 +760,10 @@ namespace LuaAPI {
 		};
 
 		// Get elapsed time in milliseconds since application start (high precision timer)
+		// Leitura VIVA de proposito: getElapsedTime() agora e o valor congelado do
+		// frame, e um script que meca duracao com ele veria sempre o mesmo numero.
 		app["getTime"] = []() -> long {
-			return g_gui.gfx.getElapsedTime();
+			return g_gui.gfx.getLiveElapsedTime();
 		};
 
 		// Event system: app.events:on("eventName", callback) / app.events:off(id)

@@ -68,6 +68,7 @@ bool GraphicManager::isUnloaded() const {
 
 void GraphicManager::updateTime() {
 	cached_time_ = time(nullptr);
+	cached_elapsed_ms_ = animation_timer->getElapsedTime();
 	SpritePreloader::get().update();
 }
 

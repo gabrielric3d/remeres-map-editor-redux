@@ -71,6 +71,7 @@ namespace Config {
 		SHOW_ONLY_GROUNDS,
 		SHOW_AUTOBORDER_PREVIEW,
 		HIDE_ITEMS_WHEN_ZOOMED,
+		HIDE_ITEMS_ZOOM_PERCENT, // BlackTalon: a partir de qual % de zoom os itens soltos somem
 		GROUP_ACTIONS,
 		SCROLL_SPEED,
 		PALETTE_SCROLL_SPEED,
@@ -81,7 +82,6 @@ namespace Config {
 		SELECTION_TYPE,
 		COMPENSATED_SELECT,
 		BORDER_IS_GROUND,
-		CARPET_LIKE_GROUND_BORDERS,
 		CARPET_FILL_BORDERS,
 		DISABLE_CARPET_INTERACTION,
 		BORDERIZE_PASTE,
@@ -270,6 +270,40 @@ namespace Config {
 		SHOW_ZONE_BOUNDARIES,
 
 		ERASE_ABOVE_HOTKEY,
+
+		// "Erase extra floors" toggles (radial wheel): while erasing with Ctrl + brush,
+		// also wipe the same footprint N floors above and/or below the current one.
+		ERASE_FLOORS_ABOVE_ENABLED,
+		ERASE_FLOORS_BELOW_ENABLED,
+		ERASE_FLOORS_ABOVE_COUNT,
+		ERASE_FLOORS_BELOW_COUNT,
+		ERASE_FLOORS_WHOLE_TILE,
+
+		// Ground brushes may declare several border sets for the same align/to pair,
+		// tagged with variant="1", variant="2", ... in grounds.xml. This is the variant
+		// the auto-border picks while painting; the configurable hotkey cycles it.
+		ACTIVE_BORDER_VARIANT,
+		BORDER_VARIANT_HOTKEY,
+
+		// "Ghost Floors" (radial wheel): like Ghost Higher Floors (Ctrl+L), but draws a
+		// configurable number of floors above AND below the current one, translucent,
+		// on top of the normal view. Counts of MAP_MAX_LAYER mean "every floor".
+		GHOST_FLOORS_ENABLED,
+		GHOST_FLOORS_ABOVE_ENABLED,
+		GHOST_FLOORS_BELOW_ENABLED,
+		GHOST_FLOORS_ABOVE_COUNT,
+		GHOST_FLOORS_BELOW_COUNT,
+		GHOST_FLOORS_ALPHA,
+		GHOST_FLOORS_FADE,
+
+		// Magic wand selection tool (Selection Mode menu / radial wheel): a plain click
+		// selects the contiguous patch of the clicked ground brush plus its borders.
+		SELECTION_MAGIC_WAND,
+
+		// Fill Selection with a ground brush swaps the old grounds' border pieces for
+		// the new brush's equivalents (Replace Tool style, no borderize pass), so it
+		// works with auto-border off and never touches the surrounding grounds.
+		FILL_SWAP_BORDERS,
 
 		LAST,
 	};

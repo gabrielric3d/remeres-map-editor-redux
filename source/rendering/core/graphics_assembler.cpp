@@ -134,6 +134,11 @@ bool GraphicsAssembler::install(GraphicManager& manager, const DatCatalog& catal
 	const auto sprite_space_size = static_cast<size_t>(catalog.lastEntryId()) + 1;
 	const auto image_space_size = imageSpaceSize(catalog);
 
+	// Os Animator montados abaixo consultam o relogio para nascer sincronizados, e
+	// aqui ainda nao houve nenhum frame: sem esta reamostragem eles leriam o valor
+	// inicial e todos comecariam no frame 0.
+	manager.refreshAnimationClock();
+
 	resetRuntimeState(manager);
 	manager.sprite_space.resize(sprite_space_size);
 	manager.image_space.resize(image_space_size);

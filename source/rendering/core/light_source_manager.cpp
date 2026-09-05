@@ -64,13 +64,11 @@ const LightSourceEntry* LightSourceManager::find(uint16_t clientId) const {
 	return nullptr;
 }
 
-bool LightSourceManager::isLightSource(uint16_t clientId) const {
-	return lookup.count(clientId) > 0;
-}
-
 void LightSourceManager::rebuildLookup() {
 	lookup.clear();
+	is_light_source.reset();
 	for (size_t i = 0; i < entries.size(); ++i) {
 		lookup[entries[i].clientId] = i;
+		is_light_source.set(entries[i].clientId);
 	}
 }

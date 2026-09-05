@@ -36,11 +36,16 @@
 #include <wx/splitter.h>
 #include <vector>
 #include <map>
+#include <string>
+#include <utility>
+
+#include "brushes/brush_enums.h" // BorderType
 
 class DoodadGridPanel;
 class DoodadPreviewPanel;
 class DoodadListPanel;
 class DoodadSingleItemsPanel;
+class CarpetEditorPanel;
 
 // Grid size constants.
 // The grid is a *window* over the composite, not the composite itself: a composite may
@@ -95,14 +100,17 @@ struct DoodadSingleItem {
     DoodadSingleItem(uint16_t id, int c) : itemId(id), chance(c) {}
 };
 
-// Info about a doodad brush for the list
+// Info about a brush for the list: a doodad brush, or a carpet brush (type="carpet",
+// which the shipped data keeps in doodads.xml alongside the doodads).
 struct DoodadBrushInfo {
     wxString name;
     int compositeCount;
     int singleCount;
+    bool isCarpet;
+    int alignCount;      // carpet only: how many of the 13 alignment slots have items
 
-    DoodadBrushInfo() : compositeCount(0), singleCount(0) {}
-    DoodadBrushInfo(const wxString& n, int cc, int sc) : name(n), compositeCount(cc), singleCount(sc) {}
+    DoodadBrushInfo() : compositeCount(0), singleCount(0), isCarpet(false), alignCount(0) {}
+    DoodadBrushInfo(const wxString& n, int cc, int sc) : name(n), compositeCount(cc), singleCount(sc), isCarpet(false), alignCount(0) {}
 };
 
 // Embedded panel containing the Doodad sub-editor.
@@ -138,12 +146,25 @@ public:
     void OnCreateNew(wxCommandEvent& event);
     void OnAddToTileset(wxCommandEvent& event);
     void OnTilesetSelectionChanged(wxCommandEvent& event);
+    void OnTilesetSectionChanged(wxCommandEvent& event);
     void RefreshTilesetBrushList();
     void AddSingleItemById(uint16_t itemId);
     void OnFindByServerId(wxCommandEvent& event);
+    void OnBrushTypeChanged(wxCommandEvent& event);
+
+    // Brush type being edited. The Doodads tab hosts two kinds of brush: regular
+    // doodads (single items + composites) and carpet brushes (13 alignment slots).
+    // Switching swaps the editor area and the doodad-only properties.
+    bool IsCarpetMode() const;
+    void SetBrushType(bool carpet);
+
+    // Loads a carpet brush from the material files (doodads.xml first) and switches
+    // the editor to carpet mode. Returns false if no such brush exists.
+    bool LoadCarpetBrush(const wxString& brushName);
 
     // Loads the doodad brush that uses the given item id (as a single item or inside a
-    // composite) and jumps to the relevant tab. Returns false if no doodad brush uses it.
+    // composite) and jumps to the relevant tab; falls back to the carpet brush that
+    // uses it. Returns false if no doodad or carpet brush uses it.
     // Used by the "Open in Brushes Editor" flow and the "Find by Server ID" search box.
     bool OpenItemInEditor(uint16_t itemId);
 
@@ -190,16 +211,30 @@ public:
 protected:
     void CreateGUIControls();
     void LoadExistingDoodads();
+    void LoadExistingCarpets();
     void UpdateDoodadList();
     void SaveDoodad();
     bool ValidateDoodad();
+    bool ValidateCarpet();
     void UpdatePreview();
     void UpdateSingleItemsList();
     void UpdateCompositesList();
     void ClearAll();
     void ClearEditor();
     wxString GenerateXML();
+    wxString GenerateCarpetXML();
     void LoadExistingTilesets();
+    void ApplyBrushTypeLayout();
+
+    // Every material file that may hold a carpet brush: the <include>s of
+    // materials.xml, with doodads.xml guaranteed present as the default save target.
+    wxArrayString GetMaterialFiles() const;
+    // Name of the carpet brush (loaded in g_brushes) that uses `itemId`, plus the slot
+    // it sits in. Empty if none.
+    wxString FindCarpetBrushNameByItemId(uint16_t itemId, BorderType& outAlign) const;
+    // tilesets.xml section the "Add to Tileset" box targets: "doodad" for doodads,
+    // the user's choice (terrain/doodad) for carpets.
+    wxString CurrentTilesetSection() const;
 
 public:
     // UI Elements - public for access from other components
@@ -213,8 +248,19 @@ public:
 
     // Right panel - Editor
     wxTextCtrl* m_nameCtrl;
+    wxChoice* m_brushTypeChoice;
     wxSpinCtrl* m_lookIdCtrl;
     wxNotebook* m_notebook;
+
+    // Carpet sub-editor, shown in place of the notebook while in carpet mode.
+    CarpetEditorPanel* m_carpetPanel;
+
+    // Sizers toggled by the brush type (doodad-only property rows, notebook vs carpet panel).
+    wxSizer* m_propsSizer;
+    wxSizer* m_doodadOptionsRow;
+    wxSizer* m_thicknessRow;
+    wxSizer* m_rightSizer;
+    wxWindow* m_rightPanel;
 
     // Properties
     wxCheckBox* m_draggableCheck;
@@ -258,6 +304,9 @@ public:
 
     // Tileset assignment
     wxComboBox* m_tilesetCombo;
+    wxStaticText* m_tilesetSectionLabel;
+    wxChoice* m_tilesetSectionChoice;   // carpet only: terrain / doodad
+    wxStaticText* m_tilesetBrushesLabel;
     wxListBox* m_tilesetBrushList;
     wxRadioBox* m_tilesetInsertPosition;
     wxButton* m_addToTilesetButton;
@@ -277,6 +326,14 @@ private:
     int m_activeTab;
     wxTimer* m_loadTimer;
     bool m_isLoading;
+
+    // Lowercased carpet brush name -> full path of the material file it lives in, so
+    // Save writes back to the same file instead of duplicating the brush.
+    std::map<wxString, wxString> m_carpetSourceFiles;
+    // Brush-level attributes of the loaded carpet the editor does not manage (e.g.
+    // activated="false"), re-emitted verbatim when saving under the same name.
+    std::vector<std::pair<std::string, std::string>> m_carpetPreservedAttrs;
+    wxString m_carpetPreservedForName;
 
     DECLARE_EVENT_TABLE()
 };

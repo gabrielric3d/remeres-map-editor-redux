@@ -70,6 +70,7 @@ Brushes::~Brushes() {
 
 void Brushes::clear() {
 	GroundBrush::clearCarpetPieceOwners();
+	GroundBrush::clearGlobalVariantMask();
 
 	for (auto& entry : brushes) {
 		entry.second.reset();

@@ -16,6 +16,7 @@ public:
 
 private:
 	wxCheckBox* hide_items_when_zoomed_chkbox = nullptr;
+	wxSpinCtrl* hide_items_zoom_spin = nullptr;
 	wxCheckBox* icon_selection_shadow_chkbox = nullptr;
 	wxCheckBox* use_memcached_chkbox = nullptr;
 	wxCheckBox* anti_aliasing_chkbox = nullptr;

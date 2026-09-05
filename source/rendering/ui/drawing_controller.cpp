@@ -12,6 +12,7 @@
 #include "brushes/brush.h"
 #include "ui/gui.h"
 #include "brushes/brush_utility.h"
+#include "editor/operations/draw_operations.h"
 #include "app/settings.h"
 
 // Brushes
@@ -27,6 +28,7 @@
 #include "brushes/table/table_brush.h"
 #include "brushes/wall/wall_brush.h"
 #include "brushes/waypoint/waypoint_brush.h"
+#include "brushes/camera/camera_path_brush.h"
 #include "brushes/door/door_brush.h"
 
 DrawingController::DrawingController(MapCanvas* canvas, Editor& editor) :
@@ -39,6 +41,37 @@ DrawingController::DrawingController(MapCanvas* canvas, Editor& editor) :
 }
 
 DrawingController::~DrawingController() {
+}
+
+void DrawingController::EraseExtraFloorsAtCursor(const Position& mouse_map_pos, bool ctrl_down) {
+	if (!ctrl_down || !DrawOperations::extraFloorEraseEnabled()) {
+		return;
+	}
+	Brush* brush = g_gui.GetCurrentBrush();
+	if (!brush) {
+		return;
+	}
+	// Ctrl+D on a ground brush is the flood fill, not an erase — leave the other floors alone.
+	if (canvas->keyCode == WXK_CONTROL_D && brush->is<GroundBrush>()) {
+		return;
+	}
+	// These brushes always place, Ctrl or not, so there is no erase to extend downwards.
+	if (brush->is<HouseExitBrush>() || brush->is<WaypointBrush>() || brush->is<CameraPathBrush>()) {
+		return;
+	}
+	PositionVector footprint;
+	BrushUtility::GetTilesToDraw(mouse_map_pos.x, mouse_map_pos.y, mouse_map_pos.z, &footprint, nullptr);
+	if (footprint.empty()) {
+		footprint.push_back(mouse_map_pos);
+	}
+	DrawOperations::eraseExtraFloors(editor, footprint);
+}
+
+void DrawingController::EraseExtraFloors(const PositionVector& tilestodraw, bool ctrl_down) {
+	if (!ctrl_down || tilestodraw.empty() || !DrawOperations::extraFloorEraseEnabled()) {
+		return;
+	}
+	DrawOperations::eraseExtraFloors(editor, tilestodraw);
 }
 
 bool DrawingController::IsGroundReplaceModifier(bool shift_down, bool ctrl_down, bool alt_down) const {
@@ -58,6 +91,9 @@ void DrawingController::HandleClick(const Position& mouse_map_pos, bool shift_do
 		if (shift_down && brush->canDrag()) {
 			dragging_draw = true;
 		} else {
+			// Runs before the brush so the extra floors are wiped with the same footprint
+			// the brush is about to erase here; the batches merge into a single undo step.
+			EraseExtraFloorsAtCursor(mouse_map_pos, ctrl_down);
 			if (footprint.isSingleTile() && !brush->oneSizeFitsAll()) {
 				drawing = true;
 			} else {
@@ -225,6 +261,7 @@ void DrawingController::HandleDrag(const Position& mouse_map_pos, bool shift_dow
 
 	Brush* brush = g_gui.GetCurrentBrush();
 	if (drawing && brush) {
+		EraseExtraFloorsAtCursor(mouse_map_pos, ctrl_down);
 		if (brush->is<DoodadBrush>()) {
 			bool doodad_ground_replace_drag = IsGroundReplaceModifier(shift_down, ctrl_down, alt_down);
 			if (ctrl_down) {
@@ -321,6 +358,7 @@ void DrawingController::HandleRelease(const Position& mouse_map_pos, bool shift_
 				BrushUtility::GetLineTiles(start, line_end, &tilestodraw, &tilestoborder, line_wall_thickness);
 				bool ground_replace_release = brush->is<GroundBrush>()
 					&& IsGroundReplaceModifier(shift_down, ctrl_down, alt_down);
+				EraseExtraFloors(tilestodraw, ctrl_down);
 				if (ctrl_down) {
 					editor.undraw(tilestodraw, tilestoborder, ground_replace_release);
 				} else {
@@ -429,6 +467,7 @@ void DrawingController::HandleRelease(const Position& mouse_map_pos, bool shift_
 					}
 				}
 				bool ground_replace_release = brush->is<GroundBrush>() && IsGroundReplaceModifier(shift_down, ctrl_down, alt_down);
+				EraseExtraFloors(tilestodraw, ctrl_down);
 				if (ctrl_down) {
 					editor.undraw(tilestodraw, tilestoborder, ground_replace_release);
 				} else {

@@ -15,7 +15,29 @@ struct DrawingOptions {
 	void Update();
 	bool isDrawLight() const noexcept;
 
+	// "Hide loose items when zoomed out" ainda deixa desenhar os itens neste zoom?
+	//
+	// Sao DUAS variantes porque o codigo antigo tinha dois criterios: o TileRenderer
+	// comparava com `<` e o FloorDrawer e o PreviewDrawer com `<=`. A diferenca so
+	// aparece em zoom exatamente igual ao limiar, mas aparece -- e o zoom pode cair
+	// nesse valor cravado por script Lua ou por keyframe de camera. Cada chamador
+	// fica com a variante que sempre teve.
+	[[nodiscard]] bool drawLooseItems() const noexcept {
+		return !hide_items_when_zoomed || zoom < hide_items_zoom;
+	}
+
+	[[nodiscard]] bool drawLooseItemsInclusive() const noexcept {
+		return !hide_items_when_zoomed || zoom <= hide_items_zoom;
+	}
+
 	bool transparent_floors;
+	// "Ghost Floors" (radial wheel). Counts already resolved from the settings:
+	// 0 = that direction is off, otherwise how many floors to draw translucent.
+	bool ghost_floors_enabled;
+	int ghost_floors_above;
+	int ghost_floors_below;
+	int ghost_floors_alpha; // 0..255
+	bool ghost_floors_fade; // farther floors get fainter
 	bool transparent_items;
 	bool transparent_grounds;
 	bool show_ingame_box;
@@ -61,6 +83,9 @@ struct DrawingOptions {
 	bool show_pickupables;
 	bool show_moveables;
 	bool hide_items_when_zoomed;
+	// Zoom a partir do qual o acima esconde os itens, ja convertido da porcentagem
+	// da preferencia: 10% -> 10.0. Comparar com `zoom` direto, sem dividir nada.
+	float hide_items_zoom;
 	bool show_towns;
 	bool always_show_zones;
 	bool extended_house_shader;
@@ -85,6 +110,11 @@ struct DrawingOptions {
 	float highlight_pulse;
 
 	bool anti_aliasing;
+
+	// Copia do zoom de RenderView, atualizada uma vez por frame em
+	// MapDrawer::SetupVars. Existe porque os drawers de item/tile so recebem
+	// `options`, e sem isso nao teriam como aplicar LOD.
+	float zoom;
 
 	std::string screen_shader_name;
 };

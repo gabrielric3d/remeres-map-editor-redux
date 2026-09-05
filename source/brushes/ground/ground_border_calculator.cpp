@@ -25,12 +25,24 @@ namespace {
 	constexpr uint32_t MASK_S = TILE_SOUTH;
 	constexpr uint32_t MASK_SE = TILE_SOUTHEAST;
 
-	// Carpet-like lookup table for ground borders. Mirrors the rules used by
-	// CarpetBrush::carpet_types so ground borders behave like carpets when the
-	// CARPET_LIKE_GROUND_BORDERS setting is on: ONE BorderType per tile,
-	// favoring clean silhouettes over compositing multiple sprites.
-	// See: source/brushes/carpet/carpet_brush_arrays.cpp
-	constexpr auto ground_carpet_like_table = []() constexpr {
+	// The 8 neighbours in TILE_* bit order: bit i of a mask <-> kNeighbourOffsets[i].
+	constexpr std::array<std::pair<int32_t, int32_t>, 8> kNeighbourOffsets = { { { -1, -1 }, { 0, -1 }, { 1, -1 }, { -1, 0 }, { 1, 0 }, { -1, 1 }, { 0, 1 }, { 1, 1 } } };
+
+	// Carpet Fill lookup: the piece a MEMBER tile shows, indexed by the mask of
+	// its neighbours that belong to the same brush (edge piece or filled
+	// ground). Same geometry as CarpetBrush::carpet_types - a piece is named
+	// after the direction the region continues in, so the top row of a block
+	// shows "s" and its top-left corner "cse" - but without that table's legacy
+	// quirks, which were written for full carpet tiles and look broken with
+	// thin ground fringes:
+	//  - all four sides present: CARPET_CENTER (the brush's own ground), unless
+	//    exactly one diagonal is missing -> the concave "d" piece opposite it;
+	//  - three sides: the straight piece facing the interior;
+	//  - two adjacent sides: the convex corner facing the interior;
+	//  - two opposite sides, one side or no neighbour at all: CARPET_CENTER, so
+	//    1-wide strips and single clicks are filled tiles, like a lone carpet;
+	//  - diagonal-only contact: the corner or straight piece towards it.
+	constexpr auto ground_carpet_table = []() constexpr {
 		std::array<uint32_t, 256> table {};
 		for (int i = 0; i < 256; ++i) {
 			const bool nw = i & MASK_NW;
@@ -41,182 +53,78 @@ namespace {
 			const bool sw = i & MASK_SW;
 			const bool s = i & MASK_S;
 			const bool se = i & MASK_SE;
+			const int sides = n + s + e + w;
 
-			// 1. Full enclosed (NSEW): center, unless exactly one diagonal is missing.
-			if (n && s && e && w) {
-				const int missing_diag = (!nw) + (!ne) + (!sw) + (!se);
-				if (missing_diag == 1) {
+			uint32_t piece = CARPET_CENTER;
+			if (sides == 4) {
+				const int missing = (!nw) + (!ne) + (!sw) + (!se);
+				if (missing == 1) {
 					if (!nw) {
-						table[i] = SOUTHEAST_DIAGONAL;
+						piece = SOUTHEAST_DIAGONAL;
 					} else if (!ne) {
-						table[i] = SOUTHWEST_DIAGONAL;
+						piece = SOUTHWEST_DIAGONAL;
 					} else if (!sw) {
-						table[i] = NORTHEAST_DIAGONAL;
-					} else if (!se) {
-						table[i] = NORTHWEST_DIAGONAL;
+						piece = NORTHEAST_DIAGONAL;
+					} else {
+						piece = NORTHWEST_DIAGONAL;
 					}
-				} else {
-					table[i] = CARPET_CENTER;
 				}
-				continue;
-			}
-
-			// 2. Three-way junctions
-			if (n && s && w) {
-				if (sw && nw) {
-					table[i] = WEST_HORIZONTAL;
-				} else if (sw) {
-					table[i] = SOUTHWEST_CORNER;
-				} else if (nw) {
-					table[i] = NORTHWEST_CORNER;
+			} else if (sides == 3) {
+				if (!s) {
+					piece = NORTH_HORIZONTAL;
+				} else if (!n) {
+					piece = SOUTH_HORIZONTAL;
+				} else if (!e) {
+					piece = WEST_HORIZONTAL;
 				} else {
-					table[i] = WEST_HORIZONTAL;
+					piece = EAST_HORIZONTAL;
 				}
-				continue;
-			}
-			if (n && s && e) {
-				table[i] = EAST_HORIZONTAL;
-				continue;
-			}
-			if (n && w && e) {
-				if (sw) {
-					table[i] = NORTHWEST_CORNER;
-				} else {
-					table[i] = NORTH_HORIZONTAL;
+			} else if (sides == 2) {
+				if (n && w) {
+					piece = NORTHWEST_CORNER;
+				} else if (n && e) {
+					piece = NORTHEAST_CORNER;
+				} else if (s && w) {
+					piece = SOUTHWEST_CORNER;
+				} else if (s && e) {
+					piece = SOUTHEAST_CORNER;
 				}
-				continue;
-			}
-			if (s && w && e) {
-				table[i] = SOUTH_HORIZONTAL;
-				continue;
-			}
-
-			// 3. Two-way orthogonal
-			if (n && w) {
-				table[i] = NORTHWEST_CORNER;
-				continue;
-			}
-			if (n && e) {
-				table[i] = NORTHEAST_CORNER;
-				continue;
-			}
-			if (s && w) {
-				table[i] = SOUTHWEST_CORNER;
-				continue;
-			}
-			if (s && e) {
-				table[i] = SOUTHEAST_CORNER;
-				continue;
-			}
-
-			if (n && s) {
-				if (nw && sw) {
-					table[i] = WEST_HORIZONTAL;
-				} else if (nw) {
-					table[i] = NORTHWEST_CORNER;
-				} else if (sw) {
-					table[i] = SOUTHWEST_CORNER;
-				} else if (ne) {
-					table[i] = NORTHEAST_CORNER;
-				} else if (se) {
-					table[i] = SOUTHEAST_CORNER;
-				} else {
-					table[i] = CARPET_CENTER;
+			} else if (sides == 0) {
+				const int diagonals = nw + ne + sw + se;
+				if (diagonals == 2) {
+					if (nw && ne) {
+						piece = NORTH_HORIZONTAL;
+					} else if (sw && se) {
+						piece = SOUTH_HORIZONTAL;
+					} else if (nw && sw) {
+						piece = WEST_HORIZONTAL;
+					} else if (ne && se) {
+						piece = EAST_HORIZONTAL;
+					}
+				} else if (diagonals == 1) {
+					if (nw) {
+						piece = NORTHWEST_CORNER;
+					} else if (ne) {
+						piece = NORTHEAST_CORNER;
+					} else if (sw) {
+						piece = SOUTHWEST_CORNER;
+					} else {
+						piece = SOUTHEAST_CORNER;
+					}
 				}
-				continue;
 			}
-			if (w && e) {
-				const bool n_side = nw || ne;
-				const bool s_side = sw || se;
-				if (sw && e && w) {
-					table[i] = SOUTHWEST_CORNER;
-				} else if (n_side && s_side) {
-					table[i] = CARPET_CENTER;
-				} else if (n_side) {
-					table[i] = NORTH_HORIZONTAL;
-				} else if (s_side) {
-					table[i] = SOUTH_HORIZONTAL;
-				} else {
-					table[i] = CARPET_CENTER;
-				}
-				continue;
-			}
-
-			// 4. Single orthogonal
-			if (n) {
-				if (nw) {
-					table[i] = NORTHWEST_CORNER;
-				} else if (ne) {
-					table[i] = NORTHEAST_CORNER;
-				} else if (sw) {
-					table[i] = SOUTHWEST_CORNER;
-				} else if (se) {
-					table[i] = SOUTHEAST_CORNER;
-				} else {
-					table[i] = CARPET_CENTER;
-				}
-				continue;
-			}
-			if (s) {
-				if (sw) {
-					table[i] = SOUTHWEST_CORNER;
-				} else if (se) {
-					table[i] = SOUTHEAST_CORNER;
-				} else if (nw) {
-					table[i] = NORTHWEST_CORNER;
-				} else if (ne) {
-					table[i] = NORTHEAST_CORNER;
-				} else {
-					table[i] = SOUTHWEST_CORNER;
-				}
-				continue;
-			}
-			if (w) {
-				if (nw) {
-					table[i] = WEST_HORIZONTAL;
-				} else if (sw) {
-					table[i] = SOUTHWEST_CORNER;
-				} else if (se) {
-					table[i] = SOUTH_HORIZONTAL;
-				} else {
-					table[i] = CARPET_CENTER;
-				}
-				continue;
-			}
-			if (e) {
-				if (nw) {
-					table[i] = NORTHEAST_CORNER;
-				} else if (ne) {
-					table[i] = NORTHEAST_CORNER;
-				} else if (se) {
-					table[i] = SOUTH_HORIZONTAL;
-				} else {
-					table[i] = CARPET_CENTER;
-				}
-				continue;
-			}
-
-			// 5. Pure diagonals
-			if (nw && ne) {
-				table[i] = NORTH_HORIZONTAL;
-			} else if (sw && se) {
-				table[i] = SOUTH_HORIZONTAL;
-			} else if (nw && sw) {
-				table[i] = WEST_HORIZONTAL;
-			} else if (ne && se) {
-				table[i] = EAST_HORIZONTAL;
-			} else if (ne) {
-				table[i] = NORTHEAST_CORNER;
-			} else if (se) {
-				table[i] = SOUTHEAST_CORNER;
-			} else if (sw) {
-				table[i] = SOUTHWEST_CORNER;
-			} else {
-				table[i] = CARPET_CENTER;
-			}
+			table[i] = piece;
 		}
 		return table;
 	}();
+
+	static_assert(ground_carpet_table[0] == CARPET_CENTER); // single click: filled tile
+	static_assert(ground_carpet_table[0xFF] == CARPET_CENTER);
+	static_assert(ground_carpet_table[MASK_N | MASK_S] == CARPET_CENTER); // 1-wide strip
+	static_assert(ground_carpet_table[MASK_E | MASK_S | MASK_SE] == SOUTHEAST_CORNER); // top-left of a block
+	static_assert(ground_carpet_table[MASK_W | MASK_E | MASK_S | MASK_SW | MASK_SE] == SOUTH_HORIZONTAL); // top row
+	static_assert(ground_carpet_table[MASK_N | MASK_S | MASK_E | MASK_NE | MASK_SE] == EAST_HORIZONTAL); // left column
+	static_assert(ground_carpet_table[0xFF & ~MASK_NE] == SOUTHWEST_DIAGONAL); // concave corner
 
 	struct DiagonalComponent {
 		BorderType diagonal;
@@ -230,46 +138,30 @@ namespace {
 		{ SOUTHEAST_DIAGONAL, SOUTH_HORIZONTAL, EAST_HORIZONTAL },
 	} };
 
-	// The outer border_types table names pieces for the OUTER ring (tiles
-	// around an area). On the inner ring (Carpet Fill) the cardinal
-	// orientation stays the same, but convex and concave corners swap roles:
-	// the top-left tile of a 2x2 block must use "cnw", where the outer table
-	// answers NORTHWEST_DIAGONAL. Swap corner<->diagonal of the same name.
-	constexpr BorderType swapCornerDiagonal(BorderType piece) {
+	// Convex corner -> concave piece of the same name (BORDER_NONE for the rest).
+	constexpr BorderType cornerToDiagonal(BorderType piece) {
 		switch (piece) {
 			case NORTHWEST_CORNER: return NORTHWEST_DIAGONAL;
 			case NORTHEAST_CORNER: return NORTHEAST_DIAGONAL;
 			case SOUTHWEST_CORNER: return SOUTHWEST_DIAGONAL;
 			case SOUTHEAST_CORNER: return SOUTHEAST_DIAGONAL;
-			case NORTHWEST_DIAGONAL: return NORTHWEST_CORNER;
-			case NORTHEAST_DIAGONAL: return NORTHEAST_CORNER;
-			case SOUTHWEST_DIAGONAL: return SOUTHWEST_CORNER;
-			case SOUTHEAST_DIAGONAL: return SOUTHEAST_CORNER;
-			default: return piece; // horizontals keep their orientation
+			default: return BORDER_NONE;
 		}
 	}
 
-	// True if this tile is governed by the Carpet Fill pipeline: it carries an
-	// edge piece of a carpet_fill brush, or its ground belongs to one. All
-	// other tiles keep the traditional auto-border pipeline, so neighbouring
-	// traditional grounds (e.g. mountains) keep their borders intact.
-	bool isCarpetFillTile(Tile* tile) {
-		GroundBrush* ground = tile->getGroundBrush();
-		if (ground && ground->isCarpetFill()) {
-			return true;
-		}
-		for (const auto& item : tile->items) {
-			if (item->isBorder() && GroundBrush::getCarpetPieceOwner(item->getID()) != nullptr) {
-				return true;
-			}
-		}
-		return false;
-	}
+	// ---- Carpet Fill ---------------------------------------------------------
+	// A carpet_fill ground brush (with Edit > Border Options > Carpet Fill
+	// Borders as the master switch) paints like a carpet brush: every painted
+	// tile is a member of the brush's region. Members surrounded as per
+	// ground_carpet_table get the brush's own ground; the others keep whatever
+	// ground was there and show ONE edge piece of the brush's outer border,
+	// facing the interior. The layer is additive: the traditional pipeline still
+	// runs on the same tile for every other brush around it (mountains, water,
+	// ...), so a carpet brush never disturbs another ground and vice versa.
 
-	// True if the tile counts as part of `brush` for Carpet Fill purposes:
-	// either its ground is the brush's filled center, or it carries one of the
-	// brush's edge pieces (margin tiles keep their old ground underneath).
-	bool belongsToCarpetBrush(Tile* tile, GroundBrush* brush, const AutoBorder* border) {
+	// True if the tile counts as part of `brush`'s region: its ground is the
+	// brush's filled ground, or it carries one of the brush's edge pieces.
+	bool belongsToCarpetBrush(const Tile* tile, const GroundBrush* brush) {
 		if (!tile) {
 			return false;
 		}
@@ -277,146 +169,101 @@ namespace {
 			return true;
 		}
 		for (const auto& item : tile->items) {
-			if (item->isBorder() && border->containsItem(item->getID())) {
+			if (item->isBorder() && brush->ownsCarpetPiece(item->getID())) {
 				return true;
 			}
 		}
 		return false;
 	}
 
-	// Carpet Fill mode (global toggle, CARPET_FILL_BORDERS): painting starts as
-	// border pieces drawn on the tile itself, over whatever ground was already
-	// there; the center ground item is only filled in once the tile is fully
-	// surrounded (all 8 neighbours) by the same brush - like a carpet brush.
-	// Pieces come from the brush's first outer border, so it works with any
-	// existing ground brush without XML changes. While the mode is on this
-	// replaces the normal cross-brush border pipeline.
-	void calculateCarpetFill(BaseMap* map, Tile* tile) {
-		// Resolve which brush is being carpet-filled BEFORE cleaning borders:
-		// margin tiles keep their old ground, so the edge piece is the only
-		// marker of which brush was painted here.
-		GroundBrush* brush = nullptr;
+	bool hasMemberNeighbour(BaseMap* map, const Tile* tile, const GroundBrush* brush) {
+		const Position& position = tile->getPosition();
+		for (const auto& [dx, dy] : kNeighbourOffsets) {
+			if (belongsToCarpetBrush(map->getTile(position.x + dx, position.y + dy, position.z), brush)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// Which carpet brush this tile belongs to, if any. An edge piece on the tile
+	// wins over its ground: painting brush B over a filled tile of brush C leaves
+	// C's ground underneath B's piece, and the tile is B's from then on.
+	GroundBrush* resolveCarpetBrush(BaseMap* map, Tile* tile) {
+		GroundBrush* groundBrush = tile->getGroundBrush();
 		for (const auto& item : tile->items) {
 			if (!item->isBorder()) {
 				continue;
 			}
-			if (GroundBrush* owner = GroundBrush::getCarpetPieceOwner(item->getID())) {
-				brush = owner;
-				break;
+			const std::vector<GroundBrush*>& owners = GroundBrush::getCarpetPieceOwners(item->getID());
+			GroundBrush* fallback = nullptr;
+			for (GroundBrush* owner : owners) {
+				if (!owner->paintsAsCarpet()) {
+					continue;
+				}
+				if (owners.size() == 1 || owner == groundBrush || hasMemberNeighbour(map, tile, owner)) {
+					return owner;
+				}
+				if (!fallback) {
+					fallback = owner; // Shared border set with nobody around: first declared wins.
+				}
+			}
+			if (fallback) {
+				return fallback;
 			}
 		}
-		if (!brush) {
-			GroundBrush* ground = tile->getGroundBrush();
-			if (ground && ground->isCarpetFill()) {
-				brush = ground;
-			}
+		if (groundBrush && groundBrush->paintsAsCarpet()) {
+			return groundBrush;
 		}
+		return nullptr;
+	}
 
-		// Same border cleanup policy as the normal pipeline.
-		const bool preserveManual = g_settings.getBoolean(Config::PRESERVE_MANUAL_BORDERS);
-		std::erase_if(tile->items, [preserveManual](const std::unique_ptr<Item>& item) {
-			if (!item->isBorder()) return false;
-			return preserveManual ? item->isAutoPlaced() : true;
-		});
-		if (preserveManual) {
-			TileOperations::cleanAutoBorders(tile);
-		} else {
-			TileOperations::cleanBorders(tile);
-		}
+	struct CarpetLayer {
+		GroundBrush* brush = nullptr; // Region this tile belongs to (nullptr: none)
+		const AutoBorder* border = nullptr; // Outer border the pieces come from
+		uint32_t members = 0; // Neighbours belonging to the same region, TILE_* bits
+		BorderType piece = BORDER_NONE; // Piece to stamp; BORDER_NONE for filled tiles
+	};
 
-		if (!brush) {
-			return;
+	// Resolves the carpet layer of a tile and, when the tile is a filled
+	// position of its region, sets the brush's ground on it right away.
+	CarpetLayer resolveCarpetLayer(BaseMap* map, Tile* tile) {
+		CarpetLayer layer;
+		if (!g_settings.getBoolean(Config::CARPET_FILL_BORDERS)) {
+			return layer;
 		}
-		const AutoBorder* border = brush->getFirstOuterAutoBorder();
-		if (!border) {
-			return;
+		layer.brush = resolveCarpetBrush(map, tile);
+		if (!layer.brush) {
+			return layer;
 		}
+		layer.border = layer.brush->getActiveOuterAutoBorder();
 
 		const Position& position = tile->getPosition();
-		static constexpr std::array<std::pair<int32_t, int32_t>, 8> offsets = { { { -1, -1 }, { 0, -1 }, { 1, -1 }, { -1, 0 }, { 1, 0 }, { -1, 1 }, { 0, 1 }, { 1, 1 } } };
-
-		uint32_t tiledata = 0;
-		for (size_t i = 0; i < offsets.size(); ++i) {
-			Tile* neighbour = map->getTile(position.x + offsets[i].first, position.y + offsets[i].second, position.z);
-			if (belongsToCarpetBrush(neighbour, brush, border)) {
-				tiledata |= static_cast<uint32_t>(1) << i;
+		for (size_t i = 0; i < kNeighbourOffsets.size(); ++i) {
+			const auto& [dx, dy] = kNeighbourOffsets[i];
+			if (belongsToCarpetBrush(map->getTile(position.x + dx, position.y + dy, position.z), layer.brush)) {
+				layer.members |= 1u << i;
 			}
 		}
 
-		// Fill in the center ground ONLY when all 8 neighbours belong to the
-		// brush (pieces or filled grounds). A relaxed "touches a filled ground"
-		// variant was tried and reverted: while painting, the margin between
-		// the filled interior and a freshly painted row matches it too, so the
-		// area fills almost to the edge and the ring collapses.
-		if (tiledata == 0xFF) {
-			if (tile->getGroundBrush() != brush) {
-				uint16_t groundId = brush->getRandomGroundItemId();
+		const BorderType piece = static_cast<BorderType>(ground_carpet_table[layer.members]);
+		if (piece == CARPET_CENTER) {
+			// Filled tile: the brush's own ground and no edge pieces.
+			if (tile->getGroundBrush() != layer.brush) {
+				const uint16_t groundId = layer.brush->getRandomGroundItemId();
 				if (groundId != 0) {
 					tile->setGround(Item::Create(groundId));
 				}
 			}
-			return;
+			return layer;
 		}
-
-		// Isolated tile (first click): start as a closed frame made of the four
-		// convex corner pieces (cnw/cne/csw/cse), like a 1-tile ring. The
-		// center ground only appears once all 8 neighbours are painted.
-		if (tiledata == 0) {
-			bool stamped = false;
-			for (BorderType direction : { NORTHWEST_CORNER, NORTHEAST_CORNER, SOUTHWEST_CORNER, SOUTHEAST_CORNER }) {
-				uint32_t id = border->getRandomTileId(direction);
-				if (id != 0) {
-					TileOperations::addBorderItem(tile, Item::Create(id));
-					stamped = true;
-				}
-			}
-			if (stamped) {
-				return;
-			}
-			// Border set has no corner pieces: fall through to the lookup.
+		// A tile that already carries the brush's ground (a filled tile that lost
+		// a neighbour) keeps it: the old ground is gone for good, and a fringe
+		// over the brush's own ground would be invisible anyway.
+		if (tile->getGroundBrush() != layer.brush) {
+			layer.piece = piece;
 		}
-
-		// Margin tile: keep the old ground underneath and stamp edge pieces.
-		// Mirror the open-sides mask 180 degrees (reverse the 8 bits: N<->S,
-		// W<->E, NW<->SE, NE<->SW) before the outer-table lookup, then swap
-		// corner<->diagonal of the same name after it. Net effect, confirmed
-		// piece by piece with the user's tileset: a 2x2 block stamps cse (top
-		// left), csw (top right), cne (bottom left), cnw (bottom right) - the
-		// fringe hugs the interior of the ring - and straight rows keep the
-		// fringe on the inner side ("s" on the top row).
-		const uint32_t open = (~tiledata) & 0xFF;
-		uint32_t mirrored = 0;
-		for (int b = 0; b < 8; ++b) {
-			if (open & (1u << b)) {
-				mirrored |= 1u << (7 - b);
-			}
-		}
-		const uint32_t composition = GroundBrush::border_types[mirrored];
-		for (int i = 0; i < 4; ++i) {
-			BorderType rawDirection = static_cast<BorderType>((composition >> (8 * i)) & 0xFF);
-			if (rawDirection == BORDER_NONE) {
-				break;
-			}
-			BorderType direction = swapCornerDiagonal(rawDirection);
-			uint32_t id = border->getRandomTileId(direction);
-			if (id != 0) {
-				TileOperations::addBorderItem(tile, Item::Create(id));
-				continue;
-			}
-			// Piece missing from this border set: compose the corner/diagonal
-			// from its two horizontal pieces, like the legacy pipeline does.
-			auto it = std::ranges::find_if(diagonal_map, [direction](const auto& d) {
-				return d.diagonal == direction || d.diagonal == swapCornerDiagonal(direction);
-			});
-			if (it != diagonal_map.end()) {
-				uint32_t h1Id = border->getRandomTileId(it->h1);
-				uint32_t h2Id = border->getRandomTileId(it->h2);
-				if (h1Id != 0 && h2Id != 0) {
-					TileOperations::addBorderItem(tile, Item::Create(h1Id));
-					TileOperations::addBorderItem(tile, Item::Create(h2Id));
-				}
-			}
-		}
+		return layer;
 	}
 } // namespace
 
@@ -431,13 +278,10 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 
 	ASSERT(tile);
 
-	// Carpet Fill is resolved per tile: only tiles belonging to a carpet_fill
-	// brush (edge pieces or filled ground) use the carpet pipeline. Everything
-	// else runs the traditional auto-border below, untouched.
-	if (g_settings.getBoolean(Config::CARPET_FILL_BORDERS) && isCarpetFillTile(tile)) {
-		calculateCarpetFill(map, tile);
-		return;
-	}
+	// Carpet Fill layer, resolved first: it may fill the tile with its brush's
+	// ground, which the traditional analysis below must see. Tiles outside any
+	// carpet region get an empty layer and run exactly the legacy pipeline.
+	const CarpetLayer carpet = resolveCarpetLayer(map, tile);
 
 	GroundBrush* borderBrush;
 	if (tile->ground) {
@@ -456,15 +300,20 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 		{ false, nullptr }, { false, nullptr }, { false, nullptr }, { false, nullptr }, { false, nullptr }, { false, nullptr }, { false, nullptr }, { false, nullptr }
 	};
 
-	static constexpr std::array<std::pair<int32_t, int32_t>, 8> offsets = { { { -1, -1 }, { 0, -1 }, { 1, -1 }, { -1, 0 }, { 1, 0 }, { -1, 1 }, { 0, 1 }, { 1, 1 } } };
-
-	for (size_t i = 0; i < offsets.size(); ++i) {
-		const auto& [dx, dy] = offsets[i];
+	for (size_t i = 0; i < kNeighbourOffsets.size(); ++i) {
+		const auto& [dx, dy] = kNeighbourOffsets[i];
 
 		int nx = x + dx;
 		int ny = y + dy;
 
 		neighbours[i] = { false, extractGroundBrushFromTile(map, nx, ny, z) };
+
+		// Inside a carpet region every member counts as the region's brush, so a
+		// filled tile never borders against the old grounds still lying under
+		// the edge tiles around it.
+		if (carpet.brush && borderBrush == carpet.brush && (carpet.members & (1u << i))) {
+			neighbours[i].second = carpet.brush;
+		}
 	}
 
 	static std::vector<const GroundBrush::BorderBlock*> specificList;
@@ -719,6 +568,18 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 		return preserveManual ? item->isAutoPlaced() : true;
 	});
 
+	// Carpet Fill layer: one more cluster, layered by its brush's z-order like
+	// any other border (see ground_carpet_table for the piece choice).
+	if (carpet.piece != BORDER_NONE && carpet.border) {
+		GroundBrush::BorderCluster carpetCluster;
+		carpetCluster.alignment = carpet.members;
+		carpetCluster.z = carpet.brush->getZ();
+		carpetCluster.layer_order = 0;
+		carpetCluster.border = carpet.border;
+		carpetCluster.carpet_piece = carpet.piece;
+		borderList.push_back(carpetCluster);
+	}
+
 	// Sort borders based on z-order, then layer_order (for multi-border layering)
 	std::ranges::sort(borderList, [](const GroundBrush::BorderCluster& a, const GroundBrush::BorderCluster& b) {
 		if (a.z != b.z) {
@@ -736,12 +597,6 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 	} else {
 		TileOperations::cleanBorders(tile);
 	}
-
-	// When carpet-like ground borders are enabled, we mirror the carpet brush
-	// pipeline: ONE BorderType per cluster (via ground_carpet_like_table) and
-	// only one sprite gets stamped on the tile. This produces clean silhouettes
-	// like the carpet brush instead of the legacy ground compositing behavior.
-	const bool carpetLike = g_settings.getBoolean(Config::CARPET_LIKE_GROUND_BORDERS);
 
 	while (!borderList.empty()) {
 		GroundBrush::BorderCluster& borderCluster = borderList.back();
@@ -779,11 +634,18 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 			}
 		};
 
-		if (carpetLike) {
-			// Carpet-like path: pick one BorderType from the carpet-style lookup
-			// and stamp at most one sprite for this cluster.
-			BorderType direction = static_cast<BorderType>(ground_carpet_like_table[border_alignment]);
-			stampSingleSprite(direction);
+		if (borderCluster.carpet_piece != BORDER_NONE) {
+			// Carpet Fill layer: exactly one piece on the member tile itself. A
+			// border set without this convex corner falls back to the concave
+			// piece of the same name, which still marks the tile as a member.
+			BorderType piece = borderCluster.carpet_piece;
+			if (borderCluster.border->getRandomTileId(piece) == 0) {
+				const BorderType diagonal = cornerToDiagonal(piece);
+				if (diagonal != BORDER_NONE) {
+					piece = diagonal;
+				}
+			}
+			stampSingleSprite(piece);
 		} else {
 			// Legacy path: up to four BorderTypes per cluster, composed as layers.
 			BorderType directions[4] = {

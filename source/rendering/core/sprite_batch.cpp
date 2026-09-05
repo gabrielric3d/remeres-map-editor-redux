@@ -250,6 +250,7 @@ void SpriteBatch::flush(const AtlasManager& atlas_manager) {
 				mdi_renderer_.upload();
 				mdi_renderer_.execute();
 				draw_call_count_++;
+				frame_draw_call_count_++;
 
 				for (size_t section_idx : used_sections) {
 					ring_buffer_.fence(section_idx);
@@ -286,6 +287,7 @@ void SpriteBatch::flush(const AtlasManager& atlas_manager) {
 
 			processed += batch_size;
 			sprite_count_ += static_cast<int>(batch_size);
+			frame_sprite_count_ += static_cast<int>(batch_size);
 		}
 
 		// Flush remaining commands
@@ -293,6 +295,7 @@ void SpriteBatch::flush(const AtlasManager& atlas_manager) {
 			mdi_renderer_.upload();
 			mdi_renderer_.execute();
 			draw_call_count_++;
+			frame_draw_call_count_++;
 
 			for (size_t section_idx : used_sections) {
 				ring_buffer_.fence(section_idx);
@@ -330,6 +333,8 @@ void SpriteBatch::flush(const AtlasManager& atlas_manager) {
 			processed += batch_size;
 			draw_call_count_++;
 			sprite_count_ += static_cast<int>(batch_size);
+			frame_draw_call_count_++;
+			frame_sprite_count_ += static_cast<int>(batch_size);
 		}
 	}
 

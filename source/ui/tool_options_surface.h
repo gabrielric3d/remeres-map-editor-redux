@@ -30,6 +30,9 @@ private:
 		SelectBrush,
 		SelectCreature,
 		SelectSpawn,
+		// Not a brush: flips the magic wand selection tool (Selection Mode menu). Always
+		// the last button of the grid so it is reachable from any palette.
+		ToggleMagicWand,
 	};
 
 	struct ToolButtonEntry {
@@ -58,6 +61,7 @@ private:
 	[[nodiscard]] Brush* GetSelectedCreatureBrush() const;
 	[[nodiscard]] std::vector<Brush*> GetDefaultTools() const;
 	[[nodiscard]] wxBitmap CreateToolBitmap(const ToolButtonEntry& entry) const;
+	[[nodiscard]] wxBitmap CreateMagicWandBitmap(bool enabled) const;
 	[[nodiscard]] wxBitmap CreateBrushBitmap(Brush* brush) const;
 	[[nodiscard]] wxBitmap CreateModeBitmap(std::string_view assetPath, const wxColour& tint) const;
 

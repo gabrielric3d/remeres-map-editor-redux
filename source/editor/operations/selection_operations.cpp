@@ -17,8 +17,17 @@
 #include "ui/gui.h"
 
 #include "brushes/doodad/doodad_brush.h"
+#include "brushes/door/door_brush.h"
+#include "brushes/wall/wall_brush.h"
+#include "brushes/house/house_exit_brush.h"
+#include "brushes/waypoint/waypoint_brush.h"
+#include "brushes/camera/camera_path_brush.h"
+#include "game/item.h"
+#include "ui/replace_tool/brush_mapping_service.h"
 
 #include <algorithm>
+#include <unordered_set>
+#include <functional>
 
 void SelectionOperations::doSurroundingBorders(DoodadBrush* doodad_brush, PositionList& tilestoborder, Tile* buffer_tile, Tile* new_tile) {
 	if (doodad_brush->doNewBorders() && g_settings.getInteger(Config::USE_AUTOMAGIC)) {
@@ -85,6 +94,482 @@ void SelectionOperations::randomizeSelection(Editor& editor) {
 		}
 	}
 	editor.addAction(std::move(action));
+}
+
+namespace {
+	// A tile counts as part of the "area" to fill when its ground is selected, or when
+	// it has no ground and something other than a border piece is selected on it.
+	// Area selections (rectangle/lasso) select whole tiles, so they always pass. The
+	// magic wand also selects a ground's border pieces on the ring of neighbouring
+	// tiles; those tiles must not be painted, or every fill would grow the patch by
+	// one tile.
+	bool isFillTarget(const Tile* tile) {
+		if (tile->ground) {
+			return tile->ground->isSelected();
+		}
+		if (tile->items.empty()) {
+			return true;
+		}
+		for (const auto& item : tile->items) {
+			if (item->isSelected() && !item->isBorder()) {
+				return true;
+			}
+		}
+		return false;
+	}
+}
+
+namespace {
+	// Border-aware ground swap for Fill Selection (Edit > Border Options > "Fill Selection
+	// Swaps Borders"). Replaces the ground of every target tile with `ground`, then maps
+	// the border pieces of the grounds being replaced, on the targets and on the ring of
+	// tiles around them, onto the pieces playing the same role in `ground` (outer north
+	// -> outer north, ...), exactly like the Replace Tool's brush swap. No borderize pass
+	// runs: hand-placed borders and every other ground keep their items, and it works
+	// with Border Automagic off. Pieces with no equivalent in `ground` are kept (the
+	// Replace Tool's safe failure) rather than leaving a hole.
+	void swapGroundInSelection(Editor& editor, GroundBrush* ground, const PositionVector& targets) {
+		const auto key = [](const Position& p) -> uint64_t {
+			return (static_cast<uint64_t>(static_cast<uint8_t>(p.z)) << 32)
+				| (static_cast<uint64_t>(static_cast<uint16_t>(p.y)) << 16)
+				| static_cast<uint16_t>(p.x);
+		};
+
+		std::unordered_set<uint64_t> target_keys;
+		std::vector<GroundBrush*> old_brushes;
+		for (const Position& pos : targets) {
+			target_keys.insert(key(pos));
+			Tile* tile = editor.map.getTile(pos);
+			GroundBrush* old = tile ? tile->getGroundBrush() : nullptr;
+			if (old && old != ground && std::find(old_brushes.begin(), old_brushes.end(), old) == old_brushes.end()) {
+				old_brushes.push_back(old);
+			}
+		}
+
+		// Swaps the border pieces of the replaced grounds on a tile copy; true when
+		// anything changed. setID keeps attributes and the selection flag intact.
+		const auto swapBorders = [&](Tile* copy) {
+			bool changed = false;
+			for (const auto& item : copy->items) {
+				if (!item->isBorder()) {
+					continue;
+				}
+				for (GroundBrush* old : old_brushes) {
+					const BrushMappingService::MapResult result = BrushMappingService::MapItem(item.get(), old, ground);
+					if (!result.matched) {
+						continue;
+					}
+					if (result.resolved && result.newId != item->getID()) {
+						item->setID(result.newId);
+						changed = true;
+					}
+					break;
+				}
+			}
+			return changed;
+		};
+
+		std::unique_ptr<Action> action = editor.actionQueue->createAction(ACTION_DRAW);
+
+		for (const Position& pos : targets) {
+			Tile* tile = editor.map.getTile(pos);
+			if (!tile) {
+				continue; // Targets come from the selection, so they exist; be safe anyway.
+			}
+			std::unique_ptr<Tile> copy = TileOperations::deepCopy(tile, editor.map);
+			bool changed = false;
+			if (copy->ground) {
+				if (copy->getGroundBrush() != ground) {
+					const uint16_t new_id = ground->getRandomGroundItemId();
+					if (new_id != 0) {
+						copy->ground->setID(new_id);
+						changed = true;
+					}
+				}
+			} else {
+				ground->draw(&editor.map, copy.get(), nullptr);
+				changed = true;
+			}
+			changed = swapBorders(copy.get()) || changed;
+			if (changed) {
+				action->addChange(std::make_unique<Change>(std::move(copy)));
+			}
+		}
+
+		// Ring: outer borders of the replaced grounds sit on the neighbours.
+		std::unordered_set<uint64_t> ring_seen;
+		for (const Position& pos : targets) {
+			for (int dy = -1; dy <= 1; ++dy) {
+				for (int dx = -1; dx <= 1; ++dx) {
+					if (dx == 0 && dy == 0) {
+						continue;
+					}
+					const Position n(pos.x + dx, pos.y + dy, pos.z);
+					if (!n.isValid()) {
+						continue;
+					}
+					const uint64_t k = key(n);
+					if (target_keys.count(k) || !ring_seen.insert(k).second) {
+						continue;
+					}
+					Tile* neighbour = editor.map.getTile(n);
+					if (!neighbour) {
+						continue;
+					}
+					std::unique_ptr<Tile> copy = TileOperations::deepCopy(neighbour, editor.map);
+					if (swapBorders(copy.get())) {
+						action->addChange(std::make_unique<Change>(std::move(copy)));
+					}
+				}
+			}
+		}
+
+		editor.addAction(std::move(action), 2);
+	}
+}
+
+SelectionOperations::MagicWandTarget SelectionOperations::magicWandTarget(Tile* tile) {
+	MagicWandTarget target;
+	if (!tile) {
+		return target;
+	}
+	// Topmost item first, so clicking a tree on grass picks the tree.
+	for (auto it = tile->items.rbegin(); it != tile->items.rend(); ++it) {
+		Item* item = it->get();
+		Brush* doodad = item->getDoodadBrush();
+		if (doodad && doodad->is<DoodadBrush>()) {
+			target.kind = MagicWandTarget::Kind::Doodad;
+			target.brush = doodad;
+			target.anchor = item;
+			return target;
+		}
+	}
+	for (auto it = tile->items.rbegin(); it != tile->items.rend(); ++it) {
+		Item* item = it->get();
+		if (item->isWall() && item->getWallBrush()) {
+			target.kind = MagicWandTarget::Kind::Wall;
+			target.brush = item->getWallBrush();
+			target.anchor = item;
+			return target;
+		}
+	}
+	if (tile->ground && tile->getGroundBrush()) {
+		target.kind = MagicWandTarget::Kind::Ground;
+		target.brush = tile->getGroundBrush();
+		target.anchor = tile->ground.get();
+	}
+	return target;
+}
+
+namespace {
+	bool wallBelongsTo(Item* item, WallBrush* wall) {
+		return item->isWall() && (item->getWallBrush() == wall || wall->hasWall(item));
+	}
+
+	bool tileHasWallOf(Tile* tile, WallBrush* wall) {
+		if (!tile) {
+			return false;
+		}
+		for (const auto& item : tile->items) {
+			if (wallBelongsTo(item.get(), wall)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// 4-connected flood fill on one floor over tiles accepted by `belongs`. Returns
+	// the tiles found (origin first) and sets `truncated` when the cap was hit.
+	template <typename Predicate>
+	std::vector<Tile*> floodTiles(Editor& editor, const Position& origin, size_t cap, bool& truncated, Predicate belongs) {
+		const auto key = [](int x, int y) -> uint64_t {
+			return (static_cast<uint64_t>(static_cast<uint32_t>(y)) << 32) | static_cast<uint32_t>(x);
+		};
+		std::vector<Tile*> found;
+		std::unordered_set<uint64_t> visited;
+		std::vector<Position> stack;
+		stack.push_back(origin);
+		visited.insert(key(origin.x, origin.y));
+		truncated = false;
+		while (!stack.empty()) {
+			const Position pos = stack.back();
+			stack.pop_back();
+			Tile* tile = editor.map.getTile(pos);
+			if (!tile || !belongs(tile)) {
+				continue;
+			}
+			found.push_back(tile);
+			if (found.size() >= cap) {
+				truncated = true;
+				break;
+			}
+			static constexpr int dx[4] = { 1, -1, 0, 0 };
+			static constexpr int dy[4] = { 0, 0, 1, -1 };
+			for (int i = 0; i < 4; ++i) {
+				const Position next(pos.x + dx[i], pos.y + dy[i], pos.z);
+				if (next.isValid() && visited.insert(key(next.x, next.y)).second) {
+					stack.push_back(next);
+				}
+			}
+		}
+		return found;
+	}
+}
+
+size_t SelectionOperations::magicWandSelect(Editor& editor, const Position& origin, bool add_to_selection) {
+	const MagicWandTarget target = magicWandTarget(editor.map.getTile(origin));
+	if (target.kind == MagicWandTarget::Kind::None) {
+		return 0;
+	}
+
+	// Tiles to touch, each with the rule picking which of its items to select
+	// (ground/doodad/wall items of the brush). Patch tiles for a ground also take the
+	// ground itself; ring tiles only its border pieces.
+	struct Entry {
+		Tile* tile;
+		bool with_ground;
+	};
+	std::vector<Entry> entries;
+	std::function<bool(Item*)> owns;
+	bool truncated = false;
+	std::string what;
+
+	switch (target.kind) {
+		case MagicWandTarget::Kind::Ground: {
+			GroundBrush* ground = target.brush->as<GroundBrush>();
+			std::vector<Tile*> patch = floodTiles(editor, origin, MAGIC_WAND_MAX_TILES, truncated, [ground](Tile* tile) {
+				return tile->getGroundBrush() == ground;
+			});
+			std::unordered_set<uint64_t> patch_keys;
+			const auto key = [](const Position& p) -> uint64_t {
+				return (static_cast<uint64_t>(static_cast<uint32_t>(p.y)) << 32) | static_cast<uint32_t>(p.x);
+			};
+			for (Tile* tile : patch) {
+				patch_keys.insert(key(tile->getPosition()));
+				entries.push_back({ tile, true });
+			}
+			// Ring: the 8 neighbours of every patch tile that are not in the patch. Outer
+			// borders of the ground live there (on the neighbouring grounds or void tiles).
+			std::unordered_set<uint64_t> ring_seen;
+			for (Tile* tile : patch) {
+				const Position p = tile->getPosition();
+				for (int oy = -1; oy <= 1; ++oy) {
+					for (int ox = -1; ox <= 1; ++ox) {
+						if (ox == 0 && oy == 0) {
+							continue;
+						}
+						const Position n(p.x + ox, p.y + oy, p.z);
+						if (!n.isValid()) {
+							continue;
+						}
+						const uint64_t k = key(n);
+						if (patch_keys.count(k) || !ring_seen.insert(k).second) {
+							continue;
+						}
+						if (Tile* neighbour = editor.map.getTile(n)) {
+							entries.push_back({ neighbour, false });
+						}
+					}
+				}
+			}
+			owns = [ground](Item* item) {
+				return item->isBorder() && ground->ownsBorderItem(item->getID());
+			};
+			what = std::to_string(patch.size()) + " tile(s) of " + ground->getName();
+			break;
+		}
+		case MagicWandTarget::Kind::Wall: {
+			WallBrush* wall = target.brush->as<WallBrush>();
+			std::vector<Tile*> run = floodTiles(editor, origin, MAGIC_WAND_MAX_TILES, truncated, [wall](Tile* tile) {
+				return tileHasWallOf(tile, wall);
+			});
+			for (Tile* tile : run) {
+				entries.push_back({ tile, false });
+			}
+			owns = [wall](Item* item) {
+				return wallBelongsTo(item, wall);
+			};
+			what = std::to_string(run.size()) + " wall tile(s) of " + wall->getName();
+			break;
+		}
+		case MagicWandTarget::Kind::Doodad: {
+			DoodadBrush* doodad = target.brush->as<DoodadBrush>();
+			// Doodads are scattered by nature, so the wand is not contiguous here: every
+			// item of the brush on this floor is taken.
+			for (MapIterator it = editor.map.begin(); it != editor.map.end(); ++it) {
+				Tile* tile = it->get();
+				if (!tile || tile->getZ() != origin.z) {
+					continue;
+				}
+				bool has = false;
+				for (const auto& item : tile->items) {
+					if (doodad->ownsItem(item.get())) {
+						has = true;
+						break;
+					}
+				}
+				if (!has) {
+					continue;
+				}
+				entries.push_back({ tile, false });
+				if (entries.size() >= MAGIC_WAND_MAX_TILES) {
+					truncated = true;
+					break;
+				}
+			}
+			owns = [doodad](Item* item) {
+				return doodad->ownsItem(item);
+			};
+			what = std::to_string(entries.size()) + " tile(s) with " + doodad->getName() + " (whole floor)";
+			break;
+		}
+		case MagicWandTarget::Kind::None:
+			return 0;
+	}
+	if (entries.empty()) {
+		return 0;
+	}
+
+	if (!add_to_selection) {
+		editor.selection.start();
+		editor.selection.clear();
+		editor.selection.finish();
+	}
+
+	// One copy per tile with exactly the wanted items selected. Selection::add(tile,
+	// item) would copy the tile once per item and honour BORDER_IS_GROUND, which for
+	// a ground would drag the neighbours' ground into the selection through their
+	// borders.
+	std::unique_ptr<Action> action = editor.actionQueue->createAction(ACTION_SELECT);
+	size_t changed_tiles = 0;
+	for (const Entry& entry : entries) {
+		bool changed = false;
+		std::unique_ptr<Tile> copy = TileOperations::deepCopy(entry.tile, editor.map);
+		if (entry.with_ground && copy->ground && !copy->ground->isSelected()) {
+			copy->ground->select();
+			changed = true;
+		}
+		for (const auto& item : copy->items) {
+			if (!item->isSelected() && owns(item.get())) {
+				item->select();
+				changed = true;
+			}
+		}
+		if (changed) {
+			action->addChange(std::make_unique<Change>(std::move(copy)));
+			++changed_tiles;
+		}
+	}
+	if (changed_tiles > 0) {
+		editor.addAction(std::move(action));
+	}
+	editor.selection.updateSelectionCount();
+
+	std::string status = "Magic wand: " + what;
+	if (truncated) {
+		status += " (stopped at the " + std::to_string(MAGIC_WAND_MAX_TILES) + " tile limit)";
+	}
+	g_gui.SetStatusText(status);
+	return entries.size();
+}
+
+bool SelectionOperations::fillSelection(Editor& editor) {
+	if (editor.selection.empty()) {
+		g_gui.SetStatusText("Nothing selected. Select an area first, then fill it with the current brush.");
+		return false;
+	}
+
+	Brush* brush = g_gui.GetCurrentBrush();
+	if (!brush) {
+		g_gui.SetStatusText("No brush selected. Pick a brush in the palette, then fill the selection.");
+		return false;
+	}
+	if (brush->is<HouseExitBrush>() || brush->is<WaypointBrush>() || brush->is<CameraPathBrush>()) {
+		g_gui.SetStatusText("This brush places a single point and can't fill an area.");
+		return false;
+	}
+
+	// Selected tiles are unique, so the positions are too. They may span several
+	// floors (e.g. a "visible floors" selection); every tile is filled on its own floor.
+	PositionVector positions;
+	positions.reserve(editor.selection.size());
+	for (Tile* tile : editor.selection) {
+		if (isFillTarget(tile)) {
+			positions.push_back(tile->getPosition());
+		}
+	}
+	if (positions.empty()) {
+		g_gui.SetStatusText("Only border pieces are selected; nothing to fill. Select the ground itself (or an area) first.");
+		return false;
+	}
+
+	if (brush->is<DoodadBrush>()) {
+		// Same as smearing a doodad brush: one composite per tile, re-rolled between
+		// tiles so thickness/variation apply instead of stamping an identical copy.
+		for (const Position& pos : positions) {
+			editor.draw(pos, false);
+			g_gui.FillDoodadPreviewBuffer();
+		}
+	} else if (brush->is<GroundBrush>() && g_settings.getBoolean(Config::FILL_SWAP_BORDERS)) {
+		// Replace Tool style: ground + this ground's borders swapped by role, nothing
+		// re-bordered, regardless of Border Automagic.
+		swapGroundInSelection(editor, brush->as<GroundBrush>(), positions);
+	} else if (brush->needBorders() || brush->is<WallBrush>() || brush->is<DoorBrush>()) {
+		PositionVector todraw;
+		if (brush->is<DoorBrush>()) {
+			// Doors only go on walls; skip the rest instead of failing the whole fill.
+			for (const Position& pos : positions) {
+				if (brush->canDraw(&editor.map, pos)) {
+					todraw.push_back(pos);
+				}
+			}
+			if (todraw.empty()) {
+				g_gui.SetStatusText("No wall in the selection to place a door on.");
+				return false;
+			}
+		} else {
+			todraw = positions;
+		}
+
+		// Auto-border needs the perimeter of the filled region to recompute the
+		// neighbours, same 3x3 expansion with dedup the Ctrl+D ground flood fill uses.
+		std::unordered_set<uint64_t> seen;
+		const auto key = [](const Position& p) -> uint64_t {
+			return (static_cast<uint64_t>(static_cast<uint8_t>(p.z)) << 32)
+				| (static_cast<uint64_t>(static_cast<uint16_t>(p.y)) << 16)
+				| static_cast<uint16_t>(p.x);
+		};
+		PositionVector toborder;
+		toborder.reserve(todraw.size() * 3);
+		for (const Position& p : todraw) {
+			for (int dy = -1; dy <= 1; ++dy) {
+				for (int dx = -1; dx <= 1; ++dx) {
+					const Position n(p.x + dx, p.y + dy, p.z);
+					if (n.isValid() && seen.insert(key(n)).second) {
+						toborder.push_back(n);
+					}
+				}
+			}
+		}
+		editor.draw(todraw, toborder, false);
+	} else {
+		// RAW, house, flag/zone, creature, spawn, optional border...: plain per-tile draw.
+		editor.draw(positions, false);
+	}
+
+	// The drawn tiles keep their selection flag through the action commit, but the
+	// items the brush just placed do not. Re-select the filled tiles as a whole so a
+	// follow-up move/cut/second fill sees the new content too. Internal session: this
+	// is not a separate undo step, the draw above is.
+	editor.selection.start(Selection::INTERNAL);
+	for (const Position& pos : positions) {
+		if (Tile* tile = editor.map.getTile(pos)) {
+			editor.selection.add(tile);
+		}
+	}
+	editor.selection.finish(Selection::INTERNAL);
+	editor.selection.updateSelectionCount();
+	return true;
 }
 
 void SelectionOperations::moveSelection(Editor& editor, Position offset) {

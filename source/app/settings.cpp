@@ -362,7 +362,6 @@ void Settings::IO(IOMode mode) {
 	Bool(DOUBLECLICK_PROPERTIES, true);
 	Bool(LISTBOX_EATS_ALL_EVENTS, true);
 	Bool(BORDER_IS_GROUND, true);
-	Bool(CARPET_LIKE_GROUND_BORDERS, false);
 	Bool(CARPET_FILL_BORDERS, false);
 	Bool(DISABLE_CARPET_INTERACTION, false);
 	Bool(BORDERIZE_PASTE, true);
@@ -396,6 +395,22 @@ void Settings::IO(IOMode mode) {
 	String(SMART_BRUSH_MODIFIER, "Ctrl+Alt");
 	String(SMART_BRUSH_MOUSE_BUTTON, "None");
 	String(ERASE_ABOVE_HOTKEY, "C");
+	Bool(ERASE_FLOORS_ABOVE_ENABLED, false);
+	Bool(ERASE_FLOORS_BELOW_ENABLED, false);
+	Int(ERASE_FLOORS_ABOVE_COUNT, 1);
+	Int(ERASE_FLOORS_BELOW_COUNT, 1);
+	Bool(ERASE_FLOORS_WHOLE_TILE, false);
+	Int(ACTIVE_BORDER_VARIANT, 1);
+	String(BORDER_VARIANT_HOTKEY, "F3");
+	Bool(GHOST_FLOORS_ENABLED, false);
+	Bool(GHOST_FLOORS_ABOVE_ENABLED, true);
+	Bool(GHOST_FLOORS_BELOW_ENABLED, true);
+	Int(GHOST_FLOORS_ABOVE_COUNT, 1);
+	Int(GHOST_FLOORS_BELOW_COUNT, 1);
+	Int(GHOST_FLOORS_ALPHA, 96);
+	Bool(GHOST_FLOORS_FADE, true);
+	Bool(SELECTION_MAGIC_WAND, false);
+	Bool(FILL_SWAP_BORDERS, false);
 	Bool(MAP_PROPERTIES_REMEMBER_SAVE_LOCATION, false);
 	String(MAP_PROPERTIES_DEFAULT_SAVE_LOCATION, "");
 	UInt(ADVANCED_ITEM_FINDER_TYPE_FILTERS, 0);
@@ -418,6 +433,10 @@ void Settings::IO(IOMode mode) {
 	Int(ICON_BACKGROUND, 0);
 	Int(HARD_REFRESH_RATE, 200);
 	Bool(HIDE_ITEMS_WHEN_ZOOMED, true);
+	// BlackTalon: era 10% fixo no codigo. Virou ajuste porque e a alavanca mais
+	// direta de FPS em vista afastada: cada item solto que deixa de ser desenhado
+	// e um sprite a menos entre os milhares que a viewport chega a acumular.
+	Int(HIDE_ITEMS_ZOOM_PERCENT, 10);
 	String(SCREENSHOT_DIRECTORY, "");
 	String(SCREENSHOT_FORMAT, "png");
 	IntToSave(USE_MEMCACHED_SPRITES, 0); // This is special, keeping as IntToSave for now

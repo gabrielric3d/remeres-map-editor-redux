@@ -29,6 +29,10 @@ struct RadialWheelEntry {
 	std::string label;
 	std::string icon; // Unicode icon character (rendered as text)
 	std::function<void()> action;
+	// Set on entries that flip a persistent setting instead of running a one-shot command:
+	// the segment renders its on/off state and the wheel stays open after confirming, so
+	// several toggles can be flipped in one visit. Click the center (or ESC) to close.
+	std::function<bool()> is_toggled;
 };
 
 class RadialWheel {
@@ -58,13 +62,21 @@ public:
 	void SetupDefaultEntries();
 
 private:
+	// True when the entry is a toggle and its setting is currently on.
+	bool IsEntryToggledOn(int index) const;
+
 	void DrawSegment(NVGcontext* vg, int index, bool hovered) const;
-	void DrawCenterCircle(NVGcontext* vg) const;
 	void DrawLabel(NVGcontext* vg) const;
 	void DrawIcon(NVGcontext* vg, float cx, float cy, float size, int index, bool hovered) const;
 
+	// Recomputes the radii for the current canvas: the wheel grows with the window
+	// so the labels get room, and shrinks instead of spilling off a small canvas.
+	void UpdateLayout(int canvas_width, int canvas_height);
+
 	float GetSegmentAngleStart(int index) const;
 	float GetSegmentAngleEnd(int index) const;
+	// Room a label has across its segment at the label radius.
+	float GetLabelMaxWidth() const;
 
 	bool m_open = false;
 	int m_center_x = 0;
@@ -73,11 +85,16 @@ private:
 
 	std::vector<RadialWheelEntry> m_entries;
 
-	// Visual settings
-	static constexpr float INNER_RADIUS = 80.0f;
-	static constexpr float OUTER_RADIUS = 240.0f;
-	static constexpr float DEAD_ZONE = 50.0f;
-	static constexpr float LABEL_RADIUS = 160.0f; // Where labels are drawn
+	// Visual settings. Sized by UpdateLayout(); the defaults match a mid-size canvas
+	// and are what UpdateMouse() uses before the first frame is drawn.
+	float m_inner_radius = 96.0f;
+	float m_outer_radius = 268.0f;
+	float m_dead_zone = 58.0f;
+	float m_label_radius = 190.0f;
+
+	static constexpr float MIN_OUTER_RADIUS = 150.0f;
+	static constexpr float MAX_OUTER_RADIUS = 340.0f;
+	static constexpr float CANVAS_MARGIN = 14.0f;
 };
 
 #endif // RME_RADIAL_WHEEL_H_

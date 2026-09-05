@@ -9,6 +9,11 @@ DrawingOptions::DrawingOptions() {
 
 void DrawingOptions::SetDefault() {
 	transparent_floors = false;
+	ghost_floors_enabled = false;
+	ghost_floors_above = 0;
+	ghost_floors_below = 0;
+	ghost_floors_alpha = 96;
+	ghost_floors_fade = true;
 	transparent_items = false;
 	transparent_grounds = false;
 	show_ingame_box = false;
@@ -59,17 +64,24 @@ void DrawingOptions::SetDefault() {
 	show_mountain_overlay = false;
 	show_stair_direction = false;
 	hide_items_when_zoomed = true;
+	hide_items_zoom = 10.0f;
 	current_house_id = 0;
 	light_intensity = 1.0f;
 	ambient_light_level = 0.5f;
 	global_light_color = wxColor(128, 128, 128);
 	highlight_pulse = 0.0f;
 	anti_aliasing = false;
+	zoom = 1.0f; // valor real chega em MapDrawer::SetupVars, por frame
 	screen_shader_name = ShaderNames::NONE;
 }
 
 void DrawingOptions::SetIngame() {
 	transparent_floors = false;
+	ghost_floors_enabled = false;
+	ghost_floors_above = 0;
+	ghost_floors_below = 0;
+	ghost_floors_alpha = 96;
+	ghost_floors_fade = true;
 	transparent_items = false;
 	transparent_grounds = false;
 	show_ingame_box = false;
@@ -120,13 +132,26 @@ void DrawingOptions::SetIngame() {
 	show_mountain_overlay = false;
 	show_stair_direction = false;
 	hide_items_when_zoomed = false;
+	hide_items_zoom = 10.0f;
 	current_house_id = 0;
+	zoom = 1.0f;
 }
 
 #include "app/settings.h"
 
+#include <algorithm>
+
 void DrawingOptions::Update() {
 	transparent_floors = g_settings.getBoolean(Config::TRANSPARENT_FLOORS);
+	ghost_floors_enabled = g_settings.getBoolean(Config::GHOST_FLOORS_ENABLED);
+	ghost_floors_above = g_settings.getBoolean(Config::GHOST_FLOORS_ABOVE_ENABLED)
+		? std::clamp(g_settings.getInteger(Config::GHOST_FLOORS_ABOVE_COUNT), 1, MAP_MAX_LAYER)
+		: 0;
+	ghost_floors_below = g_settings.getBoolean(Config::GHOST_FLOORS_BELOW_ENABLED)
+		? std::clamp(g_settings.getInteger(Config::GHOST_FLOORS_BELOW_COUNT), 1, MAP_MAX_LAYER)
+		: 0;
+	ghost_floors_alpha = std::clamp(g_settings.getInteger(Config::GHOST_FLOORS_ALPHA), 1, 255);
+	ghost_floors_fade = g_settings.getBoolean(Config::GHOST_FLOORS_FADE);
 	transparent_items = g_settings.getBoolean(Config::TRANSPARENT_ITEMS);
 	transparent_grounds = g_settings.getBoolean(Config::TRANSPARENT_GROUNDS);
 	show_ingame_box = g_settings.getBoolean(Config::SHOW_INGAME_BOX);
@@ -163,7 +188,15 @@ void DrawingOptions::Update() {
 	show_hooks = g_settings.getBoolean(Config::SHOW_WALL_HOOKS);
 	show_pickupables = g_settings.getBoolean(Config::SHOW_PICKUPABLES);
 	show_moveables = g_settings.getBoolean(Config::SHOW_MOVEABLES);
+	// Nota: `zoom` NAO e tocado aqui de proposito. Ele nao vem das settings, e sim da
+	// view, e quem o escreve e MapDrawer::SetupVars -- que roda DEPOIS deste Update
+	// no mesmo frame. Zera-lo aqui faria o LOD do frame decidir com 1.0.
 	hide_items_when_zoomed = g_settings.getBoolean(Config::HIDE_ITEMS_WHEN_ZOOMED);
+	// A preferencia guarda a ESCALA do tile em porcentagem (100 = tamanho cheio) e
+	// `zoom` e o inverso dela: 10% -> 10.0. Nao confundir com o campo "Zoom: N%" da
+	// barra de status, que mostra zoom * 100 -- os dois numeros sao reciprocos.
+	const int hide_items_percent = std::clamp(g_settings.getInteger(Config::HIDE_ITEMS_ZOOM_PERCENT), 1, 100);
+	hide_items_zoom = 100.0f / static_cast<float>(hide_items_percent);
 	show_towns = g_settings.getBoolean(Config::SHOW_TOWNS);
 	always_show_zones = g_settings.getBoolean(Config::ALWAYS_SHOW_ZONES);
 	extended_house_shader = g_settings.getBoolean(Config::EXT_HOUSE_SHADER);

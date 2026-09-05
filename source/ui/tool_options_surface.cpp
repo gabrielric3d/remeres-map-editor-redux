@@ -15,6 +15,7 @@
 #include "palette/palette_window.h"
 #include "rendering/core/game_sprite.h"
 #include "ui/gui.h"
+#include "ui/menubar/view_settings_handler.h"
 #include "util/image_manager.h"
 
 #include <algorithm>
@@ -28,6 +29,8 @@ namespace {
 	constexpr int CREATURE_TOOL_COLUMNS = 2;
 	constexpr int TOOL_BUTTON_SIZE = 34;
 	constexpr int MODE_BUTTON_ICON_SIZE = 18;
+	constexpr int MAGIC_WAND_ICON_SIZE = 22;
+	constexpr std::string_view MAGIC_WAND_ICON = "svg/solid/wand-magic-sparkles.svg";
 	constexpr int MIN_AXIS_SIZE = 0;
 	constexpr int MAX_AXIS_SIZE = 15;
 	constexpr int MIN_THICKNESS = 1;
@@ -213,16 +216,16 @@ void ToolOptionsSurface::Clear() {
 void ToolOptionsSurface::EnsureToolButtons() {
 	const Brush* creature_brush = GetSelectedCreatureBrush();
 	const bool creature_mode = IsCreatureToolMode();
-	const int desired_count = creature_mode ? 2 : static_cast<int>(GetDefaultTools().size());
+	// +1: the magic wand toggle is always appended after the brush tools.
+	const int desired_count = (creature_mode ? 2 : static_cast<int>(GetDefaultTools().size())) + 1;
 
-	if (static_cast<int>(tool_buttons.size()) != desired_count) {
+	if (static_cast<int>(tool_buttons.size()) != desired_count || tool_buttons.back().action != ToolButtonAction::ToggleMagicWand) {
 		RebuildToolButtons();
 		return;
 	}
 
 	if (creature_mode) {
-		if (tool_buttons.size() != 2 ||
-			tool_buttons[0].action != ToolButtonAction::SelectCreature ||
+		if (tool_buttons[0].action != ToolButtonAction::SelectCreature ||
 			tool_buttons[0].brush != creature_brush ||
 			tool_buttons[1].action != ToolButtonAction::SelectSpawn ||
 			tool_buttons[1].brush != g_brush_manager.spawn_brush) {
@@ -274,6 +277,10 @@ void ToolOptionsSurface::RebuildToolButtons() {
 			});
 		}
 	}
+	tool_buttons.push_back(ToolButtonEntry {
+		.action = ToolButtonAction::ToggleMagicWand,
+		.asset_path = MAGIC_WAND_ICON,
+	});
 
 	for (auto& entry : tool_buttons) {
 		const wxWindowID button_id = entry.action == ToolButtonAction::SelectCreature ? TOOL_OPTIONS_PLACE_CREATURE_BUTTON :
@@ -290,6 +297,9 @@ void ToolOptionsSurface::RebuildToolButtons() {
 		button->SetMinSize(FromDIP(wxSize(TOOL_BUTTON_SIZE, TOOL_BUTTON_SIZE)));
 		button->SetMaxSize(FromDIP(wxSize(TOOL_BUTTON_SIZE, TOOL_BUTTON_SIZE)));
 		button->Bind(wxEVT_TOGGLEBUTTON, &ToolOptionsSurface::OnToolButton, this);
+		if (entry.action == ToolButtonAction::ToggleMagicWand) {
+			button->SetToolTip("Magic Wand selection: in selection mode, click a ground to select its whole patch plus its borders (Ctrl+click adds another patch)");
+		}
 		main_tools_grid->Add(button, 0, wxALIGN_CENTER);
 		entry.button = button;
 	}
@@ -408,6 +418,11 @@ void ToolOptionsSurface::SyncToolSelection() {
 			case ToolButtonAction::SelectSpawn:
 				selected = active_brush == g_brush_manager.spawn_brush;
 				break;
+			case ToolButtonAction::ToggleMagicWand:
+				selected = g_settings.getBoolean(Config::SELECTION_MAGIC_WAND);
+				// The icon colour carries the state too (pressed look alone is subtle).
+				entry.button->SetBitmap(CreateMagicWandBitmap(selected));
+				break;
 		}
 		entry.button->SetValue(selected);
 	}
@@ -506,7 +521,14 @@ std::vector<Brush*> ToolOptionsSurface::GetDefaultTools() const {
 	return brushes;
 }
 
+wxBitmap ToolOptionsSurface::CreateMagicWandBitmap(bool enabled) const {
+	return IMAGE_MANAGER.GetBitmap(MAGIC_WAND_ICON, FromDIP(wxSize(MAGIC_WAND_ICON_SIZE, MAGIC_WAND_ICON_SIZE)), enabled ? MODE_ON_COLOUR : MODE_OFF_COLOUR);
+}
+
 wxBitmap ToolOptionsSurface::CreateToolBitmap(const ToolButtonEntry& entry) const {
+	if (entry.action == ToolButtonAction::ToggleMagicWand) {
+		return CreateMagicWandBitmap(g_settings.getBoolean(Config::SELECTION_MAGIC_WAND));
+	}
 	if (!entry.asset_path.empty()) {
 		return IMAGE_MANAGER.GetBitmap(entry.asset_path, FromDIP(wxSize(BRUSH_ICON_SIZE, BRUSH_ICON_SIZE)));
 	}
@@ -589,6 +611,10 @@ void ToolOptionsSurface::OnToolButton(wxCommandEvent& event) {
 					g_gui.SetBrushSize(spawn_size_spin->GetValue());
 					g_gui.SetStatusText("Selected Tool: Place Spawn");
 				}
+				break;
+			case ToolButtonAction::ToggleMagicWand:
+				// Also refreshes this surface (menu check, toast, button state).
+				ViewSettingsHandler::SetMagicWandEnabled(!g_settings.getBoolean(Config::SELECTION_MAGIC_WAND));
 				break;
 		}
 		break;

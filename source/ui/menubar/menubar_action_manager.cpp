@@ -69,9 +69,9 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(SELECT_MODE_CURRENT, wxITEM_RADIO, OnSelectionTypeChange);
 	MAKE_ACTION(SELECT_MODE_VISIBLE, wxITEM_RADIO, OnSelectionTypeChange);
 	MAKE_ACTION(SELECT_MODE_LASSO, wxITEM_CHECK, OnSelectionLassoToggle);
+	MAKE_ACTION(SELECT_MODE_MAGIC_WAND, wxITEM_CHECK, OnSelectionMagicWandToggle);
 
 	MAKE_ACTION(AUTOMAGIC, wxITEM_CHECK, OnToggleAutomagic);
-	MAKE_ACTION(CARPET_LIKE_GROUND_BORDERS, wxITEM_CHECK, OnToggleCarpetLikeGroundBorders);
 	MAKE_ACTION(CARPET_FILL_BORDERS, wxITEM_CHECK, OnToggleCarpetFillBorders);
 	MAKE_ACTION(DISABLE_CARPET_INTERACTION, wxITEM_CHECK, OnToggleDisableCarpetInteraction);
 	MAKE_ACTION(DELETE_REMOVES_ZONES, wxITEM_CHECK, OnToggleDeleteRemovesZones);
@@ -79,6 +79,8 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(BORDERIZE_MAP, wxITEM_NORMAL, OnBorderizeMap);
 	MAKE_ACTION(RANDOMIZE_SELECTION, wxITEM_NORMAL, OnRandomizeSelection);
 	MAKE_ACTION(RANDOMIZE_MAP, wxITEM_NORMAL, OnRandomizeMap);
+	MAKE_ACTION(FILL_SELECTION, wxITEM_NORMAL, OnFillSelection);
+	MAKE_ACTION(FILL_SELECTION_SWAP_BORDERS, wxITEM_CHECK, OnToggleFillSwapBorders);
 	MAKE_ACTION(ROTATE_SELECTION_CW, wxITEM_NORMAL, OnRotateSelectionCW);
 	MAKE_ACTION(ROTATE_SELECTION_CCW, wxITEM_NORMAL, OnRotateSelectionCCW);
 	MAKE_ACTION(ROTATE_SELECTION_180, wxITEM_NORMAL, OnRotateSelection180);
@@ -297,6 +299,10 @@ void MenuBarActionManager::UpdateState(MainMenuBar* mb) {
 	mb->EnableItem(BORDERIZE_MAP, is_local);
 	mb->EnableItem(RANDOMIZE_SELECTION, has_map && has_selection);
 	mb->EnableItem(RANDOMIZE_MAP, is_local);
+	// Stays enabled without a selection on purpose: a disabled item's accelerator
+	// never fires, and the handler needs the key press to arm the classic
+	// "hold D + Ctrl+click" ground flood fill when nothing is selected.
+	mb->EnableItem(FILL_SELECTION, has_map);
 
 	bool canRotateSelection = has_map && has_selection && editor->selection.size() >= 2;
 	bool structurePasteActive = StructureManagerDialog::CanRotatePaste();

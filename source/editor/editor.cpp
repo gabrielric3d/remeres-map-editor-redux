@@ -114,6 +114,10 @@ void Editor::randomizeSelection() {
 	SelectionOperations::randomizeSelection(*this);
 }
 
+bool Editor::fillSelection() {
+	return SelectionOperations::fillSelection(*this);
+}
+
 void Editor::randomizeMap(bool showdialog) {
 	MapProcessor::randomizeMap(*this, showdialog);
 }

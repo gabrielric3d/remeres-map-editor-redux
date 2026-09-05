@@ -21,10 +21,18 @@
 #include "ui/gui_ids.h"
 #include "ui/main_frame.h"
 #include "ui/main_menubar.h"
+#include "ui/menubar/view_settings_handler.h"
 #include "ui/map_window.h"
 #include "ui/map_tab.h"
+#include "ui/dialogs/erase_floors_dialog.h"
+#include "ui/dialogs/ghost_floors_dialog.h"
+#include "rendering/ui/toast_renderer.h"
+#include "rendering/ui/border_variant_hud.h"
+#include "app/settings.h"
 #include <nanovg.h>
+#include <algorithm>
 #include <cmath>
+#include <string>
 
 #ifndef M_PI
 	#define M_PI 3.14159265358979323846
@@ -40,6 +48,61 @@ void FireMenuEvent(int menu_id) {
 	g_gui.root->GetEventHandler()->ProcessEvent(evt);
 }
 
+// Flips a boolean setting and toasts the new state, so the change is visible even after
+// the wheel closes — these toggles keep erasing floors until they are turned back off.
+void ToggleSetting(Config::Key key, const std::string& name, Config::Key count_key) {
+	const bool new_state = !g_settings.getBoolean(key);
+	g_settings.setInteger(key, new_state ? 1 : 0);
+	g_settings.save();
+
+	std::string message = name + (new_state ? ": ON" : ": OFF");
+	if (new_state) {
+		message += " (" + std::to_string(g_settings.getInteger(count_key)) + " floor(s), Ctrl + brush)";
+	}
+	g_toast.Show(message);
+}
+
+// Ghost Floors is a view toggle, so the map must repaint right away. The toast spells
+// out what is being ghosted (the dialog decides the directions and counts).
+void ToggleGhostFloors() {
+	const bool new_state = !g_settings.getBoolean(Config::GHOST_FLOORS_ENABLED);
+	g_settings.setInteger(Config::GHOST_FLOORS_ENABLED, new_state ? 1 : 0);
+	g_settings.save();
+
+	std::string message = new_state ? "Ghost floors: ON" : "Ghost floors: OFF";
+	if (new_state) {
+		auto describe = [](Config::Key enabled_key, Config::Key count_key) -> std::string {
+			if (!g_settings.getBoolean(enabled_key)) {
+				return "";
+			}
+			const int count = g_settings.getInteger(count_key);
+			return count >= MAP_MAX_LAYER ? "all" : std::to_string(count);
+		};
+		const std::string above = describe(Config::GHOST_FLOORS_ABOVE_ENABLED, Config::GHOST_FLOORS_ABOVE_COUNT);
+		const std::string below = describe(Config::GHOST_FLOORS_BELOW_ENABLED, Config::GHOST_FLOORS_BELOW_COUNT);
+		if (above.empty() && below.empty()) {
+			message += " (nothing selected, see Ghost Floors...)";
+		} else {
+			message += " (";
+			if (!above.empty()) {
+				message += above + " above";
+			}
+			if (!below.empty()) {
+				message += (above.empty() ? "" : ", ") + below + " below";
+			}
+			message += ")";
+		}
+	}
+	g_toast.Show(message);
+	g_gui.RefreshView();
+}
+
+// Magic wand is a menu check item; the shared toggle keeps the menu check, the Tool
+// Options button and the toast in sync (the wheel stays open, it is a toggle entry).
+void ToggleMagicWand() {
+	ViewSettingsHandler::SetMagicWandEnabled(!g_settings.getBoolean(Config::SELECTION_MAGIC_WAND));
+}
+
 } // namespace
 
 RadialWheel::RadialWheel() {
@@ -49,6 +112,8 @@ RadialWheel::RadialWheel() {
 RadialWheel::~RadialWheel() = default;
 
 void RadialWheel::SetupDefaultEntries() {
+	// NOTE: DrawIcon() picks each entry's vector icon by its index in this list.
+	// Inserting or reordering entries here means renumbering the cases there too.
 	m_entries.clear();
 
 	m_entries.push_back({"Selection Mode", "S", []() {
@@ -82,6 +147,61 @@ void RadialWheel::SetupDefaultEntries() {
 	m_entries.push_back({"Shader Settings", "H", []() {
 		FireMenuEvent(MenuBar::OPEN_GRAPHICS_PREFERENCES);
 	}});
+
+	// Erase-extra-floors toggles: with these on, erasing with Ctrl + brush also wipes the
+	// same footprint on the floors above/below (count and "whole tile" live in the dialog).
+	m_entries.push_back({ "Erase Above", "U",
+		[]() {
+			ToggleSetting(Config::ERASE_FLOORS_ABOVE_ENABLED, "Erase floors above", Config::ERASE_FLOORS_ABOVE_COUNT);
+		},
+		[]() {
+			return g_settings.getBoolean(Config::ERASE_FLOORS_ABOVE_ENABLED);
+		} });
+
+	m_entries.push_back({ "Erase Below", "N",
+		[]() {
+			ToggleSetting(Config::ERASE_FLOORS_BELOW_ENABLED, "Erase floors below", Config::ERASE_FLOORS_BELOW_COUNT);
+		},
+		[]() {
+			return g_settings.getBoolean(Config::ERASE_FLOORS_BELOW_ENABLED);
+		} });
+
+	// Cycles the border shape the ground brushes paint with. Not a plain on/off
+	// toggle, so it closes the wheel like the other commands; the canvas badge and
+	// the toast report which variant is now active.
+	m_entries.push_back({"Border Variant", "B", []() {
+		BorderVariantHUD::CycleAndNotify();
+	}});
+
+	m_entries.push_back({"Erase Floors...", "E", []() {
+		EraseFloorsDialog dialog(g_gui.root);
+		dialog.ShowModal();
+	}});
+
+	// Ghost Floors: Ghost Higher Floors (Ctrl+L) generalised to N floors above and
+	// below, drawn translucent over the current one. Directions, counts and opacity
+	// live in the dialog and can be tuned while the toggle is on.
+	m_entries.push_back({ "Ghost Floors", "F",
+		[]() {
+			ToggleGhostFloors();
+		},
+		[]() {
+			return g_settings.getBoolean(Config::GHOST_FLOORS_ENABLED);
+		} });
+
+	m_entries.push_back({"Ghost Floors...", "O", []() {
+		GhostFloorsDialog dialog(g_gui.root);
+		dialog.ShowModal();
+	}});
+
+	// Index 14 in DrawIcon(). Appended last so the icons above keep their numbers.
+	m_entries.push_back({ "Magic Wand", "W",
+		[]() {
+			ToggleMagicWand();
+		},
+		[]() {
+			return g_settings.getBoolean(Config::SELECTION_MAGIC_WAND);
+		} });
 }
 
 void RadialWheel::Open(int canvas_width, int canvas_height) {
@@ -89,6 +209,7 @@ void RadialWheel::Open(int canvas_width, int canvas_height) {
 	m_center_x = canvas_width / 2;
 	m_center_y = canvas_height / 2;
 	m_hovered_index = -1;
+	UpdateLayout(canvas_width, canvas_height);
 }
 
 void RadialWheel::Close() {
@@ -98,8 +219,14 @@ void RadialWheel::Close() {
 
 void RadialWheel::Confirm() {
 	if (m_hovered_index >= 0 && m_hovered_index < (int)m_entries.size()) {
-		auto action = m_entries[m_hovered_index].action;
-		Close();
+		const RadialWheelEntry& entry = m_entries[m_hovered_index];
+		auto action = entry.action;
+		// Toggles keep the wheel open so several of them can be flipped in one visit
+		// (erase above + erase below, for instance); the center/ESC closes it.
+		const bool keep_open = (entry.is_toggled != nullptr);
+		if (!keep_open) {
+			Close();
+		}
 		if (action) {
 			action();
 		}
@@ -117,7 +244,7 @@ void RadialWheel::UpdateMouse(int mouse_x, int mouse_y) {
 	float dy = (float)(mouse_y - m_center_y);
 	float dist = std::sqrt(dx * dx + dy * dy);
 
-	if (dist < DEAD_ZONE) {
+	if (dist < m_dead_zone) {
 		m_hovered_index = -1;
 		return;
 	}
@@ -148,6 +275,26 @@ void RadialWheel::UpdateMouse(int mouse_x, int mouse_y) {
 	}
 }
 
+void RadialWheel::UpdateLayout(int canvas_width, int canvas_height) {
+	const float available = std::min(canvas_width, canvas_height) * 0.5f - CANVAS_MARGIN;
+	m_outer_radius = std::max(MIN_OUTER_RADIUS, std::min(MAX_OUTER_RADIUS, available));
+	// Hub big enough for the hovered action name, but never eating the label ring.
+	m_inner_radius = std::max(72.0f, std::min(118.0f, m_outer_radius * 0.36f));
+	// Slightly past the middle of the ring: labels wrap outwards, where there is more room.
+	m_label_radius = m_inner_radius + (m_outer_radius - m_inner_radius) * 0.54f;
+	m_dead_zone = m_inner_radius * 0.62f;
+}
+
+float RadialWheel::GetLabelMaxWidth() const {
+	const int count = (int)m_entries.size();
+	if (count <= 0) {
+		return 0.0f;
+	}
+	const float segment_size = 2.0f * (float)M_PI / count;
+	// Chord of the segment at the label radius, minus a little breathing room.
+	return std::max(72.0f, 2.0f * m_label_radius * std::sin(segment_size * 0.5f) - 16.0f);
+}
+
 float RadialWheel::GetSegmentAngleStart(int index) const {
 	int count = (int)m_entries.size();
 	float segment_size = 2.0f * (float)M_PI / count;
@@ -165,70 +312,100 @@ void RadialWheel::Draw(NVGcontext* vg, int canvas_width, int canvas_height) {
 		return;
 	}
 
-	nvgSave(vg);
+	// Follow a canvas that was resized while the wheel is open, so the hit test
+	// (which reads these same members) never drifts from what is drawn.
+	m_center_x = canvas_width / 2;
+	m_center_y = canvas_height / 2;
+	UpdateLayout(canvas_width, canvas_height);
 
-	// Dim background
-	nvgBeginPath(vg);
-	nvgRect(vg, 0, 0, (float)canvas_width, (float)canvas_height);
-	nvgFillColor(vg, nvgRGBA(0, 0, 0, 100));
-	nvgFill(vg);
+	nvgSave(vg);
 
 	float cx = (float)m_center_x;
 	float cy = (float)m_center_y;
 	int count = (int)m_entries.size();
 
-	// Draw segments
+	// Dim background, darkest right behind the wheel so the map stops competing
+	// with the labels near the center.
+	nvgBeginPath(vg);
+	nvgRect(vg, 0, 0, (float)canvas_width, (float)canvas_height);
+	nvgFillColor(vg, nvgRGBA(0, 0, 0, 90));
+	nvgFill(vg);
+
+	nvgBeginPath(vg);
+	nvgCircle(vg, cx, cy, m_outer_radius + 4.0f);
+	nvgFillPaint(vg, nvgRadialGradient(vg, cx, cy, m_inner_radius * 0.15f, m_outer_radius + 4.0f,
+		nvgRGBA(0, 0, 0, 170), nvgRGBA(0, 0, 0, 0)));
+	nvgFill(vg);
+
+	// Rim around the whole wheel. Drawn before the slices so it cannot cut across
+	// the hovered one, which grows past this radius.
+	nvgBeginPath(vg);
+	nvgCircle(vg, cx, cy, m_outer_radius + 1.0f);
+	nvgStrokeColor(vg, nvgRGBA(190, 190, 200, 90));
+	nvgStrokeWidth(vg, 1.0f);
+	nvgStroke(vg);
+
+	// Draw segments (each one outlined; the outline is what separates them).
+	// The hovered slice goes last so neighbours never paint over its highlight.
 	for (int i = 0; i < count; i++) {
-		DrawSegment(vg, i, i == m_hovered_index);
+		if (i != m_hovered_index) {
+			DrawSegment(vg, i, false);
+		}
+	}
+	if (m_hovered_index >= 0 && m_hovered_index < count) {
+		DrawSegment(vg, m_hovered_index, true);
 	}
 
-	// Draw divider lines between segments
-	for (int i = 0; i < count; i++) {
-		float angle = GetSegmentAngleStart(i);
-		float x1 = cx + std::cos(angle) * INNER_RADIUS;
-		float y1 = cy + std::sin(angle) * INNER_RADIUS;
-		float x2 = cx + std::cos(angle) * OUTER_RADIUS;
-		float y2 = cy + std::sin(angle) * OUTER_RADIUS;
-
-		nvgBeginPath(vg);
-		nvgMoveTo(vg, x1, y1);
-		nvgLineTo(vg, x2, y2);
-		nvgStrokeColor(vg, nvgRGBA(0, 0, 0, 150));
-		nvgStrokeWidth(vg, 2.0f);
-		nvgStroke(vg);
-	}
-
-	// Draw center circle
-	DrawCenterCircle(vg);
-
-	// Draw icons and labels inside each segment
+	// Draw icons and labels inside each segment. Labels wrap inside the width the
+	// segment actually gives them, so long names ("Shader Settings") break into two
+	// lines instead of bleeding into the neighbouring slice.
+	const float label_max_w = GetLabelMaxWidth();
 	for (int i = 0; i < count; i++) {
 		float mid_angle = (GetSegmentAngleStart(i) + GetSegmentAngleEnd(i)) / 2.0f;
-		float lx = cx + std::cos(mid_angle) * LABEL_RADIUS;
-		float ly = cy + std::sin(mid_angle) * LABEL_RADIUS;
+		float lx = cx + std::cos(mid_angle) * m_label_radius;
+		float ly = cy + std::sin(mid_angle) * m_label_radius;
 
-		bool hovered = (i == m_hovered_index);
-		float icon_size = hovered ? 16.0f : 13.0f;
+		const bool hovered = (i == m_hovered_index);
+		const bool toggle = (m_entries[i].is_toggled != nullptr);
+		const float icon_size = hovered ? 18.0f : 15.0f;
+		const char* label = m_entries[i].label.c_str();
 
-		// Draw icon above text
-		DrawIcon(vg, lx, ly - 12.0f, icon_size, i, hovered);
-
-		// Draw the label text below icon
-		nvgFontSize(vg, hovered ? 15.0f : 12.0f);
 		nvgFontFace(vg, "sans");
-		nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
+		nvgFontSize(vg, hovered ? 15.0f : 13.0f);
+		nvgTextLineHeight(vg, 1.15f);
+		nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_TOP);
 
-		// Text shadow
+		// nvgTextBox takes the LEFT edge of the wrap box, not its center.
+		const float text_x = lx - label_max_w * 0.5f;
+		float text_bounds[4];
+		nvgTextBoxBounds(vg, text_x, 0.0f, label_max_w, label, nullptr, text_bounds);
+		const float text_h = text_bounds[3] - text_bounds[1];
+
+		// Stack icon + label (+ ON/OFF badge) as one block centred on the label point.
+		const float gap = 6.0f;
+		const float badge_h = toggle ? 13.0f : 0.0f;
+		const float block_h = icon_size + gap + text_h + badge_h;
+		const float block_top = ly - block_h * 0.5f;
+
+		DrawIcon(vg, lx, block_top + icon_size * 0.5f, icon_size, i, hovered);
+
+		const float text_y = block_top + icon_size + gap;
 		nvgFillColor(vg, nvgRGBA(0, 0, 0, 200));
-		nvgText(vg, lx + 1.0f, ly + 10.0f + 1.0f, m_entries[i].label.c_str(), nullptr);
+		nvgTextBox(vg, text_x + 1.0f, text_y + 1.0f, label_max_w, label, nullptr);
+		nvgFillColor(vg, hovered ? nvgRGBA(255, 255, 255, 255) : nvgRGBA(205, 205, 212, 225));
+		nvgTextBox(vg, text_x, text_y, label_max_w, label, nullptr);
 
-		// Text
-		if (hovered) {
-			nvgFillColor(vg, nvgRGBA(255, 255, 255, 255));
-		} else {
-			nvgFillColor(vg, nvgRGBA(200, 200, 205, 220));
+		// On/off badge under the label of toggle entries
+		if (toggle) {
+			const bool active = IsEntryToggledOn(i);
+			const float badge_y = text_y + text_h + 1.0f;
+			nvgFontSize(vg, 10.0f);
+			nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_TOP);
+			nvgFillColor(vg, nvgRGBA(0, 0, 0, 200));
+			nvgText(vg, lx + 1.0f, badge_y + 1.0f, active ? "ON" : "OFF", nullptr);
+			nvgFillColor(vg, active ? nvgRGBA(140, 255, 190, 255) : nvgRGBA(170, 170, 175, 200));
+			nvgText(vg, lx, badge_y, active ? "ON" : "OFF", nullptr);
 		}
-		nvgText(vg, lx, ly + 10.0f, m_entries[i].label.c_str(), nullptr);
 	}
 
 	// Draw hovered label tooltip at center
@@ -237,62 +414,41 @@ void RadialWheel::Draw(NVGcontext* vg, int canvas_width, int canvas_height) {
 	nvgRestore(vg);
 }
 
+bool RadialWheel::IsEntryToggledOn(int index) const {
+	if (index < 0 || index >= (int)m_entries.size()) {
+		return false;
+	}
+	const auto& is_toggled = m_entries[index].is_toggled;
+	return is_toggled && is_toggled();
+}
+
 void RadialWheel::DrawSegment(NVGcontext* vg, int index, bool hovered) const {
 	float cx = (float)m_center_x;
 	float cy = (float)m_center_y;
-	float angle_start = GetSegmentAngleStart(index);
-	float angle_end = GetSegmentAngleEnd(index);
+	const float angle_start = GetSegmentAngleStart(index);
+	const float angle_end = GetSegmentAngleEnd(index);
+	const float outer = m_outer_radius + (hovered ? 6.0f : 0.0f);
 
+	// Slices sit flush against each other: what separates them is the outline drawn
+	// around each one, not a gap.
 	nvgBeginPath(vg);
-	nvgArc(vg, cx, cy, INNER_RADIUS, angle_start, angle_end, NVG_CW);
-	nvgArc(vg, cx, cy, OUTER_RADIUS, angle_end, angle_start, NVG_CCW);
+	nvgArc(vg, cx, cy, m_inner_radius, angle_start, angle_end, NVG_CW);
+	nvgArc(vg, cx, cy, outer, angle_end, angle_start, NVG_CCW);
 	nvgClosePath(vg);
 
+	// Toggles that are currently on get a green tint so the state is readable at a glance.
+	const bool active = IsEntryToggledOn(index);
 	if (hovered) {
-		nvgFillColor(vg, nvgRGBA(60, 120, 200, 210));
+		nvgFillColor(vg, active ? nvgRGBA(62, 172, 112, 235) : nvgRGBA(58, 118, 198, 225));
 	} else {
-		nvgFillColor(vg, nvgRGBA(35, 35, 40, 200));
+		nvgFillColor(vg, active ? nvgRGBA(38, 90, 62, 215) : nvgRGBA(30, 30, 36, 214));
 	}
 	nvgFill(vg);
 
-	// Outer arc border
-	nvgBeginPath(vg);
-	nvgArc(vg, cx, cy, OUTER_RADIUS, angle_start, angle_end, NVG_CW);
-	nvgStrokeColor(vg, nvgRGBA(160, 160, 170, 120));
-	nvgStrokeWidth(vg, 1.5f);
+	// Same path, stroked: one continuous outline around the whole slice.
+	nvgStrokeColor(vg, hovered ? nvgRGBA(240, 240, 250, 235) : nvgRGBA(155, 155, 168, 130));
+	nvgStrokeWidth(vg, hovered ? 2.0f : 1.0f);
 	nvgStroke(vg);
-
-	// Inner arc border
-	nvgBeginPath(vg);
-	nvgArc(vg, cx, cy, INNER_RADIUS, angle_start, angle_end, NVG_CW);
-	nvgStrokeColor(vg, nvgRGBA(160, 160, 170, 120));
-	nvgStrokeWidth(vg, 1.5f);
-	nvgStroke(vg);
-}
-
-void RadialWheel::DrawCenterCircle(NVGcontext* vg) const {
-	float cx = (float)m_center_x;
-	float cy = (float)m_center_y;
-	float r = INNER_RADIUS - 3.0f;
-
-	// Dark center
-	nvgBeginPath(vg);
-	nvgCircle(vg, cx, cy, r);
-	nvgFillColor(vg, nvgRGBA(25, 25, 30, 230));
-	nvgFill(vg);
-
-	// Border
-	nvgBeginPath(vg);
-	nvgCircle(vg, cx, cy, r);
-	nvgStrokeColor(vg, nvgRGBA(130, 130, 140, 200));
-	nvgStrokeWidth(vg, 2.0f);
-	nvgStroke(vg);
-
-	// Center dot
-	nvgBeginPath(vg);
-	nvgCircle(vg, cx, cy, 4.0f);
-	nvgFillColor(vg, nvgRGBA(180, 180, 190, 200));
-	nvgFill(vg);
 }
 
 void RadialWheel::DrawIcon(NVGcontext* vg, float cx, float cy, float size, int index, bool hovered) const {
@@ -450,6 +606,152 @@ void RadialWheel::DrawIcon(NVGcontext* vg, float cx, float cy, float size, int i
 				nvgStroke(vg);
 				break;
 			}
+			case 8:
+			case 9: {
+				// Erase Above / Erase Below - two stacked floor plates: the one you draw on
+				// is solid, the target one is outlined and crossed out, with an arrow
+				// pointing at it.
+				const bool up = (index == 8);
+				const float plate_w = half * 0.85f;
+				const float plate_h = half * 0.32f;
+				const float gap = half * 0.52f;
+				// Solid plate = the floor you are drawing on
+				const float solid_y = up ? y + gap : y - gap;
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, x, solid_y - plate_h);
+				nvgLineTo(vg, x + plate_w, solid_y);
+				nvgLineTo(vg, x, solid_y + plate_h);
+				nvgLineTo(vg, x - plate_w, solid_y);
+				nvgClosePath(vg);
+				nvgFill(vg);
+				// Outlined plate = the floor being wiped
+				const float target_y = up ? y - gap : y + gap;
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, x, target_y - plate_h);
+				nvgLineTo(vg, x + plate_w, target_y);
+				nvgLineTo(vg, x, target_y + plate_h);
+				nvgLineTo(vg, x - plate_w, target_y);
+				nvgClosePath(vg);
+				nvgStroke(vg);
+				// Cross over the wiped plate
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, x - plate_w * 0.5f, target_y - plate_h * 0.7f);
+				nvgLineTo(vg, x + plate_w * 0.5f, target_y + plate_h * 0.7f);
+				nvgMoveTo(vg, x + plate_w * 0.5f, target_y - plate_h * 0.7f);
+				nvgLineTo(vg, x - plate_w * 0.5f, target_y + plate_h * 0.7f);
+				nvgStroke(vg);
+				// Direction arrowhead
+				const float tip_y = up ? y - half : y + half;
+				const float base_y = up ? tip_y + half * 0.35f : tip_y - half * 0.35f;
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, x, tip_y);
+				nvgLineTo(vg, x - half * 0.28f, base_y);
+				nvgLineTo(vg, x + half * 0.28f, base_y);
+				nvgClosePath(vg);
+				nvgFill(vg);
+				break;
+			}
+			case 10: {
+				// Border Variant - two overlapping tile frames, one per border shape
+				nvgBeginPath(vg);
+				nvgRect(vg, x - half, y - half, half * 1.35f, half * 1.35f);
+				nvgStroke(vg);
+
+				nvgBeginPath(vg);
+				nvgRect(vg, x - half * 0.35f, y - half * 0.35f, half * 1.35f, half * 1.35f);
+				nvgStroke(vg);
+				break;
+			}
+			case 12: {
+				// Ghost Floors - three stacked plates: the middle one (current floor) is
+				// solid, the ones above and below are outlined, i.e. see-through.
+				const float plate_w = half * 0.85f;
+				const float plate_h = half * 0.3f;
+				const float gap = half * 0.6f;
+				for (int row = -1; row <= 1; ++row) {
+					const float py = y + gap * (float)row;
+					nvgBeginPath(vg);
+					nvgMoveTo(vg, x, py - plate_h);
+					nvgLineTo(vg, x + plate_w, py);
+					nvgLineTo(vg, x, py + plate_h);
+					nvgLineTo(vg, x - plate_w, py);
+					nvgClosePath(vg);
+					if (row == 0) {
+						nvgFill(vg);
+					} else {
+						nvgStroke(vg);
+					}
+				}
+				break;
+			}
+			case 13: {
+				// Ghost Floors settings - a little ghost outline
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, x - half * 0.6f, y + half * 0.8f);
+				nvgLineTo(vg, x - half * 0.6f, y - half * 0.2f);
+				nvgArc(vg, x, y - half * 0.2f, half * 0.6f, (float)M_PI, 2.0f * (float)M_PI, NVG_CW);
+				nvgLineTo(vg, x + half * 0.6f, y + half * 0.8f);
+				// Wavy hem
+				nvgLineTo(vg, x + half * 0.3f, y + half * 0.5f);
+				nvgLineTo(vg, x, y + half * 0.8f);
+				nvgLineTo(vg, x - half * 0.3f, y + half * 0.5f);
+				nvgClosePath(vg);
+				nvgStroke(vg);
+				// Eyes
+				nvgBeginPath(vg);
+				nvgCircle(vg, x - half * 0.22f, y - half * 0.2f, half * 0.12f);
+				nvgCircle(vg, x + half * 0.22f, y - half * 0.2f, half * 0.12f);
+				nvgFill(vg);
+				break;
+			}
+			case 11: {
+				// Erase Floors settings - sliders
+				for (int row = -1; row <= 1; ++row) {
+					const float ry = y + row * half * 0.55f;
+					nvgBeginPath(vg);
+					nvgMoveTo(vg, x - half * 0.9f, ry);
+					nvgLineTo(vg, x + half * 0.9f, ry);
+					nvgStroke(vg);
+					// Knob, staggered per row
+					const float knob_x = x + half * 0.45f * (float)row;
+					nvgBeginPath(vg);
+					nvgCircle(vg, knob_x, ry, half * 0.22f);
+					nvgFill(vg);
+				}
+				break;
+			}
+			case 14: {
+				// Magic Wand - a wand held diagonally with a sparkle at its tip
+				nvgBeginPath(vg);
+				nvgMoveTo(vg, x - half * 0.75f, y + half * 0.75f);
+				nvgLineTo(vg, x + half * 0.2f, y - half * 0.2f);
+				nvgStroke(vg);
+				// Four-point star
+				const float sx = x + half * 0.42f;
+				const float sy = y - half * 0.42f;
+				const float r_out = half * 0.42f;
+				const float r_in = half * 0.14f;
+				nvgBeginPath(vg);
+				for (int i = 0; i < 8; ++i) {
+					const float r = (i % 2 == 0) ? r_out : r_in;
+					const float a = (float)i * (float)M_PI / 4.0f - (float)M_PI / 2.0f;
+					const float px = sx + std::cos(a) * r;
+					const float py = sy + std::sin(a) * r;
+					if (i == 0) {
+						nvgMoveTo(vg, px, py);
+					} else {
+						nvgLineTo(vg, px, py);
+					}
+				}
+				nvgClosePath(vg);
+				nvgFill(vg);
+				// Two tiny sparks
+				nvgBeginPath(vg);
+				nvgCircle(vg, x - half * 0.15f, y - half * 0.7f, half * 0.08f);
+				nvgCircle(vg, x + half * 0.8f, y + half * 0.15f, half * 0.08f);
+				nvgFill(vg);
+				break;
+			}
 			default:
 				break;
 		}
@@ -465,22 +767,34 @@ void RadialWheel::DrawLabel(NVGcontext* vg) const {
 	float cx = (float)m_center_x;
 	float cy = (float)m_center_y;
 
-	if (m_hovered_index < 0 || m_hovered_index >= (int)m_entries.size()) {
-		// No hover - show hint in center
-		nvgFontSize(vg, 14.0f);
+	// The hub is open (no disc), so every line here carries its own drop shadow to
+	// stay readable against whatever the map is showing through it.
+	auto shadowedText = [&](float x, float y, float size, NVGcolor col, const char* text) {
+		nvgFontSize(vg, size);
 		nvgFontFace(vg, "sans");
 		nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-		nvgFillColor(vg, nvgRGBA(160, 160, 170, 180));
-		nvgText(vg, cx, cy, "Select", nullptr);
+		nvgFillColor(vg, nvgRGBA(0, 0, 0, 220));
+		nvgText(vg, x + 1.0f, y + 1.0f, text, nullptr);
+		nvgFillColor(vg, col);
+		nvgText(vg, x, y, text, nullptr);
+	};
+
+	if (m_hovered_index < 0 || m_hovered_index >= (int)m_entries.size()) {
+		// No hover - show hint in center
+		shadowedText(cx, cy, 14.0f, nvgRGBA(175, 175, 185, 200), "Select");
+		shadowedText(cx, cy + 16.0f, 10.0f, nvgRGBA(140, 140, 150, 180), "click here to close");
 		return;
 	}
 
-	// Show selected action name in center circle
-	const std::string& label = m_entries[m_hovered_index].label;
+	// Show selected action name in the hub
+	const RadialWheelEntry& entry = m_entries[m_hovered_index];
+	shadowedText(cx, cy, 16.0f, nvgRGBA(255, 255, 255, 245), entry.label.c_str());
 
-	nvgFontSize(vg, 15.0f);
-	nvgFontFace(vg, "sans");
-	nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-	nvgFillColor(vg, nvgRGBA(255, 255, 255, 240));
-	nvgText(vg, cx, cy, label.c_str(), nullptr);
+	// Toggles say what the click will do and leave the wheel open afterwards
+	if (entry.is_toggled) {
+		const bool active = IsEntryToggledOn(m_hovered_index);
+		shadowedText(cx, cy + 19.0f, 11.0f,
+			active ? nvgRGBA(255, 170, 170, 230) : nvgRGBA(140, 255, 190, 230),
+			active ? "click to turn OFF" : "click to turn ON");
+	}
 }

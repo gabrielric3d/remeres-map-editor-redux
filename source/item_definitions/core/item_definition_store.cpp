@@ -1,13 +1,10 @@
 #include "item_definitions/core/item_definition_store.h"
 
-#include <cmath>
 #include <stdexcept>
 
-namespace {
-	constexpr uint64_t flagMask(ItemFlag flag) {
-		return uint64_t { 1 } << static_cast<uint8_t>(flag);
-	}
-}
+// flagMask subiu para o header junto com isFlagSet (que e inline agora); os
+// escritores de flag aqui continuam usando o mesmo helper.
+using item_definitions_detail::flagMask;
 
 ItemDefinitionStore g_item_definitions;
 
@@ -15,73 +12,6 @@ ItemDefinitionView::ItemDefinitionView(const ItemDefinitionStore* store, Definit
 	store_(store), index_(index) {
 }
 
-bool ItemDefinitionView::isValid() const {
-	return store_ != nullptr && index_ < store_->identity_.server_ids.size() && index_ < store_->visual_.client_ids.size() &&
-		index_ < store_->editor_.data.size();
-}
-
-ServerItemId ItemDefinitionView::serverId() const {
-	return isValid() ? store_->identity_.server_ids[index_] : 0;
-}
-
-ClientItemId ItemDefinitionView::clientId() const {
-	return isValid() ? store_->visual_.client_ids[index_] : 0;
-}
-
-ItemGroup_t ItemDefinitionView::group() const {
-	return isValid() ? store_->identity_.groups[index_] : ITEM_GROUP_NONE;
-}
-
-ItemTypes_t ItemDefinitionView::type() const {
-	return isValid() ? store_->identity_.types[index_] : ITEM_TYPE_NONE;
-}
-
-std::string_view ItemDefinitionView::name() const {
-	static constexpr std::string_view empty;
-	return isValid() ? std::string_view(store_->text_.names[index_]) : empty;
-}
-
-std::string_view ItemDefinitionView::editorSuffix() const {
-	static constexpr std::string_view empty;
-	return isValid() ? std::string_view(store_->text_.editor_suffixes[index_]) : empty;
-}
-
-std::string_view ItemDefinitionView::description() const {
-	static constexpr std::string_view empty;
-	return isValid() ? std::string_view(store_->text_.descriptions[index_]) : empty;
-}
-
-bool ItemDefinitionView::hasFlag(ItemFlag flag) const {
-	return isValid() && store_->isFlagSet(index_, flag);
-}
-
-int64_t ItemDefinitionView::attribute(ItemAttributeKey key) const {
-	return isValid() ? store_->attributeValue(index_, key) : 0;
-}
-
-const ItemEditorData& ItemDefinitionView::editorData() const {
-	static const ItemEditorData empty;
-	return isValid() ? store_->editor_.data[index_] : empty;
-}
-
-bool ItemDefinitionView::isGroundTile() const { return group() == ITEM_GROUP_GROUND; }
-bool ItemDefinitionView::isSplash() const { return group() == ITEM_GROUP_SPLASH; }
-bool ItemDefinitionView::isFluidContainer() const { return group() == ITEM_GROUP_FLUID; }
-bool ItemDefinitionView::isDepot() const { return type() == ITEM_TYPE_DEPOT; }
-bool ItemDefinitionView::isMailbox() const { return type() == ITEM_TYPE_MAILBOX; }
-bool ItemDefinitionView::isTrashHolder() const { return type() == ITEM_TYPE_TRASHHOLDER; }
-bool ItemDefinitionView::isContainer() const { return type() == ITEM_TYPE_CONTAINER; }
-bool ItemDefinitionView::isDoor() const { return type() == ITEM_TYPE_DOOR; }
-bool ItemDefinitionView::isMagicField() const { return type() == ITEM_TYPE_MAGICFIELD; }
-bool ItemDefinitionView::isTeleport() const { return type() == ITEM_TYPE_TELEPORT; }
-bool ItemDefinitionView::isBed() const { return type() == ITEM_TYPE_BED; }
-bool ItemDefinitionView::isKey() const { return type() == ITEM_TYPE_KEY; }
-bool ItemDefinitionView::isPodium() const { return type() == ITEM_TYPE_PODIUM; }
-bool ItemDefinitionView::isClientCharged() const { return hasFlag(ItemFlag::ClientChargeable); }
-bool ItemDefinitionView::isExtraCharged() const { return hasFlag(ItemFlag::ExtraChargeable); }
-bool ItemDefinitionView::isTooltipable() const { return hasFlag(ItemFlag::Tooltipable); }
-bool ItemDefinitionView::isMetaItem() const { return hasFlag(ItemFlag::MetaItem); }
-bool ItemDefinitionView::isFloorChange() const { return hasFlag(ItemFlag::FloorChange); }
 
 void ItemDefinitionStore::clear() {
 	identity_ = {};
@@ -279,38 +209,12 @@ DefinitionId ItemDefinitionStore::indexOf(ServerItemId server_id) const {
 	return stored_index - 1;
 }
 
-bool ItemDefinitionStore::isFlagSet(DefinitionId index, ItemFlag flag) const {
-	return (flags_.masks[index] & flagMask(flag)) != 0;
-}
-
 void ItemDefinitionStore::setFlagAtIndex(DefinitionId index, ItemFlag flag, bool value) {
 	if (value) {
 		flags_.masks[index] |= flagMask(flag);
 	} else {
 		flags_.masks[index] &= ~flagMask(flag);
 	}
-}
-
-int64_t ItemDefinitionStore::attributeValue(DefinitionId index, ItemAttributeKey key) const {
-	switch (key) {
-		case ItemAttributeKey::Volume: return attributes_.volumes[index];
-		case ItemAttributeKey::MaxTextLen: return attributes_.max_text_lengths[index];
-		case ItemAttributeKey::SlotPosition: return attributes_.slot_positions[index];
-		case ItemAttributeKey::WeaponType: return attributes_.weapon_types[index];
-		case ItemAttributeKey::Classification: return attributes_.classifications[index];
-		case ItemAttributeKey::BorderBaseGroundId: return attributes_.border_base_ground_ids[index];
-		case ItemAttributeKey::BorderGroup: return attributes_.border_groups[index];
-		case ItemAttributeKey::Weight: return static_cast<int64_t>(std::llround(attributes_.weights[index] * 1000.0f));
-		case ItemAttributeKey::Attack: return attributes_.attacks[index];
-		case ItemAttributeKey::Defense: return attributes_.defenses[index];
-		case ItemAttributeKey::Armor: return attributes_.armors[index];
-		case ItemAttributeKey::Charges: return attributes_.charges[index];
-		case ItemAttributeKey::RotateTo: return attributes_.rotate_to[index];
-		case ItemAttributeKey::WaySpeed: return attributes_.way_speeds[index];
-		case ItemAttributeKey::AlwaysOnTopOrder: return attributes_.always_on_top_orders[index];
-		case ItemAttributeKey::BorderAlignment: return static_cast<int64_t>(attributes_.border_alignments[index]);
-	}
-	return 0;
 }
 
 void ItemDefinitionStore::setAttributeAtIndex(DefinitionId index, ItemAttributeKey key, int64_t value) {

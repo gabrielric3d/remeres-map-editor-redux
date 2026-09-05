@@ -40,6 +40,12 @@ public:
 private:
 	bool IsGroundReplaceModifier(bool shift_down, bool ctrl_down, bool alt_down) const;
 
+	// "Erase floors above/below" toggles (radial wheel): while erasing (Ctrl + brush),
+	// wipe the same footprint on the configured floors above and/or below. No-op when
+	// both toggles are off, when not erasing, or during the Ctrl+D ground fill.
+	void EraseExtraFloorsAtCursor(const Position& mouse_map_pos, bool ctrl_down);
+	void EraseExtraFloors(const PositionVector& tilestodraw, bool ctrl_down);
+
 	MapCanvas* canvas;
 	Editor& editor;
 

@@ -19,6 +19,7 @@ public:
 	void OnBorderizeMap(wxCommandEvent& event);
 	void OnRandomizeSelection(wxCommandEvent& event);
 	void OnRandomizeMap(wxCommandEvent& event);
+	void OnFillSelection(wxCommandEvent& event);
 	void OnRotateSelectionCW(wxCommandEvent& event);
 	void OnRotateSelectionCCW(wxCommandEvent& event);
 	void OnRotateSelection180(wxCommandEvent& event);

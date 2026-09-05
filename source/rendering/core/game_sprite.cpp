@@ -187,7 +187,8 @@ const AtlasRegion* GameSprite::getAtlasRegion(int _x, int _y, int _layer, int _c
 
 	// Optimization for simple static sprites (1x1, 1 frame, etc.)
 	// Most ground tiles fall into this category.
-	if (_count == -1 && numsprites == 1 && frames == 1 && layers == 1 && width == 1 && height == 1) {
+	// is_simple e exatamente esta condicao, ja calculada em updateSimpleStatus().
+	if (_count == -1 && is_simple) {
 		// Also check default params
 		if (_x == 0 && _y == 0 && _layer == 0 && _frame == 0 && _pattern_x == 0 && _pattern_y == 0 && _pattern_z == 0) {
 			// Check cache
@@ -196,6 +197,14 @@ const AtlasRegion* GameSprite::getAtlasRegion(int _x, int _y, int _layer, int _c
 			// Wrong Sprite Fix: Verify sprite ID matches what we cached.
 			// Optimization: Check lightweight fields BEFORE calling heavy getAtlasRegion()
 			if (cached_default_region && spriteList[0]->isGLLoaded && cached_generation_id == spriteList[0]->generation_id && cached_sprite_id == spriteList[0]->id) {
+				// Marcar o acesso e obrigatorio: Image::visit() e a UNICA escrita em
+				// lastaccess, e este atalho e o caminho de 100% dos chaos e bordas
+				// estaticos. Sem ele o lastaccess congelava no instante do primeiro
+				// load, e o GC (pulso de 15s / longevidade de 20s) despejava do atlas
+				// exatamente os sprites que estao sendo desenhados em todo frame --
+				// que voltavam no frame seguinte pelo caminho SINCRONO, com leitura de
+				// arquivo e descompressao no meio do desenho.
+				spriteList[0]->visit(static_cast<int64_t>(g_gui.gfx.getCachedTime()));
 				return cached_default_region;
 			}
 

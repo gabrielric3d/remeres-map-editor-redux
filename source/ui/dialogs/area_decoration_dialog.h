@@ -296,6 +296,7 @@ private:
 
 	void OnAddRule(wxCommandEvent& event);
 	void OnEditRule(wxCommandEvent& event);
+	void OnDuplicateRule(wxCommandEvent& event);
 	void OnRemoveRule(wxCommandEvent& event);
 	void OnRuleDoubleClick(wxListEvent& event);
 	void OnRuleCheckChanged(wxListEvent& event);

@@ -69,6 +69,18 @@ public:
 	void resumeAnimation() {
 		animation_timer->Resume();
 	}
+	// Sprite de item/criatura por client id, SEM dynamic_cast. sprite_space so
+	// recebe GameSprite (graphics_assembler.cpp) -- os EditorSprite tem id negativo
+	// e moram em editor_sprite_space, por isso o id < 0 sai como nullptr aqui.
+	// Existe porque o caminho de desenho resolvia o mesmo ponteiro varias vezes por
+	// sprite, e cada resolucao era um __RTDynamicCast nao inlinavel.
+	GameSprite* getGameSprite(int id) {
+		if (id < 0 || static_cast<size_t>(id) >= sprite_space.size()) {
+			return nullptr;
+		}
+		return static_cast<GameSprite*>(sprite_space[id].get());
+	}
+
 	GameSprite* getCreatureSprite(int id);
 	void insertSprite(int id, std::unique_ptr<Sprite> sprite);
 	// Overload for compatibility with existing raw pointer calls (takes ownership)
@@ -76,8 +88,35 @@ public:
 		insertSprite(id, std::unique_ptr<Sprite>(sprite));
 	}
 
+	// Relogio da animacao, AMOSTRADO UMA VEZ POR FRAME em updateTime().
+	//
+	// Quem pergunta as horas aqui e Animator::getFrame(), chamado por sprite
+	// animado desenhado -- e o Animator e compartilhado por client id, entao mil
+	// tiles de agua iguais pagavam mil leituras de relogio para receber o mesmo
+	// inteiro. Por baixo, cada leitura e um QueryPerformanceCounter.
+	//
+	// Cacheado tambem conserta uma costura visivel: num frame longo o valor em ms
+	// mudava no meio da varredura, e metade dos tiles de agua saia numa fase da
+	// animacao e metade na seguinte. Agora o frame inteiro ve o mesmo instante.
+	//
+	// INVARIANTE: quem desenha sprites animados tem de passar por updateTime() antes.
+	// Hoje os tres caminhos que desenham passam (MapCanvas::OnPaint, MapDrawer::Draw
+	// e IngamePreviewRenderer::Render). Um caminho novo que desenhe sem chamar
+	// updateTime congela a animacao na fase do ultimo frame, em vez de ler o relogio.
 	long getElapsedTime() const {
+		return cached_elapsed_ms_;
+	}
+
+	// Relogio vivo, para quem precisa medir duracao de verdade (a API Lua).
+	long getLiveElapsedTime() const {
 		return animation_timer->getElapsedTime();
+	}
+
+	// Reamostra o relogio FORA de um frame. Os Animator nascem no load do .dat,
+	// antes do primeiro updateTime(), e Animator::calculateSynchronous exige
+	// time > 0 para nascer no frame certo em vez de todo mundo no frame 0.
+	void refreshAnimationClock() {
+		cached_elapsed_ms_ = animation_timer->getElapsedTime();
 	}
 
 	time_t getCachedTime() const {
@@ -158,6 +197,7 @@ private:
 	TextureGarbageCollector collector;
 
 	std::unique_ptr<RenderTimer> animation_timer;
+	long cached_elapsed_ms_ = 0;
 	time_t cached_time_ = 0;
 
 	friend class Image;

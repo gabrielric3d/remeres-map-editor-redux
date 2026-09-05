@@ -20,6 +20,8 @@
 #include "brushes/raw/raw_brush.h"
 #include "ui/dialog_helper.h"
 #include "ui/dialogs/structure_manager_window.h"
+#include "editor/operations/selection_operations.h"
+#include "brushes/ground/ground_brush.h"
 
 namespace {
 	bool IsPointInPolygon(const std::vector<wxPoint>& polygon, double x, double y) {
@@ -66,6 +68,32 @@ void SelectionController::ConstrainMoveToAxis(int& move_x, int& move_y) {
 	} else {
 		move_x = 0;
 	}
+}
+
+bool SelectionController::IsMagicWandEnabled() const {
+	return g_settings.getBoolean(Config::SELECTION_MAGIC_WAND);
+}
+
+bool SelectionController::TryMagicWandClick(const Position& mouse_map_pos, bool ctrl_down) {
+	if (!IsMagicWandEnabled()) {
+		return false;
+	}
+	const auto target = SelectionOperations::magicWandTarget(editor.map.getTile(mouse_map_pos));
+	if (target.kind == SelectionOperations::MagicWandTarget::Kind::None) {
+		return false; // Nothing to wand here: normal click handling.
+	}
+	// A plain click on something already selected falls through to the normal path
+	// so the selection can be dragged; Ctrl+click always adds.
+	if (!ctrl_down && target.anchor && target.anchor->isSelected()) {
+		return false;
+	}
+	if (SelectionOperations::magicWandSelect(editor, mouse_map_pos, ctrl_down) == 0) {
+		return false;
+	}
+	ClearLassoSelection();
+	magic_wand_click = true;
+	canvas->Refresh();
+	return true;
 }
 
 bool SelectionController::IsLassoEnabled() const {
@@ -155,6 +183,8 @@ void SelectionController::HandleClick(const Position& mouse_map_pos, bool shift_
 					editor.selection.finish(); // End selection session
 					editor.selection.updateSelectionCount();
 				}
+			} else if (TryMagicWandClick(mouse_map_pos, ctrl_down)) {
+				// Patch selected (or added with Ctrl); no drag, and the release is skipped.
 			} else if (ctrl_down) {
 				Tile* tile = editor.map.getTile(mouse_map_pos);
 				if (tile) {
@@ -282,7 +312,10 @@ void SelectionController::HandleRelease(const Position& mouse_map_pos, bool shif
 	}
 
 	if (g_gui.IsSelectionMode()) {
-		if (dragging && (move_x != 0 || move_y != 0 || move_z != 0)) {
+		if (magic_wand_click) {
+			// The click already selected the patch; nothing to toggle on release.
+			magic_wand_click = false;
+		} else if (dragging && (move_x != 0 || move_y != 0 || move_z != 0)) {
 			editor.moveSelection(Position(move_x, move_y, move_z));
 		} else {
 			if (boundbox_selection) {

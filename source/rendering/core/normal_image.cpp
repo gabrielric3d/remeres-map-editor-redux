@@ -32,6 +32,9 @@ NormalImage::~NormalImage() {
 
 void NormalImage::fulfillPreload(std::unique_ptr<uint8_t[]> data) {
 	atlas_region = EnsureAtlasSprite(id, std::move(data));
+	// Um sprite que acabou de subir para o atlas foi pedido AGORA: sem marcar,
+	// entra no atlas ja com lastaccess velho e pode ser o proximo a ser despejado.
+	visit();
 }
 
 void NormalImage::clean(time_t time, int longevity) {

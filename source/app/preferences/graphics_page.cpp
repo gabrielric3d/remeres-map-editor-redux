@@ -22,6 +22,13 @@ GraphicsPage::GraphicsPage(wxWindow* parent) : ScrollablePreferencesPage(parent)
 		"Reduce clutter in distant views by hiding loose items once the editor is heavily zoomed out.",
 		g_settings.getBoolean(Config::HIDE_ITEMS_WHEN_ZOOMED)
 	);
+	hide_items_zoom_spin = new wxSpinCtrl(rendering_section, wxID_ANY, i2ws(g_settings.getInteger(Config::HIDE_ITEMS_ZOOM_PERCENT)), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 100);
+	PreferencesLayout::AddControlRow(
+		rendering_section,
+		"Hide loose items below zoom (%)",
+		"Tile scale at which the option above starts hiding loose items: 100 means tiles drawn at full size, 10 means a tenth of it. Ground and borders keep being drawn. Raising this is the most effective way to speed up a heavily zoomed out view of a large map.",
+		hide_items_zoom_spin
+	);
 	anti_aliasing_chkbox = PreferencesLayout::AddCheckBoxRow(
 		rendering_section,
 		"Enable anti-aliasing",
@@ -252,6 +259,7 @@ void GraphicsPage::Apply() {
 	g_settings.setInteger(Config::CURSOR_ALT_ALPHA, cursor_color.Alpha());
 
 	g_settings.setInteger(Config::HIDE_ITEMS_WHEN_ZOOMED, hide_items_when_zoomed_chkbox->GetValue());
+	g_settings.setInteger(Config::HIDE_ITEMS_ZOOM_PERCENT, hide_items_zoom_spin->GetValue());
 	g_settings.setInteger(Config::FRAME_RATE_LIMIT, fps_limit_spin->GetValue());
 	g_settings.setInteger(Config::SHOW_FPS_COUNTER, show_fps_chkbox->GetValue());
 	g_settings.setInteger(Config::SHOW_TOAST_NOTIFICATIONS, show_toast_chkbox->GetValue());

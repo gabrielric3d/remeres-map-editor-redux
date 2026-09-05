@@ -54,6 +54,8 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/brushes/wall/wall_brush.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/wall/wall_brush_items.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/wall/wall_brush_loader.h
+    ${CMAKE_CURRENT_LIST_DIR}/brushes/wall/wall_classifier.h
+    ${CMAKE_CURRENT_LIST_DIR}/brushes/carpet/carpet_classifier.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/waypoint/waypoint_brush.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/camera/camera_path_brush.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/sound_zone/sound_zone_brush.h
@@ -128,10 +130,13 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_scan_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/brushes_editor_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/wall_brush_editor_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/wall_scan_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_generator_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_preset_editor_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/instance_layout_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/doodad_editor_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/carpet_editor_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/carpet_scan_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_border_grid_panel.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/structure_manager_window.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_rule_from_selection_dialog.h
@@ -275,6 +280,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/clipboard_handler.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/drawing_controller.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/keyboard_handler.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/border_variant_hud.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/map_display.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/map_menu_handler.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/map_status_updater.h
@@ -304,6 +310,8 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/controls/modern_button.h
 
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/goto_position_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/erase_floors_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/ghost_floors_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/object_properties_base.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/property_validator.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/property_applier.h
@@ -509,6 +517,8 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/brushes/wall/wall_brush_items.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/wall/wall_brush_loader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/wall/wall_brush_arrays.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/brushes/wall/wall_classifier.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/brushes/carpet/carpet_classifier.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/waypoint/waypoint_brush.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/camera/camera_path_brush.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/sound_zone/sound_zone_brush.cpp
@@ -571,10 +581,13 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_scan_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/brushes_editor_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/wall_brush_editor_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/wall_scan_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_generator_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_preset_editor_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/instance_layout_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/doodad_editor_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/carpet_editor_panel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/carpet_scan_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_border_grid_panel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/structure_manager_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_rule_from_selection_dialog.cpp
@@ -710,6 +723,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/clipboard_handler.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/drawing_controller.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/keyboard_handler.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/border_variant_hud.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/map_display.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/map_menu_handler.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/map_status_updater.cpp
@@ -744,6 +758,8 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/controls/modern_button.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/goto_position_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/erase_floors_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/ghost_floors_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/object_properties_base.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/property_validator.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/property_applier.cpp

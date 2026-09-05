@@ -33,7 +33,7 @@ namespace {
 		if (!definition) {
 			return nullptr;
 		}
-		return dynamic_cast<GameSprite*>(g_gui.gfx.getSprite(definition.clientId()));
+		return g_gui.gfx.getGameSprite(definition.clientId());
 	}
 
 	GameSprite* resolveSprite(ServerItemId item_id) {
@@ -98,8 +98,14 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 		green /= 2;
 	}
 
-	// item sprite
-	GameSprite* spr = resolveSprite(it);
+	// item sprite. Quem chama (TileRenderer) ja teve de resolver o ponteiro para
+	// calcular o pattern e o preload, entao ele vem pronto em params.sprite; so os
+	// chamadores que nao resolvem (overlays, brush preview) caem no resolveSprite.
+	GameSprite* spr = params.sprite ? params.sprite : resolveSprite(it);
+	// O sprite ORIGINAL do item. Os ramos de light source logo abaixo podem trocar
+	// `spr` por SPRITE_LIGHTSOURCE, e mais de um ponto adiante precisa saber se
+	// houve troca ou nao.
+	GameSprite* const base_spr = spr;
 
 	if (item->isInvalidOTBMItem() && !options.show_invalid_tiles) {
 		// Invalid OTBM placeholders are controlled exclusively by SHOW_INVALID_TILES.
@@ -115,7 +121,10 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 			return;
 		}
 
-		switch (it.clientId()) {
+		// Lido uma vez: daqui para baixo o client id e consultado ate sete vezes.
+		const ClientItemId cid = it.clientId();
+
+		switch (cid) {
 			// Yellow invisible stairs tile (459)
 			case 469:
 				sprite_drawer->glBlitSquare(sprite_batch, draw_x, draw_y, DrawColor(red, green, 0, (alpha * 171) >> 8));
@@ -139,15 +148,15 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 		}
 
 		// primal light
-		if (it.clientId() >= 39092 && it.clientId() <= 39100 || it.clientId() == 39236 || it.clientId() == 39367 || it.clientId() == 39368) {
+		if (cid >= 39092 && cid <= 39100 || cid == 39236 || cid == 39367 || cid == 39368) {
 			spr = resolveSprite(SPRITE_LIGHTSOURCE);
 			red = 0;
 			alpha = 180;
 		}
 
 		// configurable light sources
-		if (LightSourceManager::instance().isLightSource(it.clientId())) {
-			DrawLightIndicator(pos, it.clientId());
+		if (LightSourceManager::instance().isLightSource(cid)) {
+			DrawLightIndicator(pos, cid);
 			if (!spr) {
 				spr = resolveSprite(SPRITE_LIGHTSOURCE);
 				alpha = 180;
@@ -156,7 +165,7 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 	}
 
 	// metaItem, sprite not found or not hidden
-	if (it.isMetaItem() || spr == nullptr || !ephemeral && it.hasFlag(ItemFlag::Pickupable) && !options.show_items) {
+	if (it.isMetaItem() || spr == nullptr || (!options.show_items && !ephemeral && it.hasFlag(ItemFlag::Pickupable))) {
 		return;
 	}
 
@@ -172,7 +181,9 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 	draw_y -= spr->draw_height;
 
 	SpritePatterns patterns;
-	if (cached_patterns && spr == resolveSprite(it)) {
+	// `spr == base_spr` responde exatamente o que a comparacao antiga respondia --
+	// "o sprite ainda e o do item, nao o de light source?" -- sem resolver de novo.
+	if (cached_patterns && spr == base_spr) {
 		patterns = *cached_patterns;
 	} else {
 		patterns = PatternCalculator::Calculate(spr, it, item, tile, pos);
@@ -198,7 +209,11 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 		}
 	}
 
-	if (it.isPodium()) {
+	// Perguntado aqui, e nao no topo: acima ha varios early-returns, e hoistar para
+	// antes deles ADICIONA a chamada nos itens que nem chegam a ser desenhados.
+	const bool is_podium = it.isPodium();
+
+	if (is_podium) {
 		Podium* podium = static_cast<Podium*>(item);
 		if (!podium->hasShowPlatform() && !options.ingame) {
 			if (options.show_tech_items) {
@@ -214,12 +229,9 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 	// BatchRenderer::SetAtlasManager(g_gui.gfx.getAtlasManager());
 
 	if (spr->width == 1 && spr->height == 1 && spr->layers == 1) {
-		const AtlasRegion* region;
-		if (subtype == -1 && pattern_x == 0 && pattern_y == 0 && pattern_z == 0 && frame == 0) {
-			region = spr->getAtlasRegion(0, 0, 0, -1, 0, 0, 0, 0);
-		} else {
-			region = spr->getAtlasRegion(0, 0, 0, subtype, pattern_x, pattern_y, pattern_z, frame);
-		}
+		// Os dois ramos que existiam aqui chamavam a MESMA coisa: quando a condicao
+		// era verdadeira, subtype ja valia -1 e os patterns ja eram 0.
+		const AtlasRegion* region = spr->getAtlasRegion(0, 0, 0, subtype, pattern_x, pattern_y, pattern_z, frame);
 
 		if (region) {
 #ifdef DEBUG
@@ -247,7 +259,7 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 		}
 	}
 
-	if (it.isPodium()) {
+	if (is_podium) {
 		Podium* podium = static_cast<Podium*>(item);
 		Outfit outfit = podium->getOutfit();
 		if (!podium->hasShowOutfit()) {
@@ -288,7 +300,9 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 
 	// draw light color indicator
 	if (!options.ingame && options.show_light_str) {
-		const SpriteLight& light = item->getLight();
+		// base_spr e o mesmo ponteiro que Item::getLight() iria buscar. Pode ser nulo:
+		// um item sem sprite proprio que caiu no ramo de light source acima.
+		const SpriteLight light = base_spr ? base_spr->getLight() : SpriteLight { 0, 0 };
 		if (light.intensity > 0) {
 			wxColor lightColor = colorFromEightBit(light.color);
 			uint8_t byteR = lightColor.Red();

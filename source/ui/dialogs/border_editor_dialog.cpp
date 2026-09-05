@@ -511,6 +511,10 @@ void BorderEditorDialog::CreateGUIControls() {
 	m_zOrderCtrl->SetToolTip("Z-Order for display");
 	groundPropsRow->Add(m_zOrderCtrl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 16);
 
+	m_carpetFillCheck = newd wxCheckBox(m_groundPanel, wxID_ANY, "Carpet fill");
+	m_carpetFillCheck->SetToolTip("Paint like a carpet brush: the outer border pieces go on the painted tiles themselves and the ground only fills tiles surrounded by this brush (carpet_fill=\"true\" in grounds.xml). Needs Edit > Border Options > Carpet Fill Borders. Other ground brushes are never affected.");
+	groundPropsRow->Add(m_carpetFillCheck, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 16);
+
 	groundPropsRow->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Load:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 	m_existingGroundBrushesCombo = newd wxComboBox(m_groundPanel, ID_EXISTING_GROUNDS_COMBO, "", wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_DROPDOWN | wxTE_PROCESS_ENTER);
 	m_existingGroundBrushesCombo->SetToolTip("Type to search, or pick from the list. Press Enter or select to load.");
@@ -601,6 +605,14 @@ void BorderEditorDialog::CreateGUIControls() {
 	m_groundBorderAlignCtrl->SetSelection(0);
 	m_groundBorderAlignCtrl->SetToolTip("outer: when ground touches another type.\ninner: when ground touches empty (to=none) or specific brush.");
 	borderCfgRow1->Add(m_groundBorderAlignCtrl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+
+	borderCfgRow1->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "Variant:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_groundBorderVariantCtrl = newd wxSpinCtrl(m_groundPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(60, -1), wxSP_ARROW_KEYS, 0, 32, 0);
+	m_groundBorderVariantCtrl->SetToolTip(
+		"Border shape variant.\n0 = always used.\n1, 2, 3... = alternative shapes for the same Align/To pair;\n"
+		"only the active variant is painted, cycled on the map with the Border Variant hotkey (Preferences > Hotkeys, default F3)."
+	);
+	borderCfgRow1->Add(m_groundBorderVariantCtrl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
 
 	borderCfgRow1->Add(newd wxStaticText(m_groundPanel, wxID_ANY, "To:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 	m_groundBorderToCtrl = newd wxComboBox(m_groundPanel, ID_GROUND_BORDER_TO_COMBO, "", wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_DROPDOWN);
@@ -1407,8 +1419,9 @@ void BorderEditorDialog::OnAddGroundBorder(wxCommandEvent& event) {
 
 	std::string align = m_groundBorderAlignCtrl->GetSelection() == 1 ? "inner" : "outer";
 	std::string to = m_groundBorderToCtrl->GetValue().ToStdString();
+	int variant = m_groundBorderVariantCtrl ? m_groundBorderVariantCtrl->GetValue() : 0;
 
-	m_groundBorders.push_back(GroundBorderRef(align, to, borderId));
+	m_groundBorders.push_back(GroundBorderRef(align, to, borderId, variant));
 	RefreshGroundBordersList(static_cast<int>(m_groundBorders.size()) - 1);
 }
 
@@ -1429,6 +1442,9 @@ void BorderEditorDialog::OnModifyGroundBorder(wxCommandEvent& event) {
 	ref.align = m_groundBorderAlignCtrl->GetSelection() == 1 ? "inner" : "outer";
 	ref.to = m_groundBorderToCtrl->GetValue().ToStdString();
 	ref.borderId = borderId;
+	if (m_groundBorderVariantCtrl) {
+		ref.variant = m_groundBorderVariantCtrl->GetValue();
+	}
 	// 'enabled' is intentionally preserved — toggled via the checkmark on the cell.
 
 	RefreshGroundBordersList(selection);
@@ -1439,6 +1455,9 @@ void BorderEditorDialog::EditGroundBorder(int index) {
 	const GroundBorderRef& ref = m_groundBorders[index];
 
 	m_groundBorderAlignCtrl->SetSelection(ref.align == "inner" ? 1 : 0);
+	if (m_groundBorderVariantCtrl) {
+		m_groundBorderVariantCtrl->SetValue(ref.variant);
+	}
 	m_groundBorderToCtrl->SetValue(wxString(ref.to)); // fires EVT_TEXT -> To preview updates
 
 	// Prefer the combo entry whose client data matches the id (shows the full label);
@@ -1876,6 +1895,8 @@ void BorderEditorDialog::OnLoadGroundBrush(wxCommandEvent& event) {
 			m_zOrderCtrl->SetValue(zOrderAttr.as_int());
 		}
 
+		m_carpetFillCheck->SetValue(brushNode.attribute("carpet_fill").as_bool(false));
+
 		// Load ground items
 		for (pugi::xml_node itemNode = brushNode.child("item"); itemNode; itemNode = itemNode.next_sibling("item")) {
 			pugi::xml_attribute idAttr = itemNode.attribute("id");
@@ -1896,12 +1917,14 @@ void BorderEditorDialog::OnLoadGroundBrush(wxCommandEvent& event) {
 			pugi::xml_attribute alignAttr = borderNode.attribute("align");
 			pugi::xml_attribute toAttr = borderNode.attribute("to");
 			pugi::xml_attribute enabledAttr = borderNode.attribute("enabled");
+			pugi::xml_attribute variantAttr = borderNode.attribute("variant");
 
 			GroundBorderRef ref;
 			ref.borderId = idAttr.as_int();
 			ref.align = alignAttr ? alignAttr.as_string() : "outer";
 			ref.to = toAttr ? toAttr.as_string() : "";
 			ref.enabled = enabledAttr ? enabledAttr.as_bool() : true;
+			ref.variant = variantAttr ? variantAttr.as_int() : 0;
 
 			m_groundBorders.push_back(ref);
 		}
@@ -2155,6 +2178,7 @@ void BorderEditorDialog::ClearGroundItems() {
 	m_idCtrl->SetValue(m_nextBorderId);
 	m_serverLookIdCtrl->SetValue(0);
 	m_zOrderCtrl->SetValue(0);
+	m_carpetFillCheck->SetValue(false);
 	m_groundItemIdCtrl->SetValue(0);
 	m_groundItemChanceCtrl->SetValue(10);
 	if (m_groundBordersList) {
@@ -2251,6 +2275,13 @@ void BorderEditorDialog::SaveGroundBrush() {
 		brushNode.append_attribute("z-order").set_value(zOrder);
 	}
 
+	// Carpet Fill opt-in (see GroundBrush::isCarpetFill). The node is rebuilt from
+	// scratch on every save, so the attribute must be written back explicitly or
+	// it silently disappears from grounds.xml.
+	if (m_carpetFillCheck->IsChecked()) {
+		brushNode.append_attribute("carpet_fill").set_value("true");
+	}
+
 	// Add ground items
 	for (const GroundItem& item : m_groundItems) {
 		pugi::xml_node itemNode = brushNode.append_child("item");
@@ -2269,6 +2300,9 @@ void BorderEditorDialog::SaveGroundBrush() {
 			borderRef.append_attribute("to").set_value(ref.to.c_str());
 		}
 		borderRef.append_attribute("id").set_value(ref.borderId);
+		if (ref.variant > 0) {
+			borderRef.append_attribute("variant").set_value(ref.variant);
+		}
 		if (!ref.enabled) {
 			borderRef.append_attribute("enabled").set_value("false");
 		}
@@ -3403,6 +3437,10 @@ void GroundBordersPanel::OnPaint(wxPaintEvent& event) {
 			line1 += "\xE2\x86\x92" + wxString(ref.to); // arrow
 		}
 		wxString line2 = wxString::Format("id=%d", ref.borderId);
+		if (ref.variant > 0) {
+			// Alternative border shape: only painted while this variant is active.
+			line2 += wxString::Format(" v%d", ref.variant);
+		}
 
 		// Clip long lines with ellipsis if needed
 		int maxTextW = CELL_SIZE - 4;

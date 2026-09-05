@@ -18,6 +18,7 @@ class HookIndicatorDrawer;
 class DoorIndicatorDrawer;
 class LightIndicatorDrawer;
 class ItemIndicatorDrawer;
+class GameSprite;
 
 struct DrawingOptions;
 class SpriteBatch;
@@ -30,6 +31,10 @@ struct BlitItemParams {
 	ItemDefinitionView item_definition;
 	const DrawingOptions* options = nullptr;
 	const SpritePatterns* patterns = nullptr;
+	// Sprite ja resolvido por quem chama, quando ele mesmo precisou resolver. Evita
+	// que BlitItem refaca o caminho definicao -> client id -> sprite_space para
+	// chegar exatamente no mesmo ponteiro, uma vez por sprite desenhado.
+	GameSprite* sprite = nullptr;
 	bool ephemeral = false;
 	int red = 255;
 	int green = 255;

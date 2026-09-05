@@ -228,8 +228,14 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 
 	const auto& position = location->getPosition();
 
-	// Cache elapsed time once per tile to avoid repeated wxGetLocalTimeMillis() system calls
-	const uint32_t elapsed = static_cast<uint32_t>(wxGetLocalTimeMillis().GetValue());
+	// Relogio das luzes animadas. So e lido quando ha luz custom para animar:
+	// wxGetLocalTimeMillis() e uma chamada ao sistema, e aqui estamos dentro do laco
+	// que roda uma vez por tile visivel -- num zoom afastado, centenas de milhares
+	// de vezes por frame para um valor que ninguem ia usar.
+	const bool needs_light_clock = light_buffer && options.show_custom_item_lights;
+	const uint32_t elapsed = needs_light_clock
+		? static_cast<uint32_t>(wxGetLocalTimeMillis().GetValue())
+		: 0u;
 
 	ItemDefinitionView ground_it;
 	if (tile->ground) {
@@ -245,9 +251,13 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 	// The client draws those over the walls/items of earlier tiles, so they
 	// (and this tile's own borders, which must stay above the ground) are
 	// deferred to the contents pass, where painter order applies.
+	// Resolvido uma unica vez: e o mesmo ponteiro consultado aqui, no blit mais
+	// abaixo e outra vez dentro do BlitItem.
+	GameSprite* ground_sprite = nullptr;
 	bool ground_overhangs = false;
 	if (tile->ground && ground_it && !hidden_invalid_ground) {
-		if (GameSprite* ground_sprite = tile->ground->getSprite()) {
+		ground_sprite = tile->ground->getSprite();
+		if (ground_sprite) {
 			ground_overhangs = ground_sprite->width > 1 || ground_sprite->height > 1
 				|| ground_sprite->drawoffset_x < 0 || ground_sprite->drawoffset_y < 0;
 		}
@@ -316,7 +326,7 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 		const bool blit_ground_this_pass = ground_overhangs ? draw_contents : draw_ground;
 		if (tile->ground && ground_it && !hidden_invalid_ground) {
 			if (blit_ground_this_pass) {
-				if (GameSprite* ground_sprite = tile->ground->getSprite()) {
+				if (ground_sprite) {
 					SpritePatterns patterns = PatternCalculator::Calculate(ground_sprite, ground_it, tile->ground.get(), tile, position);
 
 					// Inline preload check â€” skip function call when sprite is simple and loaded (95%+ case)
@@ -327,6 +337,7 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 					BlitItemParams params(position, tile->ground.get(), options);
 					params.tile = tile;
 					params.item_definition = ground_it;
+					params.sprite = ground_sprite;
 					params.red = r;
 					params.green = g;
 					params.blue = b;
@@ -383,7 +394,9 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 	}
 
 	if (!only_colors) {
-		if ((draw_borders || draw_contents) && (view.zoom < 10.0 || !options.hide_items_when_zoomed)) {
+		// Mesmo gate de antes -- o limiar e que virou configuravel
+		// (HIDE_ITEMS_ZOOM_PERCENT, default 10, identico ao 10.0 que estava fixo aqui).
+		if ((draw_borders || draw_contents) && options.drawLooseItems()) {
 			// Hoist house color calculation out of item loop
 			uint8_t house_r = 255, house_g = 255, house_b = 255;
 			bool calculate_house_color = options.extended_house_shader && options.show_houses && is_house_tile;
@@ -399,6 +412,62 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 
 			bool process_tooltips = options.show_tooltips && map_z == view.floor;
 
+			// O blit de um item mora numa lambda porque a passada de contents
+			// percorre a lista duas vezes: primeiro os itens comuns e, depois da
+			// criatura, os itens "on top".
+			auto blitTileItem = [&](Item* item, const ItemDefinitionView& it, int& item_draw_x, int& item_draw_y) {
+				GameSprite* sprite = item->getSprite();
+				if (!sprite) {
+					// Missing-definition placeholders are represented by the tile-level invalid overlay.
+					return;
+				}
+
+				SpritePatterns patterns = PatternCalculator::Calculate(sprite, it, item, tile, position);
+
+				// Inline preload check - skip function call when sprite is simple and loaded
+				if (!sprite->isSimpleAndLoaded()) {
+					rme::collectTileSprites(sprite, patterns.x, patterns.y, patterns.z, patterns.frame);
+				}
+
+				BlitItemParams params(position, item, options);
+				params.tile = tile;
+				params.item_definition = it;
+				params.sprite = sprite;
+				params.patterns = &patterns;
+
+				// item sprite
+				if (item->isBorder()) {
+					params.red = r;
+					params.green = g;
+					params.blue = b;
+				} else {
+					uint8_t ir = 255, ig = 255, ib = 255;
+
+					if (calculate_house_color) {
+						// Apply house color tint
+						ir = static_cast<uint8_t>(ir * house_r / 255);
+						ig = static_cast<uint8_t>(ig * house_g / 255);
+						ib = static_cast<uint8_t>(ib * house_b / 255);
+
+						if (should_pulse) {
+							// Pulse effect matching the tile pulse
+							ir = static_cast<uint8_t>(std::min(255, static_cast<int>(ir + (255 - ir) * boost)));
+							ig = static_cast<uint8_t>(std::min(255, static_cast<int>(ig + (255 - ig) * boost)));
+							ib = static_cast<uint8_t>(std::min(255, static_cast<int>(ib + (255 - ib) * boost)));
+						}
+					}
+
+					params.red = ir;
+					params.green = ig;
+					params.blue = ib;
+				}
+
+				item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, item_draw_x, item_draw_y, params);
+			};
+
+			// Marcado no laco abaixo, consumido depois da criatura.
+			bool has_top_items = false;
+
 			// items on tile
 			for (const auto& item : tile->items) {
 				// Skip non-ground items when show_only_grounds is enabled
@@ -409,7 +478,10 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 				// everything else is blitted in the contents pass. When this
 				// tile's ground is deferred to the contents pass (overhanging
 				// ground), its borders defer with it so they stay above it.
-				const bool border_item = item->isAlwaysOnBottom() && item->getTopOrder() == 1;
+				// Uma consulta so: getTopOrder() volta ao item definition store, e
+				// este laco roda por item de cada tile visivel.
+				const int top_order = item->isAlwaysOnBottom() ? item->getTopOrder() : 0;
+				const bool border_item = top_order == 1;
 				const bool blit_in_this_pass = border_item ? (ground_overhangs ? draw_contents : draw_borders) : draw_contents;
 
 				if (draw_contents && item->isInvalidOTBMItem() && options.show_invalid_tiles) {
@@ -454,55 +526,49 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 					continue;
 				}
 
-				if (GameSprite* sprite = item->getSprite()) {
-					SpritePatterns patterns = PatternCalculator::Calculate(sprite, it, item.get(), tile, position);
-
-					// Inline preload check â€” skip function call when sprite is simple and loaded
-					if (!sprite->isSimpleAndLoaded()) {
-						rme::collectTileSprites(sprite, patterns.x, patterns.y, patterns.z, patterns.frame);
-					}
-
-					BlitItemParams params(position, item.get(), options);
-					params.tile = tile;
-					params.item_definition = it;
-					params.patterns = &patterns;
-
-					// item sprite
-					if (item->isBorder()) {
-						params.red = r;
-						params.green = g;
-						params.blue = b;
-						item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, params);
-					} else {
-						uint8_t ir = 255, ig = 255, ib = 255;
-
-						if (calculate_house_color) {
-							// Apply house color tint
-							ir = static_cast<uint8_t>(ir * house_r / 255);
-							ig = static_cast<uint8_t>(ig * house_g / 255);
-							ib = static_cast<uint8_t>(ib * house_b / 255);
-
-							if (should_pulse) {
-								// Pulse effect matching the tile pulse
-								ir = static_cast<uint8_t>(std::min(255, static_cast<int>(ir + (255 - ir) * boost)));
-								ig = static_cast<uint8_t>(std::min(255, static_cast<int>(ig + (255 - ig) * boost)));
-								ib = static_cast<uint8_t>(std::min(255, static_cast<int>(ib + (255 - ib) * boost)));
-							}
-						}
-						params.red = ir;
-						params.green = ig;
-						params.blue = ib;
-						item_drawer->BlitItem(sprite_batch, sprite_drawer, creature_drawer, draw_x, draw_y, params);
-					}
-				} else if (item->isInvalidOTBMItem()) {
-					// Missing-definition placeholders are represented by the tile-level invalid overlay.
+				// A pilha do tile guarda os itens "on top" (top order 3) antes dos
+				// itens comuns -- prioridade 3 contra 5, igual ao client -- mas o
+				// client os DESENHA por ultimo, em Tile::drawTop. Blitar aqui, na
+				// ordem da pilha, deixava qualquer decoracao comum do mesmo tile
+				// (mato, flor) por cima de um item marcado como on top.
+				if (top_order == 3) {
+					has_top_items = true;
+					continue;
 				}
+
+				blitTileItem(item.get(), it, draw_x, draw_y);
 			}
 			// monster/npc on tile
 			if (draw_contents && tile->creature && options.show_creatures) {
 				creature_drawer->BlitCreature(sprite_batch, sprite_drawer, draw_x, draw_y, tile->creature.get(), CreatureDrawOptions { .map_pos = position, .transient_selection_bounds = options.transient_selection_bounds });
-				if (creature_name_drawer && options.show_creature_names) {
+				// O nome so aparece no andar da camera (ver CreatureNameDrawer::draw):
+				// filtrar aqui evita montar labels que seriam descartadas na hora de
+				// desenhar. Nada muda na tela.
+				if (creature_name_drawer && options.show_creature_names && map_z == view.floor) {
 					creature_name_drawer->addLabel(position, tile->creature->getName(), tile->creature.get());
+				}
+			}
+
+			// Os itens "on top" fecham o tile, acima dos comuns e da criatura, e
+			// sem a elevacao que os itens de baixo acumularam: Tile::drawTop
+			// desenha em `dest`, nao em `dest - m_drawElevation`.
+			if (has_top_items) {
+				for (const auto& item : tile->items) {
+					if (!item->isAlwaysOnBottom() || item->getTopOrder() != 3) {
+						continue;
+					}
+					if (options.show_only_grounds && !item->isBorder() && !item->isOptionalBorder()) {
+						continue;
+					}
+
+					const ItemDefinitionView it = item->getDefinition();
+					if (item->isInvalidOTBMItem() && (!options.show_invalid_tiles || !it)) {
+						continue;
+					}
+
+					int top_draw_x = tile_draw_x;
+					int top_draw_y = tile_draw_y;
+					blitTileItem(item.get(), it, top_draw_x, top_draw_y);
 				}
 			}
 		}

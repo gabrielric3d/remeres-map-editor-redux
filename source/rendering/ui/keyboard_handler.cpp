@@ -21,6 +21,7 @@
 #include "rendering/ui/navigation_controller.h"
 #include "rendering/ui/map_display.h"
 #include "rendering/ui/radial_wheel.h"
+#include "rendering/ui/border_variant_hud.h"
 #include "ui/map_window.h"
 #include "ui/gui.h"
 #include "editor/hotkey_manager.h"
@@ -58,6 +59,17 @@ void KeyboardHandler::OnKeyDown(MapCanvas* canvas, wxKeyEvent& event) {
 	// sees it, so MapCanvas checks the physical key state on demand via wxGetKeyState
 	// (see MapCanvas::IsEraseAboveActive); MainFrame::MSWTranslateMessage suppresses
 	// the colliding accelerator while the canvas has focus.
+
+	// Configurable border-variant toggle: cycles which border shape the ground
+	// brushes paint with (Preferences > Hotkeys > Border Variant Key). Checked
+	// before the fixed bindings so a remapped key wins over the default action.
+	const int border_variant_key = BorderVariantHUD::GetHotkeyCode();
+	if (border_variant_key != 0 && event.GetKeyCode() == border_variant_key
+		&& !event.ControlDown() && !event.AltDown() && !event.ShiftDown()) {
+		BorderVariantHUD::CycleAndNotify();
+		return;
+	}
+
 	switch (event.GetKeyCode()) {
 		case WXK_NUMPAD_ADD:
 		case WXK_PAGEUP:
@@ -148,6 +160,11 @@ void KeyboardHandler::OnKeyDown(MapCanvas* canvas, wxKeyEvent& event) {
 		}
 		case 'd':
 		case 'D': {
+			// Arms the "hold D + Ctrl+click on a ground brush" flood fill. With the
+			// default bindings this key press is normally consumed first by a menu
+			// accelerator (D = Doodad palette, Ctrl+D = Fill Selection); the Fill
+			// Selection handler re-arms the flood fill itself when nothing is selected,
+			// so this branch only matters when those hotkeys are rebound or disabled.
 			canvas->keyCode = WXK_CONTROL_D;
 			break;
 		}

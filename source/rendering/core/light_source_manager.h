@@ -1,6 +1,7 @@
 #ifndef RME_LIGHT_SOURCE_MANAGER_H_
 #define RME_LIGHT_SOURCE_MANAGER_H_
 
+#include <bitset>
 #include <vector>
 #include <unordered_map>
 #include <string>
@@ -26,7 +27,14 @@ public:
 
 	// Fast lookup during rendering
 	const LightSourceEntry* find(uint16_t clientId) const;
-	bool isLightSource(uint16_t clientId) const;
+
+	// Um bit por client id em vez de uma sondagem de hash. O caminho de desenho faz
+	// esta pergunta uma vez POR ITEM desenhado -- centenas de milhares de vezes por
+	// frame numa vista afastada -- e a resposta e "nao" em praticamente todas. O
+	// mapa continua existindo para find(), que precisa da entrada inteira.
+	bool isLightSource(uint16_t clientId) const {
+		return is_light_source[clientId];
+	}
 
 private:
 	LightSourceManager() = default;
@@ -35,6 +43,7 @@ private:
 
 	std::vector<LightSourceEntry> entries;
 	std::unordered_map<uint16_t, size_t> lookup; // clientId -> index in entries
+	std::bitset<65536> is_light_source; // espelho de `lookup`, so para o teste rapido
 };
 
 #endif

@@ -101,6 +101,20 @@ public:
 		return sprite_count_;
 	}
 
+	// Os dois acima sao zerados a cada begin(), e um frame tem mais de um begin
+	// (mapa e depois overlays) -- lidos no fim do frame, eles so contariam o ultimo
+	// lote. Os de baixo acumulam o frame inteiro e so zeram quando o frame comeca.
+	void beginFrameStats() {
+		frame_sprite_count_ = 0;
+		frame_draw_call_count_ = 0;
+	}
+	int getFrameSpriteCount() const {
+		return frame_sprite_count_;
+	}
+	int getFrameDrawCallCount() const {
+		return frame_draw_call_count_;
+	}
+
 private:
 	void flush(const AtlasManager& atlas_manager);
 
@@ -125,6 +139,8 @@ private:
 
 	int draw_call_count_ = 0;
 	int sprite_count_ = 0;
+	int frame_sprite_count_ = 0;
+	int frame_draw_call_count_ = 0;
 };
 
 #endif

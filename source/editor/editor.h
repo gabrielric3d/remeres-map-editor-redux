@@ -86,6 +86,8 @@ public: // Functions
 	void borderizeSelection();
 	// Randomizes the ground in the selected region
 	void randomizeSelection();
+	// Fills every selected tile with the current brush (see SelectionOperations::fillSelection)
+	bool fillSelection();
 
 	// Same as above although it applies to the entire map
 	// action queue is flushed when these functions are called

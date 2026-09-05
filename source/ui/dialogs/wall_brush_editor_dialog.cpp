@@ -6,6 +6,7 @@
 
 #include "app/main.h"
 #include "ui/dialogs/wall_brush_editor_dialog.h"
+#include "ui/dialogs/wall_scan_dialog.h"
 #include "ui/gui.h"
 #include "ui/theme.h"
 #include "ui/find_item_window.h"
@@ -17,9 +18,11 @@
 
 #include <wx/sizer.h>
 #include <wx/dcbuffer.h>
+#include <wx/dnd.h>
 #include <wx/statline.h>
 #include <wx/arrstr.h>
 #include <algorithm>
+#include <cctype>
 #include <sstream>
 
 // ============================================================================
@@ -27,7 +30,6 @@
 // ============================================================================
 
 #define ID_WALL_EXISTING_COMBO (wxID_HIGHEST + 1)
-#define ID_WALL_SEGMENT_RADIO (wxID_HIGHEST + 2)
 #define ID_WALL_ADD_ITEM (wxID_HIGHEST + 3)
 #define ID_WALL_UPDATE_CHANCE (wxID_HIGHEST + 4)
 #define ID_WALL_BROWSE_ITEM (wxID_HIGHEST + 5)
@@ -37,6 +39,7 @@
 #define ID_WALL_TILESET_COMBO (wxID_HIGHEST + 9)
 #define ID_WALL_TILESET_BRUSH_LIST (wxID_HIGHEST + 10)
 #define ID_WALL_ADD_TO_TILESET (wxID_HIGHEST + 11)
+#define ID_WALL_SCAN (wxID_HIGHEST + 12)
 
 // ============================================================================
 // Local helpers
@@ -82,24 +85,174 @@ wxString StripTerrainSuffix(const wxString& label) {
 	return trimmed;
 }
 
+// Parses the payload used by every RME drag source ("RME_ITEM:<id>", and the older
+// "ITEM_ID:<id>" some panels still emit). Returns 0 when the text is not an item drag.
+uint16_t ParseDraggedItemId(const wxString& data) {
+	wxString payload = data;
+	if (payload.StartsWith("RME_ITEM:")) {
+		payload = payload.Mid(9);
+	} else if (payload.StartsWith("ITEM_ID:")) {
+		payload = payload.Mid(8);
+	} else {
+		return 0;
+	}
+
+	unsigned long idVal = 0;
+	if (!payload.ToULong(&idVal) || idVal == 0 || idVal > 0xFFFF) {
+		return 0;
+	}
+	return static_cast<uint16_t>(idVal);
+}
+
+// Walks up from a cell panel to the hosting editor panel.
+WallBrushEditorDialog* FindWallEditor(wxWindow* child) {
+	wxWindow* parent = child ? child->GetParent() : nullptr;
+	while (parent && !dynamic_cast<WallBrushEditorDialog*>(parent)) {
+		parent = parent->GetParent();
+	}
+	return dynamic_cast<WallBrushEditorDialog*>(parent);
+}
+
+// Drops a palette item into the items grid of the segment currently being edited.
+class WallSegmentItemsDropTarget : public wxTextDropTarget {
+public:
+	explicit WallSegmentItemsDropTarget(WallSegmentItemsPanel* panel) : m_panel(panel) { }
+
+	bool OnDropText(wxCoord /*x*/, wxCoord /*y*/, const wxString& data) override {
+		const uint16_t itemId = ParseDraggedItemId(data);
+		if (itemId == 0) return false;
+
+		WallBrushEditorDialog* dialog = FindWallEditor(m_panel);
+		if (!dialog) return false;
+
+		dialog->AddItemById(itemId);
+		return true;
+	}
+
+private:
+	WallSegmentItemsPanel* m_panel;
+};
+
+// Same, for the doors/windows grid.
+class WallDoorsDropTarget : public wxTextDropTarget {
+public:
+	explicit WallDoorsDropTarget(WallDoorsPanel* panel) : m_panel(panel) { }
+
+	bool OnDropText(wxCoord /*x*/, wxCoord /*y*/, const wxString& data) override {
+		const uint16_t itemId = ParseDraggedItemId(data);
+		if (itemId == 0) return false;
+
+		WallBrushEditorDialog* dialog = FindWallEditor(m_panel);
+		if (!dialog) return false;
+
+		dialog->AddDoorById(itemId);
+		return true;
+	}
+
+private:
+	WallDoorsPanel* m_panel;
+};
+
 } // namespace
 
 const char* wallSegmentToString(WallSegmentType seg) {
 	switch (seg) {
 		case WALL_SEG_HORIZONTAL: return "horizontal";
 		case WALL_SEG_VERTICAL: return "vertical";
+		// "corner" and "northwest diagonal" are the same alignment for the loader;
+		// we keep writing "corner" because that is what every shipped walls.xml uses.
 		case WALL_SEG_CORNER: return "corner";
 		case WALL_SEG_POLE: return "pole";
+		case WALL_SEG_NE_DIAGONAL: return "northeast diagonal";
+		case WALL_SEG_SW_DIAGONAL: return "southwest diagonal";
+		case WALL_SEG_SE_DIAGONAL: return "southeast diagonal";
+		case WALL_SEG_NORTH_T: return "north T";
+		case WALL_SEG_SOUTH_T: return "south T";
+		case WALL_SEG_EAST_T: return "east T";
+		case WALL_SEG_WEST_T: return "west T";
+		case WALL_SEG_INTERSECTION: return "intersection";
+		case WALL_SEG_NORTH_END: return "north end";
+		case WALL_SEG_SOUTH_END: return "south end";
+		case WALL_SEG_EAST_END: return "east end";
+		case WALL_SEG_WEST_END: return "west end";
 		default: return "";
 	}
 }
 
 WallSegmentType wallSegmentFromString(const std::string& str) {
-	if (str == "horizontal") return WALL_SEG_HORIZONTAL;
-	if (str == "vertical") return WALL_SEG_VERTICAL;
-	if (str == "corner") return WALL_SEG_CORNER;
-	if (str == "pole") return WALL_SEG_POLE;
-	return WALL_SEG_COUNT;
+	// The engine loader matches these names case-sensitively ("south T"), but hand-edited
+	// files show up with every casing, so the editor is lenient on the way in and
+	// canonical on the way out (wallSegmentToString).
+	std::string key = str;
+	std::transform(key.begin(), key.end(), key.begin(),
+		[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+	if (key == "horizontal") return WALL_SEG_HORIZONTAL;
+	if (key == "vertical") return WALL_SEG_VERTICAL;
+	if (key == "corner" || key == "northwest diagonal") return WALL_SEG_CORNER;
+	if (key == "pole") return WALL_SEG_POLE;
+	if (key == "northeast diagonal") return WALL_SEG_NE_DIAGONAL;
+	if (key == "southwest diagonal") return WALL_SEG_SW_DIAGONAL;
+	if (key == "southeast diagonal") return WALL_SEG_SE_DIAGONAL;
+	if (key == "north t") return WALL_SEG_NORTH_T;
+	if (key == "south t") return WALL_SEG_SOUTH_T;
+	if (key == "east t") return WALL_SEG_EAST_T;
+	if (key == "west t") return WALL_SEG_WEST_T;
+	if (key == "intersection") return WALL_SEG_INTERSECTION;
+	if (key == "north end") return WALL_SEG_NORTH_END;
+	if (key == "south end") return WALL_SEG_SOUTH_END;
+	if (key == "east end") return WALL_SEG_EAST_END;
+	if (key == "west end") return WALL_SEG_WEST_END;
+	return WALL_SEG_COUNT; // "untouchable" included: preserved verbatim, never modeled
+}
+
+const char* wallSegmentLabel(WallSegmentType seg) {
+	switch (seg) {
+		case WALL_SEG_HORIZONTAL: return "horizontal";
+		case WALL_SEG_VERTICAL: return "vertical";
+		case WALL_SEG_CORNER: return "corner (north + west)";
+		case WALL_SEG_POLE: return "pole (no connections)";
+		case WALL_SEG_NE_DIAGONAL: return "corner (north + east)";
+		case WALL_SEG_SW_DIAGONAL: return "corner (west + south)";
+		case WALL_SEG_SE_DIAGONAL: return "corner (east + south)";
+		case WALL_SEG_NORTH_T: return "north T (west + east + south)";
+		case WALL_SEG_SOUTH_T: return "south T (north + west + east)";
+		case WALL_SEG_EAST_T: return "east T (north + west + south)";
+		case WALL_SEG_WEST_T: return "west T (north + east + south)";
+		case WALL_SEG_INTERSECTION: return "intersection (all four)";
+		case WALL_SEG_NORTH_END: return "north end (south only)";
+		case WALL_SEG_SOUTH_END: return "south end (north only)";
+		case WALL_SEG_EAST_END: return "east end (west only)";
+		case WALL_SEG_WEST_END: return "west end (east only)";
+		default: return "";
+	}
+}
+
+int wallSegmentConnections(WallSegmentType seg) {
+	// Same bits the engine uses in WallBrush::full_border_types: N=1, W=2, E=4, S=8.
+	constexpr int N = 1;
+	constexpr int W = 2;
+	constexpr int E = 4;
+	constexpr int S = 8;
+	switch (seg) {
+		case WALL_SEG_HORIZONTAL: return W | E;
+		case WALL_SEG_VERTICAL: return N | S;
+		case WALL_SEG_CORNER: return N | W;
+		case WALL_SEG_POLE: return 0;
+		case WALL_SEG_NE_DIAGONAL: return N | E;
+		case WALL_SEG_SW_DIAGONAL: return W | S;
+		case WALL_SEG_SE_DIAGONAL: return E | S;
+		case WALL_SEG_NORTH_T: return W | E | S;
+		case WALL_SEG_SOUTH_T: return N | W | E;
+		case WALL_SEG_EAST_T: return N | W | S;
+		case WALL_SEG_WEST_T: return N | E | S;
+		case WALL_SEG_INTERSECTION: return N | W | E | S;
+		case WALL_SEG_NORTH_END: return S;
+		case WALL_SEG_SOUTH_END: return N;
+		case WALL_SEG_EAST_END: return W;
+		case WALL_SEG_WEST_END: return E;
+		default: return 0;
+	}
 }
 
 // Serialize a pugixml node (e.g. an unmodeled <wall> segment) to a raw XML string so it
@@ -122,12 +275,12 @@ static bool IsManagedWallBrushAttr(const std::string& name) {
 // ============================================================================
 
 BEGIN_EVENT_TABLE(WallBrushEditorDialog, wxPanel)
-	EVT_RADIOBOX(ID_WALL_SEGMENT_RADIO, WallBrushEditorDialog::OnSegmentSelected)
 	EVT_BUTTON(ID_WALL_ADD_ITEM, WallBrushEditorDialog::OnAddItem)
 	EVT_BUTTON(ID_WALL_UPDATE_CHANCE, WallBrushEditorDialog::OnUpdateChance)
 	EVT_BUTTON(ID_WALL_BROWSE_ITEM, WallBrushEditorDialog::OnBrowseItem)
 	EVT_BUTTON(ID_WALL_ADD_DOOR, WallBrushEditorDialog::OnAddDoor)
 	EVT_BUTTON(ID_WALL_BROWSE_DOOR, WallBrushEditorDialog::OnBrowseDoor)
+	EVT_BUTTON(ID_WALL_SCAN, WallBrushEditorDialog::OnScanWall)
 	EVT_BUTTON(wxID_CLEAR, WallBrushEditorDialog::OnClear)
 	EVT_BUTTON(wxID_SAVE, WallBrushEditorDialog::OnSave)
 	EVT_BUTTON(ID_WALL_FIND_BY_ITEM, WallBrushEditorDialog::OnFindByItemId)
@@ -137,6 +290,13 @@ BEGIN_EVENT_TABLE(WallBrushEditorDialog, wxPanel)
 	EVT_COMBOBOX(ID_WALL_TILESET_COMBO, WallBrushEditorDialog::OnTilesetSelectionChanged)
 	EVT_TEXT(ID_WALL_TILESET_COMBO, WallBrushEditorDialog::OnTilesetSelectionChanged)
 	EVT_BUTTON(ID_WALL_ADD_TO_TILESET, WallBrushEditorDialog::OnAddToTileset)
+END_EVENT_TABLE()
+
+BEGIN_EVENT_TABLE(WallSegmentGridPanel, wxPanel)
+	EVT_PAINT(WallSegmentGridPanel::OnPaint)
+	EVT_LEFT_UP(WallSegmentGridPanel::OnMouseClick)
+	EVT_MOTION(WallSegmentGridPanel::OnMotion)
+	EVT_LEAVE_WINDOW(WallSegmentGridPanel::OnLeave)
 END_EVENT_TABLE()
 
 BEGIN_EVENT_TABLE(WallSegmentItemsPanel, wxPanel)
@@ -249,16 +409,16 @@ void WallBrushEditorDialog::CreateGUIControls() {
 	wxBoxSizer* leftCol = newd wxBoxSizer(wxVERTICAL);
 	AddSectionHeader(leftCol, this, "Wall Segments");
 
-	wxString segChoices[] = { "Horizontal", "Vertical", "Corner", "Pole" };
-	m_segmentRadio = newd wxRadioBox(this, ID_WALL_SEGMENT_RADIO, "Segment",
-		wxDefaultPosition, wxDefaultSize, 4, segChoices, 4, wxRA_SPECIFY_COLS);
-	m_segmentRadio->SetSelection(WALL_SEG_HORIZONTAL);
-	m_segmentRadio->SetToolTip("Pick which wall piece you are editing. Each piece has its own items and doors.");
-	leftCol->Add(m_segmentRadio, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
+	m_segmentGrid = newd WallSegmentGridPanel(this);
+	m_segmentGrid->SetToolTip("Pick which wall piece you are editing. Each piece has its own items and doors.");
+	leftCol->Add(m_segmentGrid, 0, wxALIGN_CENTER_HORIZONTAL | wxLEFT | wxRIGHT | wxBOTTOM, 6);
 
-	leftCol->Add(newd wxStaticText(this, wxID_ANY, "Items for the selected segment:"), 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+	m_segmentCaption = newd wxStaticText(this, wxID_ANY, "Items for horizontal:");
+	leftCol->Add(m_segmentCaption, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
 	m_itemsPanel = newd WallSegmentItemsPanel(this);
-	m_itemsPanel->SetToolTip("Item variants for this segment. The first non-zero chance item is the one drawn.");
+	m_itemsPanel->SetToolTip("Item variants for this segment. The first non-zero chance item is the one drawn.\n"
+		"Drag an item from the palette and drop it here to add it.");
+	m_itemsPanel->SetDropTarget(newd WallSegmentItemsDropTarget(m_itemsPanel));
 	leftCol->Add(m_itemsPanel, 1, wxEXPAND | wxLEFT | wxRIGHT, 6);
 
 	// Item ID + chance row
@@ -284,7 +444,16 @@ void WallBrushEditorDialog::CreateGUIControls() {
 	itemBtnRow->Add(addItemButton, 0, wxRIGHT, 4);
 	wxButton* updateChanceButton = newd wxButton(this, ID_WALL_UPDATE_CHANCE, "Set Chance", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	updateChanceButton->SetToolTip("Update the chance of the selected item.");
-	itemBtnRow->Add(updateChanceButton, 0);
+	itemBtnRow->Add(updateChanceButton, 0, wxRIGHT, 4);
+
+	m_scanButton = newd wxButton(this, ID_WALL_SCAN, "Scan...", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+	if (g_gui.gfx.isUnloaded()) {
+		m_scanButton->Enable(false);
+		m_scanButton->SetToolTip("Requires a loaded client (sprites)");
+	} else {
+		m_scanButton->SetToolTip("Classify candidate items into wall segments by sprite shape");
+	}
+	itemBtnRow->Add(m_scanButton, 0);
 	leftCol->Add(itemBtnRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
 
 	colsRow->Add(leftCol, 60, wxEXPAND | wxRIGHT, 8);
@@ -295,9 +464,12 @@ void WallBrushEditorDialog::CreateGUIControls() {
 	// ▸ DOORS & WINDOWS
 	AddSectionHeader(rightCol, this, "Doors & Windows");
 
-	rightCol->Add(newd wxStaticText(this, wxID_ANY, "Doors for the selected segment:"), 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+	m_doorsCaption = newd wxStaticText(this, wxID_ANY, "Doors for horizontal:");
+	rightCol->Add(m_doorsCaption, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
 	m_doorsPanel = newd WallDoorsPanel(this);
-	m_doorsPanel->SetToolTip("Door/window pieces for this segment. Usually only horizontal/vertical segments carry doors.");
+	m_doorsPanel->SetToolTip("Door/window pieces for this segment. Usually only horizontal/vertical segments carry doors.\n"
+		"Drag an item from the palette and drop it here to add it with the type selected below.");
+	m_doorsPanel->SetDropTarget(newd WallDoorsDropTarget(m_doorsPanel));
 	rightCol->Add(m_doorsPanel, 1, wxEXPAND | wxLEFT | wxRIGHT, 6);
 
 	// Door ID + type + open row
@@ -572,8 +744,9 @@ bool WallBrushEditorDialog::LoadWallByName(const wxString& name) {
 		std::string typeStr = wallNode.attribute("type").as_string();
 		WallSegmentType seg = wallSegmentFromString(typeStr);
 		if (seg == WALL_SEG_COUNT) {
-			// A segment type the 4-way editor can't show (diagonal, T, end, ...). Keep it
-			// verbatim so saving re-emits it instead of silently dropping it.
+			// A segment type the editor does not model ("untouchable", or anything a
+			// newer data set introduces). Keep it verbatim so saving re-emits it
+			// instead of silently dropping it.
 			m_preservedWallNodes.push_back(SerializeXmlNode(wallNode));
 			continue;
 		}
@@ -596,7 +769,7 @@ bool WallBrushEditorDialog::LoadWallByName(const wxString& name) {
 		}
 	}
 
-	m_segmentRadio->SetSelection(WALL_SEG_HORIZONTAL);
+	if (m_segmentGrid) m_segmentGrid->SetSelected(WALL_SEG_HORIZONTAL);
 	RefreshSegmentPanels();
 
 	if (m_loadPreview) m_loadPreview->SetItemId(lookId);
@@ -654,8 +827,7 @@ bool WallBrushEditorDialog::OpenItemInEditor(uint16_t itemId) {
 	}
 
 	// LoadWallByName resets the segment to horizontal; jump to the one that holds the item.
-	m_segmentRadio->SetSelection(seg);
-	RefreshSegmentPanels();
+	SelectSegment(seg);
 	return true;
 }
 
@@ -676,19 +848,34 @@ void WallBrushEditorDialog::OnFindByItemId(wxCommandEvent& WXUNUSED(event)) {
 // ============================================================================
 
 WallSegmentType WallBrushEditorDialog::CurrentSegment() const {
-	int sel = m_segmentRadio ? m_segmentRadio->GetSelection() : 0;
-	if (sel < 0 || sel >= WALL_SEG_COUNT) sel = 0;
-	return static_cast<WallSegmentType>(sel);
+	return m_segmentGrid ? m_segmentGrid->GetSelected() : WALL_SEG_HORIZONTAL;
+}
+
+void WallBrushEditorDialog::SelectSegment(WallSegmentType seg) {
+	if (seg >= WALL_SEG_COUNT) return;
+	if (m_segmentGrid) m_segmentGrid->SetSelected(seg);
+	RefreshSegmentPanels();
 }
 
 void WallBrushEditorDialog::RefreshSegmentPanels() {
 	WallSegmentType seg = CurrentSegment();
 	if (m_itemsPanel) m_itemsPanel->SetItems(m_items[seg]);
 	if (m_doorsPanel) m_doorsPanel->SetItems(m_doors[seg]);
-}
 
-void WallBrushEditorDialog::OnSegmentSelected(wxCommandEvent& WXUNUSED(event)) {
-	RefreshSegmentPanels();
+	// Keep the grid cells in sync: each shows the first item of its segment plus a
+	// count badge, so the whole brush is readable at a glance.
+	if (m_segmentGrid) {
+		for (int s = 0; s < WALL_SEG_COUNT; ++s) {
+			const uint16_t firstItem = m_items[s].empty() ? 0 : m_items[s].front().itemId;
+			m_segmentGrid->SetSegmentPreview(static_cast<WallSegmentType>(s), firstItem,
+				static_cast<int>(m_items[s].size()), static_cast<int>(m_doors[s].size()));
+		}
+	}
+
+	const wxString label(wallSegmentLabel(seg));
+	if (m_segmentCaption) m_segmentCaption->SetLabel("Items for " + label + ":");
+	if (m_doorsCaption) m_doorsCaption->SetLabel("Doors for " + label + ":");
+	Layout();
 }
 
 // ============================================================================
@@ -702,6 +889,18 @@ void WallBrushEditorDialog::OnAddItem(wxCommandEvent& WXUNUSED(event)) {
 		return;
 	}
 	int chance = m_itemChanceCtrl->GetValue();
+	m_items[CurrentSegment()].push_back(WallItemEntry(itemId, chance));
+	RefreshSegmentPanels();
+}
+
+void WallBrushEditorDialog::AddItemById(uint16_t itemId) {
+	if (itemId == 0) return;
+
+	// Mirror the drop into the Item ID spin so the follow-up buttons (Set Chance,
+	// + Add) act on what was just dropped.
+	if (m_itemIdCtrl) m_itemIdCtrl->SetValue(itemId);
+
+	int chance = m_itemChanceCtrl ? m_itemChanceCtrl->GetValue() : 100;
 	m_items[CurrentSegment()].push_back(WallItemEntry(itemId, chance));
 	RefreshSegmentPanels();
 }
@@ -759,6 +958,19 @@ void WallBrushEditorDialog::OnAddDoor(wxCommandEvent& WXUNUSED(event)) {
 	RefreshSegmentPanels();
 }
 
+void WallBrushEditorDialog::AddDoorById(uint16_t itemId) {
+	if (itemId == 0) return;
+
+	if (m_doorIdCtrl) m_doorIdCtrl->SetValue(itemId);
+
+	int typeSel = m_doorTypeCtrl ? m_doorTypeCtrl->GetSelection() : 0;
+	if (typeSel < 0 || typeSel >= DOOR_TYPE_COUNT) typeSel = 0;
+	bool open = m_doorOpenCheck && m_doorOpenCheck->GetValue();
+
+	m_doors[CurrentSegment()].push_back(WallDoorEntry(itemId, DOOR_TYPES[typeSel], open));
+	RefreshSegmentPanels();
+}
+
 void WallBrushEditorDialog::OnBrowseDoor(wxCommandEvent& WXUNUSED(event)) {
 	FindItemDialog dialog(this, "Select Door Item");
 	if (dialog.ShowModal() == wxID_OK) {
@@ -774,6 +986,55 @@ void WallBrushEditorDialog::RemoveDoorAt(int index) {
 	if (index < 0 || index >= static_cast<int>(doors.size())) return;
 	doors.erase(doors.begin() + index);
 	RefreshSegmentPanels();
+}
+
+// ============================================================================
+// Scan
+// ============================================================================
+
+void WallBrushEditorDialog::OnScanWall(wxCommandEvent& WXUNUSED(event)) {
+	// Re-check: sprites may have been unloaded after the button was created.
+	if (g_gui.gfx.isUnloaded()) {
+		wxMessageBox("Requires a loaded client (sprites).", "Wall Scan", wxICON_WARNING);
+		return;
+	}
+
+	WallScanDialog dlg(this);
+	if (dlg.ShowModal() != wxID_OK) {
+		return;
+	}
+
+	// APPEND semantics: a segment holds several item variants, so scanned items are
+	// added to what is already there. Items the segment already lists are skipped so
+	// re-running the scan never duplicates them.
+	int added = 0;
+	int skipped = 0;
+	for (const auto& [seg, itemIds] : dlg.GetSegmentAssignments()) {
+		if (seg >= WALL_SEG_COUNT) continue;
+
+		std::vector<WallItemEntry>& target = m_items[seg];
+		for (uint16_t itemId : itemIds) {
+			const bool present = std::any_of(target.begin(), target.end(),
+				[itemId](const WallItemEntry& entry) { return entry.itemId == itemId; });
+			if (present) {
+				++skipped;
+				continue;
+			}
+			target.push_back(WallItemEntry(itemId, 100));
+			++added;
+		}
+	}
+
+	RefreshSegmentPanels();
+
+	wxString message = wxString::Format("Added %d item(s) from the scan.", added);
+	if (skipped > 0) {
+		message += wxString::Format("\n%d item(s) were already in their segment and were skipped.", skipped);
+	}
+	if (added > 0) {
+		message += "\n\nReview the chances, then click Save Wall to write the brush.";
+	}
+	wxMessageBox(message, "Wall Scan", wxICON_INFORMATION);
 }
 
 // ============================================================================
@@ -799,7 +1060,10 @@ void WallBrushEditorDialog::ClearAll() {
 	m_thicknessCtrl->SetValue("");
 	m_existingWallsCombo->SetSelection(0);
 	if (m_loadPreview) m_loadPreview->Clear();
-	m_segmentRadio->SetSelection(WALL_SEG_HORIZONTAL);
+	if (m_segmentGrid) {
+		m_segmentGrid->ClearPreviews();
+		m_segmentGrid->SetSelected(WALL_SEG_HORIZONTAL);
+	}
 	RefreshSegmentPanels();
 }
 
@@ -937,8 +1201,8 @@ void WallBrushEditorDialog::SaveWall() {
 		}
 	}
 
-	// Re-append the <wall> segments the editor doesn't model (diagonals, T, ends, ...)
-	// exactly as they were loaded, so richer wall brushes survive a save.
+	// Re-append the <wall> segments the editor doesn't model ("untouchable", unknown
+	// types) exactly as they were loaded, so richer wall brushes survive a save.
 	if (reemitPreserved) {
 		for (const std::string& raw : m_preservedWallNodes) {
 			pugi::xml_document fragment;
@@ -1166,13 +1430,249 @@ void WallBrushEditorDialog::OnAddToTileset(wxCommandEvent& WXUNUSED(event)) {
 }
 
 // ============================================================================
+// WallSegmentGridPanel
+// ============================================================================
+
+namespace {
+
+// Where each segment sits in the 4x4 grid. The left 3x3 block is the junction cross
+// exactly as the pieces connect on the map, the last column holds the straights and
+// the pole, and the last row the four ends.
+constexpr WallSegmentType SEGMENT_LAYOUT[4][4] = {
+	{ WALL_SEG_SE_DIAGONAL, WALL_SEG_NORTH_T,      WALL_SEG_SW_DIAGONAL, WALL_SEG_HORIZONTAL },
+	{ WALL_SEG_WEST_T,      WALL_SEG_INTERSECTION, WALL_SEG_EAST_T,      WALL_SEG_VERTICAL },
+	{ WALL_SEG_NE_DIAGONAL, WALL_SEG_SOUTH_T,      WALL_SEG_CORNER,      WALL_SEG_POLE },
+	{ WALL_SEG_SOUTH_END,   WALL_SEG_NORTH_END,    WALL_SEG_EAST_END,    WALL_SEG_WEST_END },
+};
+
+} // namespace
+
+WallSegmentGridPanel::WallSegmentGridPanel(wxWindow* parent, wxWindowID id) :
+	wxPanel(parent, id, wxDefaultPosition,
+			wxSize(GRID_COLS * (CELL_SIZE + CELL_MARGIN) + CELL_MARGIN,
+				   GRID_ROWS * (CELL_SIZE + CELL_MARGIN) + CELL_MARGIN),
+			wxBORDER_NONE) {
+	SetBackgroundStyle(wxBG_STYLE_PAINT);
+	SetMinSize(wxSize(GRID_COLS * (CELL_SIZE + CELL_MARGIN) + CELL_MARGIN,
+					  GRID_ROWS * (CELL_SIZE + CELL_MARGIN) + CELL_MARGIN));
+}
+
+void WallSegmentGridPanel::SetSelected(WallSegmentType seg) {
+	if (seg >= WALL_SEG_COUNT) return;
+	m_selected = seg;
+	Refresh();
+}
+
+void WallSegmentGridPanel::SetSegmentPreview(WallSegmentType seg, uint16_t itemId, int itemCount, int doorCount) {
+	if (seg >= WALL_SEG_COUNT) return;
+	m_cells[seg].itemId = itemId;
+	m_cells[seg].itemCount = itemCount;
+	m_cells[seg].doorCount = doorCount;
+	Refresh();
+}
+
+void WallSegmentGridPanel::ClearPreviews() {
+	for (int s = 0; s < WALL_SEG_COUNT; ++s) {
+		m_cells[s] = CellInfo();
+	}
+	Refresh();
+}
+
+wxRect WallSegmentGridPanel::CellRectFor(WallSegmentType seg) const {
+	for (int row = 0; row < GRID_ROWS; ++row) {
+		for (int col = 0; col < GRID_COLS; ++col) {
+			if (SEGMENT_LAYOUT[row][col] != seg) continue;
+			return wxRect(CELL_MARGIN + col * (CELL_SIZE + CELL_MARGIN),
+						  CELL_MARGIN + row * (CELL_SIZE + CELL_MARGIN),
+						  CELL_SIZE, CELL_SIZE);
+		}
+	}
+	return wxRect();
+}
+
+WallSegmentType WallSegmentGridPanel::HitTest(int x, int y) const {
+	for (int row = 0; row < GRID_ROWS; ++row) {
+		for (int col = 0; col < GRID_COLS; ++col) {
+			const wxRect cell(CELL_MARGIN + col * (CELL_SIZE + CELL_MARGIN),
+							  CELL_MARGIN + row * (CELL_SIZE + CELL_MARGIN),
+							  CELL_SIZE, CELL_SIZE);
+			if (cell.Contains(x, y)) {
+				return SEGMENT_LAYOUT[row][col];
+			}
+		}
+	}
+	return WALL_SEG_COUNT;
+}
+
+// Draws the wall shape as a stub from the cell centre towards every connected side,
+// which is what makes the grid readable before any sprite is assigned.
+void WallSegmentGridPanel::DrawSchematic(wxDC& dc, const wxRect& cell, WallSegmentType seg, const wxColour& colour) const {
+	constexpr int N = 1;
+	constexpr int W = 2;
+	constexpr int E = 4;
+	constexpr int S = 8;
+
+	const int connections = wallSegmentConnections(seg);
+	const int cx = cell.x + cell.width / 2;
+	const int cy = cell.y + cell.height / 2;
+	const int thickness = 5;
+	const int half = thickness / 2;
+	const int inset = 7; // keep the stubs clear of the cell border
+
+	dc.SetPen(*wxTRANSPARENT_PEN);
+	dc.SetBrush(wxBrush(colour));
+
+	if (connections == 0) {
+		// Pole: a lone stub, drawn slightly larger so it reads as "no connections".
+		dc.DrawRectangle(cx - thickness, cy - thickness, thickness * 2, thickness * 2);
+		return;
+	}
+
+	// Centre block, so three-way and four-way pieces join cleanly.
+	dc.DrawRectangle(cx - half, cy - half, thickness, thickness);
+
+	if (connections & N) {
+		dc.DrawRectangle(cx - half, cell.y + inset, thickness, cy - cell.y - inset);
+	}
+	if (connections & S) {
+		dc.DrawRectangle(cx - half, cy, thickness, cell.GetBottom() - inset - cy);
+	}
+	if (connections & W) {
+		dc.DrawRectangle(cell.x + inset, cy - half, cx - cell.x - inset, thickness);
+	}
+	if (connections & E) {
+		dc.DrawRectangle(cx, cy - half, cell.GetRight() - inset - cx, thickness);
+	}
+}
+
+void WallSegmentGridPanel::OnPaint(wxPaintEvent& WXUNUSED(event)) {
+	wxAutoBufferedPaintDC dc(this);
+
+	dc.SetBackground(wxBrush(Theme::Get(Theme::Role::Background)));
+	dc.Clear();
+
+	const int SPRITE_PADDING = 7;
+	const int spriteArea = CELL_SIZE - 2 * SPRITE_PADDING;
+
+	for (int row = 0; row < GRID_ROWS; ++row) {
+		for (int col = 0; col < GRID_COLS; ++col) {
+			const WallSegmentType seg = SEGMENT_LAYOUT[row][col];
+			const wxRect cell(CELL_MARGIN + col * (CELL_SIZE + CELL_MARGIN),
+							  CELL_MARGIN + row * (CELL_SIZE + CELL_MARGIN),
+							  CELL_SIZE, CELL_SIZE);
+			const CellInfo& info = m_cells[seg];
+			const bool selected = (seg == m_selected);
+			const bool hovered = (seg == m_hovered);
+
+			if (selected) {
+				dc.SetPen(wxPen(Theme::Get(Theme::Role::Accent), 2));
+				dc.SetBrush(wxBrush(Theme::Get(Theme::Role::Selected)));
+			} else if (hovered) {
+				dc.SetPen(wxPen(Theme::Get(Theme::Role::Border)));
+				dc.SetBrush(wxBrush(Theme::Get(Theme::Role::CardBaseHover)));
+			} else {
+				dc.SetPen(wxPen(Theme::Get(Theme::Role::Border)));
+				dc.SetBrush(wxBrush(Theme::Get(Theme::Role::Surface)));
+			}
+			dc.DrawRoundedRectangle(cell, 3);
+
+			// The schematic stays visible under the sprite so the grid keeps reading as
+			// a map of shapes even on a fully authored brush.
+			DrawSchematic(dc, cell, seg,
+				info.itemCount > 0 ? Theme::Get(Theme::Role::Border) : Theme::Get(Theme::Role::TextSubtle));
+
+			if (info.itemId > 0) {
+				const auto itemDef = g_item_definitions.get(info.itemId);
+				if (itemDef) {
+					Sprite* sprite = g_gui.gfx.getSprite(itemDef.clientId());
+					if (sprite) {
+						sprite->DrawTo(&dc, SPRITE_SIZE_32x32,
+							cell.x + SPRITE_PADDING, cell.y + SPRITE_PADDING,
+							spriteArea, spriteArea);
+					}
+				}
+			}
+
+			// "xN" badge for segments with more than one variant.
+			if (info.itemCount > 1) {
+				dc.SetFont(wxFont(7, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
+				const wxString badge = wxString::Format("x%d", info.itemCount);
+				const wxSize badgeSize = dc.GetTextExtent(badge);
+				const int badgeX = cell.GetRight() - badgeSize.GetWidth() - 3;
+				const int badgeY = cell.y + 2;
+				dc.SetPen(*wxTRANSPARENT_PEN);
+				dc.SetBrush(wxBrush(wxColour(40, 40, 40, 200)));
+				dc.DrawRoundedRectangle(badgeX - 2, badgeY, badgeSize.GetWidth() + 4, badgeSize.GetHeight() + 1, 2);
+				dc.SetTextForeground(Theme::Get(Theme::Role::Accent));
+				dc.DrawText(badge, badgeX, badgeY);
+			}
+
+			// Door marker, bottom-left.
+			if (info.doorCount > 0) {
+				dc.SetFont(wxFont(7, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
+				const wxString marker = wxString::Format("D%d", info.doorCount);
+				const wxSize markerSize = dc.GetTextExtent(marker);
+				dc.SetTextForeground(Theme::Get(Theme::Role::Success));
+				dc.DrawText(marker, cell.x + 3, cell.GetBottom() - markerSize.GetHeight() - 2);
+			}
+		}
+	}
+}
+
+void WallSegmentGridPanel::OnMouseClick(wxMouseEvent& event) {
+	const WallSegmentType seg = HitTest(event.GetX(), event.GetY());
+	if (seg >= WALL_SEG_COUNT) return;
+
+	wxWindow* parent = GetParent();
+	while (parent && !dynamic_cast<WallBrushEditorDialog*>(parent)) {
+		parent = parent->GetParent();
+	}
+	if (WallBrushEditorDialog* dialog = dynamic_cast<WallBrushEditorDialog*>(parent)) {
+		dialog->SelectSegment(seg); // repaints through RefreshSegmentPanels
+	} else {
+		SetSelected(seg);
+	}
+}
+
+void WallSegmentGridPanel::OnMotion(wxMouseEvent& event) {
+	const WallSegmentType seg = HitTest(event.GetX(), event.GetY());
+	if (seg == m_hovered) return;
+
+	m_hovered = seg;
+	if (seg < WALL_SEG_COUNT) {
+		wxString tip(wallSegmentLabel(seg));
+		const CellInfo& info = m_cells[seg];
+		if (info.itemCount > 0) {
+			tip += wxString::Format("\n%d item(s)", info.itemCount);
+		} else {
+			tip += "\nempty";
+		}
+		if (info.doorCount > 0) {
+			tip += wxString::Format(", %d door(s)", info.doorCount);
+		}
+		if (GetToolTipText() != tip) {
+			SetToolTip(tip);
+		}
+	}
+	Refresh();
+}
+
+void WallSegmentGridPanel::OnLeave(wxMouseEvent& WXUNUSED(event)) {
+	if (m_hovered == WALL_SEG_COUNT) return;
+	m_hovered = WALL_SEG_COUNT;
+	Refresh();
+}
+
+// ============================================================================
 // WallSegmentItemsPanel
 // ============================================================================
 
 WallSegmentItemsPanel::WallSegmentItemsPanel(wxWindow* parent, wxWindowID id) :
 	wxPanel(parent, id, wxDefaultPosition, wxSize(-1, 3 * (CELL_SIZE + CELL_MARGIN) + CELL_MARGIN), wxBORDER_NONE) {
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
-	SetMinSize(wxSize(-1, 3 * (CELL_SIZE + CELL_MARGIN) + CELL_MARGIN));
+	// Minimum of two rows only: the segment grid above takes real estate, and the sizer
+	// hands this panel every pixel that is left over anyway.
+	SetMinSize(wxSize(-1, 2 * (CELL_SIZE + CELL_MARGIN) + CELL_MARGIN));
 }
 
 void WallSegmentItemsPanel::SetItems(const std::vector<WallItemEntry>& items) {
