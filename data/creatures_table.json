@@ -17982,7 +17982,7 @@
       {
         "name": "sweet smelling bait",
         "chance": 100,
-        "id": 13307,
+        "cosmetic": { "type": "mount", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -24178,7 +24178,7 @@
       {
         "name": "shiny stone",
         "chance": 5,
-        "id": 11227,
+        "cosmetic": { "type": "mount", "id": 16 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -24593,7 +24593,7 @@
       {
         "name": "ragnir helmet",
         "chance": 1,
-        "id": 7462,
+        "cosmetic": { "type": "outfit", "id": 143 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -24741,7 +24741,7 @@
       {
         "name": "ragnir helmet",
         "chance": 2,
-        "id": 7462,
+        "cosmetic": { "type": "outfit", "id": 143 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -28783,27 +28783,6 @@
         "id": 55381,
         "minCount": 20,
         "maxCount": 25
-      },
-      {
-        "name": "abyssal ore",
-        "chance": 50,
-        "id": 55437,
-        "minCount": 75,
-        "maxCount": 150
-      },
-      {
-        "name": "ectoplasm essence",
-        "chance": 50,
-        "id": 55438,
-        "minCount": 30,
-        "maxCount": 60
-      },
-      {
-        "name": "bonewood remains",
-        "chance": 50,
-        "id": 55436,
-        "minCount": 45,
-        "maxCount": 90
       }
     ],
     "events": [
@@ -28894,27 +28873,6 @@
         "id": 55381,
         "minCount": 26,
         "maxCount": 31
-      },
-      {
-        "name": "abyssal ore",
-        "chance": 50,
-        "id": 55437,
-        "minCount": 75,
-        "maxCount": 150
-      },
-      {
-        "name": "ectoplasm essence",
-        "chance": 50,
-        "id": 55438,
-        "minCount": 30,
-        "maxCount": 60
-      },
-      {
-        "name": "bonewood remains",
-        "chance": 50,
-        "id": 55436,
-        "minCount": 45,
-        "maxCount": 90
       }
     ],
     "events": [
@@ -29005,27 +28963,6 @@
         "id": 55381,
         "minCount": 32,
         "maxCount": 37
-      },
-      {
-        "name": "abyssal ore",
-        "chance": 50,
-        "id": 55437,
-        "minCount": 75,
-        "maxCount": 150
-      },
-      {
-        "name": "ectoplasm essence",
-        "chance": 50,
-        "id": 55438,
-        "minCount": 30,
-        "maxCount": 60
-      },
-      {
-        "name": "bonewood remains",
-        "chance": 50,
-        "id": 55436,
-        "minCount": 45,
-        "maxCount": 90
       }
     ],
     "events": [
@@ -29116,27 +29053,6 @@
         "id": 55381,
         "minCount": 38,
         "maxCount": 43
-      },
-      {
-        "name": "abyssal ore",
-        "chance": 50,
-        "id": 55437,
-        "minCount": 75,
-        "maxCount": 150
-      },
-      {
-        "name": "ectoplasm essence",
-        "chance": 50,
-        "id": 55438,
-        "minCount": 30,
-        "maxCount": 60
-      },
-      {
-        "name": "bonewood remains",
-        "chance": 50,
-        "id": 55436,
-        "minCount": 45,
-        "maxCount": 90
       }
     ],
     "events": [
@@ -29227,27 +29143,6 @@
         "id": 55381,
         "minCount": 44,
         "maxCount": 49
-      },
-      {
-        "name": "abyssal ore",
-        "chance": 50,
-        "id": 55437,
-        "minCount": 75,
-        "maxCount": 150
-      },
-      {
-        "name": "ectoplasm essence",
-        "chance": 50,
-        "id": 55438,
-        "minCount": 30,
-        "maxCount": 60
-      },
-      {
-        "name": "bonewood remains",
-        "chance": 50,
-        "id": 55436,
-        "minCount": 45,
-        "maxCount": 90
       }
     ],
     "events": [
@@ -29338,27 +29233,6 @@
         "id": 55381,
         "minCount": 50,
         "maxCount": 55
-      },
-      {
-        "name": "abyssal ore",
-        "chance": 50,
-        "id": 55437,
-        "minCount": 75,
-        "maxCount": 150
-      },
-      {
-        "name": "ectoplasm essence",
-        "chance": 50,
-        "id": 55438,
-        "minCount": 30,
-        "maxCount": 60
-      },
-      {
-        "name": "bonewood remains",
-        "chance": 50,
-        "id": 55436,
-        "minCount": 45,
-        "maxCount": 90
       }
     ],
     "events": [
@@ -29449,27 +29323,6 @@
         "id": 55381,
         "minCount": 50,
         "maxCount": 55
-      },
-      {
-        "name": "abyssal ore",
-        "chance": 50,
-        "id": 55437,
-        "minCount": 75,
-        "maxCount": 150
-      },
-      {
-        "name": "ectoplasm essence",
-        "chance": 50,
-        "id": 55438,
-        "minCount": 30,
-        "maxCount": 60
-      },
-      {
-        "name": "bonewood remains",
-        "chance": 50,
-        "id": 55436,
-        "minCount": 45,
-        "maxCount": 90
       }
     ],
     "events": [
@@ -30197,21 +30050,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -30671,21 +30524,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -31141,21 +30994,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -31776,21 +31629,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -32077,21 +31930,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -32442,21 +32295,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -32872,21 +32725,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -33473,21 +33326,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -34990,21 +34843,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -35728,21 +35581,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -36620,21 +36473,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -38185,21 +38038,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -38572,21 +38425,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -39031,21 +38884,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -39475,21 +39328,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -39858,21 +39711,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -40291,21 +40144,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -41231,21 +41084,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -41648,21 +41501,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -41822,21 +41675,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -42292,21 +42145,21 @@
       {
         "name": "blacksteel wings",
         "chance": 1,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 1,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 1,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -43609,21 +43462,21 @@
       {
         "name": "blacksteel wings",
         "chance": 2,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 2,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 2,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -44246,21 +44099,21 @@
       {
         "name": "blacksteel wings",
         "chance": 2,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 2,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 2,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -44759,21 +44612,21 @@
       {
         "name": "blacksteel wings",
         "chance": 2,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 2,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 2,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -45141,21 +44994,21 @@
       {
         "name": "blacksteel wings",
         "chance": 2,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 2,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 2,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -45914,21 +45767,21 @@
       {
         "name": "demon wings",
         "chance": 0.1,
-        "id": 35311,
+        "cosmetic": { "type": "wing", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "angel wings",
         "chance": 0.1,
-        "id": 35313,
+        "cosmetic": { "type": "wing", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow wings",
         "chance": 0.1,
-        "id": 35317,
+        "cosmetic": { "type": "wing", "id": 7 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -46353,21 +46206,21 @@
       {
         "name": "demon wings",
         "chance": 0.1,
-        "id": 35311,
+        "cosmetic": { "type": "wing", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "angel wings",
         "chance": 0.1,
-        "id": 35313,
+        "cosmetic": { "type": "wing", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow wings",
         "chance": 0.1,
-        "id": 35317,
+        "cosmetic": { "type": "wing", "id": 7 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -46795,35 +46648,35 @@
       {
         "name": "archangel fairy wings",
         "chance": 0.1,
-        "id": 35506,
+        "cosmetic": { "type": "wing", "id": 19 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "dragon wings",
         "chance": 0.1,
-        "id": 35507,
+        "cosmetic": { "type": "wing", "id": 20 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "red spikes wings",
         "chance": 0.1,
-        "id": 35473,
+        "cosmetic": { "type": "wing", "id": 21 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "desert fairy wings",
         "chance": 0.1,
-        "id": 35469,
+        "cosmetic": { "type": "wing", "id": 22 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "steampunk wings",
         "chance": 0.1,
-        "id": 35470,
+        "cosmetic": { "type": "wing", "id": 23 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -47480,21 +47333,21 @@
       {
         "name": "blacksteel wings",
         "chance": 2,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 2,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 2,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -47848,21 +47701,21 @@
       {
         "name": "blacksteel wings",
         "chance": 2,
-        "id": 35314,
+        "cosmetic": { "type": "wing", "id": 11 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "jade wings",
         "chance": 2,
-        "id": 35315,
+        "cosmetic": { "type": "wing", "id": 9 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crimson wings",
         "chance": 2,
-        "id": 35316,
+        "cosmetic": { "type": "wing", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -63625,9 +63478,9 @@
   "Ferumbras": {
     "race": "blood",
     "level": 0,
-    "armor": 1000,
+    "armor": 0,
     "speed": 500,
-    "health": 85000000,
+    "health": 275000000,
     "experience": 0,
     "attacks": [
       {
@@ -63645,8 +63498,44 @@
         "criticalDamage": "",
         "interval": "2000",
         "chance": "100",
-        "min": -17000,
-        "max": -25000
+        "min": -47600,
+        "max": -70000
+      },
+      {
+        "name": "fire",
+        "areaEffect": "",
+        "shootEffect": "fire",
+        "radius": "",
+        "range": "7",
+        "spread": "",
+        "length": "",
+        "speedchange": "",
+        "duration": "",
+        "target": "1",
+        "criticalChance": "",
+        "criticalDamage": "",
+        "interval": "2000",
+        "chance": "30",
+        "min": -44800,
+        "max": -67200
+      },
+      {
+        "name": "energy",
+        "areaEffect": "energy",
+        "shootEffect": "",
+        "radius": "3",
+        "range": "",
+        "spread": "",
+        "length": "",
+        "speedchange": "",
+        "duration": "",
+        "target": "",
+        "criticalChance": "",
+        "criticalDamage": "",
+        "interval": "2000",
+        "chance": "20",
+        "min": -42000,
+        "max": -63000
       },
       {
         "name": "death",
@@ -63662,45 +63551,9 @@
         "criticalChance": "",
         "criticalDamage": "",
         "interval": "2000",
-        "chance": "20",
-        "min": -15000,
-        "max": -23000
-      },
-      {
-        "name": "fire",
-        "areaEffect": "",
-        "shootEffect": "fire",
-        "radius": "",
-        "range": "5",
-        "spread": "",
-        "length": "",
-        "speedchange": "",
-        "duration": "",
-        "target": "1",
-        "criticalChance": "",
-        "criticalDamage": "",
-        "interval": "2000",
-        "chance": "35",
-        "min": -16000,
-        "max": -24000
-      },
-      {
-        "name": "energy",
-        "areaEffect": "energy",
-        "shootEffect": "",
-        "radius": "8",
-        "range": "",
-        "spread": "",
-        "length": "",
-        "speedchange": "",
-        "duration": "",
-        "target": "",
-        "criticalChance": "",
-        "criticalDamage": "",
-        "interval": "2000",
         "chance": "15",
-        "min": -19000,
-        "max": -25000
+        "min": -39900,
+        "max": -60200
       }
     ],
     "defenses": [
@@ -63787,7 +63640,7 @@
       {
         "name": "ferumbras hat",
         "chance": 5,
-        "id": 5903,
+        "cosmetic": { "type": "outfit", "id": 130 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -63820,9 +63673,9 @@
   "Ferumbras the Risen": {
     "race": "blood",
     "level": 0,
-    "armor": 2200,
+    "armor": 0,
     "speed": 500,
-    "health": 340000000,
+    "health": 1000000000,
     "experience": 0,
     "attacks": [
       {
@@ -63840,8 +63693,8 @@
         "criticalDamage": "",
         "interval": "2000",
         "chance": "100",
-        "min": -37400,
-        "max": -55000
+        "min": -91120,
+        "max": -134000
       },
       {
         "name": "death",
@@ -63849,24 +63702,42 @@
         "shootEffect": "",
         "radius": "",
         "range": "",
-        "spread": "1",
-        "length": "5",
+        "spread": "3",
+        "length": "8",
         "speedchange": "",
         "duration": "",
         "target": "",
         "criticalChance": "",
         "criticalDamage": "",
         "interval": "2000",
-        "chance": "20",
-        "min": -33000,
-        "max": -50600
+        "chance": "30",
+        "min": -85760,
+        "max": -128640
       },
       {
-        "name": "fire",
-        "areaEffect": "",
-        "shootEffect": "fire",
+        "name": "death",
+        "areaEffect": ["mortuary lament", "deathmarkgrimreaper"],
+        "shootEffect": "",
+        "radius": "5",
+        "range": "",
+        "spread": "",
+        "length": "",
+        "speedchange": "",
+        "duration": "",
+        "target": "",
+        "criticalChance": "",
+        "criticalDamage": "",
+        "interval": "2000",
+        "chance": "24",
+        "min": -80400,
+        "max": -120600
+      },
+      {
+        "name": "death",
+        "areaEffect": "blackrain",
+        "shootEffect": "death",
         "radius": "",
-        "range": "5",
+        "range": "6",
         "spread": "",
         "length": "",
         "speedchange": "",
@@ -63875,27 +63746,9 @@
         "criticalChance": "",
         "criticalDamage": "",
         "interval": "2000",
-        "chance": "35",
-        "min": -35200,
-        "max": -52800
-      },
-      {
-        "name": "energy",
-        "areaEffect": "energy",
-        "shootEffect": "",
-        "radius": "8",
-        "range": "",
-        "spread": "",
-        "length": "",
-        "speedchange": "",
-        "duration": "",
-        "target": "",
-        "criticalChance": "",
-        "criticalDamage": "",
-        "interval": "2000",
-        "chance": "15",
-        "min": -41800,
-        "max": -55000
+        "chance": "18",
+        "min": -73700,
+        "max": -109880
       }
     ],
     "defenses": [
@@ -63982,7 +63835,7 @@
       {
         "name": "ferumbras hat",
         "chance": 5,
-        "id": 5903,
+        "cosmetic": { "type": "outfit", "id": 130 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -64006,7 +63859,8 @@
       "isBoss": 1
     },
     "outfit": {
-      "lookType": 12
+      "lookType": 229,
+      "lookShader": 176
     },
     "tags": [
       "mainland"
@@ -64015,9 +63869,9 @@
   "Ferumbras Ascendant": {
     "race": "blood",
     "level": 0,
-    "armor": 3000,
+    "armor": 0,
     "speed": 500,
-    "health": 1190000000,
+    "health": 2575000000,
     "experience": 0,
     "attacks": [
       {
@@ -64035,31 +63889,49 @@
         "criticalDamage": "",
         "interval": "2000",
         "chance": "100",
-        "min": -76500,
-        "max": -112500
+        "min": -210800,
+        "max": -310000
       },
       {
-        "name": "death",
-        "areaEffect": "mortarea",
+        "name": "fire",
+        "areaEffect": ["hellfire shot one", "hellfire shot two"],
         "shootEffect": "",
         "radius": "",
         "range": "",
-        "spread": "1",
-        "length": "5",
+        "spread": "4",
+        "length": "8",
         "speedchange": "",
         "duration": "",
         "target": "",
         "criticalChance": "",
         "criticalDamage": "",
         "interval": "2000",
-        "chance": "20",
-        "min": -67500,
-        "max": -103500
+        "chance": "30",
+        "min": -198400,
+        "max": -297600
       },
       {
         "name": "fire",
-        "areaEffect": "",
-        "shootEffect": "fire",
+        "areaEffect": "dyinginferno",
+        "shootEffect": "",
+        "radius": "6",
+        "range": "",
+        "spread": "",
+        "length": "",
+        "speedchange": "",
+        "duration": "",
+        "target": "",
+        "criticalChance": "",
+        "criticalDamage": "",
+        "interval": "2000",
+        "chance": "24",
+        "min": -186000,
+        "max": -279000
+      },
+      {
+        "name": "energy",
+        "areaEffect": "energy",
+        "shootEffect": "energy",
         "radius": "",
         "range": "5",
         "spread": "",
@@ -64070,27 +63942,9 @@
         "criticalChance": "",
         "criticalDamage": "",
         "interval": "2000",
-        "chance": "35",
-        "min": -72000,
-        "max": -108000
-      },
-      {
-        "name": "energy",
-        "areaEffect": "energy",
-        "shootEffect": "",
-        "radius": "8",
-        "range": "",
-        "spread": "",
-        "length": "",
-        "speedchange": "",
-        "duration": "",
-        "target": "",
-        "criticalChance": "",
-        "criticalDamage": "",
-        "interval": "2000",
         "chance": "15",
-        "min": -85500,
-        "max": -112500
+        "min": -170500,
+        "max": -254200
       }
     ],
     "defenses": [
@@ -64177,7 +64031,7 @@
       {
         "name": "ferumbras hat",
         "chance": 5,
-        "id": 5903,
+        "cosmetic": { "type": "outfit", "id": 130 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -64201,7 +64055,8 @@
       "isBoss": 1
     },
     "outfit": {
-      "lookType": 231
+      "lookType": 229,
+      "lookShader": 179
     },
     "tags": [
       "mainland"
@@ -64209,10 +64064,10 @@
   },
   "Ferumbras the Archdemon": {
     "race": "blood",
-    "level": 0,
-    "armor": 3000,
+    "level": 2500,
+    "armor": 600,
     "speed": 500,
-    "health": 3825000000,
+    "health": 6075000000,
     "experience": 0,
     "attacks": [
       {
@@ -64230,33 +64085,33 @@
         "criticalDamage": "",
         "interval": "2000",
         "chance": "100",
-        "min": -153000,
-        "max": -225000
+        "min": -1305600,
+        "max": -1920000
       },
       {
-        "name": "death",
-        "areaEffect": "mortarea",
+        "name": "ferumbras firestorm",
+        "areaEffect": "",
         "shootEffect": "",
         "radius": "",
         "range": "",
-        "spread": "1",
-        "length": "5",
+        "spread": "",
+        "length": "",
         "speedchange": "",
         "duration": "",
         "target": "",
         "criticalChance": "",
         "criticalDamage": "",
         "interval": "2000",
-        "chance": "20",
-        "min": -135000,
-        "max": -207000
+        "chance": "8",
+        "min": 0,
+        "max": 0
       },
       {
-        "name": "fire",
+        "name": "ferumbras hellchain",
         "areaEffect": "",
-        "shootEffect": "fire",
+        "shootEffect": "",
         "radius": "",
-        "range": "5",
+        "range": "",
         "spread": "",
         "length": "",
         "speedchange": "",
@@ -64265,15 +64120,15 @@
         "criticalChance": "",
         "criticalDamage": "",
         "interval": "2000",
-        "chance": "35",
-        "min": -144000,
-        "max": -216000
+        "chance": "12",
+        "min": 0,
+        "max": 0
       },
       {
-        "name": "energy",
-        "areaEffect": "energy",
+        "name": "death",
+        "areaEffect": ["emberstormonset", "emberstormonloop"],
         "shootEffect": "",
-        "radius": "8",
+        "radius": "5",
         "range": "",
         "spread": "",
         "length": "",
@@ -64283,9 +64138,9 @@
         "criticalChance": "",
         "criticalDamage": "",
         "interval": "2000",
-        "chance": "15",
-        "min": -171000,
-        "max": -225000
+        "chance": "20",
+        "min": -1113600,
+        "max": -1689600
       }
     ],
     "defenses": [
@@ -64372,7 +64227,7 @@
       {
         "name": "ferumbras hat",
         "chance": 5,
-        "id": 5903,
+        "cosmetic": { "type": "outfit", "id": 130 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -64396,7 +64251,8 @@
       "isBoss": 1
     },
     "outfit": {
-      "lookType": 12
+      "lookType": 229,
+      "lookShader": 178
     },
     "tags": [
       "mainland"
@@ -64404,10 +64260,10 @@
   },
   "Ferumbras, World Ender": {
     "race": "blood",
-    "level": 0,
-    "armor": 3000,
+    "level": 3600,
+    "armor": 6000,
     "speed": 500,
-    "health": 11050000000,
+    "health": 277575000000,
     "experience": 0,
     "attacks": [
       {
@@ -64425,33 +64281,51 @@
         "criticalDamage": "",
         "interval": "2000",
         "chance": "100",
-        "min": -306000,
-        "max": -450000
+        "min": -10553600,
+        "max": -15520000
       },
       {
         "name": "death",
-        "areaEffect": "mortarea",
+        "areaEffect": ["hellfirepactdot", "voidtentaclesaura"],
         "shootEffect": "",
-        "radius": "",
+        "radius": "7",
         "range": "",
-        "spread": "1",
-        "length": "5",
+        "spread": "",
+        "length": "",
         "speedchange": "",
         "duration": "",
         "target": "",
         "criticalChance": "",
         "criticalDamage": "",
         "interval": "2000",
-        "chance": "20",
-        "min": -270000,
-        "max": -414000
+        "chance": "30",
+        "min": -9932800,
+        "max": -14899200
       },
       {
-        "name": "fire",
-        "areaEffect": "",
-        "shootEffect": "fire",
+        "name": "energy",
+        "areaEffect": "dimensional severance",
+        "shootEffect": "",
         "radius": "",
-        "range": "5",
+        "range": "",
+        "spread": "2",
+        "length": "10",
+        "speedchange": "",
+        "duration": "",
+        "target": "",
+        "criticalChance": "",
+        "criticalDamage": "",
+        "interval": "2000",
+        "chance": "24",
+        "min": -9312000,
+        "max": -13968000
+      },
+      {
+        "name": "death",
+        "areaEffect": "eventhorizonvoid",
+        "shootEffect": "voidstars_one",
+        "radius": "",
+        "range": "8",
         "spread": "",
         "length": "",
         "speedchange": "",
@@ -64460,27 +64334,9 @@
         "criticalChance": "",
         "criticalDamage": "",
         "interval": "2000",
-        "chance": "35",
-        "min": -288000,
-        "max": -432000
-      },
-      {
-        "name": "energy",
-        "areaEffect": "energy",
-        "shootEffect": "",
-        "radius": "8",
-        "range": "",
-        "spread": "",
-        "length": "",
-        "speedchange": "",
-        "duration": "",
-        "target": "",
-        "criticalChance": "",
-        "criticalDamage": "",
-        "interval": "2000",
-        "chance": "15",
-        "min": -342000,
-        "max": -450000
+        "chance": "18",
+        "min": -8536000,
+        "max": -12726400
       }
     ],
     "defenses": [
@@ -64567,7 +64423,7 @@
       {
         "name": "ferumbras hat",
         "chance": 5,
-        "id": 5903,
+        "cosmetic": { "type": "outfit", "id": 130 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -64582,7 +64438,8 @@
     "events": [
       "RewardLoot",
       "WarningSpellThink",
-      "SummonMonsterThink"
+      "SummonMonsterThink",
+      "FerumbrasBlackHole"
     ],
     "flags": {
       "canWalkThroughObjects": 1,
@@ -64591,7 +64448,8 @@
       "isBoss": 1
     },
     "outfit": {
-      "lookType": 231
+      "lookType": 229,
+      "lookShader": 177
     },
     "tags": [
       "mainland"
@@ -69912,28 +69770,28 @@
       {
         "name": "demon wings",
         "chance": 0.5,
-        "id": 35311,
+        "cosmetic": { "type": "wing", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow wings",
         "chance": 0.5,
-        "id": 35317,
+        "cosmetic": { "type": "wing", "id": 7 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "angel wings",
         "chance": 0.5,
-        "id": 35313,
+        "cosmetic": { "type": "wing", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow swirl ",
         "chance": 0.5,
-        "id": 38827,
+        "cosmetic": { "type": "aura", "id": 13 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -70196,49 +70054,49 @@
       {
         "name": "demon wings",
         "chance": 0.5,
-        "id": 35311,
+        "cosmetic": { "type": "wing", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow wings",
         "chance": 0.5,
-        "id": 35317,
+        "cosmetic": { "type": "wing", "id": 7 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "angel wings",
         "chance": 0.5,
-        "id": 35313,
+        "cosmetic": { "type": "wing", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow swirl ",
         "chance": 0.5,
-        "id": 38827,
+        "cosmetic": { "type": "aura", "id": 13 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "steampunk wings",
         "chance": 0.5,
-        "id": 35470,
+        "cosmetic": { "type": "wing", "id": 23 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "archangel fairy wings",
         "chance": 0.5,
-        "id": 35506,
+        "cosmetic": { "type": "wing", "id": 19 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "fire aura scroll",
         "chance": 0.5,
-        "id": 35480,
+        "cosmetic": { "type": "aura", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -70577,56 +70435,56 @@
       {
         "name": "demon wings",
         "chance": 0.5,
-        "id": 35311,
+        "cosmetic": { "type": "wing", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow wings",
         "chance": 0.5,
-        "id": 35317,
+        "cosmetic": { "type": "wing", "id": 7 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "angel wings",
         "chance": 0.5,
-        "id": 35313,
+        "cosmetic": { "type": "wing", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow swirl ",
         "chance": 0.5,
-        "id": 38827,
+        "cosmetic": { "type": "aura", "id": 13 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "steampunk wings",
         "chance": 0.5,
-        "id": 35470,
+        "cosmetic": { "type": "wing", "id": 23 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "archangel fairy wings",
         "chance": 0.5,
-        "id": 35506,
+        "cosmetic": { "type": "wing", "id": 19 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "fire aura scroll",
         "chance": 0.5,
-        "id": 35480,
+        "cosmetic": { "type": "aura", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "energy ball aura scroll",
         "chance": 0.5,
-        "id": 35475,
+        "cosmetic": { "type": "aura", "id": 5 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -70854,56 +70712,56 @@
       {
         "name": "demon wings",
         "chance": 0.5,
-        "id": 35311,
+        "cosmetic": { "type": "wing", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow wings",
         "chance": 0.5,
-        "id": 35317,
+        "cosmetic": { "type": "wing", "id": 7 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "angel wings",
         "chance": 0.5,
-        "id": 35313,
+        "cosmetic": { "type": "wing", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow swirl ",
         "chance": 0.5,
-        "id": 38827,
+        "cosmetic": { "type": "aura", "id": 13 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "steampunk wings",
         "chance": 0.5,
-        "id": 35470,
+        "cosmetic": { "type": "wing", "id": 23 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "archangel fairy wings",
         "chance": 0.5,
-        "id": 35506,
+        "cosmetic": { "type": "wing", "id": 19 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "fire aura scroll",
         "chance": 0.5,
-        "id": 35480,
+        "cosmetic": { "type": "aura", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "energy ball aura scroll",
         "chance": 0.5,
-        "id": 35475,
+        "cosmetic": { "type": "aura", "id": 5 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -71131,56 +70989,56 @@
       {
         "name": "demon wings",
         "chance": 0.5,
-        "id": 35311,
+        "cosmetic": { "type": "wing", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow wings",
         "chance": 0.5,
-        "id": 35317,
+        "cosmetic": { "type": "wing", "id": 7 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "angel wings",
         "chance": 0.5,
-        "id": 35313,
+        "cosmetic": { "type": "wing", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow swirl",
         "chance": 0.5,
-        "id": 38827,
+        "cosmetic": { "type": "aura", "id": 13 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "steampunk wings",
         "chance": 0.5,
-        "id": 35470,
+        "cosmetic": { "type": "wing", "id": 23 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "archangel fairy wings",
         "chance": 0.5,
-        "id": 35506,
+        "cosmetic": { "type": "wing", "id": 19 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "fire aura scroll",
         "chance": 0.5,
-        "id": 35480,
+        "cosmetic": { "type": "aura", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "energy ball aura scroll",
         "chance": 0.5,
-        "id": 35475,
+        "cosmetic": { "type": "aura", "id": 5 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -71411,56 +71269,56 @@
       {
         "name": "demon wings",
         "chance": 0.5,
-        "id": 35311,
+        "cosmetic": { "type": "wing", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow wings",
         "chance": 0.5,
-        "id": 35317,
+        "cosmetic": { "type": "wing", "id": 7 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "angel wings",
         "chance": 0.5,
-        "id": 35313,
+        "cosmetic": { "type": "wing", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow swirl ",
         "chance": 0.5,
-        "id": 38827,
+        "cosmetic": { "type": "aura", "id": 13 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "steampunk wings",
         "chance": 0.5,
-        "id": 35470,
+        "cosmetic": { "type": "wing", "id": 23 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "archangel fairy wings",
         "chance": 0.5,
-        "id": 35506,
+        "cosmetic": { "type": "wing", "id": 19 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "fire aura scroll",
         "chance": 0.5,
-        "id": 35480,
+        "cosmetic": { "type": "aura", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "energy ball aura scroll",
         "chance": 0.5,
-        "id": 35475,
+        "cosmetic": { "type": "aura", "id": 5 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -71683,56 +71541,56 @@
       {
         "name": "demon wings",
         "chance": 0.5,
-        "id": 35311,
+        "cosmetic": { "type": "wing", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow wings",
         "chance": 0.5,
-        "id": 35317,
+        "cosmetic": { "type": "wing", "id": 7 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "angel wings",
         "chance": 0.5,
-        "id": 35313,
+        "cosmetic": { "type": "wing", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow swirl ",
         "chance": 0.5,
-        "id": 38827,
+        "cosmetic": { "type": "aura", "id": 13 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "steampunk wings",
         "chance": 0.5,
-        "id": 35470,
+        "cosmetic": { "type": "wing", "id": 23 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "archangel fairy wings",
         "chance": 0.5,
-        "id": 35506,
+        "cosmetic": { "type": "wing", "id": 19 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "fire aura scroll",
         "chance": 0.5,
-        "id": 35480,
+        "cosmetic": { "type": "aura", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "energy ball aura scroll",
         "chance": 0.5,
-        "id": 35475,
+        "cosmetic": { "type": "aura", "id": 5 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -71955,56 +71813,56 @@
       {
         "name": "demon wings",
         "chance": 0.5,
-        "id": 35311,
+        "cosmetic": { "type": "wing", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow wings",
         "chance": 0.5,
-        "id": 35317,
+        "cosmetic": { "type": "wing", "id": 7 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "angel wings",
         "chance": 0.5,
-        "id": 35313,
+        "cosmetic": { "type": "wing", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow swirl ",
         "chance": 0.5,
-        "id": 38827,
+        "cosmetic": { "type": "aura", "id": 13 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "steampunk wings",
         "chance": 0.5,
-        "id": 35470,
+        "cosmetic": { "type": "wing", "id": 23 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "archangel fairy wings",
         "chance": 0.5,
-        "id": 35506,
+        "cosmetic": { "type": "wing", "id": 19 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "fire aura scroll",
         "chance": 0.5,
-        "id": 35480,
+        "cosmetic": { "type": "aura", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "energy ball aura scroll",
         "chance": 0.5,
-        "id": 35475,
+        "cosmetic": { "type": "aura", "id": 5 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -73654,7 +73512,7 @@
       {
         "name": "black demon wings",
         "chance": 1,
-        "id": 35312,
+        "cosmetic": { "type": "wing", "id": 14 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -73925,14 +73783,14 @@
       {
         "name": "red feathers wings",
         "chance": 1,
-        "id": 38817,
+        "cosmetic": { "type": "wing", "id": 33 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "darkness aura scroll",
         "chance": 1,
-        "id": 35479,
+        "cosmetic": { "type": "aura", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -74204,14 +74062,14 @@
       {
         "name": "red feathers wings",
         "chance": 1,
-        "id": 38817,
+        "cosmetic": { "type": "wing", "id": 33 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "darkness aura scroll",
         "chance": 1,
-        "id": 35479,
+        "cosmetic": { "type": "aura", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -74504,21 +74362,21 @@
       {
         "name": "desert fairy wings",
         "chance": 1,
-        "id": 35469,
+        "cosmetic": { "type": "wing", "id": 22 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "lightforged wings",
         "chance": 1,
-        "id": 38818,
+        "cosmetic": { "type": "wing", "id": 28 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "mystic swirl",
         "chance": 1,
-        "id": 35476,
+        "cosmetic": { "type": "aura", "id": 8 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -74865,14 +74723,14 @@
       {
         "name": "dragon wings",
         "chance": 1,
-        "id": 35507,
+        "cosmetic": { "type": "wing", "id": 20 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "demoniac embrace wings",
         "chance": 1,
-        "id": 35308,
+        "cosmetic": { "type": "wing", "id": 15 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -75148,14 +75006,14 @@
       {
         "name": "dragon wings",
         "chance": 1,
-        "id": 35507,
+        "cosmetic": { "type": "wing", "id": 20 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "demoniac embrace wings",
         "chance": 1,
-        "id": 35308,
+        "cosmetic": { "type": "wing", "id": 15 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -75406,21 +75264,21 @@
       {
         "name": "dragon wings",
         "chance": 1,
-        "id": 35507,
+        "cosmetic": { "type": "wing", "id": 20 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "demoniac embrace wings",
         "chance": 1,
-        "id": 35308,
+        "cosmetic": { "type": "wing", "id": 15 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rose wings",
         "chance": 1,
-        "id": 35309,
+        "cosmetic": { "type": "wing", "id": 12 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -75670,21 +75528,21 @@
       {
         "name": "dragon wings",
         "chance": 1,
-        "id": 35507,
+        "cosmetic": { "type": "wing", "id": 20 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "demoniac embrace wings",
         "chance": 1,
-        "id": 35308,
+        "cosmetic": { "type": "wing", "id": 15 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rose wings",
         "chance": 1,
-        "id": 35309,
+        "cosmetic": { "type": "wing", "id": 12 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -75802,7 +75660,7 @@
       {
         "name": "blue powder",
         "chance": 1,
-        "id": 6551,
+        "cosmetic": { "type": "mount", "id": 172 },
         "minCount": 1,
         "maxCount": 1
       }
@@ -75966,28 +75824,28 @@
       {
         "name": "dragon wings",
         "chance": 1,
-        "id": 35507,
+        "cosmetic": { "type": "wing", "id": 20 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "demoniac embrace wings",
         "chance": 1,
-        "id": 35308,
+        "cosmetic": { "type": "wing", "id": 15 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rose wings",
         "chance": 1,
-        "id": 35309,
+        "cosmetic": { "type": "wing", "id": 12 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "crystal warlord helmet",
         "chance": 1,
-        "id": 40967,
+        "cosmetic": { "type": "outfit", "id": 512 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -76180,21 +76038,21 @@
       {
         "name": "dragon wings",
         "chance": 1,
-        "id": 35507,
+        "cosmetic": { "type": "wing", "id": 20 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "demoniac embrace wings",
         "chance": 1,
-        "id": 35308,
+        "cosmetic": { "type": "wing", "id": 15 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rose wings",
         "chance": 1,
-        "id": 35309,
+        "cosmetic": { "type": "wing", "id": 12 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -76589,21 +76447,21 @@
       {
         "name": "dragon wings",
         "chance": 1,
-        "id": 35507,
+        "cosmetic": { "type": "wing", "id": 20 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "demoniac embrace wings",
         "chance": 1,
-        "id": 35308,
+        "cosmetic": { "type": "wing", "id": 15 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rose wings",
         "chance": 1,
-        "id": 35309,
+        "cosmetic": { "type": "wing", "id": 12 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -76806,21 +76664,21 @@
       {
         "name": "dragon wings",
         "chance": 1,
-        "id": 35507,
+        "cosmetic": { "type": "wing", "id": 20 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "demoniac embrace wings",
         "chance": 1,
-        "id": 35308,
+        "cosmetic": { "type": "wing", "id": 15 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rose wings",
         "chance": 1,
-        "id": 35309,
+        "cosmetic": { "type": "wing", "id": 12 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -77016,21 +76874,21 @@
       {
         "name": "dragon wings",
         "chance": 1,
-        "id": 35507,
+        "cosmetic": { "type": "wing", "id": 20 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "demoniac embrace wings",
         "chance": 1,
-        "id": 35308,
+        "cosmetic": { "type": "wing", "id": 15 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rose wings",
         "chance": 1,
-        "id": 35309,
+        "cosmetic": { "type": "wing", "id": 12 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -77226,21 +77084,21 @@
       {
         "name": "dragon wings",
         "chance": 1,
-        "id": 35507,
+        "cosmetic": { "type": "wing", "id": 20 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "demoniac embrace wings",
         "chance": 1,
-        "id": 35308,
+        "cosmetic": { "type": "wing", "id": 15 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rose wings",
         "chance": 1,
-        "id": 35309,
+        "cosmetic": { "type": "wing", "id": 12 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -77725,25 +77583,53 @@
     "defenses": [],
     "loot": [
       {
-        "name": "abyssal ore",
-        "chance": 50,
-        "id": 55437,
-        "minCount": 450,
-        "maxCount": 550
+        "name": "special attribute reroll gem",
+        "chance": 35,
+        "id": 33627,
+        "minCount": 2,
+        "maxCount": 4
       },
       {
-        "name": "ectoplasm essence",
-        "chance": 50,
-        "id": 55438,
-        "minCount": 180,
-        "maxCount": 220
+        "name": "platinum blank rune",
+        "chance": 10,
+        "id": 43950,
+        "minCount": 1,
+        "maxCount": 1
       },
       {
-        "name": "bonewood remains",
-        "chance": 50,
-        "id": 55436,
-        "minCount": 270,
-        "maxCount": 310
+        "name": "crystal coin",
+        "chance": 100,
+        "id": 2160,
+        "minCount": 43,
+        "maxCount": 85
+      },
+      {
+        "name": "rarity token",
+        "chance": 100,
+        "id": 32765,
+        "minCount": 25,
+        "maxCount": 50
+      },
+      {
+        "name": "bloody dust",
+        "chance": 15,
+        "id": 38970,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "bloody rune",
+        "chance": 10,
+        "id": 38974,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "demon's horn",
+        "chance": 100,
+        "id": 55381,
+        "minCount": 55,
+        "maxCount": 60
       }
     ],
     "events": [
@@ -77832,25 +77718,53 @@
     "defenses": [],
     "loot": [
       {
-        "name": "abyssal ore",
-        "chance": 50,
-        "id": 55437,
-        "minCount": 450,
-        "maxCount": 550
+        "name": "special attribute reroll gem",
+        "chance": 35,
+        "id": 33627,
+        "minCount": 2,
+        "maxCount": 4
       },
       {
-        "name": "ectoplasm essence",
-        "chance": 50,
-        "id": 55438,
-        "minCount": 180,
-        "maxCount": 220
+        "name": "platinum blank rune",
+        "chance": 10,
+        "id": 43950,
+        "minCount": 1,
+        "maxCount": 1
       },
       {
-        "name": "bonewood remains",
-        "chance": 50,
-        "id": 55436,
-        "minCount": 270,
-        "maxCount": 310
+        "name": "crystal coin",
+        "chance": 100,
+        "id": 2160,
+        "minCount": 43,
+        "maxCount": 85
+      },
+      {
+        "name": "rarity token",
+        "chance": 100,
+        "id": 32765,
+        "minCount": 25,
+        "maxCount": 50
+      },
+      {
+        "name": "bloody dust",
+        "chance": 16,
+        "id": 38970,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "bloody rune",
+        "chance": 11,
+        "id": 38974,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "demon's horn",
+        "chance": 100,
+        "id": 55381,
+        "minCount": 62,
+        "maxCount": 68
       }
     ],
     "events": [
@@ -77938,25 +77852,53 @@
     "defenses": [],
     "loot": [
       {
-        "name": "abyssal ore",
-        "chance": 50,
-        "id": 55437,
-        "minCount": 450,
-        "maxCount": 550
+        "name": "special attribute reroll gem",
+        "chance": 35,
+        "id": 33627,
+        "minCount": 2,
+        "maxCount": 4
       },
       {
-        "name": "ectoplasm essence",
-        "chance": 50,
-        "id": 55438,
-        "minCount": 180,
-        "maxCount": 220
+        "name": "platinum blank rune",
+        "chance": 10,
+        "id": 43950,
+        "minCount": 1,
+        "maxCount": 1
       },
       {
-        "name": "bonewood remains",
-        "chance": 50,
-        "id": 55436,
-        "minCount": 270,
-        "maxCount": 310
+        "name": "crystal coin",
+        "chance": 100,
+        "id": 2160,
+        "minCount": 43,
+        "maxCount": 85
+      },
+      {
+        "name": "rarity token",
+        "chance": 100,
+        "id": 32765,
+        "minCount": 25,
+        "maxCount": 50
+      },
+      {
+        "name": "bloody dust",
+        "chance": 17,
+        "id": 38970,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "bloody rune",
+        "chance": 12,
+        "id": 38974,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "demon's horn",
+        "chance": 100,
+        "id": 55381,
+        "minCount": 70,
+        "maxCount": 76
       }
     ],
     "events": [
@@ -78063,25 +78005,53 @@
     "defenses": [],
     "loot": [
       {
-        "name": "abyssal ore",
-        "chance": 50,
-        "id": 55437,
-        "minCount": 450,
-        "maxCount": 550
+        "name": "special attribute reroll gem",
+        "chance": 35,
+        "id": 33627,
+        "minCount": 2,
+        "maxCount": 5
       },
       {
-        "name": "ectoplasm essence",
-        "chance": 50,
-        "id": 55438,
-        "minCount": 180,
-        "maxCount": 220
+        "name": "platinum blank rune",
+        "chance": 10,
+        "id": 43950,
+        "minCount": 1,
+        "maxCount": 1
       },
       {
-        "name": "bonewood remains",
-        "chance": 50,
-        "id": 55436,
-        "minCount": 270,
-        "maxCount": 310
+        "name": "crystal coin",
+        "chance": 100,
+        "id": 2160,
+        "minCount": 43,
+        "maxCount": 85
+      },
+      {
+        "name": "rarity token",
+        "chance": 100,
+        "id": 32765,
+        "minCount": 25,
+        "maxCount": 50
+      },
+      {
+        "name": "bloody dust",
+        "chance": 18,
+        "id": 38970,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "bloody rune",
+        "chance": 13,
+        "id": 38974,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "demon's horn",
+        "chance": 100,
+        "id": 55381,
+        "minCount": 79,
+        "maxCount": 85
       }
     ],
     "events": [
@@ -78183,25 +78153,53 @@
     "defenses": [],
     "loot": [
       {
-        "name": "abyssal ore",
-        "chance": 50,
-        "id": 55437,
-        "minCount": 450,
-        "maxCount": 550
+        "name": "special attribute reroll gem",
+        "chance": 35,
+        "id": 33627,
+        "minCount": 2,
+        "maxCount": 5
       },
       {
-        "name": "ectoplasm essence",
-        "chance": 50,
-        "id": 55438,
-        "minCount": 180,
-        "maxCount": 220
+        "name": "platinum blank rune",
+        "chance": 10,
+        "id": 43950,
+        "minCount": 1,
+        "maxCount": 1
       },
       {
-        "name": "bonewood remains",
-        "chance": 50,
-        "id": 55436,
-        "minCount": 270,
-        "maxCount": 310
+        "name": "crystal coin",
+        "chance": 100,
+        "id": 2160,
+        "minCount": 43,
+        "maxCount": 85
+      },
+      {
+        "name": "rarity token",
+        "chance": 100,
+        "id": 32765,
+        "minCount": 25,
+        "maxCount": 50
+      },
+      {
+        "name": "bloody dust",
+        "chance": 19,
+        "id": 38970,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "bloody rune",
+        "chance": 14,
+        "id": 38974,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "demon's horn",
+        "chance": 100,
+        "id": 55381,
+        "minCount": 89,
+        "maxCount": 95
       }
     ],
     "events": [
@@ -78421,25 +78419,53 @@
     "defenses": [],
     "loot": [
       {
-        "name": "abyssal ore",
-        "chance": 50,
-        "id": 55437,
-        "minCount": 450,
-        "maxCount": 550
+        "name": "special attribute reroll gem",
+        "chance": 35,
+        "id": 33627,
+        "minCount": 3,
+        "maxCount": 5
       },
       {
-        "name": "ectoplasm essence",
-        "chance": 50,
-        "id": 55438,
-        "minCount": 180,
-        "maxCount": 220
+        "name": "platinum blank rune",
+        "chance": 10,
+        "id": 43950,
+        "minCount": 1,
+        "maxCount": 1
       },
       {
-        "name": "bonewood remains",
-        "chance": 50,
-        "id": 55436,
-        "minCount": 270,
-        "maxCount": 310
+        "name": "crystal coin",
+        "chance": 100,
+        "id": 2160,
+        "minCount": 43,
+        "maxCount": 85
+      },
+      {
+        "name": "rarity token",
+        "chance": 100,
+        "id": 32765,
+        "minCount": 25,
+        "maxCount": 50
+      },
+      {
+        "name": "bloody dust",
+        "chance": 20,
+        "id": 38970,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "bloody rune",
+        "chance": 15,
+        "id": 38974,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "demon's horn",
+        "chance": 100,
+        "id": 55381,
+        "minCount": 100,
+        "maxCount": 107
       }
     ],
     "events": [
@@ -78566,25 +78592,53 @@
     "defenses": [],
     "loot": [
       {
-        "name": "abyssal ore",
-        "chance": 50,
-        "id": 55437,
-        "minCount": 450,
-        "maxCount": 550
+        "name": "special attribute reroll gem",
+        "chance": 35,
+        "id": 33627,
+        "minCount": 3,
+        "maxCount": 5
       },
       {
-        "name": "ectoplasm essence",
-        "chance": 50,
-        "id": 55438,
-        "minCount": 180,
-        "maxCount": 220
+        "name": "platinum blank rune",
+        "chance": 10,
+        "id": 43950,
+        "minCount": 1,
+        "maxCount": 1
       },
       {
-        "name": "bonewood remains",
-        "chance": 50,
-        "id": 55436,
-        "minCount": 270,
-        "maxCount": 310
+        "name": "crystal coin",
+        "chance": 100,
+        "id": 2160,
+        "minCount": 43,
+        "maxCount": 85
+      },
+      {
+        "name": "rarity token",
+        "chance": 100,
+        "id": 32765,
+        "minCount": 25,
+        "maxCount": 50
+      },
+      {
+        "name": "bloody dust",
+        "chance": 21,
+        "id": 38970,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "bloody rune",
+        "chance": 16,
+        "id": 38974,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "demon's horn",
+        "chance": 100,
+        "id": 55381,
+        "minCount": 112,
+        "maxCount": 119
       }
     ],
     "events": [
@@ -78731,25 +78785,53 @@
     "defenses": [],
     "loot": [
       {
-        "name": "abyssal ore",
-        "chance": 50,
-        "id": 55437,
-        "minCount": 450,
-        "maxCount": 550
+        "name": "special attribute reroll gem",
+        "chance": 35,
+        "id": 33627,
+        "minCount": 3,
+        "maxCount": 6
       },
       {
-        "name": "ectoplasm essence",
-        "chance": 50,
-        "id": 55438,
-        "minCount": 180,
-        "maxCount": 220
+        "name": "platinum blank rune",
+        "chance": 10,
+        "id": 43950,
+        "minCount": 1,
+        "maxCount": 1
       },
       {
-        "name": "bonewood remains",
-        "chance": 50,
-        "id": 55436,
-        "minCount": 270,
-        "maxCount": 310
+        "name": "crystal coin",
+        "chance": 100,
+        "id": 2160,
+        "minCount": 43,
+        "maxCount": 85
+      },
+      {
+        "name": "rarity token",
+        "chance": 100,
+        "id": 32765,
+        "minCount": 25,
+        "maxCount": 50
+      },
+      {
+        "name": "bloody dust",
+        "chance": 22,
+        "id": 38970,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "bloody rune",
+        "chance": 17,
+        "id": 38974,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "demon's horn",
+        "chance": 100,
+        "id": 55381,
+        "minCount": 125,
+        "maxCount": 132
       }
     ],
     "events": [
@@ -78874,25 +78956,53 @@
     "defenses": [],
     "loot": [
       {
-        "name": "abyssal ore",
-        "chance": 50,
-        "id": 55437,
-        "minCount": 450,
-        "maxCount": 550
+        "name": "special attribute reroll gem",
+        "chance": 35,
+        "id": 33627,
+        "minCount": 3,
+        "maxCount": 6
       },
       {
-        "name": "ectoplasm essence",
-        "chance": 50,
-        "id": 55438,
-        "minCount": 180,
-        "maxCount": 220
+        "name": "platinum blank rune",
+        "chance": 10,
+        "id": 43950,
+        "minCount": 1,
+        "maxCount": 1
       },
       {
-        "name": "bonewood remains",
-        "chance": 50,
-        "id": 55436,
-        "minCount": 270,
-        "maxCount": 310
+        "name": "crystal coin",
+        "chance": 100,
+        "id": 2160,
+        "minCount": 43,
+        "maxCount": 85
+      },
+      {
+        "name": "rarity token",
+        "chance": 100,
+        "id": 32765,
+        "minCount": 25,
+        "maxCount": 50
+      },
+      {
+        "name": "bloody dust",
+        "chance": 23,
+        "id": 38970,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "bloody rune",
+        "chance": 18,
+        "id": 38974,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "demon's horn",
+        "chance": 100,
+        "id": 55381,
+        "minCount": 137,
+        "maxCount": 144
       }
     ],
     "events": [
@@ -79622,28 +79732,28 @@
       {
         "name": "demon wings",
         "chance": 0.5,
-        "id": 35311,
+        "cosmetic": { "type": "wing", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow wings",
         "chance": 0.5,
-        "id": 35317,
+        "cosmetic": { "type": "wing", "id": 7 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "angel wings",
         "chance": 0.5,
-        "id": 35313,
+        "cosmetic": { "type": "wing", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow swirl ",
         "chance": 0.5,
-        "id": 38827,
+        "cosmetic": { "type": "aura", "id": 13 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -80109,49 +80219,49 @@
       {
         "name": "demon wings",
         "chance": 0.5,
-        "id": 35311,
+        "cosmetic": { "type": "wing", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow wings",
         "chance": 0.5,
-        "id": 35317,
+        "cosmetic": { "type": "wing", "id": 7 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "angel wings",
         "chance": 0.5,
-        "id": 35313,
+        "cosmetic": { "type": "wing", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow swirl ",
         "chance": 0.5,
-        "id": 38827,
+        "cosmetic": { "type": "aura", "id": 13 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "steampunk wings",
         "chance": 0.5,
-        "id": 35470,
+        "cosmetic": { "type": "wing", "id": 23 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "archangel fairy wings",
         "chance": 0.5,
-        "id": 35506,
+        "cosmetic": { "type": "wing", "id": 19 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "fire aura scroll",
         "chance": 0.5,
-        "id": 35480,
+        "cosmetic": { "type": "aura", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -80672,56 +80782,56 @@
       {
         "name": "demon wings",
         "chance": 0.5,
-        "id": 35311,
+        "cosmetic": { "type": "wing", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow wings",
         "chance": 0.5,
-        "id": 35317,
+        "cosmetic": { "type": "wing", "id": 7 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "angel wings",
         "chance": 0.5,
-        "id": 35313,
+        "cosmetic": { "type": "wing", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow swirl ",
         "chance": 0.5,
-        "id": 38827,
+        "cosmetic": { "type": "aura", "id": 13 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "steampunk wings",
         "chance": 0.5,
-        "id": 35470,
+        "cosmetic": { "type": "wing", "id": 23 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "archangel fairy wings",
         "chance": 0.5,
-        "id": 35506,
+        "cosmetic": { "type": "wing", "id": 19 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "fire aura scroll",
         "chance": 0.5,
-        "id": 35480,
+        "cosmetic": { "type": "aura", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "energy ball aura scroll",
         "chance": 0.5,
-        "id": 35475,
+        "cosmetic": { "type": "aura", "id": 5 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -81261,56 +81371,56 @@
       {
         "name": "demon wings",
         "chance": 0.5,
-        "id": 35311,
+        "cosmetic": { "type": "wing", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow wings",
         "chance": 0.5,
-        "id": 35317,
+        "cosmetic": { "type": "wing", "id": 7 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "angel wings",
         "chance": 0.5,
-        "id": 35313,
+        "cosmetic": { "type": "wing", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow swirl ",
         "chance": 0.5,
-        "id": 38827,
+        "cosmetic": { "type": "aura", "id": 13 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "steampunk wings",
         "chance": 0.5,
-        "id": 35470,
+        "cosmetic": { "type": "wing", "id": 23 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "archangel fairy wings",
         "chance": 0.5,
-        "id": 35506,
+        "cosmetic": { "type": "wing", "id": 19 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "fire aura scroll",
         "chance": 0.5,
-        "id": 35480,
+        "cosmetic": { "type": "aura", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "energy ball aura scroll",
         "chance": 0.5,
-        "id": 35475,
+        "cosmetic": { "type": "aura", "id": 5 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -81814,56 +81924,56 @@
       {
         "name": "demon wings",
         "chance": 0.5,
-        "id": 35311,
+        "cosmetic": { "type": "wing", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow wings",
         "chance": 0.5,
-        "id": 35317,
+        "cosmetic": { "type": "wing", "id": 7 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "angel wings",
         "chance": 0.5,
-        "id": 35313,
+        "cosmetic": { "type": "wing", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow swirl",
         "chance": 0.5,
-        "id": 38827,
+        "cosmetic": { "type": "aura", "id": 13 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "steampunk wings",
         "chance": 0.5,
-        "id": 35470,
+        "cosmetic": { "type": "wing", "id": 23 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "archangel fairy wings",
         "chance": 0.5,
-        "id": 35506,
+        "cosmetic": { "type": "wing", "id": 19 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "fire aura scroll",
         "chance": 0.5,
-        "id": 35480,
+        "cosmetic": { "type": "aura", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "energy ball aura scroll",
         "chance": 0.5,
-        "id": 35475,
+        "cosmetic": { "type": "aura", "id": 5 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -82298,56 +82408,56 @@
       {
         "name": "demon wings",
         "chance": 0.5,
-        "id": 35311,
+        "cosmetic": { "type": "wing", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow wings",
         "chance": 0.5,
-        "id": 35317,
+        "cosmetic": { "type": "wing", "id": 7 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "angel wings",
         "chance": 0.5,
-        "id": 35313,
+        "cosmetic": { "type": "wing", "id": 2 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "rainbow swirl",
         "chance": 0.5,
-        "id": 38827,
+        "cosmetic": { "type": "aura", "id": 13 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "steampunk wings",
         "chance": 0.5,
-        "id": 35470,
+        "cosmetic": { "type": "wing", "id": 23 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "archangel fairy wings",
         "chance": 0.5,
-        "id": 35506,
+        "cosmetic": { "type": "wing", "id": 19 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "fire aura scroll",
         "chance": 0.5,
-        "id": 35480,
+        "cosmetic": { "type": "aura", "id": 1 },
         "minCount": 1,
         "maxCount": 1
       },
       {
         "name": "energy ball aura scroll",
         "chance": 0.5,
-        "id": 35475,
+        "cosmetic": { "type": "aura", "id": 5 },
         "minCount": 1,
         "maxCount": 1
       },
@@ -89430,5 +89540,297 @@
     "tags": [
       "dpsdummy"
     ]
+  },
+  "Yssebor, Warden of the Sunken Hall": {
+    "race": "blood",
+    "level": 1450,
+    "armor": 0,
+    "speed": 0,
+    "health": 875000000,
+    "experience": 0,
+    "attacks": [
+      {
+        "name": "melee",
+        "areaEffect": "watersplash",
+        "shootEffect": "",
+        "radius": "",
+        "range": "",
+        "spread": "",
+        "length": "",
+        "speedchange": "",
+        "duration": "",
+        "target": "",
+        "criticalChance": "",
+        "criticalDamage": "",
+        "interval": "2000",
+        "chance": "100",
+        "min": -195000,
+        "max": -285000
+      },
+      {
+        "name": "ice",
+        "areaEffect": "icetornado",
+        "shootEffect": "",
+        "radius": "",
+        "range": "",
+        "spread": "1",
+        "length": "6",
+        "speedchange": "",
+        "duration": "",
+        "target": "",
+        "criticalChance": "",
+        "criticalDamage": "",
+        "interval": "2000",
+        "chance": "25",
+        "min": -255000,
+        "max": -285000
+      },
+      {
+        "name": "drown",
+        "areaEffect": "bubbles",
+        "shootEffect": "",
+        "radius": "6",
+        "range": "",
+        "spread": "",
+        "length": "",
+        "speedchange": "",
+        "duration": "",
+        "target": "",
+        "criticalChance": "",
+        "criticalDamage": "",
+        "interval": "2000",
+        "chance": "30",
+        "min": -195000,
+        "max": -255000
+      },
+      {
+        "name": "drown",
+        "areaEffect": "watersplash",
+        "shootEffect": "ice",
+        "radius": "",
+        "range": "7",
+        "spread": "",
+        "length": "",
+        "speedchange": "",
+        "duration": "",
+        "target": "1",
+        "criticalChance": "",
+        "criticalDamage": "",
+        "interval": "2000",
+        "chance": "35",
+        "min": -225000,
+        "max": -255000
+      },
+      {
+        "name": "lifedrain",
+        "areaEffect": "bluebubble",
+        "shootEffect": "",
+        "radius": "4",
+        "range": "",
+        "spread": "",
+        "length": "",
+        "speedchange": "",
+        "duration": "",
+        "target": "",
+        "criticalChance": "",
+        "criticalDamage": "",
+        "interval": "3000",
+        "chance": "20",
+        "min": -150000,
+        "max": -240000
+      }
+    ],
+    "defenses": [],
+    "loot": [
+      {
+        "name": "bloody dust",
+        "chance": 5,
+        "id": 38970,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "blacksteel wings",
+        "chance": 1,
+        "cosmetic": {
+          "type": "wing",
+          "id": 11
+        },
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "jade wings",
+        "chance": 1,
+        "cosmetic": {
+          "type": "wing",
+          "id": 9
+        },
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "name": "crimson wings",
+        "chance": 1,
+        "cosmetic": {
+          "type": "wing",
+          "id": 8
+        },
+        "minCount": 1,
+        "maxCount": 1
+      }
+    ],
+    "events": [
+      "RewardLoot",
+      "WarningSpellThink",
+      "YsseborThink",
+      "YsseborDeath",
+      "ThroneBeneathTideDeath"
+    ],
+    "group": "",
+    "tags": [
+      "eternal depths"
+    ],
+    "flags": {
+      "canWalkThroughObjects": 1,
+      "canPushCreatures": 1,
+      "rewardChest": 1,
+      "isBoss": 1
+    },
+    "outfit": {
+      "lookType": 2784
+    }
+  },
+  "Sanctum Grasps": {
+    "race": "blood",
+    "level": 1400,
+    "armor": 0,
+    "speed": 0,
+    "health": 15000000,
+    "experience": 0,
+    "attacks": [
+      {
+        "name": "melee",
+        "areaEffect": "watersplash",
+        "shootEffect": "",
+        "radius": "",
+        "range": "",
+        "spread": "",
+        "length": "",
+        "speedchange": "",
+        "duration": "",
+        "target": "",
+        "criticalChance": "",
+        "criticalDamage": "",
+        "interval": "2000",
+        "chance": "100",
+        "min": -63000,
+        "max": -72000
+      },
+      {
+        "name": "drown",
+        "areaEffect": "bubbles",
+        "shootEffect": "smallice",
+        "radius": "",
+        "range": "4",
+        "spread": "",
+        "length": "",
+        "speedchange": "",
+        "duration": "",
+        "target": "1",
+        "criticalChance": "",
+        "criticalDamage": "",
+        "interval": "2000",
+        "chance": "30",
+        "min": -52000,
+        "max": -94000
+      }
+    ],
+    "defenses": [],
+    "loot": [],
+    "events": [
+      "WarningSpellThink",
+      "YsseborTentacleDeath",
+      "YsseborTentacleHealth"
+    ],
+    "group": "",
+    "tags": [
+      "eternal depths"
+    ],
+    "flags": {
+      "canPushCreatures": 0,
+      "pushable": 0,
+      "canPushItems": 0,
+      "targetDistance": 1,
+      "staticAttackChance": 100
+    },
+    "outfit": {
+      "lookType": 2785
+    }
+  },
+  "Pearl Wretches": {
+    "race": "blood",
+    "level": 1350,
+    "armor": 0,
+    "speed": 500,
+    "health": 3000000,
+    "experience": 0,
+    "attacks": [
+      {
+        "name": "melee",
+        "areaEffect": "bluebubble",
+        "shootEffect": "",
+        "radius": "",
+        "range": "",
+        "spread": "",
+        "length": "",
+        "speedchange": "",
+        "duration": "",
+        "target": "",
+        "criticalChance": "",
+        "criticalDamage": "",
+        "interval": "2000",
+        "chance": "100",
+        "min": -31000,
+        "max": -52000
+      },
+      {
+        "name": "lifedrain",
+        "areaEffect": "pearl_burst",
+        "shootEffect": "",
+        "radius": "2",
+        "range": "",
+        "spread": "",
+        "length": "",
+        "speedchange": "",
+        "duration": "",
+        "target": "",
+        "criticalChance": "",
+        "criticalDamage": "",
+        "interval": "3000",
+        "chance": "20",
+        "min": -21000,
+        "max": -42000
+      }
+    ],
+    "defenses": [],
+    "loot": [],
+    "events": [
+      "YsseborMinionDeath"
+    ],
+    "group": "",
+    "tags": [
+      "eternal depths"
+    ],
+    "flags": {
+      "canPushCreatures": 0,
+      "pushable": 0,
+      "canPushItems": 0,
+      "targetDistance": 1,
+      "staticAttackChance": 70
+    },
+    "outfit": {
+      "lookType": 2786
+    }
   }
 }

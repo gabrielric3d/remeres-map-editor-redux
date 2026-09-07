@@ -1,4 +1,5 @@
-<!-- 
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
 COMO GERAR O ARQUIVO NEWMARKETITEMS.JSON
 
 1. Enviar no server:
@@ -10,10 +11,8 @@ depois no terminal do client:
 2. modules.game_newmarket.Market.SaveCategories()
 
 
-e o newmarketitems.json vai estar em appdata 
+e o newmarketitems.json vai estar em appdata
 -->
-
-<?xml version="1.0" encoding="UTF-8"?>
 <items>
 	<item id="100" name="void" />
 	<item id="101" name="earth" />
@@ -2646,14 +2645,8 @@ e o newmarketitems.json vai estar em appdata
 	<item id="2270" name="spell rune">
 		<attribute key="type" value="rune" />
 	</item>
-	<item id="2271" name="icicle rune">
-		<attribute key="type" value="rune" />
-		<attribute key="runeSpellName" value="adori frigo" />
-		<attribute key="charges" value="5" />
-	</item>
-	<item id="2272" name="spell rune">
-		<attribute key="type" value="rune" />
-	</item>
+	<item id="2271" name="Seeker's Lens"></item>
+	<item id="2272" name="Seeking Lens"></item>
 	<item id="2273" name="ultimate healing rune">
 		<attribute key="description" 
 			value="This rune increases the healing power of your spell." 
@@ -2736,6 +2729,9 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="type" value="rune" />
 		<attribute key="runeSpellName" value="adevo grav tera" />
 		<attribute key="charges" value="3" />
+		<attribute key="description" 
+			value="Its weave is dense enough that even a great one's wrath shatters against it." 
+			pt="Sua trama é densa o bastante para que até a ira de um grande ser se quebre nela." />
 	</item>
 	<item id="2294" name="spell rune">
 		<attribute key="type" value="rune" />
@@ -18141,6 +18137,7 @@ e o newmarketitems.json vai estar em appdata
 	</item>
 	<item id="10513" name="squeezing gear of girlpower">
 		<attribute key="relic" value="1" />
+		<attribute key="markettype" value="relic" />
 		<attribute key="description" 
 			value="Increase energy cost, rewards and experience obtained by gathering skills (mining, herbalist, woodcutting) by 100%&#xA;Allows you to collect nodes directly with the mouse click" 
 			pt="Aumentar o custo de energia, as recompensas e a experiência obtida por habilidades de coleta (mineração, herbalista, corcutação) em 100%&#xA;Permite que você colete nós diretamente com o clique do mouse" />
@@ -18155,6 +18152,7 @@ e o newmarketitems.json vai estar em appdata
 	<item id="10515" name="whacking driller of fate">
 		<attribute key="slotType" value="relic" />
 		<attribute key="relic" value="1" />
+		<attribute key="markettype" value="relic" />
 		<attribute key="transformEquipTo" value="10516" />
 		<attribute key="stopduration" value="1" />
 		<attribute key="showduration" value="1" />
@@ -18165,6 +18163,7 @@ e o newmarketitems.json vai estar em appdata
 	<item id="10516" name="whacking driller of fate">
 		<attribute key="slotType" value="relic" />
 		<attribute key="relic" value="1" />
+		<attribute key="markettype" value="relic" />
 		<attribute key="transformDeEquipTo" value="10515" />
 		<attribute key="showduration" value="1" />
 		<attribute key="showattributes" value="1" />
@@ -22402,10 +22401,10 @@ e o newmarketitems.json vai estar em appdata
 			value="It contains highly intensified poison against vermin." 
 			pt="Contém veneno altamente intensificado contra vermes." />
 	</item>
-	<item id="14324" name="scroll">
+	<item id="14324" name="damage scroll">
 		<attribute key="description" 
-			value="The correspondence written on this scroll could be considered quite compromising." 
-			pt="A correspondência escrita neste pergaminho pode ser considerada bastante comprometida." />
+			value="Use it to increase your damage against creatures by 50% for 3 hours." 
+			pt="Use-o para aumentar seu dano contra criaturas em 50% por 3 horas." />
 	</item>
 	<item id="14325" name="intelligence reports">
 	</item>
@@ -30836,7 +30835,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="weaponType" value="sword" />
 		<attribute key="markettype" value="melee" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="metal" />
+		<attribute key="set" value="metal weapon" />
 	</item>
 	<item id="52324" name="ironrot greatblade">
 		<attribute key="defense" value="0" />
@@ -30846,7 +30845,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="markettype" value="melee" />
 		<attribute key="HitChance" value="100" />
 		<attribute key="slotType" value="two-handed" />
-		<attribute key="set" value="metal" />
+		<attribute key="set" value="metal weapon dk" />
 	</item>
 	<item id="23543" name="glooth whip">
 		<attribute key="defense" value="19" />
@@ -31967,6 +31966,8 @@ e o newmarketitems.json vai estar em appdata
 	<item id="33559" name="whispering sepulchers dungeon chest" />
 	<item id="33560" name="jesterbelly secret dungeon chest" />
 	<item id="33561" name="the crimson feast dungeon chest" />
+	<item id="33562" name="acid gearsaur secret dungeon chest" />
+	<item id="33563" name="the skull feast dungeon chest" />
 
 	<item id="35535" name="soul scroll continent boss">
 		<attribute key="description" 
@@ -32480,6 +32481,24 @@ e o newmarketitems.json vai estar em appdata
 			pt="Use este item para atualizar o espaço de equipamento (ammo) de 40 para 55" />
 		<attribute key="markettype" value="crystals" />
 	</item>
+	<item id="56861" name="t6 gem ammo upgrader">
+		<attribute key="description" 
+			value="Use this item to upgrade equipment slot (ammo) from 55 to 60" 
+			pt="Use este item para atualizar o espaço de equipamento (ammo) de 55 para 60" />
+		<attribute key="markettype" value="crystals" />
+	</item>
+	<item id="57049" name="t7 gem ammo upgrader">
+		<attribute key="description" 
+			value="Use this item to upgrade equipment slot (ammo) from 60 to 65" 
+			pt="Use este item para atualizar o espaço de equipamento (ammo) de 60 para 65" />
+		<attribute key="markettype" value="crystals" />
+	</item>
+	<item id="57050" name="t8 gem ammo upgrader">
+		<attribute key="description" 
+			value="Use this item to upgrade equipment slot (ammo) from 65 to 70" 
+			pt="Use este item para atualizar o espaço de equipamento (ammo) de 65 para 70" />
+		<attribute key="markettype" value="crystals" />
+	</item>
 	
 	
 
@@ -32871,8 +32890,8 @@ e o newmarketitems.json vai estar em appdata
 	<item id="32655" name="little tongue">
 		<attribute key="slotType" value="ammo" />
 		<attribute key="description" 
-			value="Weapon effect: Has a 15% chance to trigger bouncing attacks.&#xA;&#xA;[Equip at Arrow Slot]" 
-			pt="Efeito da arma: tem 15% de chance de ativar ataques de ricochete.&#xA;&#xA;[Equipe no espaço de flecha]" />
+			value="Weapon effect: 15% chance on hit to unleash a bouncing shot that leaps to up to 7 nearby monsters, dealing 100% of your weapon damage to each.&#xA;&#xA;[Equip at Arrow Slot]" 
+			pt="Efeito da arma: 15% de chance ao acertar de disparar um tiro em ricochete que salta para até 7 monstros próximos, causando 100% do seu weapon damage em cada um.&#xA;&#xA;[Equipe no espaço de flecha]" />
 		<attribute key="markettype" value="ammo" />
 	</item>
 	<item id="24790" name="wolfhead amulet">
@@ -33065,7 +33084,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="markettype" value="melee" />
 		<attribute key="HitChance" value="100" />
 		<attribute key="slotType" value="two-handed" />
-		<attribute key="set" value="mercenary weapon" />
+		<attribute key="set" value="mercenary weapon dk" />
 	</item>
 	<item id="2163" name="magic light wand">
 		<attribute key="attack" value="25" />
@@ -33094,7 +33113,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="25" />
 		<attribute key="attack" value="25" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="mercenary weapon" />
+		<attribute key="set" value="mercenary weapon physical" />
 	</item>
 
 	<item id="2511" name="mercenary shield">
@@ -33102,21 +33121,21 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="25" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="mercenary" />
+		<attribute key="set" value="mercenary offhand" />
 	</item>
 	<item id="8904" name="spellscroll of prophecies">
 		<attribute key="defense" value="8" />
 		<attribute key="might" value="25" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="mercenary" />
+		<attribute key="set" value="mercenary spellbook" />
 	</item>
 	<item id="34131" name="quiver">
 		<attribute key="defense" value="7" />
 		<attribute key="might" value="25" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="mercenary" />
+		<attribute key="set" value="mercenary offhand" />
 	</item>
 	<item id="41228" name="assassin dagger (off-hand)">
 		<attribute key="attack" value="25" />
@@ -33134,7 +33153,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="25" />
 		<attribute key="attack" value="25" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="mercenary weapon" />
+		<attribute key="set" value="mercenary weapon physical" />
 	</item>
 
 	<item id="2457" name="steel helmet">
@@ -33212,21 +33231,21 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="50" />
 		<attribute key="weaponType" value="shield" />
 		
-		<attribute key="set" value="steel" />
+		<attribute key="set" value="steel offhand" />
 	</item>
 	<item id="8902" name="spellbook of mind control">
 		<attribute key="defense" value="11" />
 		<attribute key="might" value="50" />
 		<attribute key="weaponType" value="shield" />
 		
-		<attribute key="set" value="steel" />
+		<attribute key="set" value="steel spellbook" />
 	</item>
 	<item id="34132" name="jungle quiver">
 		<attribute key="defense" value="10" />
 		<attribute key="might" value="50" />
 		<attribute key="weaponType" value="shield" />
 		
-		<attribute key="set" value="steel" />
+		<attribute key="set" value="steel offhand" />
 	</item>
 
 	
@@ -33317,7 +33336,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="100" />
 		<attribute key="attack" value="35" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="metal weapon" />
+		<attribute key="set" value="metal weapon physical" />
 	</item>
 
 	<item id="2529" name="black shield">
@@ -33325,21 +33344,21 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="100" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="metal" />
+		<attribute key="set" value="metal offhand" />
 	</item>
 	<item id="8903" name="spellbook of lost souls">
 		<attribute key="defense" value="14" />
 		<attribute key="might" value="100" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="metal" />
+		<attribute key="set" value="metal spellbook" />
 	</item>
 	<item id="34140" name="rusty metal quiver">
 		<attribute key="defense" value="13" />
 		<attribute key="might" value="100" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="metal" />
+		<attribute key="set" value="metal offhand" />
 	</item>
 	<item id="41231" name="metal dagger (off-hand)">
 		<attribute key="attack" value="35" />
@@ -33357,7 +33376,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="100" />
 		<attribute key="attack" value="35" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="metal weapon" />
+		<attribute key="set" value="metal weapon physical" />
 	</item>
 
 	
@@ -33396,21 +33415,21 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="140" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="blue" />
+		<attribute key="set" value="blue offhand" />
 	</item>
 	<item id="8918" name="spellbook of dark mysteries">
 		<attribute key="defense" value="16" />
 		<attribute key="might" value="140" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="blue" />
+		<attribute key="set" value="blue spellbook" />
 	</item>
 	<item id="34139" name="blue quiver">
 		<attribute key="defense" value="15" />
 		<attribute key="might" value="140" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="blue" />
+		<attribute key="set" value="blue offhand" />
 	</item>
 	<item id="41232" name="sapphire dagger (off-hand)">
 		<attribute key="attack" value="42" />
@@ -33428,7 +33447,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="140" />
 		<attribute key="attack" value="42" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="blue weapon" />
+		<attribute key="set" value="blue weapon physical" />
 	</item>	
 	
 	<item id="6528" name="hellforged axe">
@@ -33447,7 +33466,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="markettype" value="melee" />
 		<attribute key="slotType" value="two-handed" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="blue weapon" />
+		<attribute key="set" value="blue weapon dk" />
 	</item>
 	<item id="2453" name="arcane staff">
 		<attribute key="attack" value="42" />
@@ -33497,7 +33516,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="140" />
 		<attribute key="attack" value="42" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="blue weapon" />
+		<attribute key="set" value="blue weapon physical" />
 	</item>
 
 	<item id="2491" name="crown helmet">
@@ -33561,19 +33580,19 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="180" />
 		<attribute key="defense" value="19" />
 		<attribute key="weaponType" value="shield" />
-		<attribute key="set" value="crown" />
+		<attribute key="set" value="crown offhand" />
 	</item>
 	<item id="22424" name="umbral master spellbook">
 		<attribute key="defense" value="18" />
 		<attribute key="might" value="180" />
 		<attribute key="weaponType" value="shield" />
-		<attribute key="set" value="crown" />
+		<attribute key="set" value="crown spellbook" />
 	</item>
 	<item id="34135" name="sweet rose quiver">
 		<attribute key="defense" value="17" />
 		<attribute key="might" value="180" />
 		<attribute key="weaponType" value="shield" />
-		<attribute key="set" value="crown" />
+		<attribute key="set" value="crown offhand" />
 	</item>
 	
 	<item id="34077" name="aragorn helmet">
@@ -33610,21 +33629,21 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="230" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="aragorn" />
+		<attribute key="set" value="aragorn offhand" />
 	</item>
 	<item id="34087" name="aragorn spellbook">
 		<attribute key="defense" value="22" />
 		<attribute key="might" value="230" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="aragorn" />
+		<attribute key="set" value="aragorn spellbook" />
 	</item>
 	<item id="34138" name="aragorn quiver">
 		<attribute key="defense" value="21" />
 		<attribute key="might" value="230" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="aragorn" />
+		<attribute key="set" value="aragorn offhand" />
 	</item>
 	<item id="41234" name="aragorn dagger (off-hand)">
 		<attribute key="attack" value="52" />
@@ -33642,7 +33661,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="230" />
 		<attribute key="attack" value="52" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="aragorn weapon" />
+		<attribute key="set" value="aragorn weapon physical" />
 	</item>
 
 	<item id="34086" name="aragorn wand">
@@ -33678,7 +33697,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="weaponType" value="sword" />
 		<attribute key="markettype" value="melee" />
 		<attribute key="slotType" value="two-handed" />
-		<attribute key="set" value="aragorn weapon" />
+		<attribute key="set" value="aragorn weapon dk" />
 	</item>
 	<item id="34084" name="aragorn mace">
 		<attribute key="attack" value="52" />
@@ -33738,7 +33757,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="230" />
 		<attribute key="attack" value="52" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="aragorn weapon" />
+		<attribute key="set" value="aragorn weapon physical" />
 	</item>
 
 	
@@ -33776,21 +33795,21 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="350" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="lion" />
+		<attribute key="set" value="lion offhand" />
 	</item>
 	<item id="35008" name="lion spellbook">
 		<attribute key="defense" value="29" />
 		<attribute key="might" value="350" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="lion" />
+		<attribute key="set" value="lion spellbook" />
 	</item>
 	<item id="35487" name="lion quiver">
 		<attribute key="defense" value="28" />
 		<attribute key="might" value="350" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="lion" />
+		<attribute key="set" value="lion offhand" />
 	</item>
 	<item id="41235" name="lion dagger (off-hand)">
 		<attribute key="attack" value="65" />
@@ -33808,7 +33827,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="350" />
 		<attribute key="attack" value="65" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="lion weapon" />
+		<attribute key="set" value="lion weapon physical" />
 	</item>
 
 	<item id="35485" name="lion wand">
@@ -33852,7 +33871,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="weaponType" value="sword" />
 		<attribute key="markettype" value="melee" />
 		<attribute key="slotType" value="two-handed" />
-		<attribute key="set" value="lion weapon" />
+		<attribute key="set" value="lion weapon dk" />
 	</item>
 	<item id="35496" name="lion hammer">
 		<attribute key="defense" value="0" />
@@ -33913,7 +33932,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="350" />
 		<attribute key="attack" value="65" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="lion weapon" />
+		<attribute key="set" value="lion weapon physical" />
 	</item>
 
 	<item id="35013" name="lion amulet">
@@ -33963,19 +33982,19 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="defense" value="35" />
 		<attribute key="might" value="450" />
 		<attribute key="weaponType" value="shield" />
-		<attribute key="set" value="death call" />
+		<attribute key="set" value="death call offhand" />
 	</item>
 	<item id="34076" name="death call spellbook">
 		<attribute key="defense" value="34" />
 		<attribute key="might" value="450" />
 		<attribute key="weaponType" value="shield" />
-		<attribute key="set" value="death call" />
+		<attribute key="set" value="death call spellbook" />
 	</item>
 	<item id="35156" name="death call quiver">
 		<attribute key="defense" value="33" />
 		<attribute key="might" value="450" />
 		<attribute key="weaponType" value="shield" />
-		<attribute key="set" value="death call" />
+		<attribute key="set" value="death call offhand" />
 	</item>
 	<item id="34073" name="death call staff">
 		<attribute key="attack" value="75" />
@@ -34066,21 +34085,21 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="550" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="soul" />
+		<attribute key="set" value="soul offhand" />
 	</item>
 	<item id="38636" name="soulgrimoire">
 		<attribute key="defense" value="39" />
 		<attribute key="might" value="550" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="soul" />
+		<attribute key="set" value="soul spellbook" />
 	</item>
 	<item id="38635" name="soulquiver">
 		<attribute key="defense" value="38" />
 		<attribute key="might" value="550" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="soul" />
+		<attribute key="set" value="soul offhand" />
 	</item>
 	<item id="41237" name="souledge (off-hand)">
 		<attribute key="attack" value="85" />
@@ -34098,7 +34117,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="550" />
 		<attribute key="attack" value="85" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="soul weapon" />
+		<attribute key="set" value="soul weapon physical" />
 	</item>
 
 	<item id="34998" name="soultainter">
@@ -34118,14 +34137,14 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="markettype" value="melee" />
 		<attribute key="set" value="soul weapon" />
 	</item>
-	<item id="52328" name="shoulshredder">
+	<item id="52328" name="soulshredder">
 		<attribute key="defense" value="0" />
 		<attribute key="attack" value="85" />
 		<attribute key="might" value="1100" />
 		<attribute key="weaponType" value="sword" />
 		<attribute key="markettype" value="melee" />
 		<attribute key="slotType" value="two-handed" />
-		<attribute key="set" value="soul weapon" />
+		<attribute key="set" value="soul weapon dk" />
 	</item>
 	<item id="34997" name="soulpiercer">
 		<attribute key="defense" value="0" />
@@ -34167,7 +34186,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="550" />
 		<attribute key="attack" value="85" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="soul weapon" />
+		<attribute key="set" value="soul weapon physical" />
 	</item>
 
 	<item id="38894" name="soul pendant">
@@ -34228,7 +34247,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="flatpen" value="150" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="magic" />
+		<attribute key="set" value="magic offhand" />
 	</item>
 	<item id="35560" name="magic grimoire">
 		<attribute key="defense" value="49" />
@@ -34236,7 +34255,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="flatpen" value="150" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="magic" />
+		<attribute key="set" value="magic spellbook" />
 	</item>
 	<item id="35559" name="magic quiver">
 		<attribute key="defense" value="48" />
@@ -34244,7 +34263,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="flatpen" value="150" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="magic" />
+		<attribute key="set" value="magic offhand" />
 	</item>
 	<item id="41238" name="magic dagger (off-hand)">
 		<attribute key="attack" value="105" />
@@ -34264,7 +34283,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="750" />
 		<attribute key="flatpen" value="150" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="magic weapon" />
+		<attribute key="set" value="magic weapon physical" />
 	</item>
 
 	<item id="25887" name="magic staff">
@@ -34294,7 +34313,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="weaponType" value="sword" />
 		<attribute key="markettype" value="melee" />
 		<attribute key="slotType" value="two-handed" />
-		<attribute key="set" value="magic weapon" />
+		<attribute key="set" value="magic weapon dk" />
 	</item>
 	<item id="25885" name="magic bow">
 		<attribute key="defense" value="0" />
@@ -34341,7 +34360,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="750" />
 		<attribute key="flatpen" value="150" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="magic weapon" />
+		<attribute key="set" value="magic weapon physical" />
 	</item>
 
 	
@@ -34383,7 +34402,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="flatpen" value="250" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="iceforged" />
+		<attribute key="set" value="iceforged offhand" />
 	</item>
 	<item id="40791" name="iceforged spellbook">
 		<attribute key="defense" value="54" />
@@ -34391,7 +34410,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="flatpen" value="250" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="iceforged" />
+		<attribute key="set" value="iceforged spellbook" />
 	</item>
 	<item id="40792" name="iceforged quiver">
 		<attribute key="defense" value="53" />
@@ -34399,7 +34418,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="flatpen" value="250" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="iceforged" />
+		<attribute key="set" value="iceforged offhand" />
 	</item>
 	<item id="41239" name="iceforged dagger (off-hand)">
 		<attribute key="attack" value="120" />
@@ -34419,7 +34438,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="900" />
 		<attribute key="flatpen" value="250" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="iceforged weapon" />
+		<attribute key="set" value="iceforged weapon physical" />
 	</item>
 
 	<item id="40958" name="iceforged staff">
@@ -34449,7 +34468,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="weaponType" value="sword" />
 		<attribute key="markettype" value="melee" />
 		<attribute key="slotType" value="two-handed" />
-		<attribute key="set" value="iceforged weapon" />
+		<attribute key="set" value="iceforged weapon dk" />
 	</item>
 	<item id="40957" name="iceforged bow">
 		<attribute key="defense" value="0" />
@@ -34493,9 +34512,9 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="range" value="5" />
 		<attribute key="attack" value="120" />
 		<attribute key="might" value="900" />
-		<attribute key="flatpen" value="250" />
+		<attribute key="flatpen" value="350" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="iceforged weapon" />
+		<attribute key="set" value="iceforged weapon physical" />
 	</item>
 
 	<item id="40226" name="iceforged amulet">
@@ -34554,7 +34573,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="flatpen" value="350" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="beholder" />
+		<attribute key="set" value="beholder offhand" />
 	</item>
 	<item id="41324" name="beholder spellbook">
 		<attribute key="defense" value="64" />
@@ -34562,7 +34581,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="flatpen" value="350" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="beholder" />
+		<attribute key="set" value="beholder spellbook" />
 	</item>
 	<item id="41325" name="beholder quiver">
 		<attribute key="defense" value="63" />
@@ -34570,7 +34589,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="flatpen" value="350" />
 		<attribute key="weaponType" value="shield" />
 		<attribute key="markettype" value="shield" />
-		<attribute key="set" value="beholder" />
+		<attribute key="set" value="beholder offhand" />
 	</item>
 	<item id="41330" name="beholder dagger (off-hand)">
 		<attribute key="attack" value="150" />
@@ -34590,7 +34609,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="1100" />
 		<attribute key="flatpen" value="350" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="beholder weapon" />
+		<attribute key="set" value="beholder weapon physical" />
 	</item>
 
 	<item id="41327" name="beholder staff">
@@ -34620,7 +34639,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="weaponType" value="sword" />
 		<attribute key="markettype" value="melee" />
 		<attribute key="slotType" value="two-handed" />
-		<attribute key="set" value="beholder weapon" />
+		<attribute key="set" value="beholder weapon dk" />
 	</item>
 	<item id="41329" name="beholder bow">
 		<attribute key="defense" value="0" />
@@ -34664,9 +34683,9 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="range" value="5" />
 		<attribute key="attack" value="150" />
 		<attribute key="might" value="1100" />
-		<attribute key="flatpen" value="350" />
+		<attribute key="flatpen" value="450" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="beholder weapon" />
+		<attribute key="set" value="beholder weapon physical" />
 	</item>
 
 	<item id="43899" name="beholder amulet">
@@ -34725,7 +34744,7 @@ e o newmarketitems.json vai estar em appdata
 	    <attribute key="flatpen" value="450" />
 	    <attribute key="weaponType" value="shield" />
 	    <attribute key="markettype" value="shield" />
-	    <attribute key="set" value="heavenly" />
+	    <attribute key="set" value="heavenly offhand" />
 	</item>
 	<item id="46105" name="heavenly spellbook">
 	    <attribute key="defense" value="69" />
@@ -34733,7 +34752,7 @@ e o newmarketitems.json vai estar em appdata
 	    <attribute key="flatpen" value="450" />
 	    <attribute key="weaponType" value="shield" />
 	    <attribute key="markettype" value="shield" />
-	    <attribute key="set" value="heavenly" />
+	    <attribute key="set" value="heavenly spellbook" />
 	</item>
 	<item id="46106" name="heavenly quiver">
 	    <attribute key="defense" value="68" />
@@ -34741,7 +34760,7 @@ e o newmarketitems.json vai estar em appdata
 	    <attribute key="flatpen" value="450" />
 	    <attribute key="weaponType" value="shield" />
 	    <attribute key="markettype" value="shield" />
-	    <attribute key="set" value="heavenly" />
+	    <attribute key="set" value="heavenly offhand" />
 	</item>
 	<item id="46111" name="heavenly dagger (off-hand)">
 		<attribute key="attack" value="165" />
@@ -34761,7 +34780,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="1250" />
 		<attribute key="flatpen" value="450" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="heavenly weapon" />
+		<attribute key="set" value="heavenly weapon physical" />
 	</item>
 
 	<item id="46108" name="heavenly staff">
@@ -34791,7 +34810,7 @@ e o newmarketitems.json vai estar em appdata
 	    <attribute key="weaponType" value="sword" />
 	    <attribute key="markettype" value="melee" />
 		<attribute key="slotType" value="two-handed" />
-	    <attribute key="set" value="heavenly weapon" />
+	    <attribute key="set" value="heavenly weapon dk" />
 	</item>
 	<item id="46110" name="heavenly bow">
 	    <attribute key="defense" value="0" />
@@ -34837,7 +34856,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="1250" />
 		<attribute key="flatpen" value="550" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="heavenly weapon" />
+		<attribute key="set" value="heavenly weapon physical" />
 	</item>
 
 	<item id="46114" name="heavenly amulet">
@@ -34895,7 +34914,7 @@ e o newmarketitems.json vai estar em appdata
 	    <attribute key="flatpen" value="540" />
 	    <attribute key="weaponType" value="shield" />
 	    <attribute key="markettype" value="shield" />
-	    <attribute key="set" value="bloodrite" />
+	    <attribute key="set" value="bloodrite offhand" />
 	</item>
 	<item id="55365" name="bloodrite spellbook">
 	    <attribute key="defense" value="83" />
@@ -34903,7 +34922,7 @@ e o newmarketitems.json vai estar em appdata
 	    <attribute key="flatpen" value="540" />
 	    <attribute key="weaponType" value="shield" />
 	    <attribute key="markettype" value="shield" />
-	    <attribute key="set" value="bloodrite" />
+	    <attribute key="set" value="bloodrite spellbook" />
 	</item>
 	<item id="55366" name="bloodrite quiver">
 	    <attribute key="defense" value="82" />
@@ -34911,7 +34930,7 @@ e o newmarketitems.json vai estar em appdata
 	    <attribute key="flatpen" value="540" />
 	    <attribute key="weaponType" value="shield" />
 	    <attribute key="markettype" value="shield" />
-	    <attribute key="set" value="bloodrite" />
+	    <attribute key="set" value="bloodrite offhand" />
 	</item>
 	<item id="55367" name="bloodrite dagger">
 		<attribute key="attack" value="198" />
@@ -34949,7 +34968,7 @@ e o newmarketitems.json vai estar em appdata
 	    <attribute key="weaponType" value="sword" />
 	    <attribute key="markettype" value="melee" />
 		<attribute key="slotType" value="two-handed" />
-	    <attribute key="set" value="bloodrite weapon" />
+	    <attribute key="set" value="bloodrite weapon dk" />
 	</item>
 	<item id="55371" name="bloodrite bow">
 	    <attribute key="defense" value="0" />
@@ -34995,7 +35014,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="1500" />
 		<attribute key="flatpen" value="660" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="bloodrite weapon" />
+		<attribute key="set" value="bloodrite weapon physical" />
 	</item>
 	<item id="55375" name="bloodrite pistol (off-hand)">
 		<attribute key="weaponType" value="shield" />
@@ -35006,7 +35025,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="might" value="1500" />
 		<attribute key="flatpen" value="540" />
 		<attribute key="HitChance" value="100" />
-		<attribute key="set" value="bloodrite weapon" />
+		<attribute key="set" value="bloodrite weapon physical" />
 	</item>
 	<item id="55376" name="bloodrite amulet">
 	    <attribute key="slotType" value="necklace" />
@@ -36505,6 +36524,18 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="corpseType" value="blood" />
 		<attribute key="fluidSource" value="blood" />
 	</item>
+	<item id="56859" name="fourth corrupted soul unlocker">
+		<attribute key="description"
+			value="This item unlocks the fourth corrupted Soul Scroll slot."
+			pt="Este item desbloqueia o quarto espaco de Soul Scroll corrompido." />
+		<attribute key="markettype" value="crafting" />
+	</item>
+	<item id="56860" name="fifth soul unlocker">
+		<attribute key="description"
+			value="This item unlocks the fifth Soul Scroll slot."
+			pt="Este item desbloqueia o quinto espaco de Soul Scroll." />
+		<attribute key="markettype" value="crafting" />
+	</item>
 	<item id="35546" name="soul scroll remover">
 		<attribute key="description" 
 			value="This item remove all equipped soul scrolls." 
@@ -37256,6 +37287,17 @@ e o newmarketitems.json vai estar em appdata
 				pt="Essa chave permite que você entre na dungeon secreta localizada no inferno." />
 			<attribute key="markettype" value="other" />
 		</item>
+		<item id="55765" name="secret dungeon key (acid gearsaur)">
+			<attribute key="description" 
+				value="This key allows you to enter in the secret dungeon located in the inferno." 
+				pt="Essa chave permite que você entre na dungeon secreta localizada no inferno." />
+			<attribute key="markettype" value="other" />
+		</item>
+		<item id="55766" name="lasso">
+			<attribute key="description"
+				value="Use it on a nearby wild animal to lasso and tame it."
+				pt="Use em um animal selvagem por perto para laçá-lo e domesticá-lo." />
+		</item>
 		<item fromid="35657" toid="35658" name="floor" />
 		<item id="35659" name="podium" />
 
@@ -37364,6 +37406,12 @@ e o newmarketitems.json vai estar em appdata
 			<attribute key="markettype" value="crafting" />
 		</item>
 		<item id="38974" name="bloody rune">
+			<attribute key="description" 
+				value="This is a fusion reagent, it increase the chance by 15%. Using multiple of the same can lead to diminishing effects." 
+				pt="Este é um reagente de fusão, aumenta a chance em 15%. O uso de múltiplos do mesmo pode levar a efeitos decrescentes." />
+			<attribute key="markettype" value="crafting" />
+		</item>
+		<item id="48949" name="bloody flame feather">
 			<attribute key="description" 
 				value="This is a fusion reagent, it increase the chance by 15%. Using multiple of the same can lead to diminishing effects." 
 				pt="Este é um reagente de fusão, aumenta a chance em 15%. O uso de múltiplos do mesmo pode levar a efeitos decrescentes." />
@@ -37907,7 +37955,7 @@ e o newmarketitems.json vai estar em appdata
 				pt="Usado para capturar chefes de pesca." />
 		</item>
 		<item id="40797" name="smelter container">
-			<attribute key="containerSize" value="30" />
+			<attribute key="containerSize" value="36" />
 			<attribute key="pickupable" value="0" />
 			<attribute key="moveable" value="0" />
 		</item>
@@ -40281,6 +40329,11 @@ e o newmarketitems.json vai estar em appdata
 
 
 	<item id="44360" name="Chaos Chest">
+		<attribute key="description" 
+			value="Open to receive plenty of rewards" 
+			pt="Abra para receber muitas recompensas" />
+	</item>
+	<item id="57076" name="Riftborn Chest">
 		<attribute key="description" 
 			value="Open to receive plenty of rewards" 
 			pt="Abra para receber muitas recompensas" />
@@ -42687,6 +42740,24 @@ e o newmarketitems.json vai estar em appdata
 			value="Zelha's reluctant gift. Drip on the twelve corrupt pools of the swamp."
 			pt="O presente relutante de Zelha. Pingue nas doze poças corrompidas do pântano." />
 	</item>
+	<item id="55785" article="a" name="toxin flask (empty)">
+		<attribute key="description" value="An empty flask. Drain the swamp toxin statues to fill it." />
+	</item>
+	<item id="55786" article="a" name="toxin flask (1/4)">
+		<attribute key="description" value="A flask filling with swamp toxin." />
+	</item>
+	<item id="55787" article="a" name="toxin flask (2/4)">
+		<attribute key="description" value="A flask half full of swamp toxin." />
+	</item>
+	<item id="55788" article="a" name="toxin flask (3/4)">
+		<attribute key="description" value="A flask almost full of swamp toxin." />
+	</item>
+	<item id="55789" article="a" name="toxin flask (full)">
+		<attribute key="description" value="A flask full of swamp toxin. Return it to Zelha." />
+	</item>
+	<item id="55790" article="an" name="undying heart">
+		<attribute key="description" value="A heart that refuses to stop beating. Zelha wants it." />
+	</item>
 	<item id="55303" article="an" name="infernal dust">
 		<attribute key="description"
 			value="Demonic dust left by vaporized creatures. Burns ancient ritual symbols."
@@ -43076,7 +43147,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="relic" value="1" />
 		<attribute key="markettype" value="relic" />
 	</item>
-	<item id="55338" article="an" name="inferno task relic 1">
+	<item id="55338" article="a" name="lunacio's cinderhand">
 		<attribute key="relic" value="1" />
 		<attribute key="markettype" value="relic" />
 	</item>
@@ -43118,7 +43189,7 @@ e o newmarketitems.json vai estar em appdata
 			value="30% chance to cast earth strike while attacking."
 			pt="30% de chance de conjurar ataque de terra ao atacar." />
 	</item>
-	<item id="55347" article="an" name="inferno raid relic 1">
+	<item id="55347" article="a" name="igrath's shadowflame lash">
 		<attribute key="relic" value="1" />
 		<attribute key="markettype" value="relic" />
 	</item>
@@ -43160,7 +43231,7 @@ e o newmarketitems.json vai estar em appdata
 		<attribute key="relic" value="1" />
 		<attribute key="markettype" value="relic" />
 	</item>
-	<item id="55356" article="an" name="inferno daily relic 1">
+	<item id="55356" article="a" name="drak'morthul's emberstaff">
 		<attribute key="relic" value="1" />
 		<attribute key="markettype" value="relic" />
 	</item>
@@ -43381,6 +43452,292 @@ e o newmarketitems.json vai estar em appdata
 	<item id="55708" name="forager's scroll">
 		<attribute key="description" value="Increase herbalist gathering by 100% for 1 hour." pt="Aumenta a coleta de ervas em 100% por 1 hora." />
 		<attribute key="markettype" value="other" />
+	</item>
+	<item id="55248" name="ramp">
+		<attribute key="floorchange" value="east" />
+	</item>
+	<item id="55249" name="ramp" />
+	<item id="55250" name="ramp">
+		<attribute key="floorchange" value="west" />
+	</item>
+	<item id="55251" name="ramp" />
+	<item id="55252" name="ramp">
+		<attribute key="floorchange" value="south" />
+	</item>
+	<item id="55253" name="ramp" />
+	<item id="55254" name="ramp">
+		<attribute key="floorchange" value="north" />
+	</item>
+	<item id="55255" name="ramp" />
+	<!-- Alien Crystal Tree currencies (crystal + alien organ per region) -->
+	<item id="56486" name="Prismatic Crystal">
+		<attribute key="description" value="Interact with it to open a prismatic portal. Beware the Alien within." />
+	</item>
+	<item id="56487" name="Vorgan Crystal">
+		<attribute key="description" value="A crystallized core torn from General Vorgan's brood (Mainland)." />
+	</item>
+	<item id="56488" name="Vorgan Organ">
+		<attribute key="description" value="An alien organ harvested from General Vorgan's brood (Mainland)." />
+	</item>
+	<item id="56489" name="Sethrax Crystal">
+		<attribute key="description" value="A crystallized core torn from General Sethrax's brood (Nefrah)." />
+	</item>
+	<item id="56490" name="Sethrax Organ">
+		<attribute key="description" value="An alien organ harvested from General Sethrax's brood (Nefrah)." />
+	</item>
+	<item id="56491" name="Zharok Crystal">
+		<attribute key="description" value="A crystallized core torn from General Zharok's brood (High Desert)." />
+	</item>
+	<item id="56492" name="Zharok Organ">
+		<attribute key="description" value="An alien organ harvested from General Zharok's brood (High Desert)." />
+	</item>
+	<item id="56493" name="Nyxar Crystal">
+		<attribute key="description" value="A crystallized core torn from General Nyxar's brood (Dark Island)." />
+	</item>
+	<item id="56494" name="Nyxar Organ">
+		<attribute key="description" value="An alien organ harvested from General Nyxar's brood (Dark Island)." />
+	</item>
+	<item id="56495" name="Kryon Crystal">
+		<attribute key="description" value="A crystallized core torn from General Kryon's brood (Ice Scar)." />
+	</item>
+	<item id="56496" name="Kryon Organ">
+		<attribute key="description" value="An alien organ harvested from General Kryon's brood (Ice Scar)." />
+	</item>
+	<item id="56497" name="Morgrath Crystal">
+		<attribute key="description" value="A crystallized core torn from General Morgrath's brood (Wasteland)." />
+	</item>
+	<item id="56498" name="Morgrath Organ">
+		<attribute key="description" value="An alien organ harvested from General Morgrath's brood (Wasteland)." />
+	</item>
+	<item id="56499" name="Aelzor Crystal">
+		<attribute key="description" value="A crystallized core torn from General Aelzor's brood (Sky Realm)." />
+	</item>
+	<item id="56500" name="Aelzor Organ">
+		<attribute key="description" value="An alien organ harvested from General Aelzor's brood (Sky Realm)." />
+	</item>
+	<item id="56501" name="Ignarok Crystal">
+		<attribute key="description" value="A crystallized core torn from General Ignarok's brood (Inferno)." />
+	</item>
+	<item id="56502" name="Ignarok Organ">
+		<attribute key="description" value="An alien organ harvested from General Ignarok's brood (Inferno)." />
+	</item>
+	<item id="56515" name="vorgan crystal node">
+		<attribute key="description" value="Use it to gather Vorgan Crystals (Mainland). Unstable energy hums within." />
+	</item>
+	<item id="56516" name="vorgan crystal node">
+		<attribute key="description" value="Use it to gather Vorgan Crystals (Mainland). Unstable energy hums within." />
+	</item>
+	<item id="56517" name="vorgan crystal node">
+		<attribute key="description" value="Use it to gather Vorgan Crystals (Mainland). Unstable energy hums within." />
+	</item>
+	<item id="56518" name="vorgan crystal node">
+		<attribute key="description" value="Use it to gather Vorgan Crystals (Mainland). Unstable energy hums within." />
+	</item>
+	<item id="56519" name="sethrax crystal node">
+		<attribute key="description" value="Use it to gather Sethrax Crystals (Nefrah). Unstable energy hums within." />
+	</item>
+	<item id="56520" name="sethrax crystal node">
+		<attribute key="description" value="Use it to gather Sethrax Crystals (Nefrah). Unstable energy hums within." />
+	</item>
+	<item id="56521" name="sethrax crystal node">
+		<attribute key="description" value="Use it to gather Sethrax Crystals (Nefrah). Unstable energy hums within." />
+	</item>
+	<item id="56522" name="sethrax crystal node">
+		<attribute key="description" value="Use it to gather Sethrax Crystals (Nefrah). Unstable energy hums within." />
+	</item>
+	<item id="56523" name="zharok crystal node">
+		<attribute key="description" value="Use it to gather Zharok Crystals (High Desert). Unstable energy hums within." />
+	</item>
+	<item id="56524" name="zharok crystal node">
+		<attribute key="description" value="Use it to gather Zharok Crystals (High Desert). Unstable energy hums within." />
+	</item>
+	<item id="56525" name="zharok crystal node">
+		<attribute key="description" value="Use it to gather Zharok Crystals (High Desert). Unstable energy hums within." />
+	</item>
+	<item id="56526" name="zharok crystal node">
+		<attribute key="description" value="Use it to gather Zharok Crystals (High Desert). Unstable energy hums within." />
+	</item>
+	<item id="56527" name="nyxar crystal node">
+		<attribute key="description" value="Use it to gather Nyxar Crystals (Dark Island). Unstable energy hums within." />
+	</item>
+	<item id="56528" name="nyxar crystal node">
+		<attribute key="description" value="Use it to gather Nyxar Crystals (Dark Island). Unstable energy hums within." />
+	</item>
+	<item id="56529" name="nyxar crystal node">
+		<attribute key="description" value="Use it to gather Nyxar Crystals (Dark Island). Unstable energy hums within." />
+	</item>
+	<item id="56530" name="nyxar crystal node">
+		<attribute key="description" value="Use it to gather Nyxar Crystals (Dark Island). Unstable energy hums within." />
+	</item>
+	<item id="56531" name="kryon crystal node">
+		<attribute key="description" value="Use it to gather Kryon Crystals (Ice Scar). Unstable energy hums within." />
+	</item>
+	<item id="56532" name="kryon crystal node">
+		<attribute key="description" value="Use it to gather Kryon Crystals (Ice Scar). Unstable energy hums within." />
+	</item>
+	<item id="56533" name="kryon crystal node">
+		<attribute key="description" value="Use it to gather Kryon Crystals (Ice Scar). Unstable energy hums within." />
+	</item>
+	<item id="56534" name="kryon crystal node">
+		<attribute key="description" value="Use it to gather Kryon Crystals (Ice Scar). Unstable energy hums within." />
+	</item>
+	<item id="56535" name="morgrath crystal node">
+		<attribute key="description" value="Use it to gather Morgrath Crystals (Wasteland). Unstable energy hums within." />
+	</item>
+	<item id="56536" name="morgrath crystal node">
+		<attribute key="description" value="Use it to gather Morgrath Crystals (Wasteland). Unstable energy hums within." />
+	</item>
+	<item id="56537" name="morgrath crystal node">
+		<attribute key="description" value="Use it to gather Morgrath Crystals (Wasteland). Unstable energy hums within." />
+	</item>
+	<item id="56538" name="morgrath crystal node">
+		<attribute key="description" value="Use it to gather Morgrath Crystals (Wasteland). Unstable energy hums within." />
+	</item>
+	<item id="56539" name="aelzor crystal node">
+		<attribute key="description" value="Use it to gather Aelzor Crystals (Sky Realm). Unstable energy hums within." />
+	</item>
+	<item id="56540" name="aelzor crystal node">
+		<attribute key="description" value="Use it to gather Aelzor Crystals (Sky Realm). Unstable energy hums within." />
+	</item>
+	<item id="56541" name="aelzor crystal node">
+		<attribute key="description" value="Use it to gather Aelzor Crystals (Sky Realm). Unstable energy hums within." />
+	</item>
+	<item id="56542" name="aelzor crystal node">
+		<attribute key="description" value="Use it to gather Aelzor Crystals (Sky Realm). Unstable energy hums within." />
+	</item>
+	<item id="56543" name="ignarok crystal node">
+		<attribute key="description" value="Use it to gather Ignarok Crystals (Inferno). Unstable energy hums within." />
+	</item>
+	<item id="56544" name="ignarok crystal node">
+		<attribute key="description" value="Use it to gather Ignarok Crystals (Inferno). Unstable energy hums within." />
+	</item>
+	<item id="56545" name="ignarok crystal node">
+		<attribute key="description" value="Use it to gather Ignarok Crystals (Inferno). Unstable energy hums within." />
+	</item>
+	<item id="56546" name="ignarok crystal node">
+		<attribute key="description" value="Use it to gather Ignarok Crystals (Inferno). Unstable energy hums within." />
+	</item>
+	<item id="56547" name="depleted crystal node">
+		<attribute key="description" value="Its energy is recharging." />
+	</item>
+	<!-- Paperdoll transmog sets (data/scripts/paperdoll/paperdoll_transmog.lua) -->
+	<item id="57030" name="burlap butcher mane">
+		<attribute key="description" value="A hair transmog from the Burlap Butcher set. Use it to unlock it in your wardrobe." pt="Um transmog de cabelo do conjunto Burlap Butcher. Use para desbloquear no seu guarda-roupa." />
+	</item>
+	<item id="57031" name="burlap butcher hood">
+		<attribute key="description" value="A head transmog from the Burlap Butcher set. Use it to unlock it in your wardrobe." pt="Um transmog de cabeça do conjunto Burlap Butcher. Use para desbloquear no seu guarda-roupa." />
+	</item>
+	<item id="57032" name="burlap butcher apron">
+		<attribute key="description" value="A body transmog from the Burlap Butcher set. Use it to unlock it in your wardrobe." pt="Um transmog de corpo do conjunto Burlap Butcher. Use para desbloquear no seu guarda-roupa." />
+	</item>
+	<item id="57033" name="burlap butcher trousers">
+		<attribute key="description" value="A legs transmog from the Burlap Butcher set. Use it to unlock it in your wardrobe." pt="Um transmog de pernas do conjunto Burlap Butcher. Use para desbloquear no seu guarda-roupa." />
+	</item>
+	<item id="57034" name="burlap butcher workboots">
+		<attribute key="description" value="A feet transmog from the Burlap Butcher set. Use it to unlock it in your wardrobe." pt="Um transmog de pés do conjunto Burlap Butcher. Use para desbloquear no seu guarda-roupa." />
+	</item>
+	<item id="57035" name="burlap butcher cleaver">
+		<attribute key="description" value="A weapon transmog from the Burlap Butcher set. Use it to unlock it in your wardrobe." pt="Um transmog de arma do conjunto Burlap Butcher. Use para desbloquear no seu guarda-roupa." />
+	</item>
+	<item id="57036" name="burlap butcher pumpkin">
+		<attribute key="description" value="A shield transmog from the Burlap Butcher set. Use it to unlock it in your wardrobe." pt="Um transmog de escudo do conjunto Burlap Butcher. Use para desbloquear no seu guarda-roupa." />
+	</item>
+
+	<item id="57037" name="infernal trickster horns">
+		<attribute key="description" value="A hair transmog from the Infernal Trickster set. Use it to unlock it in your wardrobe." pt="Um transmog de cabelo do conjunto Infernal Trickster. Use para desbloquear no seu guarda-roupa." />
+	</item>
+	<item id="57038" name="infernal trickster mask">
+		<attribute key="description" value="A head transmog from the Infernal Trickster set. Use it to unlock it in your wardrobe." pt="Um transmog de cabeça do conjunto Infernal Trickster. Use para desbloquear no seu guarda-roupa." />
+	</item>
+	<item id="57039" name="infernal trickster garb">
+		<attribute key="description" value="A body transmog from the Infernal Trickster set. Use it to unlock it in your wardrobe." pt="Um transmog de corpo do conjunto Infernal Trickster. Use para desbloquear no seu guarda-roupa." />
+	</item>
+	<item id="57040" name="infernal trickster leggings">
+		<attribute key="description" value="A legs transmog from the Infernal Trickster set. Use it to unlock it in your wardrobe." pt="Um transmog de pernas do conjunto Infernal Trickster. Use para desbloquear no seu guarda-roupa." />
+	</item>
+	<item id="57041" name="infernal trickster boots">
+		<attribute key="description" value="A feet transmog from the Infernal Trickster set. Use it to unlock it in your wardrobe." pt="Um transmog de pés do conjunto Infernal Trickster. Use para desbloquear no seu guarda-roupa." />
+	</item>
+	<item id="57042" name="infernal trickster torch">
+		<attribute key="description" value="A weapon transmog from the Infernal Trickster set. Use it to unlock it in your wardrobe." pt="Um transmog de arma do conjunto Infernal Trickster. Use para desbloquear no seu guarda-roupa." />
+	</item>
+	<item id="57043" name="infernal trickster soul jar">
+		<attribute key="description" value="A shield transmog from the Infernal Trickster set. Use it to unlock it in your wardrobe." pt="Um transmog de escudo do conjunto Infernal Trickster. Use para desbloquear no seu guarda-roupa." />
+	</item>
+
+	<item id="57044" name="alien cranium">
+		<attribute key="description" value="A head transmog from the Alien set. Use it to unlock it in your wardrobe." pt="Um transmog de cabeça do conjunto Alien. Use para desbloquear no seu guarda-roupa." />
+	</item>
+	<item id="57045" name="alien torso">
+		<attribute key="description" value="A body transmog from the Alien set. Use it to unlock it in your wardrobe." pt="Um transmog de corpo do conjunto Alien. Use para desbloquear no seu guarda-roupa." />
+	</item>
+	<item id="57046" name="alien legs">
+		<attribute key="description" value="A legs transmog from the Alien set. Use it to unlock it in your wardrobe." pt="Um transmog de pernas do conjunto Alien. Use para desbloquear no seu guarda-roupa." />
+	</item>
+	<item id="57047" name="alien feet">
+		<attribute key="description" value="A feet transmog from the Alien set. Use it to unlock it in your wardrobe." pt="Um transmog de pés do conjunto Alien. Use para desbloquear no seu guarda-roupa." />
+	</item>
+	<item id="56918" name="lamp of whispers">
+		<attribute key="forcesave" value="1" />
+		<attribute key="description" 
+			value="Gives a selectable bonus upon use. Has a variable cooldown depending on the buff. Not limited by extra copies.&#xA;+1 Dungeon Charge&#xA;+1 Hunting Ground Charge&#xA;+1 Tower Arena Discount&#xA;+5% Experience (2hours)&#xA;+15% Boss Loot rate (2 hours)&#xA;+20% Elite Chance (2 hours)&#xA;+20% Orb Chance (2 hours)&#xA;+10% Damage (2 hours)&#xA;+10% Healing (2 hours)&#xA;+3% Critical Chance (2 hours)" 
+			pt="Concede um bônus selecionável ao usar. Possui tempo de recarga variável dependendo do bônus. Não é limitado por cópias extras.&#xA;+1 Carga de Dungeon&#xA;+1 Carga de Hunting Ground&#xA;+1 Desconto na Tower Arena&#xA;+5% de Experiência (2 horas)&#xA;+15% de Chance de Loot de Chefes (2 horas)&#xA;+20% de Chance de Elite (2 horas)&#xA;+20% de Chance de Orbe (2 horas)&#xA;+10% de Dano (2 horas)&#xA;+10% de Cura (2 horas)&#xA;+3% de Chance Crítica (2 horas)"
+		/>
+	</item>
+	<item id="56920" name="warden's eye">
+		<attribute key="forcesave" value="1" />
+		<attribute key="description" 
+			value="Gives a selectable bonus upon use. Has a variable cooldown depending on the buff. Not limited by extra copies.&#xA;+1 Dungeon Charge&#xA;+1 Hunting Ground Charge&#xA;+1 Tower Arena Discount&#xA;+5% Experience (2hours)&#xA;+15% Boss Loot rate (2 hours)&#xA;+20% Elite Chance (2 hours)&#xA;+20% Orb Chance (2 hours)&#xA;+10% Damage (2 hours)&#xA;+10% Healing (2 hours)&#xA;+3% Critical Chance (2 hours)" 
+			pt="Concede um bônus selecionável ao usar. Possui tempo de recarga variável dependendo do bônus. Não é limitado por cópias extras.&#xA;+1 Carga de Dungeon&#xA;+1 Carga de Hunting Ground&#xA;+1 Desconto na Tower Arena&#xA;+5% de Experiência (2 horas)&#xA;+15% de Chance de Loot de Chefes (2 horas)&#xA;+20% de Chance de Elite (2 horas)&#xA;+20% de Chance de Orbe (2 horas)&#xA;+10% de Dano (2 horas)&#xA;+10% de Cura (2 horas)&#xA;+3% de Chance Crítica (2 horas)"
+		/>
+	</item>
+	<item id="56921" name="sacred remains">
+		<attribute key="forcesave" value="1" />
+		<attribute key="description" 
+			value="Gives a selectable bonus upon use. Has a variable cooldown depending on the buff. Not limited by extra copies.&#xA;+1 Dungeon Charge&#xA;+1 Hunting Ground Charge&#xA;+1 Tower Arena Discount&#xA;+5% Experience (2hours)&#xA;+15% Boss Loot rate (2 hours)&#xA;+20% Elite Chance (2 hours)&#xA;+20% Orb Chance (2 hours)&#xA;+10% Damage (2 hours)&#xA;+10% Healing (2 hours)&#xA;+3% Critical Chance (2 hours)" 
+			pt="Concede um bônus selecionável ao usar. Possui tempo de recarga variável dependendo do bônus. Não é limitado por cópias extras.&#xA;+1 Carga de Dungeon&#xA;+1 Carga de Hunting Ground&#xA;+1 Desconto na Tower Arena&#xA;+5% de Experiência (2 horas)&#xA;+15% de Chance de Loot de Chefes (2 horas)&#xA;+20% de Chance de Elite (2 horas)&#xA;+20% de Chance de Orbe (2 horas)&#xA;+10% de Dano (2 horas)&#xA;+10% de Cura (2 horas)&#xA;+3% de Chance Crítica (2 horas)"
+		/>
+	</item>
+	<item id="56919" name="nightprowler">
+		<attribute key="forcesave" value="1" />
+		<attribute key="description" 
+			value="Gives a selectable bonus upon use. Has a variable cooldown depending on the buff. Not limited by extra copies.&#xA;+1 Dungeon Charge&#xA;+1 Hunting Ground Charge&#xA;+1 Tower Arena Discount&#xA;+5% Experience (2hours)&#xA;+15% Boss Loot rate (2 hours)&#xA;+20% Elite Chance (2 hours)&#xA;+20% Orb Chance (2 hours)&#xA;+10% Damage (2 hours)&#xA;+10% Healing (2 hours)&#xA;+3% Critical Chance (2 hours)" 
+			pt="Concede um bônus selecionável ao usar. Possui tempo de recarga variável dependendo do bônus. Não é limitado por cópias extras.&#xA;+1 Carga de Dungeon&#xA;+1 Carga de Hunting Ground&#xA;+1 Desconto na Tower Arena&#xA;+5% de Experiência (2 horas)&#xA;+15% de Chance de Loot de Chefes (2 horas)&#xA;+20% de Chance de Elite (2 horas)&#xA;+20% de Chance de Orbe (2 horas)&#xA;+10% de Dano (2 horas)&#xA;+10% de Cura (2 horas)&#xA;+3% de Chance Crítica (2 horas)"
+		/>
+	</item>
+	<item id="56922" name="warrior's soul">
+		<attribute key="description" value="A crafting material humming with the last breath of a fallen warrior. Only the finest smiths know what it can forge." pt="Material de criação que pulsa com o último suspiro de um guerreiro tombado. Apenas os melhores ferreiros sabem o que ele pode forjar." />
+	</item>
+	<item id="57048" name="sealed cosmetic scroll">
+		<attribute key="description" 
+			value="When used, this scroll grants the cosmetic sealed inside it." 
+			pt="Ao usar, este pergaminho concede o cosmético selado dentro dele."
+		/>
+	</item>
+	<item id="57077" name="poisonous mushroom">
+	</item>
+	<item id="57078" name="ruin's blessing">
+		<attribute key="slotType" value="ammo" />
+		<attribute key="description" 
+			value="Weapon effect: every 15 seconds, your next attack awakens the Ruin, increasing the final damage of your abilities by 15% for 10 seconds.&#xA;&#xA;[Equip at Arrow Slot]" 
+			pt="Efeito da arma: a cada 15 segundos, seu próximo ataque desperta a Ruína, aumentando em 15% o dano final das suas habilidades por 10 segundos.&#xA;&#xA;[Equipe no espaço de flecha]"
+		/>
+		<attribute key="markettype" value="ammo" />
+	</item>
+	<item id="57079" name="maelstrom volley">
+		<attribute key="slotType" value="ammo" />
+		<attribute key="description" 
+			value="Weapon effect: 20% chance to unleash a maelstrom, firing a volley of missiles at every enemy around you for magic damage. Scales with magic level, not with weapon damage. 7 second cooldown.&#xA;&#xA;[Equip at Arrow Slot]" 
+			pt="Efeito da arma: 20% de chance de desencadear um maelstrom, disparando uma salva de mísseis em todos os inimigos ao seu redor, causando dano mágico. Escala com magic level, não com dano de arma. 7 segundos de recarga.&#xA;&#xA;[Equipe no espaço de flecha]"
+		/>
+		<attribute key="markettype" value="ammo" />
+	</item>
+	<item id="57080" name="resplendent cosmetic token">
+		<attribute key="markettype" value="other" />
+		<attribute key="description"
+			value="A radiant token humming with borrowed splendour. Use it to choose one cosmetic from the collection: an outfit, an aura or a footprint trail."
+			pt="Um token radiante que pulsa com esplendor emprestado. Use-o para escolher um cosmético da coleção: um outfit, uma aura ou um rastro de pegadas."
+		/>
 	</item>
 </items>
 

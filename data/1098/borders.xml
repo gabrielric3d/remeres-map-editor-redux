@@ -595,20 +595,6 @@
 		<borderitem edge="dsw" item="6169" />
 		<borderitem edge="dse" item="6168" />
 	</border>
-	<border activated="true" id="33">
-		<borderitem edge="n" item="6627" />
-		<borderitem edge="e" item="6628" />
-		<borderitem edge="s" item="6629" />
-		<borderitem edge="w" item="6630" />
-		<borderitem edge="cnw" item="6635" />
-		<borderitem edge="cne" item="6636" />
-		<borderitem edge="csw" item="6638" />
-		<borderitem edge="cse" item="6637" />
-		<borderitem edge="dnw" item="6634" />
-		<borderitem edge="dne" item="6633" />
-		<borderitem edge="dsw" item="6632" />
-		<borderitem edge="dse" item="6631" />
-	</border>
 	<border activated="true" id="34">
 		<borderitem edge="e" item="951" />
 		<borderitem edge="cse" item="950" />
@@ -1404,20 +1390,6 @@
 		<borderitem edge="dne" item="17636" />
 		<borderitem edge="dsw" item="17634" />
 		<borderitem edge="dse" item="17633" />
-	</border>
-	<border activated="true" id="164">
-		<borderitem edge="n" item="17654" />
-		<borderitem edge="e" item="17655" />
-		<borderitem edge="s" item="17653" />
-		<borderitem edge="w" item="17656" />
-		<borderitem edge="cnw" item="17663" />
-		<borderitem edge="cne" item="17664" />
-		<borderitem edge="csw" item="17662" />
-		<borderitem edge="cse" item="17661" />
-		<borderitem edge="dnw" item="17659" />
-		<borderitem edge="dne" item="17660" />
-		<borderitem edge="dsw" item="17658" />
-		<borderitem edge="dse" item="17657" />
 	</border>
 	<border activated="true" id="165">
 		<borderitem edge="n" item="18106" />
@@ -3299,7 +3271,6 @@
 		<borderitem edge="dse" item="55527" />
 		<borderitem edge="dsw" item="55528" />
 	</border>
-	<!-- borda neve 1 -->
 	<border id="313">
 		<borderitem edge="n" item="44393" />
 		<borderitem edge="e" item="44394" />
@@ -3313,5 +3284,244 @@
 		<borderitem edge="dne" item="44402" />
 		<borderitem edge="dse" item="44404" />
 		<borderitem edge="dsw" item="44403" />
+	</border>
+	<border id="314">
+		<borderitem edge="n" item="49710" />
+		<borderitem edge="e" item="49721" />
+		<borderitem edge="s" item="49718" />
+		<borderitem edge="w" item="49715" />
+		<borderitem edge="cnw" item="49714" />
+		<borderitem edge="cne" item="49712" />
+		<borderitem edge="cse" item="49720" />
+		<borderitem edge="csw" item="49717" />
+		<borderitem edge="dnw" item="49713" />
+		<borderitem edge="dne" item="49711" />
+		<borderitem edge="dse" item="49719" />
+		<borderitem edge="dsw" item="49716" />
+	</border>
+	<border id="315">
+		<borderitem edge="n" item="56278" />
+		<borderitem edge="e" item="56279" />
+		<borderitem edge="s" item="56276" />
+		<borderitem edge="w" item="56277" />
+		<borderitem edge="cnw" item="56280" />
+		<borderitem edge="cne" item="56281" />
+		<borderitem edge="cse" item="56282" />
+		<borderitem edge="csw" item="56283" />
+		<borderitem edge="dnw" item="56286" />
+		<borderitem edge="dne" item="56287" />
+		<borderitem edge="dse" item="56284" />
+		<borderitem edge="dsw" item="56285" />
+	</border>
+	<border id="316">
+		<borderitem edge="n" item="21200" />
+		<borderitem edge="e" item="21203" />
+		<borderitem edge="s" item="21202" />
+		<borderitem edge="w" item="21201" />
+		<borderitem edge="cnw" item="21211" />
+		<borderitem edge="cne" item="21210" />
+		<borderitem edge="cse" item="21208" />
+		<borderitem edge="csw" item="21209" />
+		<borderitem edge="dnw" item="21204" />
+		<borderitem edge="dne" item="21205" />
+		<borderitem edge="dse" item="21206" />
+		<borderitem edge="dsw" item="21207" />
+	</border>
+	<border id="33">
+		<borderitem edge="n" item="6641" />
+		<borderitem edge="e" item="6642" />
+		<borderitem edge="s" item="6627" />
+		<borderitem edge="w" item="6640" />
+		<borderitem edge="cnw" item="6646" />
+		<borderitem edge="cne" item="6645" />
+		<borderitem edge="cse" item="6643" />
+		<borderitem edge="csw" item="6644" />
+		<borderitem edge="dnw" item="6650" />
+		<borderitem edge="dne" item="6649" />
+		<borderitem edge="dse" item="6647" />
+		<borderitem edge="dsw" item="6648" />
+	</border>
+	<border id="317">
+		<borderitem edge="n" item="18568" />
+		<borderitem edge="e" item="18571" />
+		<borderitem edge="s" item="18570" />
+		<borderitem edge="w" item="18569" />
+		<borderitem edge="cnw" item="18572" />
+		<borderitem edge="cne" item="18573" />
+		<borderitem edge="cse" item="18574" />
+		<borderitem edge="csw" item="18575" />
+		<borderitem edge="dnw" item="18576" />
+		<borderitem edge="dne" item="18577" />
+		<borderitem edge="dse" item="18578" />
+		<borderitem edge="dsw" item="18579" />
+	</border>
+	<border id="318">
+		<borderitem edge="n" item="56787" />
+		<borderitem edge="e" item="56790" />
+		<borderitem edge="s" item="56788" />
+		<borderitem edge="w" item="56789" />
+		<borderitem edge="cnw" item="56793" />
+		<borderitem edge="cne" item="56794" />
+		<borderitem edge="cse" item="56791" />
+		<borderitem edge="csw" item="56792" />
+		<borderitem edge="dnw" item="56796" />
+		<borderitem edge="dne" item="56795" />
+		<borderitem edge="dse" item="56797" />
+		<borderitem edge="dsw" item="56798" />
+	</border>
+	<border id="319">
+		<borderitem edge="n" item="56840" />
+		<borderitem edge="e" item="56841" />
+		<borderitem edge="s" item="56842" />
+		<borderitem edge="w" item="56843" />
+		<borderitem edge="cnw" item="56844" />
+		<borderitem edge="cne" item="56845" />
+		<borderitem edge="cse" item="56847" />
+		<borderitem edge="csw" item="56846" />
+		<borderitem edge="dnw" item="56848" />
+		<borderitem edge="dne" item="56849" />
+		<borderitem edge="dse" item="56851" />
+		<borderitem edge="dsw" item="56850" />
+	</border>
+	<border id="320">
+		<borderitem edge="n" item="56802" />
+		<borderitem edge="e" item="56801" />
+		<borderitem edge="s" item="56803" />
+		<borderitem edge="w" item="56800" />
+		<borderitem edge="cnw" item="56806" />
+		<borderitem edge="cne" item="56805" />
+		<borderitem edge="cse" item="56807" />
+		<borderitem edge="csw" item="56804" />
+		<borderitem edge="dnw" item="56810" />
+		<borderitem edge="dne" item="56808" />
+		<borderitem edge="dse" item="56811" />
+		<borderitem edge="dsw" item="56809" />
+	</border>
+	<border id="164">
+		<borderitem edge="n" item="17654" />
+		<borderitem edge="e" item="17655" />
+		<borderitem edge="s" item="17653" />
+		<borderitem edge="w" item="17656" />
+		<borderitem edge="cnw" item="17663" />
+		<borderitem edge="cne" item="17664" />
+		<borderitem edge="cse" item="17661" />
+		<borderitem edge="csw" item="17662" />
+		<borderitem edge="dnw" item="17659" />
+		<borderitem edge="dne" item="17660" />
+		<borderitem edge="dse" item="17657" />
+		<borderitem edge="dsw" item="17658" />
+	</border>
+	<border id="321">
+		<borderitem edge="n" item="57329" />
+		<borderitem edge="e" item="57332" />
+		<borderitem edge="s" item="57330" />
+		<borderitem edge="w" item="57331" />
+		<borderitem edge="cnw" item="57335" />
+		<borderitem edge="cne" item="57336" />
+		<borderitem edge="cse" item="57333" />
+		<borderitem edge="csw" item="57334" />
+		<borderitem edge="dnw" item="57338" />
+		<borderitem edge="dne" item="57337" />
+		<borderitem edge="dse" item="57339" />
+		<borderitem edge="dsw" item="57340" />
+	</border>
+	<border id="322">
+		<borderitem edge="n" item="57342" />
+		<borderitem edge="e" item="57345" />
+		<borderitem edge="s" item="57343" />
+		<borderitem edge="w" item="57344" />
+		<borderitem edge="cnw" item="57348" />
+		<borderitem edge="cne" item="57349" />
+		<borderitem edge="cse" item="57346" />
+		<borderitem edge="csw" item="57347" />
+		<borderitem edge="dnw" item="57351" />
+		<borderitem edge="dne" item="57350" />
+		<borderitem edge="dse" item="57352" />
+		<borderitem edge="dsw" item="57353" />
+	</border>
+	<border id="323">
+		<borderitem edge="n" item="57359" />
+		<borderitem edge="e" item="57362" />
+		<borderitem edge="s" item="57360" />
+		<borderitem edge="w" item="57361" />
+		<borderitem edge="cnw" item="57365" />
+		<borderitem edge="cne" item="57366" />
+		<borderitem edge="cse" item="57363" />
+		<borderitem edge="csw" item="57364" />
+		<borderitem edge="dnw" item="57368" />
+		<borderitem edge="dne" item="57367" />
+		<borderitem edge="dse" item="57369" />
+		<borderitem edge="dsw" item="57370" />
+	</border>
+	<border id="324">
+		<borderitem edge="n" item="57380" />
+		<borderitem edge="e" item="57383" />
+		<borderitem edge="s" item="57381" />
+		<borderitem edge="w" item="57382" />
+		<borderitem edge="cnw" item="57386" />
+		<borderitem edge="cne" item="57387" />
+		<borderitem edge="cse" item="57384" />
+		<borderitem edge="csw" item="57385" />
+		<borderitem edge="dnw" item="57389" />
+		<borderitem edge="dne" item="57388" />
+		<borderitem edge="dse" item="57390" />
+		<borderitem edge="dsw" item="57391" />
+	</border>
+	<border id="325">
+		<borderitem edge="n" item="43564" />
+		<borderitem edge="e" item="43567" />
+		<borderitem edge="s" item="43565" />
+		<borderitem edge="w" item="43566" />
+		<borderitem edge="cnw" item="43570" />
+		<borderitem edge="cne" item="43571" />
+		<borderitem edge="cse" item="43569" />
+		<borderitem edge="csw" item="43568" />
+		<borderitem edge="dnw" item="43574" />
+		<borderitem edge="dne" item="43573" />
+		<borderitem edge="dse" item="43572" />
+		<borderitem edge="dsw" item="43575" />
+	</border>
+	<border id="326">
+		<borderitem edge="n" item="49441" />
+		<borderitem edge="e" item="49442" />
+		<borderitem edge="s" item="49440" />
+		<borderitem edge="w" item="49443" />
+		<borderitem edge="cnw" item="49439" />
+		<borderitem edge="cne" item="49438" />
+		<borderitem edge="cse" item="49436" />
+		<borderitem edge="csw" item="49437" />
+		<borderitem edge="dnw" item="49444" />
+		<borderitem edge="dne" item="49445" />
+		<borderitem edge="dse" item="49447" />
+		<borderitem edge="dsw" item="49446" />
+	</border>
+	<border id="327">
+		<borderitem edge="n" item="38446" />
+		<borderitem edge="e" item="38447" />
+		<borderitem edge="s" item="38445" />
+		<borderitem edge="w" item="38448" />
+		<borderitem edge="cnw" item="38452" />
+		<borderitem edge="cne" item="38451" />
+		<borderitem edge="cse" item="38449" />
+		<borderitem edge="csw" item="38450" />
+		<borderitem edge="dnw" item="38456" />
+		<borderitem edge="dne" item="38455" />
+		<borderitem edge="dse" item="38453" />
+		<borderitem edge="dsw" item="38454" />
+	</border>
+	<!-- earth ground 5 -->
+	<border id="328">
+		<borderitem edge="n" item="57607" />
+		<borderitem edge="e" item="57610" />
+		<borderitem edge="s" item="57608" />
+		<borderitem edge="w" item="57609" />
+		<borderitem edge="cnw" item="57613" />
+		<borderitem edge="cne" item="57614" />
+		<borderitem edge="cse" item="57611" />
+		<borderitem edge="csw" item="57612" />
+		<borderitem edge="dnw" item="57616" />
+		<borderitem edge="dne" item="57615" />
+		<borderitem edge="dse" item="57617" />
+		<borderitem edge="dsw" item="57618" />
 	</border>
 </materials>

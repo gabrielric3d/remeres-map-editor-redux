@@ -23,7 +23,39 @@
 			<item id="1054" chance="0" />
 			<item id="1056" chance="0" />
 			<door id="6249" type="normal" open="false" />
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			""
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			<door id="6250" type="normal" open="false" />
 			<door id="6251" type="normal" open="true" />
@@ -672,23 +704,183 @@
 			<item id="5264" chance="0" />
 			<door id="5278" type="normal" open="false" />
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			 --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			<door id="5279" type="normal" open="false" />
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			 --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			<door id="5280" type="normal" open="true" />
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			 --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			<door id="5286" type="locked" open="false" />
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			 --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			<door id="5287" type="locked" open="true" />
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			 --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			<door id="5290" type="quest" open="false" />
 			<door id="5291" type="quest" open="true" />
@@ -2066,6 +2258,142 @@
 		</wall>
 		<wall type="pole">
 			<item id="1038" chance="1000" />
+		</wall>
+	</brush>
+	<brush name="stone wall 5" type="wall" server_lookid="55934" on_blocking="false">
+		<wall type="horizontal">
+			<item id="55934" chance="100" />
+		</wall>
+		<wall type="vertical">
+			<item id="55935" chance="100" />
+		</wall>
+		<wall type="corner">
+			<item id="55937" chance="100" />
+		</wall>
+		<wall type="pole">
+			<item id="55936" chance="100" />
+		</wall>
+	</brush>
+	<brush name="lanterns end wall" type="wall" server_lookid="57509" on_blocking="false">
+		<wall type="horizontal">
+			<item id="57509" chance="100" />
+			<item id="57511" chance="100" />
+			<item id="57523" chance="100" />
+		</wall>
+		<wall type="vertical">
+			<item id="57510" chance="100" />
+			<item id="57512" chance="100" />
+			<item id="57524" chance="100" />
+		</wall>
+		<wall type="corner">
+			<item id="57521" chance="100" />
+		</wall>
+		<wall type="pole">
+			<item id="57522" chance="100" />
+		</wall>
+	</brush>
+	<brush name="lanterns end wall2" type="wall" server_lookid="57549" on_blocking="false">
+		<wall type="horizontal">
+			<item id="57549" chance="100" />
+		</wall>
+		<wall type="vertical">
+			<item id="57551" chance="100" />
+		</wall>
+		<wall type="corner">
+			<item id="57555" chance="100" />
+		</wall>
+		<wall type="pole">
+			<item id="57553" chance="100" />
+		</wall>
+	</brush>
+	<brush name="wall5" type="wall" server_lookid="50721" on_blocking="false">
+		<wall type="horizontal">
+			<item id="50721" chance="100" />
+			<item id="50727" chance="100" />
+		</wall>
+		<wall type="vertical">
+			<item id="50716" chance="100" />
+			<item id="50717" chance="100" />
+			<item id="50720" chance="100" />
+			<item id="50726" chance="100" />
+		</wall>
+		<wall type="corner">
+			<item id="50722" chance="100" />
+			<item id="50728" chance="100" />
+		</wall>
+		<wall type="pole">
+			<item id="50761" chance="100" />
+		</wall>
+	</brush>
+	<brush name="wall6" type="wall" server_lookid="43617" on_blocking="false">
+		<wall type="horizontal">
+			<item id="43617" chance="100" />
+			<item id="43620" chance="15" />
+			<item id="43621" chance="15" />
+		</wall>
+		<wall type="vertical">
+			<item id="43618" chance="100" />
+			<item id="43622" chance="15" />
+			<item id="43623" chance="15" />
+		</wall>
+		<wall type="corner">
+			<item id="43619" chance="100" />
+			<item id="43624" chance="100" />
+			<item id="43625" chance="100" />
+		</wall>
+		<wall type="pole">
+			<item id="43616" chance="100" />
+		</wall>
+	</brush>
+	<brush name="cracke lantern end" type="wall" server_lookid="57197" on_blocking="false">
+		<wall type="horizontal">
+			<item id="57196" chance="100" />
+			<item id="57197" chance="100" />
+			<item id="57198" chance="100" />
+		</wall>
+		<wall type="vertical">
+			<item id="57199" chance="100" />
+			<item id="57200" chance="100" />
+			<item id="57201" chance="100" />
+		</wall>
+		<wall type="corner">
+			<item id="57216" chance="100" />
+		</wall>
+		<wall type="northeast diagonal">
+			<item id="57211" chance="100" />
+			<item id="57212" chance="100" />
+		</wall>
+		<wall type="southwest diagonal">
+			<item id="57209" chance="100" />
+			<item id="57210" chance="100" />
+		</wall>
+		<wall type="southeast diagonal">
+			<item id="57202" chance="100" />
+			<item id="57203" chance="100" />
+		</wall>
+		<wall type="north T">
+			<item id="57229" chance="100" />
+		</wall>
+		<wall type="south T">
+			<item id="57233" chance="100" />
+		</wall>
+		<wall type="east T">
+			<item id="57231" chance="100" />
+		</wall>
+		<wall type="west T">
+			<item id="57232" chance="100" />
+		</wall>
+		<wall type="north end">
+			<item id="57236" chance="100" />
+		</wall>
+		<wall type="south end">
+			<item id="57237" chance="100" />
+		</wall>
+		<wall type="east end">
+			<item id="57235" chance="100" />
+		</wall>
+		<wall type="west end">
+			<item id="57234" chance="100" />
 		</wall>
 	</brush>
 </materials>

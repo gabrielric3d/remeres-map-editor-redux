@@ -77,36 +77,6 @@
 		<friend name="grass closed stone pile" />
 		<friend name="grass pitfall" />
 	</brush>
-	<brush name="sea" type="ground" server_lookid="4608" z-order="9600" activated="true">
-		<item id="4608" chance="3" />
-		<item id="4609" chance="1" />
-		<item id="4610" chance="1" />
-		<item id="4611" chance="1" />
-		<item id="4612" chance="1" />
-		<item id="4613" chance="1" />
-		<item id="4614" chance="1" />
-		<item id="4615" chance="1" />
-		<item id="4616" chance="1" />
-		<item id="4617" chance="1" />
-		<item id="4618" chance="1" />
-		<item id="4619" chance="1" />
-		<item id="4664" chance="1" />
-		<item id="4665" chance="1" />
-		<item id="4666" chance="1" />
-		<item id="4620" chance="0" />
-		<item id="4621" chance="0" />
-		<item id="4622" chance="0" />
-		<item id="4623" chance="0" />
-		<item id="4624" chance="0" />
-		<item id="4625" chance="0" />
-		<item id="5757" chance="0" />
-		<item id="5756" chance="0" />
-		<item id="5755" chance="0" />
-		<item id="5759" chance="0" />
-		<item id="5760" chance="0" />
-		<item id="5758" chance="0" />
-		<item id="5761" chance="0" />
-	</brush>
 	<brush name="sea lighter" type="ground" server_lookid="39096" z-order="7600" activated="true">
 		<item id="39096" chance="3" />
 		<item id="39097" chance="1" />
@@ -193,62 +163,6 @@
 		<friend name="ice open stone pile" />
 		<friend name="ice closed stone pile" />
 	</brush>
-	<brush name="snow" type="ground" server_lookid="6838" z-order="9800" activated="true">
-		<item id="670" chance="240" />
-		<item id="6580" chance="10" />
-		<item id="6581" chance="10" />
-		<item id="6582" chance="10" />
-		<item id="6583" chance="10" />
-		<item id="6584" chance="10" />
-		<item id="6585" chance="10" />
-		<item id="6586" chance="10" />
-		<item id="6587" chance="10" />
-		<item id="6588" chance="10" />
-		<item id="6589" chance="10" />
-		<item id="6590" chance="10" />
-		<item id="6591" chance="10" />
-		<item id="6592" chance="10" />
-		<item id="6593" chance="10" />
-		<item id="6594" chance="0" />
-		<item id="6595" chance="0" />
-		<item id="6596" chance="0" />
-		<item id="6597" chance="0" />
-		<item id="6598" chance="0" />
-		<item id="6599" chance="0" />
-		<item id="6600" chance="0" />
-		<item id="6601" chance="0" />
-		<item id="6602" chance="0" />
-		<item id="6603" chance="0" />
-		<item id="6604" chance="0" />
-		<item id="6605" chance="0" />
-		<item id="6606" chance="0" />
-		<item id="6607" chance="0" />
-		<item id="6608" chance="0" />
-		<item id="6612" chance="0" />
-		<item id="6613" chance="0" />
-		<item id="6614" chance="0" />
-		<item id="6615" chance="0" />
-		<item id="6616" chance="0" />
-		<item id="6617" chance="0" />
-		<item id="6618" chance="0" />
-		<item id="6619" chance="0" />
-		<item id="6620" chance="0" />
-		<item id="6621" chance="0" />
-		<item id="6622" chance="0" />
-		<item id="6623" chance="0" />
-		<item id="6624" chance="0" />
-		<item id="6625" chance="0" />
-		<item id="6626" chance="0" />
-		<item id="6917" chance="0" />
-		<item id="6918" chance="0" />
-		<item id="6919" chance="0" />
-		<item id="6920" chance="0" />
-		<item id="6921" chance="0" />
-		<item id="6922" chance="0" />
-		<item id="6923" chance="0" />
-		<item id="6924" chance="0" />
-		<border align="outer" id="48" />
-	</brush>
 	<brush name="dark grass" type="ground" lookid="106" z-order="3100" activated="true">
 		<item id="106" chance="8" />
 		<item id="108" chance="1" />
@@ -263,15 +177,6 @@
 		<item id="354" chance="1" />
 		<item id="355" chance="1" />
 		<border align="outer" id="7" />
-		<border align="inner" to="none" id="1" />
-	</brush>
-	<brush name="cave (alternate border)" type="ground" server_lookid="9025" z-order="300" activated="true">
-		<item id="9021" chance="6" />
-		<item id="9022" chance="1" />
-		<item id="9023" chance="1" />
-		<item id="9024" chance="1" />
-		<item id="9025" chance="1" />
-		<border align="outer" id="121" />
 		<border align="inner" to="none" id="1" />
 	</brush>
 	<brush name="cave hole" type="ground" server_lookid="383" z-order="200" activated="true">
@@ -507,7 +412,303 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/stone earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -790,7 +991,303 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/stone earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -1056,24 +1553,6 @@
 		<border align="outer" id="9" />
 		<border align="inner" to="none" id="1" />
 	</brush>
-	<brush name="sky grass" type="ground" server_lookid="38431" z-order="3600" activated="true">
-		<item id="38431" chance="1" />
-		<item id="38432" chance="1" />
-		<item id="38433" chance="1" />
-		<item id="38434" chance="1" />
-		<item id="38435" chance="1" />
-		<item id="38436" chance="1" />
-		<item id="38437" chance="1" />
-		<item id="38438" chance="1" />
-		<item id="38439" chance="1" />
-		<item id="38440" chance="1" />
-		<item id="38441" chance="1" />
-		<item id="38442" chance="1" />
-		<item id="38443" chance="1" />
-		<item id="38444" chance="1" />
-		<border align="outer" id="9" />
-		<border align="inner" to="none" id="1" />
-	</brush>
 	<brush name="jungle dirt" type="ground" server_lookid="3264" z-order="1" activated="true">
 		<item id="3264" chance="11" />
 		<item id="3265" chance="1" />
@@ -1083,37 +1562,6 @@
 		<item id="918" chance="1000" />
 		<border align="inner" to="sea" id="47" />
 		<border align="outer" id="10" />
-	</brush>
-	<brush name="dirt mountain ground" type="ground" server_lookid="8913" z-order="4800" activated="true">
-		<item id="8913" chance="1000" />
-		<item id="8914" chance="1000" />
-		<item id="8915" chance="1000" />
-		<item id="8916" chance="1000" />
-		<item id="8917" chance="1000" />
-		<border align="outer" id="125" />
-		<border align="inner" to="none" id="1" />
-	</brush>
-	<brush name="rock soil 2" type="ground" server_lookid="4405" z-order="5" activated="true">
-		<item id="4405" chance="1" />
-		<item id="4406" chance="1" />
-		<item id="4407" chance="1" />
-		<item id="4408" chance="1" />
-		<item id="4409" chance="1" />
-		<item id="4410" chance="1" />
-		<item id="4411" chance="1" />
-		<item id="4412" chance="1" />
-		<item id="4413" chance="1" />
-		<item id="4414" chance="1" />
-		<item id="4415" chance="1" />
-		<item id="4416" chance="1" />
-		<item id="4417" chance="1" />
-		<item id="4418" chance="1" />
-		<item id="4419" chance="1" />
-		<item id="4420" chance="1" />
-		<item id="4421" chance="1" />
-		<border align="outer" id="20" />
-		<border align="outer" id="234" />
-		<border align="inner" to="none" id="58" />
 	</brush>
 	<brush name="rotten ground" type="ground" server_lookid="42243" z-order="5" activated="true">
 		<item id="42243" chance="2000" />
@@ -1157,22 +1605,6 @@
 	</brush>
 	<brush name="lava fishing island" type="ground" server_lookid="1509" z-order="7700" activated="true">
 		<item id="1509" chance="100" />
-	</brush>
-	<brush name="rocky ground" type="ground" server_lookid="4570" z-order="2000" activated="true">
-		<item id="4570" chance="100" />
-		<item id="4571" chance="100" />
-		<item id="4572" chance="100" />
-		<item id="4573" chance="100" />
-		<item id="4574" chance="100" />
-		<item id="4575" chance="100" />
-		<item id="4576" chance="100" />
-		<item id="4577" chance="100" />
-		<item id="4578" chance="100" />
-		<item id="4579" chance="100" />
-		<item id="4595" chance="0" />
-		<item id="4566" chance="0" />
-		<border align="outer" id="11" />
-		<border align="inner" to="none" id="1" />
 	</brush>
 	<brush name="white gravel" type="ground" server_lookid="104" z-order="7000" activated="true">
 		<item id="104" chance="1000" />
@@ -1290,7 +1722,303 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- frozen mud vs. with lower z-order --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -1573,7 +2301,303 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- snow vs. frozen mud border --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -1854,7 +2878,303 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- frozen mud vs. with higher z-order --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -2043,13 +3363,6 @@
 		<border align="outer" id="46" />
 		<border align="inner" to="none" id="1" />
 	</brush>
-	<brush name="dirt" type="ground" server_lookid="103" z-order="2450" activated="true">
-		<item id="103" chance="1" />
-		<item id="4833" chance="0" />
-		<item id="4832" chance="0" />
-		<item id="806" chance="0" />
-		<item id="804" chance="0" />
-	</brush>
 	<brush name="light swampdirt" type="ground" server_lookid="194" z-order="500" activated="true">
 		<item id="194" chance="1" />
 		<border align="outer" id="14" />
@@ -2159,22 +3472,6 @@
 		<border align="outer" to="none" id="124" />
 		<border align="outer" id="124" />
 	</brush>
-	<brush name="mountain" type="ground" server_lookid="918" z-order="9900" activated="true">
-		<item id="919" chance="1" />
-		<border align="inner" to="icy mountain" id="53" />
-		<border align="inner" to="snowy mountain" id="53" />
-		<border align="inner" to="none" id="3" />
-		<border align="outer" to="none" id="51" />
-		<border align="inner" id="3" />
-		<optional id="29" />
-	</brush>
-	<brush name="rotten mountain" type="ground" server_lookid="42267" z-order="119900" activated="true">
-		<item id="42267" chance="1" />
-		<border align="inner" to="none" id="240" />
-		<border align="outer" to="none" id="229" />
-		<border align="outer" id="229" />
-		<optional id="229" />
-	</brush>
 	<brush name="fancy mountain mountain" type="ground" server_lookid="43833" z-order="9900" activated="true">
 		<item id="43833" chance="1" />
 		<border align="outer" to="none" id="233" />
@@ -2221,13 +3518,6 @@
 		<border align="outer" to="none" id="52" />
 		<border align="inner" to="icy mountain" id="133" />
 		<border align="inner" id="53" />
-		<border align="outer" id="52" />
-	</brush>
-	<brush name="snowy mountain1" type="ground" server_lookid="40801" z-order="9901" solo_optional="true" activated="true">
-		<item id="40801" chance="15" />
-		<item id="40802" chance="1" />
-		<item id="40803" chance="1" />
-		<border align="outer" to="none" id="52" />
 		<border align="outer" id="52" />
 	</brush>
 	<brush name="icy earth" type="ground" lookid="6618" z-order="10600" activated="true">
@@ -2339,7 +3629,303 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -2620,7 +4206,303 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -2903,7 +4785,303 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -3184,7 +5362,303 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -3590,18 +6064,6 @@
 		<border align="outer" id="138" />
 		<border align="inner" to="none" id="1" />
 	</brush>
-	<brush name="dirt mud" type="ground" server_lookid="10617" z-order="2900" activated="true">
-		<item id="10617" chance="2500" />
-		<item id="10618" chance="2000" />
-		<item id="10619" chance="2000" />
-		<item id="10620" chance="2000" />
-		<item id="10621" chance="2000" />
-		<item id="10622" chance="300" />
-		<item id="10623" chance="2000" />
-		<item id="10624" chance="2000" />
-		<border align="outer" id="139" />
-		<border align="inner" to="none" id="1" />
-	</brush>
 	<brush name="muddy sand" type="ground" server_lookid="21605" z-order="3150" activated="true">
 		<item id="21605" chance="2500" />
 		<item id="21606" chance="2000" />
@@ -3720,14 +6182,6 @@
 		<border align="outer" id="161" />
 		<border align="outer" to="none" id="161" />
 	</brush>
-	<brush name="basalt floor" type="ground" server_lookid="17625" z-order="5700" activated="true">
-		<item id="17625" chance="2500" />
-		<item id="17626" chance="2500" />
-		<item id="17627" chance="2500" />
-		<item id="17628" chance="2500" />
-		<border align="outer" id="163" />
-		<border align="inner" to="none" id="1" />
-	</brush>
 	<brush name="mold floor" type="ground" server_lookid="17647" z-order="5800" activated="true">
 		<item id="17647" chance="500" />
 		<item id="17648" chance="500" />
@@ -3736,25 +6190,6 @@
 		<item id="17651" chance="2500" />
 		<item id="17652" chance="1500" />
 		<border align="outer" id="164" />
-		<border align="inner" to="none" id="1" />
-	</brush>
-	<brush name="mossy floor" type="ground" server_lookid="17665" z-order="3650" activated="true">
-		<item id="17665" chance="1500" />
-		<item id="17666" chance="1000" />
-		<item id="17667" chance="2500" />
-		<item id="17668" chance="2500" />
-		<item id="17669" chance="2500" />
-		<item id="17670" chance="2500" />
-		<item id="17671" chance="1500" />
-		<item id="17672" chance="2500" />
-		<border align="outer" id="148, 128, 136" />
-		<border align="inner" to="none" id="1" />
-	</brush>
-	<brush name="mushroom sponge" type="ground" server_lookid="18053" z-order="3610" activated="true">
-		<item id="18053" chance="2500" />
-		<item id="18054" chance="1500" />
-		<item id="18055" chance="1500" />
-		<border align="outer" id="165" />
 		<border align="inner" to="none" id="1" />
 	</brush>
 	<brush name="salt floor" type="ground" server_lookid="18162" z-order="5500" activated="true">
@@ -3943,11 +6378,6 @@
 		<border align="outer" to="none" id="66" />
 		<border align="outer" id="66" />
 	</brush>
-	<brush name="swamp clay mountain" type="ground" server_lookid="19146" z-order="2900" activated="true">
-		<item id="19146" chance="1" />
-		<border align="outer" to="none" id="67" />
-		<border align="outer" id="67" />
-	</brush>
 	<brush name="purple crystal mountain" type="ground" server_lookid="20724" z-order="9900" activated="true">
 		<item id="20724" chance="2500" />
 		<item id="20725" chance="2500" />
@@ -3955,11 +6385,6 @@
 		<item id="20727" chance="2500" />
 		<border align="outer" to="none" id="64" />
 		<border align="outer" id="64" />
-	</brush>
-	<brush name="sandstone mountain" type="ground" server_lookid="21197" z-order="9900" activated="true">
-		<item id="21197" chance="1" />
-		<border align="outer" to="none" id="68" />
-		<border align="outer" id="68" />
 	</brush>
 	<brush name="seacrest mountain" type="ground" server_lookid="23929" z-order="9900" activated="true">
 		<item id="23929" chance="2500" />
@@ -4342,18 +6767,8 @@
 		<border align="outer" id="142" />
 		<border align="inner" to="none" id="1" />
 	</brush>
-	<brush name="dark sand" type="ground" server_lookid="12912" z-order="5300" activated="true">
-		<item id="12912" chance="10000" />
-		<border align="outer" id="143" />
-		<border align="inner" to="none" id="1" />
-	</brush>
 	<brush name="mud sand" type="ground" server_lookid="11077" z-order="2500" activated="true">
 		<item id="11077" chance="10000" />
-		<border align="inner" to="none" id="1" />
-	</brush>
-	<brush name="muddy floor" type="ground" server_lookid="11561" z-order="1100" activated="true">
-		<item id="11561" chance="10000" />
-		<border align="outer" id="149" />
 		<border align="inner" to="none" id="1" />
 	</brush>
 	<brush name="purple mud" type="ground" server_lookid="11504" z-order="6800" activated="true">
@@ -4459,15 +6874,6 @@
 		<item id="25072" chance="10" />
 		<item id="25073" chance="1" />
 		<border align="outer" id="207" />
-	</brush>
-	<brush name="krailos purple" type="ground" server_lookid="25074" z-order="1000" activated="true">
-		<item id="25074" chance="10" />
-		<item id="25075" chance="5" />
-		<item id="25076" chance="10" />
-		<item id="25077" chance="1" />
-		<border align="outer" id="208" />
-		<border align="outer" to="none" id="208" />
-		<border align="inner" to="none" id="1" />
 	</brush>
 	<brush name="vortex floor1" type="ground" server_lookid="25796" z-order="1" activated="true">
 		<item id="25796" chance="10" />
@@ -4580,14 +6986,6 @@
 	</brush>
 	<brush name="highdesert ground unpassable" type="ground" server_lookid="43461" z-order="1" activated="true">
 		<item id="43461" chance="1000" />
-	</brush>
-	<brush name="highdesert mountain" type="ground" server_lookid="43501" z-order="9000" activated="true">
-		<item id="43501" chance="1000" />
-		<border align="outer" id="259" />
-		<border align="outer" to="none" id="259" />
-	</brush>
-	<brush name="new sand" type="ground" server_lookid="44198" z-order="1" activated="true">
-		<item id="44198" chance="1000" />
 	</brush>
 	<brush name="ornamented tile 2" type="ground" server_lookid="35695" z-order="1" activated="true">
 		<item id="35695" chance="1000" />
@@ -4872,15 +7270,6 @@
 		<border align="outer" id="277" />
 		<border align="outer" to="none" id="277" />
 	</brush>
-	<brush name="dark cobblestone 1" type="ground" server_lookid="45339" z-order="8650">
-		<item id="45339" chance="1" />
-		<border align="outer" id="275" borderlist="274, 275, 273" />
-		<border align="outer" to="none" id="275" borderlist="274, 275, 273" />
-	</brush>
-	<brush name="dark dirt 2" type="ground" server_lookid="45581" z-order="1800" activated="true">
-		<item id="45581" chance="200" />
-		<border align="outer" id="280" />
-	</brush>
 	<brush name="dead grass" type="ground" server_lookid="52602" z-order="4200" activated="true">
 		<item id="52602" chance="2500" />
 		<item id="52603" chance="10" />
@@ -4925,25 +7314,6 @@
 	<brush name="fog2" type="ground" server_lookid="54535" z-order="3900" activated="true">
 		<item id="54535" chance="100" />
 	</brush>
-	<brush name="snow ground" type="ground" server_lookid="44812" z-order="10800">
-		<item id="44812" chance="25" />
-		<item id="44813" chance="10" />
-		<item id="44814" chance="10" />
-		<item id="44815" chance="10" />
-		<item id="44816" chance="10" />
-		<item id="44817" chance="10" />
-		<item id="44818" chance="10" />
-		<item id="44819" chance="10" />
-		<item id="44820" chance="10" />
-		<item id="44821" chance="10" />
-		<item id="44822" chance="10" />
-		<item id="44823" chance="10" />
-		<item id="44824" chance="10" />
-		<item id="44825" chance="10" />
-		<item id="44826" chance="10" />
-		<border align="outer" id="287" />
-		<border align="outer" to="none" id="287" />
-	</brush>
 	<brush name="transparent water 2" type="ground" server_lookid="44935">
 		<item id="44935" chance="10" />
 		<item id="44936" chance="10" />
@@ -4954,10 +7324,6 @@
 		<item id="44941" chance="10" />
 		<item id="44942" chance="10" />
 		<item id="44943" chance="10" />
-	</brush>
-	<brush name="nilfheim mountain" type="ground" server_lookid="54598" z-order="15750">
-		<item id="54598" chance="100" />
-		<border align="outer" to="none" id="289" />
 	</brush>
 	<brush name="darkest wooden floor" type="ground" server_lookid="9224" z-order="80">
 		<item id="9224" chance="2500" />
@@ -5134,15 +7500,6 @@
 		<border align="outer" id="249" />
 		<border align="outer" to="none" id="249" />
 	</brush>
-	<brush name="lava" type="ground" server_lookid="598" z-order="1500" carpet_fill="true">
-		<item id="23857" chance="100" />
-		<item id="599" chance="7" />
-		<item id="23848" chance="1" />
-		<item id="23849" chance="1" />
-		<item id="23850" chance="2" />
-		<item id="23851" chance="2" />
-		<border align="outer" id="211" />
-	</brush>
 	<brush name="dark cobblestone" type="ground" server_lookid="8423" z-order="2610">
 		<item id="8423" chance="1000" />
 		<item id="8425" chance="1000" />
@@ -5154,36 +7511,8 @@
 		<item id="8431" chance="1000" />
 		<border align="outer" id="127" />
 	</brush>
-	<brush name="blood walkable" type="ground" server_lookid="55731" z-order="2500">
-		<item id="55731" chance="10" />
-		<item id="55732" chance="10" />
-		<item id="55733" chance="10" />
-		<item id="55734" chance="10" />
-		<item id="55735" chance="10" />
-		<item id="55736" chance="10" />
-	</brush>
-	<brush name="red grass" type="ground" server_lookid="55562" z-order="2620">
-		<item id="55562" chance="10" />
-		<item id="55563" chance="10" />
-		<item id="55564" chance="10" />
-		<item id="55565" chance="10" />
-		<item id="55566" chance="10" />
-		<border align="outer" id="304" enabled="false" />
-		<border align="outer" id="306" />
-		<border align="outer" to="none" id="304" />
-	</brush>
 	<brush name="pink stone floor" type="ground" server_lookid="10765" z-order="5000">
 		<item id="10765" chance="10" />
-	</brush>
-	<brush name="blood water" type="ground" server_lookid="20932" z-order="2650">
-		<item id="20932" chance="2500" />
-		<item id="20933" chance="1500" />
-		<item id="20934" chance="1500" />
-		<item id="20935" chance="1000" />
-		<item id="20936" chance="2500" />
-		<item id="20937" chance="2500" />
-		<border align="outer" id="310" />
-		<border align="outer" to="none" id="310" />
 	</brush>
 	<brush name="ravendawn stone ground" type="ground" server_lookid="45352" z-order="1000">
 		<item id="45352" chance="9" />
@@ -5238,5 +7567,479 @@
 		<item id="470" chance="0" />
 		<border align="outer" id="2" />
 		<border align="outer" id="2" />
+	</brush>
+	<brush name="snow ground" type="ground" server_lookid="44812" z-order="9996">
+		<item id="44812" chance="25" />
+		<item id="44813" chance="10" />
+		<item id="44814" chance="10" />
+		<item id="44815" chance="10" />
+		<item id="44816" chance="10" />
+		<item id="44817" chance="10" />
+		<item id="44818" chance="10" />
+		<item id="44819" chance="10" />
+		<item id="44820" chance="10" />
+		<item id="44821" chance="10" />
+		<item id="44822" chance="10" />
+		<item id="44823" chance="10" />
+		<item id="44824" chance="10" />
+		<item id="44825" chance="10" />
+		<item id="44826" chance="10" />
+		<border align="outer" id="287" />
+		<border align="outer" to="none" id="287" />
+	</brush>
+	<brush name="nilfheim mountain" type="ground" server_lookid="54598" z-order="10000">
+		<item id="54598" chance="100" />
+		<border align="outer" to="none" id="289" />
+		<border align="outer" id="289" />
+	</brush>
+	<brush name="lava walkable" type="ground" server_lookid="23857" z-order="3000">
+		<item id="23857" chance="10" />
+		<item id="23858" chance="10" />
+		<item id="23859" chance="10" />
+		<item id="23860" chance="10" />
+		<item id="23861" chance="10" />
+		<border align="outer" id="211" />
+		<border align="outer" to="none" id="211" />
+	</brush>
+	<brush name="krailos purple" type="ground" server_lookid="25074" z-order="9000">
+		<item id="25074" chance="10" />
+		<item id="25075" chance="5" />
+		<item id="25076" chance="10" />
+		<item id="25077" chance="1" />
+		<border align="outer" id="208" />
+		<border align="outer" to="none" id="208" />
+		<border align="inner" to="none" id="1" />
+	</brush>
+	<brush name="red grass" type="ground" server_lookid="55562" z-order="9620">
+		<item id="55562" chance="10" />
+		<item id="55563" chance="10" />
+		<item id="55564" chance="10" />
+		<item id="55565" chance="10" />
+		<item id="55566" chance="10" />
+		<border align="outer" id="304" enabled="false" />
+		<border align="outer" id="306" />
+		<border align="outer" to="none" id="304" />
+	</brush>
+	<brush name="yellow stone ground" type="ground" server_lookid="55003" z-order="3000">
+		<item id="55003" chance="10" />
+	</brush>
+	<brush name="blood walkable" type="ground" server_lookid="55731" z-order="2500">
+		<item id="55731" chance="10" />
+		<item id="55732" chance="10" />
+		<item id="55733" chance="10" />
+		<item id="55734" chance="10" />
+		<item id="55735" chance="10" />
+		<item id="55736" chance="10" />
+		<border align="outer" id="310" />
+		<border align="outer" to="none" id="310" />
+	</brush>
+	<brush name="stone lava ground" type="ground" server_lookid="49708" z-order="2500">
+		<item id="49708" chance="10" />
+		<border align="outer" id="314" />
+		<border align="outer" to="none" id="314" />
+	</brush>
+	<brush name="lava new ground" type="ground" server_lookid="49707" z-order="2500">
+		<item id="49707" chance="10" />
+	</brush>
+	<brush name="lava" type="ground" server_lookid="23850" z-order="2700">
+		<item id="23850" chance="25" />
+		<item id="23849" chance="1" />
+		<item id="23848" chance="2" />
+		<item id="23851" chance="2" />
+		<border align="outer" id="211" />
+	</brush>
+	<brush name="stone ground 6" type="ground" server_lookid="56264" z-order="2000">
+		<item id="56264" chance="10" />
+		<item id="56265" chance="10" />
+		<item id="56266" chance="10" />
+		<item id="56267" chance="10" />
+		<item id="56268" chance="10" />
+		<item id="56269" chance="10" />
+		<item id="56270" chance="10" />
+		<item id="56271" chance="10" />
+		<item id="56272" chance="10" />
+		<item id="56273" chance="10" />
+		<item id="56263" chance="10" />
+		<border align="outer" id="315" />
+		<border align="outer" to="none" id="315" />
+	</brush>
+	<brush name="black floor 5" type="ground" server_lookid="56006">
+		<item id="56006" chance="10" />
+		<item id="56008" chance="10" />
+		<item id="56009" chance="10" />
+		<item id="56010" chance="10" />
+		<item id="56011" chance="10" />
+	</brush>
+	<brush name="black floor 7" type="ground" server_lookid="56007">
+		<item id="56007" chance="10" />
+	</brush>
+	<brush name="mossy floor" type="ground" server_lookid="17665" z-order="3650">
+		<item id="17665" chance="1500" />
+		<item id="17666" chance="1000" />
+		<item id="17667" chance="2500" />
+		<item id="17668" chance="2500" />
+		<item id="17669" chance="2500" />
+		<item id="17670" chance="2500" />
+		<item id="17671" chance="1500" />
+		<item id="17672" chance="2500" />
+		<border align="outer" id="148" enabled="false" />
+		<border align="inner" to="none" id="1" enabled="false" />
+		<border align="outer" id="136" />
+	</brush>
+	<brush name="dirt mud" type="ground" server_lookid="10617" z-order="2900">
+		<item id="10617" chance="2500" />
+		<item id="10618" chance="2000" />
+		<item id="10619" chance="2000" />
+		<item id="10620" chance="2000" />
+		<item id="10621" chance="2000" />
+		<item id="10622" chance="300" />
+		<item id="10623" chance="2000" />
+		<item id="10624" chance="2000" />
+		<border align="outer" to="none" id="139" />
+		<border align="inner" to="none" id="1" />
+	</brush>
+	<brush name="rocky ground" type="ground" server_lookid="4570" z-order="1000">
+		<item id="4570" chance="100" />
+		<item id="4571" chance="100" />
+		<item id="4572" chance="100" />
+		<item id="4573" chance="100" />
+		<item id="4574" chance="100" />
+		<item id="4575" chance="100" />
+		<item id="4576" chance="100" />
+		<item id="4577" chance="100" />
+		<item id="4578" chance="100" />
+		<item id="4579" chance="100" />
+		<item id="4595" chance="0" />
+		<item id="4566" chance="0" />
+		<border align="outer" id="11" />
+		<border align="inner" to="none" id="1" />
+	</brush>
+	<brush name="rock soil 2" type="ground" server_lookid="4405" z-order="2000">
+		<item id="4405" chance="1" />
+		<item id="4406" chance="1" />
+		<item id="4407" chance="1" />
+		<item id="4408" chance="1" />
+		<item id="4409" chance="1" />
+		<item id="4410" chance="1" />
+		<item id="4411" chance="1" />
+		<item id="4412" chance="1" />
+		<item id="4413" chance="1" />
+		<item id="4414" chance="1" />
+		<item id="4415" chance="1" />
+		<item id="4416" chance="1" />
+		<item id="4417" chance="1" />
+		<item id="4418" chance="1" />
+		<item id="4419" chance="1" />
+		<item id="4420" chance="1" />
+		<item id="4421" chance="1" />
+		<border align="outer" id="20" />
+		<border align="outer" id="234" />
+		<border align="inner" to="none" id="58" />
+	</brush>
+	<brush name="swamp clay mountain" type="ground" server_lookid="19146" z-order="6900">
+		<item id="19146" chance="1" />
+		<border align="outer" to="none" id="67" />
+		<border align="outer" id="67" />
+	</brush>
+	<brush name="dark sand" type="ground" server_lookid="12912" z-order="6300">
+		<item id="12912" chance="10000" />
+		<border align="outer" id="143" />
+		<border align="inner" to="none" id="1" />
+	</brush>
+	<brush name="blood water" type="ground" server_lookid="20932" z-order="5550">
+		<item id="20932" chance="2500" />
+		<item id="20933" chance="1500" />
+		<item id="20934" chance="1500" />
+		<item id="20935" chance="1000" />
+		<item id="20936" chance="2500" />
+		<item id="20937" chance="2500" />
+		<border align="outer" id="310" />
+		<border align="outer" to="none" id="310" />
+	</brush>
+	<brush name="new sand" type="ground" server_lookid="44198" z-order="5000">
+		<item id="44198" chance="1000" />
+	</brush>
+	<brush name="dirt mountain ground" type="ground" server_lookid="8913" z-order="4500">
+		<item id="8913" chance="1000" />
+		<item id="8914" chance="1000" />
+		<item id="8915" chance="1000" />
+		<item id="8916" chance="1000" />
+		<item id="8917" chance="1000" />
+		<border align="outer" id="125" />
+		<border align="inner" to="none" id="1" />
+	</brush>
+	<brush name="mountain" type="ground" server_lookid="918" z-order="9900">
+		<item id="919" chance="1" />
+		<border align="inner" to="icy mountain" id="53" />
+		<border align="inner" to="snowy mountain" id="53" />
+		<border align="inner" to="none" id="3" />
+		<border align="outer" to="none" id="51" />
+		<border align="outer" id="10" />
+		<border align="inner" id="3" />
+		<optional id="29" />
+	</brush>
+	<brush name="highdesert mountain" type="ground" server_lookid="43501" z-order="9000">
+		<item id="43501" chance="1000" />
+		<border align="outer" id="259" />
+		<border align="outer" to="none" id="259" />
+	</brush>
+	<brush name="sea" type="ground" server_lookid="4608" z-order="8600">
+		<item id="4608" chance="3" />
+		<item id="4609" chance="1" />
+		<item id="4610" chance="1" />
+		<item id="4611" chance="1" />
+		<item id="4612" chance="1" />
+		<item id="4613" chance="1" />
+		<item id="4614" chance="1" />
+		<item id="4615" chance="1" />
+		<item id="4616" chance="1" />
+		<item id="4617" chance="1" />
+		<item id="4618" chance="1" />
+		<item id="4619" chance="1" />
+		<item id="4664" chance="1" />
+		<item id="4665" chance="1" />
+		<item id="4666" chance="1" />
+		<item id="4620" chance="0" />
+		<item id="4621" chance="0" />
+		<item id="4622" chance="0" />
+		<item id="4623" chance="0" />
+		<item id="4624" chance="0" />
+		<item id="4625" chance="0" />
+		<item id="5757" chance="0" />
+		<item id="5756" chance="0" />
+		<item id="5755" chance="0" />
+		<item id="5759" chance="0" />
+		<item id="5760" chance="0" />
+		<item id="5758" chance="0" />
+		<item id="5761" chance="0" />
+	</brush>
+	<brush name="snow" type="ground" server_lookid="6838" z-order="9800">
+		<item id="670" chance="240" />
+		<item id="6580" chance="10" />
+		<item id="6581" chance="10" />
+		<item id="6582" chance="10" />
+		<item id="6583" chance="10" />
+		<item id="6584" chance="10" />
+		<item id="6585" chance="10" />
+		<item id="6586" chance="10" />
+		<item id="6587" chance="10" />
+		<item id="6588" chance="10" />
+		<item id="6589" chance="10" />
+		<item id="6590" chance="10" />
+		<item id="6591" chance="10" />
+		<item id="6592" chance="10" />
+		<item id="6593" chance="10" />
+		<item id="6594" chance="0" />
+		<item id="6595" chance="0" />
+		<item id="6596" chance="0" />
+		<item id="6597" chance="0" />
+		<item id="6598" chance="0" />
+		<item id="6599" chance="0" />
+		<item id="6600" chance="0" />
+		<item id="6601" chance="0" />
+		<item id="6602" chance="0" />
+		<item id="6603" chance="0" />
+		<item id="6604" chance="0" />
+		<item id="6605" chance="0" />
+		<item id="6606" chance="0" />
+		<item id="6607" chance="0" />
+		<item id="6608" chance="0" />
+		<item id="6612" chance="0" />
+		<item id="6613" chance="0" />
+		<item id="6614" chance="0" />
+		<item id="6615" chance="0" />
+		<item id="6616" chance="0" />
+		<item id="6617" chance="0" />
+		<item id="6618" chance="0" />
+		<item id="6619" chance="0" />
+		<item id="6620" chance="0" />
+		<item id="6621" chance="0" />
+		<item id="6622" chance="0" />
+		<item id="6623" chance="0" />
+		<item id="6624" chance="0" />
+		<item id="6625" chance="0" />
+		<item id="6626" chance="0" />
+		<item id="6917" chance="0" />
+		<item id="6918" chance="0" />
+		<item id="6919" chance="0" />
+		<item id="6920" chance="0" />
+		<item id="6921" chance="0" />
+		<item id="6922" chance="0" />
+		<item id="6923" chance="0" />
+		<item id="6924" chance="0" />
+		<border align="outer" id="6" />
+	</brush>
+	<brush name="snowy mountain1" type="ground" server_lookid="40801" z-order="9901">
+		<item id="40801" chance="15" />
+		<item id="40802" chance="1" />
+		<item id="40803" chance="1" />
+		<border align="outer" to="none" id="52" />
+		<border align="outer" id="52" />
+	</brush>
+	<brush name="rotten mountain" type="ground" server_lookid="42267" z-order="10000">
+		<item id="42267" chance="1" />
+		<border align="inner" to="none" id="240" enabled="false" />
+		<border align="outer" to="none" id="229" />
+		<border align="outer" id="229" />
+	</brush>
+	<brush name="sandstone mountain" type="ground" server_lookid="65535" z-order="9910">
+		<item id="21197" chance="1" />
+		<border align="outer" to="none" id="68" />
+		<border align="outer" id="68" />
+		<border align="outer" id="316" />
+	</brush>
+	<brush name="venore muddy floor" type="ground" server_lookid="18560" z-order="1600">
+		<item id="18560" chance="2500" />
+		<item id="18561" chance="1500" />
+		<item id="18562" chance="2500" />
+		<item id="18563" chance="1500" />
+		<item id="18564" chance="2500" />
+		<item id="18565" chance="2500" />
+		<item id="18566" chance="2500" />
+		<item id="18567" chance="2500" />
+		<border align="outer" id="317" />
+	</brush>
+	<brush name="muddy floor" type="ground" server_lookid="11561" z-order="1100">
+		<item id="11561" chance="10000" />
+		<border align="outer" id="149" />
+		<border align="outer" to="none" id="149" />
+	</brush>
+	<brush name="nova montanha 1" type="ground" server_lookid="56812" z-order="6900">
+		<item id="56812" chance="10" />
+		<border align="outer" id="320" />
+		<border align="outer" to="none" id="320" />
+	</brush>
+	<brush name="ground novo 2" type="ground" server_lookid="56852" z-order="1300">
+		<item id="56852" chance="10" />
+		<item id="56853" chance="10" />
+		<item id="56854" chance="15" />
+		<item id="56855" chance="2" />
+		<border align="outer" id="319" />
+		<border align="outer" to="none" id="319" />
+	</brush>
+	<brush name="nova borda 1" type="ground" server_lookid="56799" z-order="2000">
+		<item id="56799" chance="10" />
+		<border align="outer" id="318" />
+		<border align="outer" to="none" id="318" />
+	</brush>
+	<brush name="cave (alternate border)" type="ground" server_lookid="9025" z-order="2300">
+		<item id="9021" chance="6" />
+		<item id="9022" chance="1" />
+		<item id="9023" chance="1" />
+		<item id="9024" chance="1" />
+		<item id="9025" chance="1" />
+		<border align="outer" id="121" />
+		<border align="inner" to="none" id="1" />
+	</brush>
+	<brush name="dark cobblestone 1" type="ground" server_lookid="45339" z-order="1650">
+		<item id="45339" chance="1" />
+		<border align="outer" id="275" />
+		<border align="outer" to="none" id="275" />
+	</brush>
+	<brush name="asesaes" type="ground" server_lookid="57371" z-order="2000">
+		<item id="57371" chance="10" />
+		<border align="outer" id="323" />
+		<border align="outer" to="none" id="323" />
+	</brush>
+	<brush name="dirt" type="ground" server_lookid="103" z-order="950">
+		<item id="103" chance="1" />
+		<item id="4833" chance="0" />
+		<item id="4832" chance="0" />
+		<item id="806" chance="0" />
+		<item id="804" chance="0" />
+	</brush>
+	<brush name="basalt floor" type="ground" server_lookid="17625" z-order="900">
+		<item id="17625" chance="2500" />
+		<item id="17626" chance="2500" />
+		<item id="17627" chance="2500" />
+		<item id="17628" chance="2500" />
+		<border align="outer" id="163" />
+		<border align="inner" to="none" id="1" />
+	</brush>
+	<brush name="wood floor2" type="ground" server_lookid="49435" z-order="3000">
+		<item id="49435" chance="10" />
+		<border align="outer" id="326" enabled="false" />
+		<border align="outer" to="none" id="326" enabled="false" />
+	</brush>
+	<brush name="sky grass" type="ground" server_lookid="38431" z-order="600">
+		<item id="38431" chance="1" />
+		<item id="38432" chance="1" />
+		<item id="38433" chance="1" />
+		<item id="38434" chance="1" />
+		<item id="38435" chance="1" />
+		<item id="38436" chance="1" />
+		<item id="38437" chance="1" />
+		<item id="38438" chance="1" />
+		<item id="38439" chance="1" />
+		<item id="38440" chance="1" />
+		<item id="38441" chance="1" />
+		<item id="38442" chance="1" />
+		<item id="38443" chance="1" />
+		<item id="38444" chance="1" />
+		<border align="outer" id="327" />
+		<border align="outer" to="none" id="327" />
+	</brush>
+	<brush name="mushroom sponge" type="ground" server_lookid="18053" z-order="710">
+		<item id="18053" chance="2500" />
+		<item id="18054" chance="1500" />
+		<item id="18055" chance="1500" />
+		<border align="outer" id="165" />
+		<border align="inner" to="none" id="1" />
+	</brush>
+	<brush name="earth ground 5" type="ground" server_lookid="43533" z-order="900">
+		<item id="43533" chance="10" />
+		<item id="43534" chance="10" />
+		<item id="43535" chance="10" />
+		<border align="outer" id="328" variant="1" />
+		<border align="outer" to="none" id="328" variant="1" />
+		<border align="outer" id="325" variant="2" />
+		<border align="outer" to="none" id="325" variant="2" />
+	</brush>
+	<brush name="lanterns end" type="ground" server_lookid="57341" z-order="3700" carpet_fill="true">
+		<item id="57341" chance="10" />
+		<border align="outer" id="321" />
+		<border align="outer" to="none" id="321" />
+	</brush>
+	<brush name="dark dirt 2" type="ground" server_lookid="45581" z-order="2800">
+		<item id="45581" chance="200" />
+		<border align="outer" id="280" />
+		<border align="outer" to="none" id="280" />
+	</brush>
+	<brush name="ease" type="ground" server_lookid="57354" z-order="1000" carpet_fill="true">
+		<item id="57354" chance="75" />
+		<item id="57355" chance="10" />
+		<item id="57356" chance="10" />
+		<item id="57357" chance="10" />
+		<item id="57358" chance="10" />
+		<border align="outer" id="322" />
+		<border align="outer" to="none" id="322" />
+	</brush>
+	<brush name="ase" type="ground" server_lookid="57392" z-order="3900">
+		<item id="57392" chance="10" />
+		<item id="57393" chance="10" />
+		<border align="outer" id="324" />
+		<border align="outer" to="none" id="324" />
+	</brush>
+	<brush name="water" type="ground" server_lookid="57569">
+		<item id="57569" chance="855" />
+		<item id="57570" chance="10" />
+		<item id="57571" chance="10" />
+		<item id="57572" chance="10" />
+		<item id="57573" chance="10" />
+		<item id="57574" chance="10" />
+		<item id="57575" chance="10" />
+		<item id="57576" chance="10" />
+		<item id="57577" chance="10" />
+	</brush>
+	<brush name="water lanterns end" type="ground" server_lookid="57569">
+		<item id="57569" chance="855" />
+		<item id="57570" chance="10" />
+		<item id="57571" chance="10" />
+		<item id="57572" chance="10" />
+		<item id="57573" chance="10" />
+		<item id="57574" chance="10" />
+		<item id="57575" chance="10" />
+		<item id="57576" chance="10" />
+		<item id="57577" chance="10" />
 	</brush>
 </materials>

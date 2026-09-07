@@ -249,6 +249,7 @@
 	<menu name="Window">
 		<item name="Minimap" hotkey="M" action="WIN_MINIMAP" help="Displays the minimap window."/>
 		<item name="Tool Options" action="WIN_TOOL_OPTIONS" help="Displays the tool options window."/>
+		<item name="Claude Assistant" hotkey="Ctrl+Shift+A" action="WIN_CLAUDE_ASSISTANT" help="Chat with Claude inside the editor: it can read the map, paint with brushes, run Lua scripts and look at screenshots. Needs an Anthropic API key (button in the panel)."/>
 		<item name="Tile Properties" action="WIN_TILE_PROPERTIES" help="Displays the tile properties panel."/>
 		<item name="In-game Preview" action="WIN_INGAME_PREVIEW" help="Displays the in-game preview window."/>
 		<item name="New Palette" action="NEW_PALETTE" help="Creates a new palette."/>

@@ -523,7 +523,45 @@
 		
 		
 		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		 --&gt;
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		
 		
 		
@@ -12102,10 +12140,11 @@
 		<item id="18696" chance="6" />
 		<item id="18697" chance="4" />
 	</brush>
-	<brush name="venorean spice" type="doodad" server_lookid="19433" draggable="true" on_blocking="false" thickness="10/10" activated="true">
-		<item id="19433" chance="10" />
-		<item id="19432" chance="8" />
-		<item id="19431" chance="4" />
+	<brush name="venorean spice" type="doodad" server_lookid="14498" draggable="true" on_blocking="false" thickness="10/10">
+		<item id="2782" chance="2" />
+		<item id="19433" chance="45" />
+		<item id="19432" chance="5" />
+		<item id="19431" chance="5" />
 	</brush>
 	<brush name="swamp bubbles" type="doodad" server_lookid="19882" draggable="true" on_blocking="true" thickness="10/10" activated="true">
 		<item id="19881" chance="10" />
@@ -19832,53 +19871,6 @@
 			<item id="11973" chance="1" />
 		</wall>
 	</brush>
-	<brush name="zao floor ornaments" type="wall" server_lookid="11992" activated="true">
-		<wall type="pole">
-			<item id="11992" chance="1" />
-		</wall>
-		<wall type="horizontal">
-			<item id="11992" chance="1" />
-		</wall>
-		<wall type="vertical">
-			<item id="11991" chance="1" />
-		</wall>
-		<wall type="south end">
-			<item id="11991" chance="1" />
-		</wall>
-		<wall type="east end">
-			<item id="11992" chance="1" />
-		</wall>
-		<wall type="north end">
-			<item id="11991" chance="1" />
-		</wall>
-		<wall type="west end">
-			<item id="11992" chance="1" />
-		</wall>
-		<wall type="northeast diagonal">
-			<item id="11985" chance="1" />
-		</wall>
-		<wall type="northwest diagonal">
-			<item id="11988" chance="1" />
-		</wall>
-		<wall type="southeast diagonal">
-			<item id="11983" chance="1" />
-		</wall>
-		<wall type="southwest diagonal">
-			<item id="11986" chance="1" />
-		</wall>
-		<wall type="south T">
-			<item id="11989" chance="1" />
-		</wall>
-		<wall type="north T">
-			<item id="11990" chance="1" />
-		</wall>
-		<wall type="east T">
-			<item id="11987" chance="1" />
-		</wall>
-		<wall type="west T">
-			<item id="11984" chance="1" />
-		</wall>
-	</brush>
 	<brush name="deepling floor ornaments" type="wall" server_lookid="14958" activated="true">
 		<wall type="pole">
 			<item id="14958" chance="1" />
@@ -21589,7 +21581,45 @@
 				
 				
 				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
 				=
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
 				
 				
 				
@@ -21727,7 +21757,45 @@
 				
 				
 				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
 				=
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
 				
 				
 				
@@ -23822,7 +23890,7 @@
 		<item id="49784" chance="10" />
 		<item id="49785" chance="10" />
 	</brush>
-	<brush name="big dead trees 2" type="doodad" server_lookid="47099" draggable="true" on_blocking="false" thickness="12/100">
+	<brush name="big dead trees 2" type="doodad" server_lookid="49915" draggable="true" on_blocking="false" thickness="12/100">
 		<item id="49915" chance="10" />
 		<item id="49916" chance="10" />
 		<item id="49917" chance="10" />
@@ -23982,5 +24050,508 @@
 		<item id="55536" chance="10" />
 		<item id="55537" chance="10" />
 		<item id="55538" chance="10" />
+	</brush>
+	<brush name="cenoura inferno" type="doodad" server_lookid="55767" draggable="true" on_blocking="false" thickness="25/100">
+		<item id="55767" chance="10" />
+		<item id="55768" chance="10" />
+	</brush>
+	<brush name="aboboras" type="doodad" server_lookid="57120" draggable="true" on_blocking="false" thickness="25/100">
+		<composite chance="10">
+			<tile x="-1" y="-1">
+				<item id="57089" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="57086" />
+			</tile>
+			<tile x="1" y="-1">
+				<item id="57083" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="57088" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="57085" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57082" />
+			</tile>
+			<tile x="-1" y="1">
+				<item id="57087" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57084" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57081" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="-1" y="-1">
+				<item id="57098" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="57095" />
+			</tile>
+			<tile x="1" y="-1">
+				<item id="57092" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="57097" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="57094" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57091" />
+			</tile>
+			<tile x="-1" y="1">
+				<item id="57096" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57093" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57090" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="-2" y="-2">
+				<item id="57112" />
+			</tile>
+			<tile x="-1" y="-2">
+				<item id="57111" />
+			</tile>
+			<tile x="-2" y="-1">
+				<item id="57110" />
+			</tile>
+			<tile x="-1" y="-1">
+				<item id="57109" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="57108" />
+			</tile>
+			<tile x="1" y="-1">
+				<item id="57107" />
+			</tile>
+			<tile x="-2" y="0">
+				<item id="57106" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="57105" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="57104" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57103" />
+			</tile>
+			<tile x="-2" y="1">
+				<item id="57102" />
+			</tile>
+			<tile x="-1" y="1">
+				<item id="57101" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57100" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57099" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57116" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57115" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57114" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57113" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="-1" y="0">
+				<item id="57120" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="57119" />
+			</tile>
+			<tile x="-1" y="1">
+				<item id="57118" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57117" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="-1" y="-1">
+				<item id="57129" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="57128" />
+			</tile>
+			<tile x="1" y="-1">
+				<item id="57127" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="57126" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="57125" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57124" />
+			</tile>
+			<tile x="-1" y="1">
+				<item id="57123" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57122" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57121" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="-2" y="-1">
+				<item id="57141" />
+			</tile>
+			<tile x="-1" y="-1">
+				<item id="57140" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="57139" />
+			</tile>
+			<tile x="1" y="-1">
+				<item id="57138" />
+			</tile>
+			<tile x="-2" y="0">
+				<item id="57137" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="57136" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="57135" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57134" />
+			</tile>
+			<tile x="-2" y="1">
+				<item id="57133" />
+			</tile>
+			<tile x="-1" y="1">
+				<item id="57132" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57131" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57130" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="-1" y="0">
+				<item id="57147" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="57146" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57145" />
+			</tile>
+			<tile x="-1" y="1">
+				<item id="57144" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57143" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57142" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="purple ground 5" type="carpet" server_lookid="57264" activated="true">
+		<carpet align="n" id="57252" />
+		<carpet align="e" id="57253" />
+		<carpet align="s" id="57254" />
+		<carpet align="w" id="57255" />
+		<carpet align="cnw" id="57256" />
+		<carpet align="cne" id="57257" />
+		<carpet align="cse" id="57259" />
+		<carpet align="csw" id="57258" />
+		<carpet align="dnw" id="57260" />
+		<carpet align="dne" id="57261" />
+		<carpet align="dse" id="57263" />
+		<carpet align="dsw" id="57262" />
+		<carpet align="center" id="57264" />
+	</brush>
+	<brush name="arvores lanterns end" type="doodad" server_lookid="57290" draggable="true" on_blocking="false" thickness="25/100">
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57282" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57283" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57281" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57280" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57286" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57287" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57285" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57284" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57298" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57299" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57297" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57296" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57294" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57295" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57293" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57292" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57288" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57289" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57290" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57291" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57300" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57301" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57302" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57303" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="flores lanterns end" type="doodad" server_lookid="57306" draggable="true" on_blocking="false" thickness="25/100">
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57306" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57305" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57304" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57309" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57308" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57307" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57312" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57313" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57311" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57310" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="grass tufts purple" type="doodad" server_lookid="57372" draggable="true" on_blocking="false" thickness="25/100">
+		<item id="57375" chance="10" />
+		<item id="57374" chance="10" />
+		<item id="57373" chance="10" />
+		<item id="57372" chance="4" />
+	</brush>
+	<brush name="lanterns end arvores brilhantes" type="doodad" server_lookid="57422" draggable="true" on_blocking="false" thickness="25/100">
+		<item id="57422" chance="10" />
+		<item id="57423" chance="10" />
+		<item id="57424" chance="10" />
+		<item id="57425" chance="10" />
+		<item id="57426" chance="10" />
+		<item id="57427" chance="10" />
+		<item id="57428" chance="10" />
+		<item id="57429" chance="10" />
+		<item id="57430" chance="10" />
+		<item id="57431" chance="10" />
+		<item id="57432" chance="10" />
+		<item id="57433" chance="10" />
+		<item id="57434" chance="10" />
+		<item id="57435" chance="10" />
+		<item id="57439" chance="10" />
+		<item id="57440" chance="10" />
+		<item id="57441" chance="10" />
+	</brush>
+	<brush name="new_doodad" type="doodad" server_lookid="57459" draggable="true" on_blocking="false" thickness="25/100">
+		<item id="57459" chance="10" />
+		<item id="57460" chance="10" />
+		<item id="57461" chance="10" />
+		<item id="57462" chance="10" />
+		<item id="57463" chance="10" />
+		<item id="57464" chance="10" />
+		<item id="57465" chance="10" />
+		<item id="57466" chance="10" />
+		<item id="57467" chance="10" />
+		<item id="57468" chance="10" />
+		<item id="57469" chance="10" />
+		<item id="57470" chance="10" />
+		<item id="57471" chance="10" />
+		<item id="57472" chance="10" />
+	</brush>
+	<brush name="new_doodads" type="doodad" server_lookid="57475" draggable="true" on_blocking="false" thickness="25/100">
+		<item id="57474" chance="10" />
+		<item id="57475" chance="10" />
+		<item id="57476" chance="10" />
+		<item id="57477" chance="10" />
+		<item id="57478" chance="10" />
+		<item id="57479" chance="10" />
+		<item id="57480" chance="10" />
+		<item id="57481" chance="10" />
+		<item id="57482" chance="10" />
+		<item id="57483" chance="10" />
+		<item id="57484" chance="10" />
+	</brush>
+	<brush name="lanterns end pedras" type="doodad" server_lookid="57581" draggable="true" on_blocking="false" thickness="25/100">
+		<item id="57581" chance="10" />
+		<item id="57582" chance="10" />
+		<item id="57583" chance="10" />
+		<item id="57584" chance="10" />
+		<item id="57585" chance="10" />
+		<item id="57586" chance="10" />
+		<item id="57587" chance="10" />
+		<item id="57588" chance="10" />
+	</brush>
+	<brush name="zao floor ornaments" type="wall" server_lookid="11992" activated="true">
+		<wall type="horizontal">
+			<item id="11992" chance="1" />
+		</wall>
+		<wall type="vertical">
+			<item id="11991" chance="1" />
+		</wall>
+		<wall type="corner">
+			<item id="11988" chance="1" />
+		</wall>
+		<wall type="pole">
+			<item id="11992" chance="1" />
+		</wall>
+		<wall type="northeast diagonal">
+			<item id="11985" chance="1" />
+		</wall>
+		<wall type="southwest diagonal">
+			<item id="11986" chance="1" />
+		</wall>
+		<wall type="southeast diagonal">
+			<item id="11983" chance="1" />
+		</wall>
+		<wall type="north T">
+			<item id="11990" chance="1" />
+		</wall>
+		<wall type="south T">
+			<item id="11989" chance="1" />
+		</wall>
+		<wall type="east T">
+			<item id="11987" chance="1" />
+		</wall>
+		<wall type="west T">
+			<item id="11984" chance="1" />
+		</wall>
+		<wall type="intersection">
+			<item id="11993" chance="100" />
+		</wall>
+		<wall type="north end">
+			<item id="11991" chance="1" />
+		</wall>
+		<wall type="south end">
+			<item id="11991" chance="1" />
+		</wall>
+		<wall type="east end">
+			<item id="11992" chance="1" />
+		</wall>
+		<wall type="west end">
+			<item id="11992" chance="1" />
+		</wall>
+	</brush>
+	<brush name="gravel 2" type="carpet" server_lookid="57619" activated="false">
+		<carpet align="n" id="57621" />
+		<carpet align="e" id="57622" />
+		<carpet align="s" id="57620" />
+		<carpet align="w" id="57623" />
+		<carpet align="cnw" id="57626" />
+		<carpet align="cne" id="57627" />
+		<carpet align="cse" id="57624" />
+		<carpet align="csw" id="57625" />
+		<carpet align="dnw" id="57631" />
+		<carpet align="dne" id="57630" />
+		<carpet align="dse" id="57628" />
+		<carpet align="dsw" id="57629" />
+		<carpet align="center" id="57619" />
 	</brush>
 </materials>

@@ -129,3 +129,10 @@ compile_commands.json
 /assets
 /build-ninja-codex/vcpkg_installed
 /build-ninja-codex
+
+# copy_and_zip.py
+/data/discord_webhook.txt
+/data/discord_bot_token.txt
+/data/discord_sent.json
+/data/BT_SPRDAT_UPDATED.zip
+/data/BT_SPRDAT_UPDATED.zip.*
