@@ -152,6 +152,10 @@ void Editor::ApplyCameraPathsSnapshot(const CameraPathsSnapshot& snapshot, Actio
 	addBatch(std::move(batch), 2);
 }
 
+void Editor::drawGroundHoleToFloorBelow(const PositionVector& tilestodraw, const PositionVector& tilestoborder) {
+	DrawOperations::punchGroundToFloorBelow(*this, tilestodraw, tilestoborder);
+}
+
 void Editor::drawInternal(Position offset, bool alt, bool dodraw) {
 	DrawOperations::draw(*this, offset, alt, dodraw);
 }

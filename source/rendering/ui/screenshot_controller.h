@@ -20,6 +20,7 @@
 
 #include <wx/wx.h>
 #include <wx/filename.h>
+#include <wx/image.h>
 #include <memory>
 
 class MapCanvas;
@@ -31,6 +32,9 @@ public:
 	~ScreenshotController();
 
 	void TakeScreenshot(const wxFileName& path, const wxString& format);
+	// Renders the current view once and returns it as an image (invalid image on
+	// failure). Used by the Claude assistant to look at the map.
+	wxImage CaptureImage();
 	bool IsCapturing() const;
 	uint8_t* GetBuffer();
 

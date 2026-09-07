@@ -60,6 +60,7 @@ class LiveSocket;
 
 class SidebarWindow;
 class ToolOptionsWindow;
+class ClaudePanel;
 class TilePropertiesPanel;
 class AreaDecorationDialog;
 class StructureManagerDialog;
@@ -392,6 +393,7 @@ public:
 	HousePalette* house_palette;
 
 	ToolOptionsWindow* tool_options;
+	ClaudePanel* claude_panel;
 	TilePropertiesPanel* tile_properties_panel;
 	// Detached map views (floating frames and dockable panels)
 	std::map<Editor*, std::list<wxFrame*>> detached_views;

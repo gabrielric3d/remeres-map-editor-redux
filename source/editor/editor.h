@@ -109,6 +109,10 @@ public: // Functions
 	void undraw(const PositionVector& posvec, bool alt);
 	void undraw(const PositionVector& todraw, PositionVector& toborder, bool alt);
 
+	// Alt+Shift "hole punch": paints the current ground brush here and one floor below,
+	// then clears it here again, leaving a hole with that ground showing underneath.
+	void drawGroundHoleToFloorBelow(const PositionVector& todraw, const PositionVector& toborder);
+
 protected:
 	void drawInternal(const Position offset, bool alt, bool dodraw);
 	void drawInternal(const PositionVector& posvec, bool alt, bool dodraw);

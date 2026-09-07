@@ -20,6 +20,7 @@
 #include "ingame_preview/ingame_preview_window.h"
 #include "ui/managers/status_manager.h"
 #include "ui/tool_options_window.h"
+#include "ui/claude_panel.h"
 
 LayoutManager g_layout;
 
@@ -149,6 +150,29 @@ void LayoutManager::LoadPerspective() {
 		}
 	}
 
+	// Claude assistant chat (Window > Claude Assistant). Hidden until asked for
+	// the first time; afterwards the saved pane layout decides.
+	if (!g_gui.claude_panel) {
+		g_gui.claude_panel = newd ClaudePanel(g_gui.root);
+
+		wxAuiPaneInfo info;
+		wxString layout = wxstr(g_settings.getString(Config::CLAUDE_PANEL_LAYOUT));
+		if (!layout.empty()) {
+			g_gui.aui_manager->LoadPaneInfo(layout, info);
+		} else {
+			info.Name("ClaudeAssistant").Caption("Claude Assistant").Right().Layer(1).Position(0).CloseButton(true).MaximizeButton(true).BestSize(380, 600).Hide();
+		}
+		info.Name("ClaudeAssistant").Caption("Claude Assistant");
+
+		g_gui.aui_manager->AddPane(g_gui.claude_panel, info);
+	} else {
+		wxAuiPaneInfo& info = g_gui.aui_manager->GetPane(g_gui.claude_panel);
+		wxString layout = wxstr(g_settings.getString(Config::CLAUDE_PANEL_LAYOUT));
+		if (!layout.empty()) {
+			g_gui.aui_manager->LoadPaneInfo(layout, info);
+		}
+	}
+
 	if (g_settings.getInteger(Config::INGAME_PREVIEW_VISIBLE)) {
 		g_preview.Create();
 		if (g_preview.GetWindow()) {
@@ -206,6 +230,11 @@ void LayoutManager::SavePerspective() {
 	if (g_gui.tool_options) {
 		wxString s = g_gui.aui_manager->SavePaneInfo(g_gui.aui_manager->GetPane(g_gui.tool_options));
 		g_settings.setString(Config::TOOL_OPTIONS_LAYOUT, nstr(s));
+	}
+
+	if (g_gui.claude_panel) {
+		wxString s = g_gui.aui_manager->SavePaneInfo(g_gui.aui_manager->GetPane(g_gui.claude_panel));
+		g_settings.setString(Config::CLAUDE_PANEL_LAYOUT, nstr(s));
 	}
 
 	g_settings.setInteger(Config::INGAME_PREVIEW_VISIBLE, g_preview.IsVisible() ? 1 : 0);

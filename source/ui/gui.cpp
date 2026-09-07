@@ -109,6 +109,7 @@ GUI::GUI() :
 	tabbook(nullptr),
 	root(nullptr),
 	tool_options(nullptr),
+	claude_panel(nullptr),
 	tile_properties_panel(nullptr),
 	pasting(false),
 	disabled_counter(0),

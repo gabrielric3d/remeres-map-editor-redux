@@ -57,7 +57,28 @@ EraseFloorsDialog::EraseFloorsDialog(wxWindow* parent) :
 		"On: the tile is wiped like the Eraser brush would (items, walls and decoration included).\n"
 		"The \"Eraser leaves unique items\" setting still applies."
 	);
-	sizer->Add(whole_tile_check, 0, wxALL, 12);
+	sizer->Add(whole_tile_check, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+
+	brush_only_check = newd wxCheckBox(this, wxID_ANY, "Only where the brush erases on this floor");
+	brush_only_check->SetToolTip(
+		"On: the other floors are only wiped on the tiles the brush really erases here:\n"
+		"a ground brush owns just its own ground, so the mountain below comes out only\n"
+		"under that ground, not under the whole area you swept.\n"
+		"Off: the entire brush footprint is wiped on the other floors."
+	);
+	sizer->Add(brush_only_check, 0, wxALL, 12);
+
+	sizer->Add(newd wxStaticLine(this, wxID_ANY), 0, wxEXPAND | wxLEFT | wxRIGHT, 12);
+
+	// ---- Painting a hole instead of erasing ----
+	punch_below_check = newd wxCheckBox(this, wxID_ANY, "Alt+Shift paints a hole with this ground one floor below");
+	punch_below_check->SetToolTip(
+		"With a ground brush, holding Alt+Shift paints the ground, repeats it on the floor\n"
+		"below and then clears it here again: you get a hole in the cave already filled\n"
+		"with water (or whatever the brush paints) underneath.\n"
+		"Alt+Shift paints free-hand while this is on, instead of the usual Shift drag."
+	);
+	sizer->Add(punch_below_check, 0, wxALL, 12);
 
 	// ---- OK/Cancel ----
 	wxSizer* button_sizer = newd wxBoxSizer(wxHORIZONTAL);
@@ -78,6 +99,8 @@ EraseFloorsDialog::EraseFloorsDialog(wxWindow* parent) :
 	above_count->SetValue(std::clamp(g_settings.getInteger(Config::ERASE_FLOORS_ABOVE_COUNT), 1, MAP_MAX_LAYER));
 	below_count->SetValue(std::clamp(g_settings.getInteger(Config::ERASE_FLOORS_BELOW_COUNT), 1, MAP_MAX_LAYER));
 	whole_tile_check->SetValue(g_settings.getBoolean(Config::ERASE_FLOORS_WHOLE_TILE));
+	brush_only_check->SetValue(g_settings.getBoolean(Config::ERASE_FLOORS_BRUSH_ONLY));
+	punch_below_check->SetValue(g_settings.getBoolean(Config::PUNCH_GROUND_BELOW_ENABLED));
 	UpdateEnabledState();
 
 	above_check->Bind(wxEVT_CHECKBOX, &EraseFloorsDialog::OnToggleAbove, this);
@@ -109,6 +132,8 @@ void EraseFloorsDialog::OnClickOK(wxCommandEvent&) {
 	g_settings.setInteger(Config::ERASE_FLOORS_ABOVE_COUNT, above_count->GetValue());
 	g_settings.setInteger(Config::ERASE_FLOORS_BELOW_COUNT, below_count->GetValue());
 	g_settings.setInteger(Config::ERASE_FLOORS_WHOLE_TILE, whole_tile_check->GetValue() ? 1 : 0);
+	g_settings.setInteger(Config::ERASE_FLOORS_BRUSH_ONLY, brush_only_check->GetValue() ? 1 : 0);
+	g_settings.setInteger(Config::PUNCH_GROUND_BELOW_ENABLED, punch_below_check->GetValue() ? 1 : 0);
 	g_settings.save();
 	EndModal(1);
 }

@@ -100,6 +100,10 @@ public:
 	// Print callback for console output
 	using PrintCallback = std::function<void(const std::string&)>;
 	void setPrintCallback(PrintCallback callback);
+	// Current sink, so a caller can capture print() output temporarily and restore it.
+	PrintCallback getPrintCallback() const {
+		return printCallback;
+	}
 
 private:
 	sol::state lua;

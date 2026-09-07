@@ -278,6 +278,12 @@ namespace Config {
 		ERASE_FLOORS_ABOVE_COUNT,
 		ERASE_FLOORS_BELOW_COUNT,
 		ERASE_FLOORS_WHOLE_TILE,
+		// Only project the tiles the brush really erases on the current floor (a ground
+		// brush only owns its own ground) instead of its whole footprint.
+		ERASE_FLOORS_BRUSH_ONLY,
+		// Alt+Shift with a ground brush paints the ground one floor below and leaves a
+		// hole on the current floor (a pit in the cave with water already under it).
+		PUNCH_GROUND_BELOW_ENABLED,
 
 		// Ground brushes may declare several border sets for the same align/to pair,
 		// tagged with variant="1", variant="2", ... in grounds.xml. This is the variant
@@ -304,6 +310,15 @@ namespace Config {
 		// the new brush's equivalents (Replace Tool style, no borderize pass), so it
 		// works with auto-border off and never touches the surrounding grounds.
 		FILL_SWAP_BORDERS,
+
+		// Claude assistant panel (Window > Claude Assistant).
+		CLAUDE_API_KEY,
+		CLAUDE_MODEL,
+		CLAUDE_EFFORT,
+		CLAUDE_SHOW_THINKING,
+		CLAUDE_PANEL_LAYOUT,
+		CLAUDE_BACKEND, // "api" | "claude_code"
+		CLAUDE_CODE_PATH, // explicit path to the claude executable ("" = auto)
 
 		LAST,
 	};

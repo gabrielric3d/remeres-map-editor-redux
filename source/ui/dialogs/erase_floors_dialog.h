@@ -33,6 +33,8 @@ private:
 	wxCheckBox* below_check;
 	wxSpinCtrl* below_count;
 	wxCheckBox* whole_tile_check;
+	wxCheckBox* brush_only_check;
+	wxCheckBox* punch_below_check;
 };
 
 #endif // RME_ERASE_FLOORS_DIALOG_H_

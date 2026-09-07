@@ -426,6 +426,13 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/live_dialogs.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/menubar_loader.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/tool_options_window.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/claude_panel.h
+    ${CMAKE_CURRENT_LIST_DIR}/ai/claude_client.h
+    ${CMAKE_CURRENT_LIST_DIR}/ai/claude_tools.h
+    ${CMAKE_CURRENT_LIST_DIR}/ai/claude_agent.h
+    ${CMAKE_CURRENT_LIST_DIR}/ai/assistant_backend.h
+    ${CMAKE_CURRENT_LIST_DIR}/ai/mcp_server.h
+    ${CMAKE_CURRENT_LIST_DIR}/ai/claude_code_backend.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/tool_options_surface.h
     ${CMAKE_CURRENT_LIST_DIR}/util/common.h
     ${CMAKE_CURRENT_LIST_DIR}/util/json.h
@@ -749,6 +756,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/postprocess/effects/xbrz.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/postprocess/effects/nevasca.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/postprocess/effects/cemetery.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/postprocess/effects/flat_colors.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/about_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/add_item_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/add_tileset_window.cpp
@@ -878,6 +886,12 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/util/nanovg_listbox.cpp
     ${CMAKE_CURRENT_LIST_DIR}/util/virtual_item_grid.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/tool_options_window.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/claude_panel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ai/claude_client.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ai/claude_tools.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ai/claude_agent.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ai/mcp_server.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ai/claude_code_backend.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/tool_options_surface.cpp
     ${CMAKE_CURRENT_LIST_DIR}/util/file_system.cpp
     ${CMAKE_CURRENT_LIST_DIR}/util/image_manager.cpp

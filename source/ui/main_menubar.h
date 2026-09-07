@@ -154,6 +154,7 @@ namespace MenuBar {
 		EXT_HOUSE_SHADER,
 		WIN_MINIMAP,
 		WIN_TOOL_OPTIONS,
+		WIN_CLAUDE_ASSISTANT,
 		WIN_INGAME_PREVIEW,
 		WIN_TILE_PROPERTIES,
 		NEW_PALETTE,
@@ -380,6 +381,7 @@ public:
 
 	void OnMinimapWindow(wxCommandEvent& event);
 	void OnToolOptionsWindow(wxCommandEvent& event);
+	void OnClaudeAssistantWindow(wxCommandEvent& event);
 	void OnIngamePreviewWindow(wxCommandEvent& event);
 	void OnTilePropertiesWindow(wxCommandEvent& event);
 	void OnNewPalette(wxCommandEvent& event);

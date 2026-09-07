@@ -45,6 +45,10 @@ private:
 	// both toggles are off, when not erasing, or during the Ctrl+D ground fill.
 	void EraseExtraFloorsAtCursor(const Position& mouse_map_pos, bool ctrl_down);
 	void EraseExtraFloors(const PositionVector& tilestodraw, bool ctrl_down);
+	// Alt+Shift with a ground brush and PUNCH_GROUND_BELOW_ENABLED on: paint a hole whose
+	// floor below already carries the ground being painted. Takes over Shift, so the
+	// stroke is free-hand instead of the usual Shift rectangle/line drag.
+	bool IsPunchGroundBelowModifier(bool shift_down, bool ctrl_down, bool alt_down) const;
 
 	MapCanvas* canvas;
 	Editor& editor;

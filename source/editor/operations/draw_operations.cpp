@@ -35,6 +35,50 @@
 
 namespace {
 
+	// Cheap structural comparison, enough to tell whether a brush's undraw() touched the tile.
+	bool tileContentEquals(const Tile* a, const Tile* b) {
+		if (a->getMapFlags() != b->getMapFlags() || a->getStatFlags() != b->getStatFlags()) {
+			return false;
+		}
+		if (a->getHouseID() != b->getHouseID()) {
+			return false;
+		}
+		if ((a->creature != nullptr) != (b->creature != nullptr)) {
+			return false;
+		}
+		if ((a->spawn != nullptr) != (b->spawn != nullptr)) {
+			return false;
+		}
+		const uint16_t ground_a = a->ground ? a->ground->getID() : 0;
+		const uint16_t ground_b = b->ground ? b->ground->getID() : 0;
+		if (ground_a != ground_b) {
+			return false;
+		}
+		if (a->items.size() != b->items.size()) {
+			return false;
+		}
+		for (size_t i = 0; i < a->items.size(); ++i) {
+			if (a->items[i]->getID() != b->items[i]->getID()) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	// True when erasing with this brush would really change the tile: a ground brush only
+	// owns its own ground, a wall brush its own walls, and so on. Asking the brush itself
+	// (undraw on a throwaway copy) keeps this in sync with every brush's erase semantics
+	// instead of duplicating them here.
+	bool brushErasesTile(Editor& editor, Brush* brush, const Position& pos) {
+		Tile* tile = editor.map.getTile(pos);
+		if (!tile) {
+			return false;
+		}
+		std::unique_ptr<Tile> probe = TileOperations::deepCopy(tile, editor.map);
+		brush->undraw(&editor.map, probe.get());
+		return !tileContentEquals(tile, probe.get());
+	}
+
 	void drawDoodad(Editor& editor, DoodadBrush* brush, Position offset, bool alt, bool dodraw) {
 		std::unique_ptr<BatchAction> batch = editor.actionQueue->createBatch(ACTION_DRAW);
 		std::unique_ptr<Action> action = editor.actionQueue->createAction(batch.get());
@@ -901,6 +945,54 @@ void DrawOperations::eraseGroundWithBorders(Editor& editor, const PositionVector
 	editor.addBatch(std::move(batch), 2);
 }
 
+void DrawOperations::punchGroundToFloorBelow(Editor& editor, const PositionVector& tilestodraw, const PositionVector& tilestoborder) {
+	Brush* brush = g_gui.GetCurrentBrush();
+	if (!brush || !brush->is<GroundBrush>() || tilestodraw.empty()) {
+		return;
+	}
+	GroundBrush* ground_brush = brush->as<GroundBrush>();
+
+	// 1) Paint the ground here, in replace mode (like Alt): only the tiles whose ground is
+	//    the one picked when the stroke started take it, so a mountain (or any other
+	//    ground) next to the hole is left untouched. This also settles the real footprint
+	//    and lets the neighbours border against it before the hole is opened.
+	PositionVector border_here = tilestoborder;
+	draw(editor, tilestodraw, border_here, true, true);
+
+	// 2) Same footprint one floor below, so the ground just painted (water, lava, ...)
+	//    is what shows through the hole.
+	PositionVector below_draw;
+	for (const auto& pos : tilestodraw) {
+		if (pos.z >= MAP_MAX_LAYER) {
+			continue;
+		}
+		Tile* tile = editor.map.getTile(pos);
+		if (tile && tile->getGroundBrush() == ground_brush) {
+			below_draw.emplace_back(pos.x, pos.y, pos.z + 1);
+		}
+	}
+	if (below_draw.empty()) {
+		return; // The brush painted nothing here (or we are on the bottom floor already).
+	}
+	PositionVector below_border;
+	below_border.reserve(tilestoborder.size());
+	for (const auto& pos : tilestoborder) {
+		if (pos.z < MAP_MAX_LAYER) {
+			below_border.emplace_back(pos.x, pos.y, pos.z + 1);
+		}
+	}
+	draw(editor, below_draw, below_border, false, true);
+
+	// 3) Take the ground back out up here: what is left is the hole, with the surrounding
+	//    grounds reborderized against it.
+	PositionVector hole;
+	hole.reserve(below_draw.size());
+	for (const auto& pos : below_draw) {
+		hole.emplace_back(pos.x, pos.y, pos.z - 1);
+	}
+	eraseGroundWithBorders(editor, hole);
+}
+
 bool DrawOperations::extraFloorEraseEnabled() {
 	const bool above = g_settings.getBoolean(Config::ERASE_FLOORS_ABOVE_ENABLED)
 		&& g_settings.getInteger(Config::ERASE_FLOORS_ABOVE_COUNT) > 0;
@@ -923,10 +1015,30 @@ void DrawOperations::eraseExtraFloors(Editor& editor, const PositionVector& foot
 	const int floors_above = floorCount(Config::ERASE_FLOORS_ABOVE_ENABLED, Config::ERASE_FLOORS_ABOVE_COUNT);
 	const int floors_below = floorCount(Config::ERASE_FLOORS_BELOW_ENABLED, Config::ERASE_FLOORS_BELOW_COUNT);
 
+	// Keep the extra floors in step with what the brush actually erases on this floor:
+	// a ground brush only removes its own ground, so the footprint tiles it does not own
+	// must not take the floor below down with them. Opt-out in the Erase Floors dialog.
+	PositionVector brush_owned;
+	const PositionVector* source = &footprint;
+	if (g_settings.getBoolean(Config::ERASE_FLOORS_BRUSH_ONLY)) {
+		if (Brush* brush = g_gui.GetCurrentBrush()) {
+			brush_owned.reserve(footprint.size());
+			for (const auto& pos : footprint) {
+				if (brushErasesTile(editor, brush, pos)) {
+					brush_owned.push_back(pos);
+				}
+			}
+			if (brush_owned.empty()) {
+				return; // The brush erases nothing here, so there is nothing to follow below.
+			}
+			source = &brush_owned;
+		}
+	}
+
 	// Lower z is physically above, higher z is below (floor 0 is the top of the map).
 	PositionVector targets;
-	targets.reserve(footprint.size() * static_cast<size_t>(floors_above + floors_below));
-	for (const auto& pos : footprint) {
+	targets.reserve(source->size() * static_cast<size_t>(floors_above + floors_below));
+	for (const auto& pos : *source) {
 		for (int step = 1; step <= floors_above; ++step) {
 			const int z = pos.z - step;
 			if (z >= 0) {

@@ -25,13 +25,21 @@ public:
 	// Positions may span several floors; borders are recomputed per floor.
 	static void eraseGroundWithBorders(Editor& editor, const PositionVector& positions, bool whole_tile = false);
 
+	// "Punch a hole": paints the current ground brush on the given footprint, repeats it one
+	// floor below and then removes it from this floor again, so the tiles here end up empty
+	// with the freshly painted ground (water, lava, ...) visible one floor down. Ground
+	// brushes only; the three steps share one undo step.
+	static void punchGroundToFloorBelow(Editor& editor, const PositionVector& tilestodraw, const PositionVector& tilestoborder);
+
 	// True when at least one of the "erase extra floors" toggles is on with a floor count > 0.
 	static bool extraFloorEraseEnabled();
 
 	// Projects the given footprint (tiles of the floor being drawn on) onto the floors
 	// configured by the ERASE_FLOORS_* settings and erases them in one undo step.
 	// No-op when both toggles are off. Never touches the footprint's own floor — the
-	// brush itself already handles that.
+	// brush itself already handles that. With ERASE_FLOORS_BRUSH_ONLY (default) only the
+	// footprint tiles the current brush really erases are projected, so a ground brush
+	// takes the floors along solely where its own ground was.
 	static void eraseExtraFloors(Editor& editor, const PositionVector& footprint);
 };
 

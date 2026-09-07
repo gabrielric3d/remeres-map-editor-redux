@@ -229,6 +229,15 @@ bool MainFrame::MSWTranslateMessage(WXMSG* msg) {
 		}
 	}
 
+	// Keys typed into any text control belong to it, whatever the hotkey flag
+	// says: single-letter menu accelerators (A, D, T, I, C, W...) would otherwise
+	// fire instead of inserting the character.
+	if (msg->message == WM_KEYDOWN || msg->message == WM_CHAR || msg->message == WM_SYSKEYDOWN) {
+		if (dynamic_cast<wxTextCtrl*>(wxWindow::FindFocus()) != nullptr) {
+			return wxWindow::MSWTranslateMessage(msg);
+		}
+	}
+
 	if (g_hotkeys.AreHotkeysEnabled()) {
 		if (wxFrame::MSWTranslateMessage(msg)) {
 			return true;

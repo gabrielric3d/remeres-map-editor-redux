@@ -30,6 +30,28 @@ ScreenshotController::ScreenshotController(MapCanvas* canvas) :
 ScreenshotController::~ScreenshotController() {
 }
 
+wxImage ScreenshotController::CaptureImage() {
+	int view_scroll_x, view_scroll_y;
+	int screensize_x, screensize_y;
+	canvas->GetViewBox(&view_scroll_x, &view_scroll_y, &screensize_x, &screensize_y);
+	if (screensize_x <= 0 || screensize_y <= 0) {
+		return wxImage();
+	}
+
+	screenshot_saver->PrepareCapture(screensize_x, screensize_y);
+	canvas->Refresh();
+	canvas->Update(); // Paints now; OnPaint fills the capture buffer while IsCapturing().
+
+	wxImage image;
+	if (uint8_t* buffer = screenshot_saver->GetBuffer()) {
+		// Deep copy: the buffer is released right after.
+		image = wxImage(screensize_x, screensize_y, buffer, true).Copy();
+	}
+	screenshot_saver->Cleanup();
+	canvas->Refresh();
+	return image;
+}
+
 bool ScreenshotController::IsCapturing() const {
 	return screenshot_saver->IsCapturing();
 }

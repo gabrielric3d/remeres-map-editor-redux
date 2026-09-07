@@ -63,6 +63,9 @@ namespace ShaderNames {
 	constexpr const char* XBRZ = "4xBRZ";
 	constexpr const char* NEVASCA = "Nevasca";
 	constexpr const char* CEMETERY = "Cemetery";
+	constexpr const char* FLAT_COLORS = "Flat Colors";
+	constexpr const char* FLAT_COLORS_STRONG = "Flat Colors (Strong)";
+	constexpr const char* FLAT_COLORS_EXTREME = "Flat Colors (Extreme)";
 }
 
 #endif

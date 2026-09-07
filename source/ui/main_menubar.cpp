@@ -22,6 +22,7 @@
 #include "ui/dialog_util.h"
 #include "ui/gui.h"
 #include "ui/tool_options_window.h"
+#include "ui/claude_panel.h"
 #include "ui/tile_properties/tile_properties_panel.h"
 
 #include "map/map_statistics.h"
@@ -705,6 +706,20 @@ void MainMenuBar::OnToolOptionsWindow(wxCommandEvent& event) {
 			info.Show();
 		}
 		g_gui.aui_manager->Update();
+	}
+}
+
+void MainMenuBar::OnClaudeAssistantWindow(wxCommandEvent& event) {
+	if (g_gui.claude_panel) {
+		wxAuiPaneInfo& info = g_gui.aui_manager->GetPane(g_gui.claude_panel);
+		if (info.IsShown()) {
+			info.Hide();
+			g_gui.aui_manager->Update();
+		} else {
+			info.Show();
+			g_gui.aui_manager->Update();
+			g_gui.claude_panel->FocusInput();
+		}
 	}
 }
 

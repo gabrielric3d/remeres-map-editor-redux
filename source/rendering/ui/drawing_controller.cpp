@@ -74,6 +74,17 @@ void DrawingController::EraseExtraFloors(const PositionVector& tilestodraw, bool
 	DrawOperations::eraseExtraFloors(editor, tilestodraw);
 }
 
+bool DrawingController::IsPunchGroundBelowModifier(bool shift_down, bool ctrl_down, bool alt_down) const {
+	if (!shift_down || !alt_down || ctrl_down) {
+		return false;
+	}
+	if (!g_settings.getBoolean(Config::PUNCH_GROUND_BELOW_ENABLED)) {
+		return false;
+	}
+	Brush* brush = g_gui.GetCurrentBrush();
+	return brush && brush->is<GroundBrush>();
+}
+
 bool DrawingController::IsGroundReplaceModifier(bool shift_down, bool ctrl_down, bool alt_down) const {
 	std::string mod = g_settings.getString(Config::GROUND_REPLACE_MODIFIER);
 	if (mod == "Shift") {
@@ -88,7 +99,10 @@ void DrawingController::HandleClick(const Position& mouse_map_pos, bool shift_do
 	Brush* brush = g_gui.GetCurrentBrush();
 	if (brush) {
 		const BrushFootprint footprint = g_gui.GetBrushFootprint();
-		if (shift_down && brush->canDrag()) {
+		// The hole punch owns Alt+Shift, so it paints free-hand instead of starting the
+		// rectangle/line drag Shift normally means.
+		const bool punch_below = IsPunchGroundBelowModifier(shift_down, ctrl_down, alt_down);
+		if (shift_down && brush->canDrag() && !punch_below) {
 			dragging_draw = true;
 		} else {
 			// Runs before the brush so the extra floors are wiped with the same footprint
@@ -191,7 +205,9 @@ void DrawingController::HandleClick(const Position& mouse_map_pos, bool shift_do
 				}
 			} else {
 				bool ground_replace = brush->is<GroundBrush>() && IsGroundReplaceModifier(shift_down, ctrl_down, alt_down);
-				if (ground_replace) {
+				// The hole punch replaces like Alt does: it only opens the hole on the ground
+				// under the cursor, so a stroke next to a mountain leaves the mountain alone.
+				if (ground_replace || punch_below) {
 					replace_dragging = true;
 					Tile* draw_tile = editor.map.getTile(mouse_map_pos);
 					if (draw_tile) {
@@ -218,7 +234,9 @@ void DrawingController::HandleClick(const Position& mouse_map_pos, bool shift_do
 					}
 					BrushUtility::GetTilesToDraw(mouse_map_pos.x, mouse_map_pos.y, mouse_map_pos.z, &tilestodraw, &tilestoborder, fill, fill_area);
 
-					if (!fill && ctrl_down) {
+					if (punch_below) {
+						editor.drawGroundHoleToFloorBelow(tilestodraw, tilestoborder);
+					} else if (!fill && ctrl_down) {
 						editor.undraw(tilestodraw, tilestoborder, ground_replace);
 					} else {
 						editor.draw(tilestodraw, tilestoborder, ground_replace);
@@ -297,7 +315,9 @@ void DrawingController::HandleDrag(const Position& mouse_map_pos, bool shift_dow
 			BrushUtility::GetTilesToDraw(mouse_map_pos.x, mouse_map_pos.y, mouse_map_pos.z, &tilestodraw, &tilestoborder);
 
 			bool ground_replace_drag = brush->is<GroundBrush>() && IsGroundReplaceModifier(shift_down, ctrl_down, alt_down);
-			if (ctrl_down) {
+			if (IsPunchGroundBelowModifier(shift_down, ctrl_down, alt_down)) {
+				editor.drawGroundHoleToFloorBelow(tilestodraw, tilestoborder);
+			} else if (ctrl_down) {
 				editor.undraw(tilestodraw, tilestoborder, ground_replace_drag);
 			} else {
 				editor.draw(tilestodraw, tilestoborder, ground_replace_drag);
