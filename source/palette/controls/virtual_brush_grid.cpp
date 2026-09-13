@@ -1,6 +1,7 @@
 #include "app/main.h"
 #include "app/settings.h"
 #include "palette/controls/virtual_brush_grid.h"
+#include "palette/tileset_order.h"
 #include "ui/gui.h"
 #include "ui/gui_ids.h"
 #include "rendering/core/graphics.h"
@@ -17,6 +18,8 @@
 
 #include <spdlog/spdlog.h>
 #include <algorithm>
+#include <deque>
+#include <unordered_map>
 #include <wx/clipbrd.h>
 #include <wx/dnd.h>
 #include <wx/dataobj.h>
@@ -37,6 +40,30 @@ namespace {
 
 	static constexpr int ANIM_TIMER_ID = 9900;
 	static constexpr int PRELOAD_TIMER_ID = 9901;
+
+	// Minimum cell width when names are drawn under the icons.
+	static constexpr int LABEL_MIN_CELL_WIDTH = 64;
+	static constexpr float LABEL_FONT_SIZE = 9.0f;
+
+	// Grid cells widen when names are shown so the label has room to breathe.
+	int CellWidthFor(int itemSize, bool showLabels) {
+		return showLabels ? std::max(itemSize, LABEL_MIN_CELL_WIDTH) : itemSize;
+	}
+
+	// Server id used when sorting by ID, falls back to the look id.
+	uint32_t GetBrushSortID(const Brush* brush) {
+		if (!brush) {
+			return 0;
+		}
+		if (brush->is<RAWBrush>()) {
+			const RAWBrush* raw = brush->as<RAWBrush>();
+			if (raw) {
+				return raw->getItemID();
+			}
+		}
+		const int lookId = brush->getLookID();
+		return lookId > 0 ? static_cast<uint32_t>(lookId) : 0;
+	}
 }
 
 VirtualBrushGrid::VirtualBrushGrid(wxWindow* parent, const TilesetCategory* _tileset, RenderSize rsz) :
@@ -60,6 +87,8 @@ VirtualBrushGrid::VirtualBrushGrid(wxWindow* parent, const TilesetCategory* _til
 	}
 
 	Bind(wxEVT_LEFT_DOWN, &VirtualBrushGrid::OnMouseDown, this);
+	Bind(wxEVT_LEFT_UP, &VirtualBrushGrid::OnMouseUp, this);
+	Bind(wxEVT_MOUSE_CAPTURE_LOST, &VirtualBrushGrid::OnCaptureLost, this);
 	Bind(wxEVT_RIGHT_DOWN, &VirtualBrushGrid::OnRightClick, this);
 	Bind(wxEVT_MOTION, &VirtualBrushGrid::OnMotion, this);
 	Bind(wxEVT_SIZE, &VirtualBrushGrid::OnSize, this);
@@ -69,6 +98,10 @@ VirtualBrushGrid::VirtualBrushGrid(wxWindow* parent, const TilesetCategory* _til
 	Bind(wxEVT_MENU, &VirtualBrushGrid::OnCopyClientID, this, PALETTE_POPUP_MENU_COPY_CLIENT_ID);
 	Bind(wxEVT_MENU, &VirtualBrushGrid::OnApplyReplaceOriginal, this, PALETTE_POPUP_MENU_APPLY_REPLACE_ORIGINAL);
 	Bind(wxEVT_MENU, &VirtualBrushGrid::OnApplyReplaceReplacement, this, PALETTE_POPUP_MENU_APPLY_REPLACE_REPLACEMENT);
+	Bind(wxEVT_MENU, &VirtualBrushGrid::OnMoveBrushMenu, this, PALETTE_POPUP_MENU_MOVE_BACKWARD, PALETTE_POPUP_MENU_RESET_ORDER);
+
+	LoadStoredOrder();
+	RebuildDisplayList();
 
 	UpdateLayout();
 	StartPreloading();
@@ -87,19 +120,23 @@ void VirtualBrushGrid::SetDisplayMode(DisplayMode mode) {
 }
 
 // ============================================================================
-// Filter support
+// Display list: user order -> filter -> sort
 
 size_t VirtualBrushGrid::GetEffectiveBrushCount() const {
-	if (filter_active) {
-		return filtered_indices.size();
+	if (use_display_list) {
+		return display_indices.size();
 	}
 	return tileset->size();
 }
 
 Brush* VirtualBrushGrid::GetEffectiveBrush(size_t index) const {
-	if (filter_active) {
-		if (index < filtered_indices.size()) {
-			return tileset->brushlist[filtered_indices[index]];
+	if (use_display_list) {
+		if (index >= display_indices.size()) {
+			return nullptr;
+		}
+		const size_t real = display_indices[index];
+		if (real < tileset->brushlist.size()) {
+			return tileset->brushlist[real];
 		}
 		return nullptr;
 	}
@@ -109,9 +146,110 @@ Brush* VirtualBrushGrid::GetEffectiveBrush(size_t index) const {
 	return nullptr;
 }
 
+void VirtualBrushGrid::LoadStoredOrder() {
+	base_indices.clear();
+
+	const std::vector<std::string>* order = g_tileset_order.GetOrder(tileset->tileset.name, tileset->getType());
+	if (!order) {
+		return;
+	}
+
+	const size_t count = tileset->brushlist.size();
+
+	// A tileset may hold the same brush twice, so keep a queue per key.
+	std::unordered_map<std::string, std::deque<size_t>> pending;
+	for (size_t i = 0; i < count; ++i) {
+		pending[TilesetOrderStore::MakeBrushKey(tileset->brushlist[i])].push_back(i);
+	}
+
+	std::vector<bool> used(count, false);
+	base_indices.reserve(count);
+
+	for (const std::string& key : *order) {
+		auto it = pending.find(key);
+		if (it == pending.end() || it->second.empty()) {
+			continue; // The brush is no longer part of this tileset
+		}
+		const size_t index = it->second.front();
+		it->second.pop_front();
+		base_indices.push_back(index);
+		used[index] = true;
+	}
+
+	// Brushes added after the order was saved keep their original place at the end.
+	for (size_t i = 0; i < count; ++i) {
+		if (!used[i]) {
+			base_indices.push_back(i);
+		}
+	}
+}
+
+void VirtualBrushGrid::RebuildDisplayList() {
+	const size_t count = tileset->brushlist.size();
+	const bool has_base = !base_indices.empty();
+	const bool has_sort = (sort_key != TilesetSortKey::None);
+
+	filter_active = !current_filter.empty();
+
+	if (!has_base && !has_sort && !filter_active) {
+		display_indices.clear();
+		use_display_list = false;
+		return;
+	}
+
+	display_indices.clear();
+	display_indices.reserve(count);
+
+	if (has_base) {
+		for (const size_t index : base_indices) {
+			if (index < count) {
+				display_indices.push_back(index);
+			}
+		}
+	} else {
+		for (size_t i = 0; i < count; ++i) {
+			display_indices.push_back(i);
+		}
+	}
+
+	if (filter_active) {
+		std::erase_if(display_indices, [this](size_t index) {
+			const Brush* brush = tileset->brushlist[index];
+			return !brush || as_lower_str(brush->getName()).find(current_filter) == std::string::npos;
+		});
+	}
+
+	if (has_sort) {
+		const bool ascending = (sort_dir == TilesetSortDirection::Ascending);
+		std::stable_sort(display_indices.begin(), display_indices.end(), [this, ascending](size_t lhs, size_t rhs) {
+			const Brush* a = tileset->brushlist[lhs];
+			const Brush* b = tileset->brushlist[rhs];
+			if (!a || !b) {
+				return a != nullptr;
+			}
+
+			if (sort_key == TilesetSortKey::ID) {
+				const uint32_t idA = GetBrushSortID(a);
+				const uint32_t idB = GetBrushSortID(b);
+				if (idA != idB) {
+					return ascending ? (idA < idB) : (idA > idB);
+				}
+			} else {
+				const int cmp = wxStricmp(wxstr(a->getName()), wxstr(b->getName()));
+				if (cmp != 0) {
+					return ascending ? (cmp < 0) : (cmp > 0);
+				}
+			}
+			return lhs < rhs;
+		});
+	}
+
+	use_display_list = true;
+}
+
 void VirtualBrushGrid::SetFilter(const std::string& filter) {
 	current_filter = as_lower_str(filter);
-	RebuildFilteredList();
+	RebuildDisplayList();
 	selected_index = -1;
 	hover_index = -1;
 	if (GetEffectiveBrushCount() > 0) {
@@ -127,8 +265,7 @@ void VirtualBrushGrid::ClearFilter() {
 		return;
 	}
 	current_filter.clear();
-	filtered_indices.clear();
-	filter_active = false;
+	RebuildDisplayList();
 	selected_index = -1;
 	hover_index = -1;
 	if (GetEffectiveBrushCount() > 0) {
@@ -139,23 +276,169 @@ void VirtualBrushGrid::ClearFilter() {
 	Refresh();
 }
 
-void VirtualBrushGrid::RebuildFilteredList() {
-	filtered_indices.clear();
-	if (current_filter.empty()) {
-		filter_active = false;
+// ============================================================================
+// Display options and manual ordering
+
+void VirtualBrushGrid::SetSort(TilesetSortKey key, TilesetSortDirection dir) {
+	if (sort_key == key && sort_dir == dir) {
 		return;
 	}
 
-	filter_active = true;
-	for (size_t i = 0; i < tileset->size(); ++i) {
-		Brush* brush = tileset->brushlist[i];
-		if (brush && as_lower_str(brush->getName()).find(current_filter) != std::string::npos) {
-			filtered_indices.push_back(i);
+	Brush* previous = GetSelectedBrush();
+
+	sort_key = key;
+	sort_dir = dir;
+	RebuildDisplayList();
+
+	// Keep the selection on the same brush across a reorder of the view.
+	selected_index = -1;
+	if (previous) {
+		const size_t count = GetEffectiveBrushCount();
+		for (size_t i = 0; i < count; ++i) {
+			if (GetEffectiveBrush(i) == previous) {
+				selected_index = static_cast<int>(i);
+				break;
+			}
 		}
 	}
+
+	UpdateLayout();
+	Refresh();
+}
+
+void VirtualBrushGrid::SetShowLabels(bool show) {
+	if (show_labels == show) {
+		return;
+	}
+	show_labels = show;
+	UpdateLayout();
+	Refresh();
+}
+
+void VirtualBrushGrid::SetReorderMode(bool enabled) {
+	if (reorder_mode == enabled) {
+		return;
+	}
+	reorder_mode = enabled;
+	reorder_source = -1;
+	reorder_target = -1;
+	if (!enabled && HasCapture()) {
+		ReleaseMouse();
+	}
+	Refresh();
+}
+
+void VirtualBrushGrid::ResetCustomOrder() {
+	if (base_indices.empty()) {
+		return;
+	}
+
+	Brush* previous = GetSelectedBrush();
+
+	g_tileset_order.ClearOrder(tileset->tileset.name, tileset->getType());
+	base_indices.clear();
+	RebuildDisplayList();
+
+	selected_index = -1;
+	if (previous) {
+		const size_t count = GetEffectiveBrushCount();
+		for (size_t i = 0; i < count; ++i) {
+			if (GetEffectiveBrush(i) == previous) {
+				selected_index = static_cast<int>(i);
+				break;
+			}
+		}
+	}
+
+	UpdateLayout();
+	Refresh();
+}
+
+bool VirtualBrushGrid::CanReorder() const {
+	// The view has to map 1:1 onto the stored order for a move to make sense.
+	return !filter_active && sort_key == TilesetSortKey::None;
+}
+
+void VirtualBrushGrid::MoveBrush(int from, int insertBefore) {
+	if (!CanReorder()) {
+		return;
+	}
+
+	const int count = static_cast<int>(GetEffectiveBrushCount());
+	if (count <= 1 || from < 0 || from >= count) {
+		return;
+	}
+
+	insertBefore = std::clamp(insertBefore, 0, count);
+	if (insertBefore == from || insertBefore == from + 1) {
+		return; // Dropped back where it already was
+	}
+
+	// Materialize the current order, move one entry, and store it back.
+	std::vector<size_t> order;
+	if (use_display_list) {
+		order = display_indices;
+	} else {
+		order.reserve(static_cast<size_t>(count));
+		for (int i = 0; i < count; ++i) {
+			order.push_back(static_cast<size_t>(i));
+		}
+	}
+
+	const size_t moved = order[static_cast<size_t>(from)];
+	order.erase(order.begin() + from);
+
+	const int target = (insertBefore > from) ? insertBefore - 1 : insertBefore;
+	order.insert(order.begin() + target, moved);
+
+	base_indices = std::move(order);
+	RebuildDisplayList();
+
+	if (selected_index == from) {
+		selected_index = target;
+	} else if (selected_index >= 0) {
+		// Shift the selection along with the items the moved brush passed over.
+		if (from < selected_index && target >= selected_index) {
+			--selected_index;
+		} else if (from > selected_index && target <= selected_index) {
+			++selected_index;
+		}
+	}
+
+	PersistOrder();
+	UpdateLayout();
+	Refresh();
+}
+
+void VirtualBrushGrid::PersistOrder() {
+	std::vector<Brush*> brushes;
+	const size_t count = GetEffectiveBrushCount();
+	brushes.reserve(count);
+	for (size_t i = 0; i < count; ++i) {
+		Brush* brush = GetEffectiveBrush(i);
+		if (brush) {
+			brushes.push_back(brush);
+		}
+	}
+	g_tileset_order.SetOrder(tileset->tileset.name, tileset->getType(), brushes);
 }
 
 // ============================================================================
+// Layout
+
+int VirtualBrushGrid::GetCellHeight() const {
+	if (display_mode == DisplayMode::List) {
+		return std::max(LIST_ROW_HEIGHT, item_size + 4);
+	}
+	return show_labels ? (item_size + LABEL_HEIGHT) : item_size;
+}
+
+int VirtualBrushGrid::GetRowStride() const {
+	if (display_mode == DisplayMode::List) {
+		return GetCellHeight();
+	}
+	return GetCellHeight() + padding;
+}
 
 void VirtualBrushGrid::UpdateLayout() {
 	int width = GetClientSize().x;
@@ -163,17 +446,17 @@ void VirtualBrushGrid::UpdateLayout() {
 		width = 200; // Default
 	}
 
-	int count = static_cast<int>(GetEffectiveBrushCount());
+	const int count = static_cast<int>(GetEffectiveBrushCount());
 
 	if (display_mode == DisplayMode::List) {
 		columns = 1;
-		int rowHeight = std::max(LIST_ROW_HEIGHT, item_size + 4);
-		int contentHeight = count * rowHeight + padding;
+		const int contentHeight = count * GetRowStride() + padding;
 		UpdateScrollbar(contentHeight);
 	} else {
-		columns = std::max(1, (width - padding) / (item_size + padding));
-		int rows = (count + columns - 1) / columns;
-		int contentHeight = rows * (item_size + padding) + padding;
+		const int cellWidth = CellWidthFor(item_size, show_labels);
+		columns = std::max(1, (width - padding) / (cellWidth + padding));
+		const int rows = (count + columns - 1) / columns;
+		const int contentHeight = rows * GetRowStride() + padding;
 		UpdateScrollbar(contentHeight);
 	}
 }
@@ -182,20 +465,130 @@ wxSize VirtualBrushGrid::DoGetBestClientSize() const {
 	return FromDIP(wxSize(200, 300));
 }
 
+wxRect VirtualBrushGrid::GetItemRect(int index) const {
+	if (display_mode == DisplayMode::List) {
+		const int rowHeight = GetRowStride();
+		const int width = GetClientSize().x - 2 * padding;
+		return wxRect(padding, padding + index * rowHeight, width, rowHeight);
+	}
+
+	const int row = index / columns;
+	const int col = index % columns;
+	const int cellWidth = CellWidthFor(item_size, show_labels);
+
+	return wxRect(
+		padding + col * (cellWidth + padding),
+		padding + row * GetRowStride(),
+		cellWidth,
+		GetCellHeight()
+	);
+}
+
+int VirtualBrushGrid::HitTest(int x, int y) const {
+	const int scrollPos = GetScrollPosition();
+	const int realY = y + scrollPos;
+	const int realX = x;
+
+	const int count = static_cast<int>(GetEffectiveBrushCount());
+
+	if (display_mode == DisplayMode::List) {
+		const int rowHeight = GetRowStride();
+		const int row = (realY - padding) / rowHeight;
+
+		if (row < 0 || row >= count) {
+			return -1;
+		}
+
+		if (realX >= padding && realX <= GetClientSize().x - padding) {
+			return row;
+		}
+		return -1;
+	}
+
+	const int cellWidth = CellWidthFor(item_size, show_labels);
+	const int col = (realX - padding) / (cellWidth + padding);
+	const int row = (realY - padding) / GetRowStride();
+
+	if (col < 0 || col >= columns || row < 0) {
+		return -1;
+	}
+
+	const int index = row * columns + col;
+	if (index >= 0 && index < count) {
+		wxRect rect = GetItemRect(index);
+		// Adjust rect to scroll position for contains check
+		rect.y -= scrollPos;
+		if (rect.Contains(x, y)) {
+			return index;
+		}
+	}
+	return -1;
+}
+
+int VirtualBrushGrid::InsertHitTest(int x, int y) const {
+	const int count = static_cast<int>(GetEffectiveBrushCount());
+	if (count == 0) {
+		return 0;
+	}
+
+	const int scrollPos = GetScrollPosition();
+	const int realY = y + scrollPos;
+
+	if (display_mode == DisplayMode::List) {
+		const int rowHeight = GetRowStride();
+		int row = (realY - padding) / rowHeight;
+		row = std::clamp(row, 0, count - 1);
+		const int rowTop = padding + row * rowHeight;
+		return (realY - rowTop > rowHeight / 2) ? row + 1 : row;
+	}
+
+	const int cellWidth = CellWidthFor(item_size, show_labels);
+	const int rowCount = (count + columns - 1) / columns;
+	int row = (realY - padding) / GetRowStride();
+	row = std::clamp(row, 0, std::max(0, rowCount - 1));
+
+	int col = (x - padding) / (cellWidth + padding);
+	col = std::clamp(col, 0, columns - 1);
+
+	int index = row * columns + col;
+	if (index >= count) {
+		return count;
+	}
+
+	const int cellLeft = padding + col * (cellWidth + padding);
+	if (x - cellLeft > cellWidth / 2) {
+		++index;
+	}
+	return std::clamp(index, 0, count);
+}
+
+// ============================================================================
+// Painting
+
 void VirtualBrushGrid::OnNanoVGPaint(NVGcontext* vg, int width, int height) {
 	// Calculate visible range
-	int scrollPos = GetScrollPosition();
-	int rowHeight = (display_mode == DisplayMode::List) ? std::max(LIST_ROW_HEIGHT, item_size + 4) : (item_size + padding);
-	int startRow = scrollPos / rowHeight;
-	int endRow = (scrollPos + height + rowHeight - 1) / rowHeight + 1;
+	const int scrollPos = GetScrollPosition();
+	const int rowHeight = GetRowStride();
+	const int startRow = scrollPos / rowHeight;
+	const int endRow = (scrollPos + height + rowHeight - 1) / rowHeight + 1;
 
-	int startIdx = startRow * columns;
-	int endIdx = std::min(static_cast<int>(GetEffectiveBrushCount()), endRow * columns);
+	const int startIdx = startRow * columns;
+	const int endIdx = std::min(static_cast<int>(GetEffectiveBrushCount()), endRow * columns);
 
 	// Draw visible items
 	for (int i = startIdx; i < endIdx; ++i) {
 		DrawBrushItem(vg, i, GetItemRect(i));
 	}
+
+	DrawInsertMarker(vg);
+}
+
+const std::string& VirtualBrushGrid::GetUtf8Name(const Brush* brush) const {
+	auto it = m_utf8NameCache.find(brush);
+	if (it == m_utf8NameCache.end()) {
+		it = m_utf8NameCache.emplace(brush, std::string(wxstr(brush->getName()).ToUTF8())).first;
+	}
+	return it->second;
 }
 
 void VirtualBrushGrid::DrawBrushItem(NVGcontext* vg, int i, const wxRect& rect) {
@@ -261,23 +654,41 @@ void VirtualBrushGrid::DrawBrushItem(NVGcontext* vg, int i, const wxRect& rect) 
 		nvgStroke(vg);
 	}
 
+	// The card currently being dragged to a new position
+	if (i == reorder_source) {
+		nvgBeginPath(vg);
+		nvgRoundedRect(vg, x, y, w, h, 4.0f);
+		nvgFillColor(vg, nvgRGBA(255, 255, 255, 40));
+		nvgFill(vg);
+	}
+
 	// Draw brush sprite
 	Brush* brush = GetEffectiveBrush(static_cast<size_t>(i));
-	if (brush) {
-		Sprite* spr = brush->getSprite();
-		if (!spr) {
-			spr = g_gui.gfx.getSprite(brush->getLookID());
-		}
+	if (!brush) {
+		return;
+	}
 
-		if (!spr) {
-			return; // Safety check
-		}
+	Sprite* spr = brush->getSprite();
+	if (!spr) {
+		spr = g_gui.gfx.getSprite(brush->getLookID());
+	}
 
-		int tex = GetOrCreateSpriteTexture(vg, spr);
+	const bool gridLabels = (display_mode == DisplayMode::Grid && show_labels);
+
+	if (spr) {
+		const int tex = GetOrCreateSpriteTexture(vg, spr);
 		if (tex > 0) {
-			int iconSize = item_size - 2 * ICON_OFFSET;
-			int iconX = rect.x + ICON_OFFSET;
-			int iconY = rect.y + (rect.height - iconSize) / 2;
+			const int iconSize = item_size - 2 * ICON_OFFSET;
+			int iconX;
+			int iconY;
+			if (display_mode == DisplayMode::List) {
+				iconX = rect.x + ICON_OFFSET;
+				iconY = rect.y + (rect.height - iconSize) / 2;
+			} else {
+				iconX = rect.x + (rect.width - iconSize) / 2;
+				const int iconArea = gridLabels ? item_size : rect.height;
+				iconY = rect.y + (iconArea - iconSize) / 2;
+			}
 
 			NVGpaint imgPaint = nvgImagePattern(vg, static_cast<float>(iconX), static_cast<float>(iconY), static_cast<float>(iconSize), static_cast<float>(iconSize), 0.0f, tex, 1.0f);
 
@@ -286,134 +697,151 @@ void VirtualBrushGrid::DrawBrushItem(NVGcontext* vg, int i, const wxRect& rect) 
 			nvgFillPaint(vg, imgPaint);
 			nvgFill(vg);
 		}
-
-		if (display_mode == DisplayMode::List) {
-			nvgFontSize(vg, 14.0f);
-			nvgFontFace(vg, "sans");
-			nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
-			nvgFillColor(vg, NvgUtils::ToNvColor(Theme::Get(Theme::Role::Text)));
-
-			auto it = m_utf8NameCache.find(brush);
-			if (it == m_utf8NameCache.end()) {
-				m_utf8NameCache[brush] = std::string(wxstr(brush->getName()).ToUTF8());
-				it = m_utf8NameCache.find(brush);
-			}
-			nvgText(vg, rect.x + item_size + 8.0f, rect.y + rect.height / 2.0f, it->second.c_str(), nullptr);
-		}
 	}
-}
-
-wxRect VirtualBrushGrid::GetItemRect(int index) const {
-	if (display_mode == DisplayMode::List) {
-		int rowHeight = std::max(LIST_ROW_HEIGHT, item_size + 4);
-		int width = GetClientSize().x - 2 * padding;
-		return wxRect(padding, padding + index * rowHeight, width, rowHeight);
-	} else {
-		int row = index / columns;
-		int col = index % columns;
-
-		return wxRect(
-			padding + col * (item_size + padding),
-			padding + row * (item_size + padding),
-			item_size,
-			item_size
-		);
-	}
-}
-
-int VirtualBrushGrid::HitTest(int x, int y) const {
-	int scrollPos = GetScrollPosition();
-	int realY = y + scrollPos;
-	int realX = x;
-
-	int count = static_cast<int>(GetEffectiveBrushCount());
 
 	if (display_mode == DisplayMode::List) {
-		int rowHeight = std::max(LIST_ROW_HEIGHT, item_size + 4);
-		int row = (realY - padding) / rowHeight;
-
-		if (row < 0 || row >= count) {
-			return -1;
-		}
-
-		int index = row;
-		if (realX >= padding && realX <= GetClientSize().x - padding) {
-			return index;
-		}
-		return -1;
-	} else {
-		int col = (realX - padding) / (item_size + padding);
-		int row = (realY - padding) / (item_size + padding);
-
-		if (col < 0 || col >= columns || row < 0) {
-			return -1;
-		}
-
-		int index = row * columns + col;
-		if (index >= 0 && index < count) {
-			wxRect rect = GetItemRect(index);
-			// Adjust rect to scroll position for contains check
-			rect.y -= scrollPos;
-			if (rect.Contains(x, y)) {
-				return index;
-			}
-		}
-		return -1;
+		nvgFontSize(vg, 14.0f);
+		nvgFontFace(vg, "sans");
+		nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
+		nvgFillColor(vg, NvgUtils::ToNvColor(Theme::Get(Theme::Role::Text)));
+		nvgText(vg, rect.x + item_size + 8.0f, rect.y + rect.height / 2.0f, GetUtf8Name(brush).c_str(), nullptr);
+	} else if (gridLabels) {
+		const float labelTop = static_cast<float>(rect.y + item_size);
+		nvgSave(vg);
+		nvgScissor(vg, static_cast<float>(rect.x), labelTop, static_cast<float>(rect.width), static_cast<float>(LABEL_HEIGHT));
+		nvgFontSize(vg, LABEL_FONT_SIZE);
+		nvgFontFace(vg, "sans");
+		nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_TOP);
+		nvgTextLineHeight(vg, 1.15f);
+		nvgFillColor(vg, NvgUtils::ToNvColor(Theme::Get(Theme::Role::Text)));
+		nvgTextBox(vg, static_cast<float>(rect.x + 2), labelTop + 1.0f, static_cast<float>(rect.width - 4), GetUtf8Name(brush).c_str(), nullptr);
+		nvgRestore(vg);
 	}
 }
+
+void VirtualBrushGrid::DrawInsertMarker(NVGcontext* vg) {
+	if (reorder_target < 0) {
+		return;
+	}
+
+	const int count = static_cast<int>(GetEffectiveBrushCount());
+	if (count == 0) {
+		return;
+	}
+
+	const int index = std::clamp(reorder_target, 0, count);
+	const bool afterLast = (index >= count);
+	const wxRect rect = GetItemRect(afterLast ? count - 1 : index);
+
+	nvgBeginPath(vg);
+	if (display_mode == DisplayMode::List) {
+		const float markerY = afterLast ? static_cast<float>(rect.y + rect.height) : static_cast<float>(rect.y);
+		nvgRect(vg, static_cast<float>(rect.x), markerY - 1.0f, static_cast<float>(rect.width), 2.0f);
+	} else {
+		const float markerX = afterLast ? static_cast<float>(rect.x + rect.width) : static_cast<float>(rect.x);
+		nvgRect(vg, markerX - 1.0f, static_cast<float>(rect.y), 2.0f, static_cast<float>(rect.height));
+	}
+	nvgFillColor(vg, NvgUtils::ToNvColor(Theme::Get(Theme::Role::Accent)));
+	nvgFill(vg);
+}
+
+// ============================================================================
+// Input
 
 void VirtualBrushGrid::OnMouseDown(wxMouseEvent& event) {
-	int index = HitTest(event.GetX(), event.GetY());
-	if (index != -1) {
-		// Store drag start position
-		m_dragStartPos = event.GetPosition();
-		m_isDragging = false;
+	const int index = HitTest(event.GetX(), event.GetY());
+	if (index == -1) {
+		return;
+	}
 
-		if (index != selected_index) {
-			selected_index = index;
+	// Store drag start position
+	m_dragStartPos = event.GetPosition();
+	m_isDragging = false;
 
-			// Notify GUI - find PaletteWindow parent
-			wxWindow* w = GetParent();
-			while (w) {
-				PaletteWindow* pw = dynamic_cast<PaletteWindow*>(w);
-				if (pw) {
-					g_gui.ActivatePalette(pw);
-					break;
-				}
-				w = w->GetParent();
+	if (reorder_mode && CanReorder()) {
+		reorder_source = index;
+		reorder_target = -1;
+		if (!HasCapture()) {
+			CaptureMouse();
+		}
+	}
+
+	if (index != selected_index) {
+		selected_index = index;
+
+		// Notify GUI - find PaletteWindow parent
+		wxWindow* w = GetParent();
+		while (w) {
+			PaletteWindow* pw = dynamic_cast<PaletteWindow*>(w);
+			if (pw) {
+				g_gui.ActivatePalette(pw);
+				break;
 			}
+			w = w->GetParent();
+		}
 
-			Brush* brush = GetEffectiveBrush(static_cast<size_t>(selected_index));
-			if (brush) {
-				g_gui.SelectBrush(brush, tileset->getType());
+		Brush* brush = GetEffectiveBrush(static_cast<size_t>(selected_index));
+		if (brush) {
+			g_gui.SelectBrush(brush, tileset->getType());
 
-				// Auto-assign to replace tool slots if enabled
-				MapTab* tab = g_gui.GetCurrentMapTab();
-				if (tab) {
-					ReplaceToolWindow* rtw = tab->GetReplaceToolWindow();
-					if (rtw && rtw->IsAutoAssignEnabled()) {
-						uint16_t serverId = 0;
-						if (brush->is<RAWBrush>()) {
-							serverId = brush->as<RAWBrush>()->getItemID();
-						} else {
-							int lookId = brush->getLookID();
-							if (lookId > 0) {
-								serverId = static_cast<uint16_t>(lookId);
-							}
+			// Auto-assign to replace tool slots if enabled
+			MapTab* tab = g_gui.GetCurrentMapTab();
+			if (tab) {
+				ReplaceToolWindow* rtw = tab->GetReplaceToolWindow();
+				if (rtw && rtw->IsAutoAssignEnabled()) {
+					uint16_t serverId = 0;
+					if (brush->is<RAWBrush>()) {
+						serverId = brush->as<RAWBrush>()->getItemID();
+					} else {
+						int lookId = brush->getLookID();
+						if (lookId > 0) {
+							serverId = static_cast<uint16_t>(lookId);
 						}
-						if (serverId > 0) {
-							rtw->AutoAssignItem(serverId);
-						}
+					}
+					if (serverId > 0) {
+						rtw->AutoAssignItem(serverId);
 					}
 				}
 			}
-			Refresh();
 		}
+		Refresh();
 	}
 }
 
+void VirtualBrushGrid::OnMouseUp(wxMouseEvent& event) {
+	if (HasCapture()) {
+		ReleaseMouse();
+	}
+
+	if (reorder_source >= 0) {
+		const int from = reorder_source;
+		const int target = reorder_target;
+		reorder_source = -1;
+		reorder_target = -1;
+		if (target >= 0) {
+			MoveBrush(from, target);
+		}
+		Refresh();
+	}
+
+	event.Skip();
+}
+
+void VirtualBrushGrid::OnCaptureLost(wxMouseCaptureLostEvent& WXUNUSED(event)) {
+	reorder_source = -1;
+	reorder_target = -1;
+	Refresh();
+}
+
 void VirtualBrushGrid::OnRightClick(wxMouseEvent& event) {
-	int index = HitTest(event.GetX(), event.GetY());
+	// A popup menu must never run while the mouse is captured by a drag.
+	if (HasCapture()) {
+		ReleaseMouse();
+	}
+	reorder_source = -1;
+	reorder_target = -1;
+
+	const int index = HitTest(event.GetX(), event.GetY());
 	if (index == -1) {
 		return;
 	}
@@ -455,7 +883,52 @@ void VirtualBrushGrid::OnRightClick(wxMouseEvent& event) {
 		menu.AppendSeparator();
 		menu.Append(PALETTE_POPUP_MENU_APPLY_REPLACE_ORIGINAL, "Apply to Replace Box 1 (Original)");
 		menu.Append(PALETTE_POPUP_MENU_APPLY_REPLACE_REPLACEMENT, "Apply to Replace Box 2 (Replacement)");
+	}
+
+	// Manual ordering, only while the view matches the stored order
+	const int count = static_cast<int>(GetEffectiveBrushCount());
+	if (CanReorder() && count > 1) {
+		if (menu.GetMenuItemCount() > 0) {
+			menu.AppendSeparator();
+		}
+		menu.Append(PALETTE_POPUP_MENU_MOVE_BACKWARD, "Move Backward")->Enable(index > 0);
+		menu.Append(PALETTE_POPUP_MENU_MOVE_FORWARD, "Move Forward")->Enable(index < count - 1);
+		menu.Append(PALETTE_POPUP_MENU_MOVE_TO_START, "Move to Start")->Enable(index > 0);
+		menu.Append(PALETTE_POPUP_MENU_MOVE_TO_END, "Move to End")->Enable(index < count - 1);
+		menu.Append(PALETTE_POPUP_MENU_RESET_ORDER, "Reset Tileset Order")->Enable(!base_indices.empty());
+	}
+
+	if (menu.GetMenuItemCount() > 0) {
 		PopupMenu(&menu, event.GetPosition());
+	}
+}
+
+void VirtualBrushGrid::OnMoveBrushMenu(wxCommandEvent& event) {
+	if (event.GetId() == PALETTE_POPUP_MENU_RESET_ORDER) {
+		ResetCustomOrder();
+		return;
+	}
+
+	if (!CanReorder() || selected_index < 0) {
+		return;
+	}
+
+	const int count = static_cast<int>(GetEffectiveBrushCount());
+	switch (event.GetId()) {
+		case PALETTE_POPUP_MENU_MOVE_BACKWARD:
+			MoveBrush(selected_index, selected_index - 1);
+			break;
+		case PALETTE_POPUP_MENU_MOVE_FORWARD:
+			MoveBrush(selected_index, selected_index + 2);
+			break;
+		case PALETTE_POPUP_MENU_MOVE_TO_START:
+			MoveBrush(selected_index, 0);
+			break;
+		case PALETTE_POPUP_MENU_MOVE_TO_END:
+			MoveBrush(selected_index, count);
+			break;
+		default:
+			break;
 	}
 }
 
@@ -543,6 +1016,16 @@ void VirtualBrushGrid::OnApplyReplaceReplacement(wxCommandEvent& WXUNUSED(event)
 }
 
 void VirtualBrushGrid::OnMotion(wxMouseEvent& event) {
+	// Reordering takes over the drag gesture inside the grid
+	if (reorder_mode && reorder_source >= 0 && event.LeftIsDown()) {
+		const int target = InsertHitTest(event.GetX(), event.GetY());
+		if (target != reorder_target) {
+			reorder_target = target;
+			Refresh();
+		}
+		return;
+	}
+
 	// Drag & Drop initiation
 	if (event.Dragging() && event.LeftIsDown() && selected_index >= 0) {
 		if (!m_isDragging) {

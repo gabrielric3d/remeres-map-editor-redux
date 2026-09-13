@@ -2475,20 +2475,6 @@
 		<borderitem edge="dsw" item="45323" />
 		<borderitem edge="dse" item="45325" />
 	</border>
-	<border activated="true" id="250">
-		<borderitem edge="n" item="45353" />
-		<borderitem edge="w" item="45356" />
-		<borderitem edge="s" item="45355" />
-		<borderitem edge="e" item="45354" />
-		<borderitem edge="cnw" item="45357" />
-		<borderitem edge="cne" item="45358" />
-		<borderitem edge="csw" item="45359" />
-		<borderitem edge="cse" item="45360" />
-		<borderitem edge="dnw" item="45361" />
-		<borderitem edge="dne" item="45362" />
-		<borderitem edge="dsw" item="45363" />
-		<borderitem edge="dse" item="45364" />
-	</border>
 	<border activated="true" id="252">
 		<borderitem edge="n" item="38066" />
 		<borderitem edge="e" item="38069" />
@@ -3397,20 +3383,6 @@
 		<borderitem edge="dse" item="56811" />
 		<borderitem edge="dsw" item="56809" />
 	</border>
-	<border id="164">
-		<borderitem edge="n" item="17654" />
-		<borderitem edge="e" item="17655" />
-		<borderitem edge="s" item="17653" />
-		<borderitem edge="w" item="17656" />
-		<borderitem edge="cnw" item="17663" />
-		<borderitem edge="cne" item="17664" />
-		<borderitem edge="cse" item="17661" />
-		<borderitem edge="csw" item="17662" />
-		<borderitem edge="dnw" item="17659" />
-		<borderitem edge="dne" item="17660" />
-		<borderitem edge="dse" item="17657" />
-		<borderitem edge="dsw" item="17658" />
-	</border>
 	<border id="321">
 		<borderitem edge="n" item="57329" />
 		<borderitem edge="e" item="57332" />
@@ -3509,7 +3481,6 @@
 		<borderitem edge="dse" item="38453" />
 		<borderitem edge="dsw" item="38454" />
 	</border>
-	<!-- earth ground 5 -->
 	<border id="328">
 		<borderitem edge="n" item="57607" />
 		<borderitem edge="e" item="57610" />
@@ -3523,5 +3494,16 @@
 		<borderitem edge="dne" item="57615" />
 		<borderitem edge="dse" item="57617" />
 		<borderitem edge="dsw" item="57618" />
+	</border>
+	<!-- red stone mountain -->
+	<border id="329">
+		<borderitem edge="n">
+			<item id="48473" chance="100" />
+			<item id="48477" chance="100" />
+		</borderitem>
+		<borderitem edge="w">
+			<item id="48474" chance="100" />
+			<item id="48476" chance="100" />
+		</borderitem>
 	</border>
 </materials>

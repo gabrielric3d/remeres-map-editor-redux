@@ -7,7 +7,48 @@
 #include "palette/palette_window.h"
 #include "palette/managers/palette_manager.h"
 #include "util/image_manager.h"
+#include "ui/theme.h"
+#include <wx/menu.h>
 #include <spdlog/spdlog.h>
+
+namespace {
+	// Sorting is stored as a single integer so it survives across sessions.
+	int SortModeToInt(TilesetSortKey key, TilesetSortDirection dir) {
+		if (key == TilesetSortKey::None) {
+			return 0;
+		}
+		const bool ascending = (dir == TilesetSortDirection::Ascending);
+		if (key == TilesetSortKey::Name) {
+			return ascending ? 1 : 2;
+		}
+		return ascending ? 3 : 4;
+	}
+
+	void IntToSortMode(int mode, TilesetSortKey& key, TilesetSortDirection& dir) {
+		switch (mode) {
+			case 1:
+				key = TilesetSortKey::Name;
+				dir = TilesetSortDirection::Ascending;
+				break;
+			case 2:
+				key = TilesetSortKey::Name;
+				dir = TilesetSortDirection::Descending;
+				break;
+			case 3:
+				key = TilesetSortKey::ID;
+				dir = TilesetSortDirection::Ascending;
+				break;
+			case 4:
+				key = TilesetSortKey::ID;
+				dir = TilesetSortDirection::Descending;
+				break;
+			default:
+				key = TilesetSortKey::None;
+				dir = TilesetSortDirection::Ascending;
+				break;
+		}
+	}
+}
 
 // ============================================================================
 // Brush Palette Panel
@@ -26,7 +67,9 @@ BrushPalettePanel::BrushPalettePanel(wxWindow* parent, const TilesetContainer& t
 
 	// Create the tileset panel
 	wxSizer* ts_sizer = newd wxStaticBoxSizer(wxVERTICAL, this, "Tileset");
-	wxChoicebook* tmp_choicebook = newd wxChoicebook(static_cast<wxStaticBoxSizer*>(ts_sizer)->GetStaticBox(), wxID_ANY, wxDefaultPosition, wxSize(180, 250));
+	wxWindow* ts_parent = static_cast<wxStaticBoxSizer*>(ts_sizer)->GetStaticBox();
+	CreateTilesetToolbar(ts_sizer, ts_parent);
+	wxChoicebook* tmp_choicebook = newd wxChoicebook(ts_parent, wxID_ANY, wxDefaultPosition, wxSize(180, 250));
 	ts_sizer->Add(tmp_choicebook, 1, wxEXPAND);
 	topsizer->Add(ts_sizer, 1, wxEXPAND);
 
@@ -106,6 +149,7 @@ if (g_settings.getBoolean(Config::SHOW_TILESET_EDITOR)) {
 	SetSizerAndFit(topsizer);
 
 	choicebook = tmp_choicebook;
+	ApplyDisplayOptionsToPages();
 }
 
 BrushPalettePanel::~BrushPalettePanel() {
@@ -331,6 +375,22 @@ void BrushPalettePanel::OnSwitchIn() {
 		}
 	}
 
+	// Sorting and labels are shared by every palette, another one may have
+	// changed them while this page was hidden.
+	{
+		TilesetSortKey key = sort_key;
+		TilesetSortDirection dir = sort_dir;
+		IntToSortMode(g_settings.getInteger(Config::PALETTE_TILESET_SORT_MODE), key, dir);
+		if (key != sort_key || dir != sort_dir) {
+			SetSort(key, dir);
+		}
+
+		const bool labels = g_settings.getBoolean(Config::PALETTE_TILESET_SHOW_LABELS);
+		if (labels != show_labels) {
+			SetShowLabels(labels);
+		}
+	}
+
 	LoadCurrentContents();
 }
 
@@ -414,3 +474,276 @@ void BrushPalettePanel::OnSlotSizeChanged(wxCommandEvent&) {
 	}
 }
 
+
+// ============================================================================
+// Tileset toolbar: search, sorting, labels and manual reordering
+
+
+void BrushPalettePanel::CreateTilesetToolbar(wxSizer* ts_sizer, wxWindow* ts_parent) {
+	IntToSortMode(g_settings.getInteger(Config::PALETTE_TILESET_SORT_MODE), sort_key, sort_dir);
+	show_labels = g_settings.getBoolean(Config::PALETTE_TILESET_SHOW_LABELS);
+
+	wxSizer* tools_sizer = newd wxBoxSizer(wxHORIZONTAL);
+
+	tileset_search = newd wxTextCtrl(ts_parent, PALETTE_TILESET_SEARCH, "", wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
+	tileset_search->SetHint("Search...");
+	tileset_search->SetToolTip("Filter the brushes of every tileset by name");
+	tileset_search->SetMinSize(FromDIP(wxSize(60, -1)));
+	tools_sizer->Add(tileset_search, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 2);
+
+	const wxSize iconSize = FromDIP(wxSize(16, 16));
+	const wxColour iconColor = Theme::Get(Theme::Role::Text);
+	const long toolbarStyle = (wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_PLAIN_BACKGROUND) & ~wxAUI_TB_GRIPPER;
+
+	tileset_toolbar = newd wxAuiToolBar(ts_parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, toolbarStyle);
+	tileset_toolbar->SetToolBitmapSize(iconSize);
+	tileset_toolbar->SetMargins(1, 1, 1, 1);
+	tileset_toolbar->SetToolBorderPadding(1);
+
+	tileset_toolbar->AddTool(PALETTE_TILESET_SORT_AZ, wxEmptyString, IMAGE_MANAGER.GetBitmap(ICON_ARROW_DOWN_A_Z, iconSize, iconColor), "Sort ascending: A to Z, or lowest server id first");
+	tileset_toolbar->AddTool(PALETTE_TILESET_SORT_ZA, wxEmptyString, IMAGE_MANAGER.GetBitmap(ICON_ARROW_DOWN_Z_A, iconSize, iconColor), "Sort descending: Z to A, or highest server id first");
+	tileset_toolbar->AddTool(PALETTE_TILESET_SORT_OPTIONS, wxEmptyString, IMAGE_MANAGER.GetBitmap(ICON_LIST, iconSize, iconColor), "Sorting options");
+	tileset_toolbar->AddTool(PALETTE_TILESET_TOGGLE_LABELS, wxEmptyString, IMAGE_MANAGER.GetBitmap(ICON_TAG, iconSize, iconColor), "Show the brush names under the icons", wxITEM_CHECK);
+	tileset_toolbar->AddTool(PALETTE_TILESET_REORDER, wxEmptyString, IMAGE_MANAGER.GetBitmap(ICON_ARROWS_UP_DOWN_LEFT_RIGHT, iconSize, iconColor), "Reorder the tileset by dragging its brushes", wxITEM_CHECK);
+	tileset_toolbar->Realize();
+
+	tools_sizer->Add(tileset_toolbar, 0, wxALIGN_CENTER_VERTICAL);
+	ts_sizer->Add(tools_sizer, 0, wxEXPAND | wxBOTTOM, 2);
+
+	tileset_toolbar->Bind(wxEVT_TOOL, &BrushPalettePanel::OnTilesetToolClick, this);
+	tileset_search->Bind(wxEVT_TEXT, &BrushPalettePanel::OnSearchText, this);
+	tileset_search->Bind(wxEVT_CHAR_HOOK, &BrushPalettePanel::OnSearchCharHook, this);
+	Bind(wxEVT_MENU, &BrushPalettePanel::OnSortOptionMenu, this, PALETTE_TILESET_SORT_BY_NAME, PALETTE_TILESET_RESET_ORDER);
+
+	UpdateToolbarState();
+}
+
+void BrushPalettePanel::UpdateToolbarState() {
+	if (!tileset_toolbar) {
+		return;
+	}
+	tileset_toolbar->ToggleTool(PALETTE_TILESET_TOGGLE_LABELS, show_labels);
+	tileset_toolbar->ToggleTool(PALETTE_TILESET_REORDER, reorder_mode);
+	tileset_toolbar->Refresh();
+}
+
+void BrushPalettePanel::ApplyDisplayOptionsToPages() {
+	if (!choicebook) {
+		return;
+	}
+	for (size_t iz = 0; iz < choicebook->GetPageCount(); ++iz) {
+		BrushPanel* panel = dynamic_cast<BrushPanel*>(choicebook->GetPage(iz));
+		if (!panel) {
+			continue;
+		}
+		panel->SetShowLabels(show_labels);
+		panel->SetSort(sort_key, sort_dir);
+		panel->SetReorderMode(reorder_mode);
+	}
+}
+
+void BrushPalettePanel::SetSort(TilesetSortKey key, TilesetSortDirection dir) {
+	sort_key = key;
+	sort_dir = dir;
+	g_settings.setInteger(Config::PALETTE_TILESET_SORT_MODE, SortModeToInt(key, dir));
+
+	// A sorted view no longer matches the stored order, so stop reordering.
+	if (reorder_mode && key != TilesetSortKey::None) {
+		reorder_mode = false;
+		UpdateToolbarState();
+	}
+
+	if (!choicebook) {
+		return;
+	}
+	for (size_t iz = 0; iz < choicebook->GetPageCount(); ++iz) {
+		BrushPanel* panel = dynamic_cast<BrushPanel*>(choicebook->GetPage(iz));
+		if (panel) {
+			panel->SetSort(key, dir);
+			panel->SetReorderMode(reorder_mode);
+		}
+	}
+}
+
+void BrushPalettePanel::SetShowLabels(bool show) {
+	show_labels = show;
+	g_settings.setInteger(Config::PALETTE_TILESET_SHOW_LABELS, show ? 1 : 0);
+	UpdateToolbarState();
+
+	if (!choicebook) {
+		return;
+	}
+	for (size_t iz = 0; iz < choicebook->GetPageCount(); ++iz) {
+		BrushPanel* panel = dynamic_cast<BrushPanel*>(choicebook->GetPage(iz));
+		if (panel) {
+			panel->SetShowLabels(show);
+		}
+	}
+}
+
+void BrushPalettePanel::SetReorderMode(bool enabled) {
+	reorder_mode = enabled;
+
+	// Dragging can only reorder while the grid shows the plain tileset order.
+	if (enabled) {
+		if (sort_key != TilesetSortKey::None) {
+			SetSort(TilesetSortKey::None, TilesetSortDirection::Ascending);
+			reorder_mode = true; // SetSort turned it off, we are enabling it on purpose
+		}
+		if (tileset_search && !tileset_search->GetValue().IsEmpty()) {
+			tileset_search->ChangeValue(wxEmptyString);
+			ApplyFilter("");
+		}
+	}
+
+	UpdateToolbarState();
+
+	if (!choicebook) {
+		return;
+	}
+	for (size_t iz = 0; iz < choicebook->GetPageCount(); ++iz) {
+		BrushPanel* panel = dynamic_cast<BrushPanel*>(choicebook->GetPage(iz));
+		if (panel) {
+			panel->SetReorderMode(reorder_mode);
+		}
+	}
+}
+
+void BrushPalettePanel::ApplyFilter(const std::string& filter) {
+	if (!choicebook) {
+		return;
+	}
+
+	for (size_t iz = 0; iz < choicebook->GetPageCount(); ++iz) {
+		BrushPanel* panel = dynamic_cast<BrushPanel*>(choicebook->GetPage(iz));
+		if (panel) {
+			panel->SetFilter(filter);
+		}
+	}
+
+	if (filter.empty()) {
+		return;
+	}
+
+	// Jump to the first tileset that still has a match, so typing drills down.
+	BrushPanel* current = dynamic_cast<BrushPanel*>(choicebook->GetCurrentPage());
+	if (current && current->HasVisibleBrushes()) {
+		return;
+	}
+
+	for (size_t iz = 0; iz < choicebook->GetPageCount(); ++iz) {
+		BrushPanel* panel = dynamic_cast<BrushPanel*>(choicebook->GetPage(iz));
+		if (panel && panel->HasVisibleBrushes()) {
+			// ChangeSelection doesn't fire the page events, so hand the pages
+			// over by hand and keep the hidden grid from preloading textures.
+			if (current && current != panel) {
+				current->OnSwitchOut();
+			}
+			choicebook->ChangeSelection(iz);
+			panel->OnSwitchIn();
+			break;
+		}
+	}
+}
+
+void BrushPalettePanel::OnTilesetToolClick(wxCommandEvent& event) {
+	switch (event.GetId()) {
+		case PALETTE_TILESET_SORT_AZ:
+			SetSort(sort_key == TilesetSortKey::ID ? TilesetSortKey::ID : TilesetSortKey::Name, TilesetSortDirection::Ascending);
+			break;
+		case PALETTE_TILESET_SORT_ZA:
+			SetSort(sort_key == TilesetSortKey::ID ? TilesetSortKey::ID : TilesetSortKey::Name, TilesetSortDirection::Descending);
+			break;
+		case PALETTE_TILESET_TOGGLE_LABELS:
+			SetShowLabels(event.IsChecked());
+			break;
+		case PALETTE_TILESET_REORDER:
+			SetReorderMode(event.IsChecked());
+			break;
+		case PALETTE_TILESET_SORT_OPTIONS: {
+			wxMenu menu;
+			menu.AppendRadioItem(PALETTE_TILESET_SORT_OFF, "Tileset order")->Check(sort_key == TilesetSortKey::None);
+			menu.AppendRadioItem(PALETTE_TILESET_SORT_BY_NAME, "Sort by name")->Check(sort_key == TilesetSortKey::Name);
+			menu.AppendRadioItem(PALETTE_TILESET_SORT_BY_ID, "Sort by server id")->Check(sort_key == TilesetSortKey::ID);
+			menu.AppendSeparator();
+			menu.Append(PALETTE_TILESET_RESET_ORDER, "Reset order of this tileset");
+			PopupMenu(&menu);
+			break;
+		}
+		default:
+			break;
+	}
+}
+
+void BrushPalettePanel::OnSortOptionMenu(wxCommandEvent& event) {
+	switch (event.GetId()) {
+		case PALETTE_TILESET_SORT_OFF:
+			SetSort(TilesetSortKey::None, sort_dir);
+			break;
+		case PALETTE_TILESET_SORT_BY_NAME:
+			SetSort(TilesetSortKey::Name, sort_dir);
+			break;
+		case PALETTE_TILESET_SORT_BY_ID:
+			SetSort(TilesetSortKey::ID, sort_dir);
+			break;
+		case PALETTE_TILESET_RESET_ORDER: {
+			if (!choicebook) {
+				break;
+			}
+			BrushPanel* panel = dynamic_cast<BrushPanel*>(choicebook->GetCurrentPage());
+			if (panel) {
+				panel->ResetCustomOrder();
+			}
+			break;
+		}
+		default:
+			break;
+	}
+}
+
+void BrushPalettePanel::OnSearchText(wxCommandEvent& event) {
+	if (tileset_search) {
+		ApplyFilter(nstr(tileset_search->GetValue()));
+	}
+	event.Skip();
+}
+
+void BrushPalettePanel::OnSearchCharHook(wxKeyEvent& event) {
+	const int keycode = event.GetKeyCode();
+
+	if (keycode == WXK_ESCAPE) {
+		if (tileset_search && !tileset_search->GetValue().IsEmpty()) {
+			tileset_search->ChangeValue(wxEmptyString);
+			ApplyFilter("");
+			return;
+		}
+		event.Skip();
+		return;
+	}
+
+	// Navigation and editing keys behave normally
+	if (keycode == WXK_RETURN || keycode == WXK_NUMPAD_ENTER || keycode == WXK_TAB ||
+		keycode == WXK_UP || keycode == WXK_DOWN || keycode == WXK_LEFT || keycode == WXK_RIGHT ||
+		keycode == WXK_HOME || keycode == WXK_END || keycode == WXK_DELETE || keycode == WXK_BACK ||
+		keycode == WXK_PAGEUP || keycode == WXK_PAGEDOWN) {
+		event.Skip();
+		return;
+	}
+
+	if (event.ControlDown()) {
+		event.Skip();
+		return;
+	}
+
+	// Printable characters are written by hand so the editor hotkeys cannot
+	// swallow them while a filter is being typed.
+	if (keycode >= WXK_SPACE && keycode <= 255) {
+		const wxChar ch = event.GetUnicodeKey();
+		if (ch != WXK_NONE && tileset_search) {
+			tileset_search->WriteText(wxString(ch));
+		}
+		return;
+	}
+
+	event.Skip();
+}

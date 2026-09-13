@@ -468,6 +468,9 @@ void Settings::IO(IOMode mode) {
 	Bool(SHOW_MOUNTAIN_OVERLAY, false);
 	Bool(SHOW_STAIR_DIRECTION, false);
 	Int(PALETTE_GRID_ICON_SIZE, 36);
+	// 0 = tileset order, 1 = name asc, 2 = name desc, 3 = id asc, 4 = id desc
+	Int(PALETTE_TILESET_SORT_MODE, 0);
+	Bool(PALETTE_TILESET_SHOW_LABELS, false);
 
 	String(LIGHT_SOURCES_DATA,
 		"29712,Horror Flicker,255,255,255;"

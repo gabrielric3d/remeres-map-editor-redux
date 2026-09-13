@@ -560,7 +560,23 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/stone earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -1139,7 +1155,23 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/stone earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -1611,1749 +1643,6 @@
 		<border align="outer" id="12" />
 		<border align="inner" to="none" id="1" />
 	</brush>
-	<brush name="frozen mud" type="ground" server_lookid="7062" z-order="10" activated="true">
-		<item id="7062" chance="9" />
-		<item id="7063" chance="1" />
-		<item id="7064" chance="1" />
-		<item id="7065" chance="1" />
-		<item id="7066" chance="1" />
-		<border align="outer" id="44">
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			-- frozen mud vs. with lower z-order --
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			<specific>
-				<conditions>
-					<match_border id="5" edge="s" />
-					<match_border id="44" edge="e" />
-				</conditions>
-				<actions>
-					<replace_border id="5" edge="s" with="6661" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_border id="5" edge="n" />
-					<match_border id="44" edge="e" />
-				</conditions>
-				<actions>
-					<replace_border id="5" edge="n" with="6659" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_border id="5" edge="s" />
-					<match_border id="44" edge="w" />
-				</conditions>
-				<actions>
-					<replace_border id="5" edge="s" with="6665" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_border id="5" edge="n" />
-					<match_border id="44" edge="w" />
-				</conditions>
-				<actions>
-					<replace_border id="5" edge="n" with="6663" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_border id="5" edge="e" />
-					<match_border id="44" edge="s" />
-				</conditions>
-				<actions>
-					<replace_border id="5" edge="e" with="6660" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_border id="5" edge="w" />
-					<match_border id="44" edge="s" />
-				</conditions>
-				<actions>
-					<replace_border id="5" edge="w" with="6662" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_border id="5" edge="e" />
-					<match_border id="44" edge="n" />
-				</conditions>
-				<actions>
-					<replace_border id="5" edge="e" with="6664" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_border id="5" edge="w" />
-					<match_border id="44" edge="n" />
-				</conditions>
-				<actions>
-					<replace_border id="5" edge="w" with="6666" />
-				</actions>
-			</specific>
-		</border>
-		<border align="inner" id="47" to="sea">
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			-- snow vs. frozen mud border --
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			<specific>
-				<conditions>
-					<match_border id="6" edge="s" />
-					<match_border id="47" edge="e" />
-				</conditions>
-				<actions>
-					<replace_border id="47" edge="e" with="6672" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_border id="6" edge="n" />
-					<match_border id="47" edge="e" />
-				</conditions>
-				<actions>
-					<replace_border id="47" edge="e" with="6668" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_border id="6" edge="s" />
-					<match_border id="47" edge="w" />
-				</conditions>
-				<actions>
-					<replace_border id="47" edge="w" with="6674" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_border id="6" edge="n" />
-					<match_border id="47" edge="w" />
-				</conditions>
-				<actions>
-					<replace_border id="47" edge="w" with="6670" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_border id="6" edge="e" />
-					<match_border id="47" edge="s" />
-				</conditions>
-				<actions>
-					<replace_border id="47" edge="s" with="6673" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_border id="6" edge="w" />
-					<match_border id="47" edge="s" />
-				</conditions>
-				<actions>
-					<replace_border id="47" edge="s" with="6669" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_border id="6" edge="e" />
-					<match_border id="47" edge="n" />
-				</conditions>
-				<actions>
-					<replace_border id="47" edge="n" with="6671" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_border id="6" edge="w" />
-					<match_border id="47" edge="n" />
-				</conditions>
-				<actions>
-					<replace_border id="47" edge="n" with="6667" />
-				</actions>
-			</specific>
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			-- frozen mud vs. with higher z-order --
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			<specific>
-				<conditions>
-					<match_group group="1" edge="s" />
-					<match_border id="47" edge="e" />
-				</conditions>
-				<actions>
-					<replace_border id="47" edge="e" with="6664" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_group group="1" edge="n" />
-					<match_border id="47" edge="e" />
-				</conditions>
-				<actions>
-					<replace_border id="47" edge="e" with="6660" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_group group="1" edge="s" />
-					<match_border id="47" edge="w" />
-				</conditions>
-				<actions>
-					<replace_border id="47" edge="w" with="6666" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_group group="1" edge="n" />
-					<match_border id="47" edge="w" />
-				</conditions>
-				<actions>
-					<replace_border id="47" edge="w" with="6662" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_group group="1" edge="e" />
-					<match_border id="47" edge="s" />
-				</conditions>
-				<actions>
-					<replace_border id="47" edge="s" with="6665" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_group group="1" edge="w" />
-					<match_border id="47" edge="s" />
-				</conditions>
-				<actions>
-					<replace_border id="47" edge="s" with="6661" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_group group="1" edge="e" />
-					<match_border id="47" edge="n" />
-				</conditions>
-				<actions>
-					<replace_border id="47" edge="n" with="6663" />
-				</actions>
-			</specific>
-			<specific>
-				<conditions>
-					<match_group group="1" edge="w" />
-					<match_border id="47" edge="n" />
-				</conditions>
-				<actions>
-					<replace_border id="47" edge="n" with="6659" />
-				</actions>
-			</specific>
-		</border>
-		<border align="inner" to="none" id="1" />
-	</brush>
 	<brush name="frozen mud (thick border)" type="ground" server_lookid="7062" z-order="6600" activated="true">
 		<item id="9068" chance="9" />
 		<item id="9069" chance="1" />
@@ -3777,7 +2066,23 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -4354,7 +2659,23 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -4933,7 +3254,23 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -5510,7 +3847,23 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -7876,12 +6229,6 @@
 		<border align="outer" to="none" id="52" />
 		<border align="outer" id="52" />
 	</brush>
-	<brush name="rotten mountain" type="ground" server_lookid="42267" z-order="10000">
-		<item id="42267" chance="1" />
-		<border align="inner" to="none" id="240" enabled="false" />
-		<border align="outer" to="none" id="229" />
-		<border align="outer" id="229" />
-	</brush>
 	<brush name="sandstone mountain" type="ground" server_lookid="65535" z-order="9910">
 		<item id="21197" chance="1" />
 		<border align="outer" to="none" id="68" />
@@ -8000,20 +6347,6 @@
 		<border align="outer" id="321" />
 		<border align="outer" to="none" id="321" />
 	</brush>
-	<brush name="dark dirt 2" type="ground" server_lookid="45581" z-order="2800">
-		<item id="45581" chance="200" />
-		<border align="outer" id="280" />
-		<border align="outer" to="none" id="280" />
-	</brush>
-	<brush name="ease" type="ground" server_lookid="57354" z-order="1000" carpet_fill="true">
-		<item id="57354" chance="75" />
-		<item id="57355" chance="10" />
-		<item id="57356" chance="10" />
-		<item id="57357" chance="10" />
-		<item id="57358" chance="10" />
-		<border align="outer" id="322" />
-		<border align="outer" to="none" id="322" />
-	</brush>
 	<brush name="ase" type="ground" server_lookid="57392" z-order="3900">
 		<item id="57392" chance="10" />
 		<item id="57393" chance="10" />
@@ -8041,5 +6374,42 @@
 		<item id="57575" chance="10" />
 		<item id="57576" chance="10" />
 		<item id="57577" chance="10" />
+	</brush>
+	<brush name="dark dirt 2" type="ground" server_lookid="45581" z-order="1800">
+		<item id="45581" chance="200" />
+		<border align="outer" id="280" />
+		<border align="outer" to="none" id="280" />
+	</brush>
+	<brush name="ease" type="ground" server_lookid="57354" z-order="2000" carpet_fill="true">
+		<item id="57354" chance="75" />
+		<item id="57355" chance="10" />
+		<item id="57356" chance="10" />
+		<item id="57357" chance="10" />
+		<item id="57358" chance="10" />
+		<border align="outer" id="322" />
+		<border align="outer" to="none" id="322" />
+	</brush>
+	<brush name="frozen mud" type="ground" server_lookid="7062" z-order="2000">
+		<item id="7062" chance="9" />
+		<item id="7063" chance="1" />
+		<item id="7064" chance="1" />
+		<item id="7065" chance="1" />
+		<item id="7066" chance="1" />
+		<border align="outer" to="none" id="44" />
+		<border align="outer" id="44" />
+	</brush>
+	<brush name="rotten mountain" type="ground" server_lookid="42267" z-order="10000">
+		<item id="42267" chance="1" />
+		<border align="inner" to="none" id="240" enabled="false" />
+		<border align="outer" to="none" id="229" enabled="false" />
+		<border align="outer" id="229" enabled="false" />
+	</brush>
+	<brush name="red stone mountain" type="ground" server_lookid="48470" z-order="200">
+		<item id="48470" chance="10" />
+		<item id="48471" chance="10" />
+		<item id="48472" chance="10" />
+		<item id="48484" chance="10" />
+		<border align="outer" id="329" />
+		<border align="outer" to="none" id="329" />
 	</brush>
 </materials>

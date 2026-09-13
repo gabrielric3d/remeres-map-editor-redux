@@ -279,8 +279,11 @@ bool EditorManager::NewMap() {
 	Editor* source_editor = GetCurrentEditor();
 	std::unique_ptr<CopyBuffer> selection_snapshot;
 	bool has_selection_snapshot = false;
+	Position selection_min;
+	Position selection_max;
 	if (source_editor && source_editor->hasSelection()) {
-		Position selection_min = source_editor->selection.minPosition();
+		selection_min = source_editor->selection.minPosition();
+		selection_max = source_editor->selection.maxPosition();
 		selection_snapshot = std::make_unique<CopyBuffer>();
 		selection_snapshot->copy(*source_editor, selection_min.z);
 		has_selection_snapshot = selection_snapshot->canPaste();
@@ -299,9 +302,10 @@ bool EditorManager::NewMap() {
 	}
 
 	// Show Map Properties dialog before creating the map tab
-	MapPropertiesWindow properties(g_gui.root, nullptr, *editor, has_selection_snapshot);
+	MapPropertiesWindow properties(g_gui.root, nullptr, *editor, has_selection_snapshot, selection_min, selection_max);
 	int result = properties.ShowModal();
-	bool create_from_selection = properties.ShouldCreateFromSelection();
+	const MapPropertiesWindow::CreateFromSelectionMode selection_mode = properties.GetCreateFromSelectionMode();
+	bool create_from_selection = selection_mode != MapPropertiesWindow::CreateFromSelectionMode::None;
 	bool copy_from_map = properties.ShouldCopyFromMap();
 	Editor* copy_source_editor = properties.GetCopySourceEditor();
 	Position copy_from_pos = properties.GetCopyFromPosition();
@@ -342,6 +346,36 @@ bool EditorManager::NewMap() {
 		dest_editor->addBatch(std::move(batch));
 
 		spdlog::info("EditorManager::NewMap - Copied {} tile(s) from \"{}\" region ({},{},{})..({},{},{})", copied_tiles, source_map.getName(), copy_from_pos.x, copy_from_pos.y, copy_from_pos.z, copy_to_pos.x, copy_to_pos.y, copy_to_pos.z);
+	} else if (create_from_selection && selection_snapshot && selection_snapshot->canPaste() && selection_mode == MapPropertiesWindow::CreateFromSelectionMode::KeepPositions) {
+		// Copy the selected tiles verbatim at their original coordinates. This is a raw copy on purpose:
+		// no merge, no neighbour creation and no auto-border, so the new map is an exact cut-out of the
+		// selection (used to split a global map into separately loaded sub-maps on the server).
+		Editor* dest_editor = mapTab->GetEditor();
+		Map& dest_map = dest_editor->map;
+
+		auto batch = dest_editor->actionQueue->createBatch(ACTION_PASTE_TILES);
+		auto action = dest_editor->actionQueue->createAction(batch.get());
+		int copied_tiles = 0;
+		for (TileLocation& location : selection_snapshot->getBufferMap()) {
+			Tile* buffer_tile = location.get();
+			if (!buffer_tile) {
+				continue;
+			}
+			const Position pos = buffer_tile->getPosition();
+			if (!pos.isValid() || pos.x >= dest_map.getWidth() || pos.y >= dest_map.getHeight()) {
+				continue;
+			}
+			std::unique_ptr<Tile> copy_tile = TileOperations::deepCopy(buffer_tile, dest_map);
+			action->addChange(std::make_unique<Change>(std::move(copy_tile)));
+			++copied_tiles;
+		}
+		batch->addAndCommitAction(std::move(action));
+		dest_editor->addBatch(std::move(batch));
+
+		// Bring the copied region into view so the user doesn't land on an empty corner of the map.
+		mapTab->SetScreenCenterPosition(Position((selection_min.x + selection_max.x) / 2, (selection_min.y + selection_max.y) / 2, selection_min.z));
+
+		spdlog::info("EditorManager::NewMap - Created map from selection keeping positions: {} tile(s) in ({},{},{})..({},{},{})", copied_tiles, selection_min.x, selection_min.y, selection_min.z, selection_max.x, selection_max.y, selection_max.z);
 	} else if (create_from_selection && selection_snapshot && selection_snapshot->canPaste()) {
 		selection_snapshot->paste(*mapTab->GetEditor(), Position(0, 0, 7));
 	} else {

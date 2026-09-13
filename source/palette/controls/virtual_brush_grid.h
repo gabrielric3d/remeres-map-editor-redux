@@ -48,12 +48,21 @@ public:
 	static constexpr int ICON_OFFSET = 2;
 	static constexpr int PRELOAD_BATCH_SIZE = 16; // Textures to preload per timer tick
 	static constexpr int PRELOAD_TIMER_INTERVAL = 8; // ms between preload batches
+	static constexpr int LABEL_HEIGHT = 26; // Extra room under the icon for a two line name
 
 	void SetDisplayMode(DisplayMode mode);
 
 	// Filter support
 	void SetFilter(const std::string& filter);
 	void ClearFilter();
+
+	// Display options
+	void SetSort(TilesetSortKey key, TilesetSortDirection dir) override;
+	void SetShowLabels(bool show) override;
+	// Drag and drop inside the grid reorders instead of dragging brushes out
+	void SetReorderMode(bool enabled) override;
+	// Drops the user defined order of this tileset category
+	void ResetCustomOrder() override;
 
 protected:
 	/**
@@ -68,11 +77,14 @@ protected:
 
 	// Event Handlers
 	void OnMouseDown(wxMouseEvent& event);
+	void OnMouseUp(wxMouseEvent& event);
+	void OnCaptureLost(wxMouseCaptureLostEvent& event);
 	void OnRightClick(wxMouseEvent& event);
 	void OnCopyServerID(wxCommandEvent& event);
 	void OnCopyClientID(wxCommandEvent& event);
 	void OnApplyReplaceOriginal(wxCommandEvent& event);
 	void OnApplyReplaceReplacement(wxCommandEvent& event);
+	void OnMoveBrushMenu(wxCommandEvent& event);
 	void OnMotion(wxMouseEvent& event);
 	void OnSize(wxSizeEvent& event);
 
@@ -81,6 +93,11 @@ protected:
 	int HitTest(int x, int y) const;
 	wxRect GetItemRect(int index) const;
 	void DrawBrushItem(NVGcontext* vg, int index, const wxRect& rect);
+	void DrawInsertMarker(NVGcontext* vg);
+
+	// Cell metrics (labels grow the grid cells, never the list rows)
+	int GetCellHeight() const;
+	int GetRowStride() const;
 
 	DisplayMode display_mode = DisplayMode::Grid;
 	RenderSize icon_size;
@@ -90,16 +107,36 @@ protected:
 	int item_size;
 	int padding;
 
-	// Filter support
+	// Display list: base order (user defined or as loaded) filtered and sorted.
 	size_t GetEffectiveBrushCount() const;
 	Brush* GetEffectiveBrush(size_t index) const;
 	std::string current_filter;
-	std::vector<size_t> filtered_indices;
+	std::vector<size_t> base_indices; // Indices into tileset->brushlist, user order
+	std::vector<size_t> display_indices; // base_indices after filter and sort
 	bool filter_active = false;
-	void RebuildFilteredList();
+	bool use_display_list = false; // False means "plain tileset order"
+	void RebuildDisplayList();
+	void LoadStoredOrder();
+
+	// Sorting
+	TilesetSortKey sort_key = TilesetSortKey::None;
+	TilesetSortDirection sort_dir = TilesetSortDirection::Ascending;
+
+	// Labels
+	bool show_labels = false;
+
+	// Manual reordering
+	bool reorder_mode = false;
+	int reorder_source = -1; // Display index being dragged
+	int reorder_target = -1; // Insert position, -1 when idle
+	bool CanReorder() const;
+	int InsertHitTest(int x, int y) const;
+	void MoveBrush(int from, int insertBefore);
+	void PersistOrder();
 
 	// Optimization: UTF8 name cache
 	mutable std::unordered_map<const Brush*, std::string> m_utf8NameCache;
+	const std::string& GetUtf8Name(const Brush* brush) const;
 
 	// Animation state
 	wxTimer m_animTimer;

@@ -12,6 +12,19 @@ enum BrushListType {
 	BRUSHLIST_TEXT_LISTBOX,
 };
 
+// How the brushes of a tileset are ordered on screen. "None" keeps the order
+// the tileset was loaded with (or the user defined one, when there is any).
+enum class TilesetSortKey {
+	None,
+	Name,
+	ID,
+};
+
+enum class TilesetSortDirection {
+	Ascending,
+	Descending,
+};
+
 class BrushBoxInterface {
 public:
 	BrushBoxInterface(const TilesetCategory* _tileset) :
@@ -30,6 +43,12 @@ public:
 	virtual bool SelectBrush(const Brush* brush) = 0;
 	// Select a brush relative to the current selection (offset: -1 = previous, +1 = next)
 	virtual bool SelectBrushByOffset(int offset) { return false; }
+
+	// Display options. Default no-op so other brush boxes keep working.
+	virtual void SetSort(TilesetSortKey key, TilesetSortDirection dir) { }
+	virtual void SetShowLabels(bool show) { }
+	virtual void SetReorderMode(bool enabled) { }
+	virtual void ResetCustomOrder() { }
 
 	// Called when the containing page is shown/hidden. Default no-op.
 	virtual void OnSwitchIn() { }
@@ -71,6 +90,14 @@ public:
 	// Filter the displayed brushes by name
 	void SetFilter(const std::string& filter);
 	void ClearFilter();
+	// True when the filter left at least one brush visible
+	bool HasVisibleBrushes() const;
+
+	// Display options, kept across grid rebuilds
+	void SetSort(TilesetSortKey key, TilesetSortDirection dir);
+	void SetShowLabels(bool show);
+	void SetReorderMode(bool enabled);
+	void ResetCustomOrder();
 
 	// Called when the window is about to be displayed
 	void OnSwitchIn();
@@ -79,6 +106,8 @@ public:
 
 protected:
 	void DestroyBrushbox();
+	// Pushes the stored display options onto a freshly created brush box
+	void ApplyDisplayOptions();
 
 	const TilesetCategory* tileset;
 	wxSizer* sizer;
@@ -86,6 +115,13 @@ protected:
 	bool loaded;
 	bool needs_rebuild; // True when tileset/list_type changed and grid must be recreated
 	BrushListType list_type;
+
+	// Display state, applied again whenever the brush box is recreated
+	std::string filter_text;
+	TilesetSortKey sort_key = TilesetSortKey::None;
+	TilesetSortDirection sort_dir = TilesetSortDirection::Ascending;
+	bool show_labels = false;
+	bool reorder_mode = false;
 };
 
 #endif

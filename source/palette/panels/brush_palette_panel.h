@@ -5,6 +5,7 @@
 #include "palette/panels/brush_panel.h"
 #include "app/settings.h"
 
+#include <wx/aui/auibar.h>
 #include <unordered_map>
 
 class BrushPalettePanel : public PalettePanel {
@@ -40,6 +41,12 @@ public:
 	// Called when this page is hidden
 	void OnSwitchOut() override;
 
+	// Tileset toolbar operations
+	void SetSort(TilesetSortKey key, TilesetSortDirection dir);
+	void SetShowLabels(bool show);
+	void SetReorderMode(bool enabled);
+	void ApplyFilter(const std::string& filter);
+
 	// Event handler for child window
 	void OnSwitchingPage(wxChoicebookEvent& event);
 	void OnPageChanged(wxChoicebookEvent& event);
@@ -49,6 +56,15 @@ public:
 	void OnSlotSizeChanged(wxCommandEvent& event);
 
 protected:
+	// Tileset toolbar
+	void CreateTilesetToolbar(wxSizer* ts_sizer, wxWindow* ts_parent);
+	void OnTilesetToolClick(wxCommandEvent& event);
+	void OnSortOptionMenu(wxCommandEvent& event);
+	void OnSearchText(wxCommandEvent& event);
+	void OnSearchCharHook(wxKeyEvent& event);
+	void UpdateToolbarState();
+	void ApplyDisplayOptionsToPages();
+
 	PaletteType palette_type;
 	wxChoicebook* choicebook;
 
@@ -56,6 +72,14 @@ protected:
 
 	wxChoice* icon_bg_choice = nullptr;
 	wxChoice* slot_size_choice = nullptr;
+
+	wxAuiToolBar* tileset_toolbar = nullptr;
+	wxTextCtrl* tileset_search = nullptr;
+
+	TilesetSortKey sort_key = TilesetSortKey::None;
+	TilesetSortDirection sort_dir = TilesetSortDirection::Ascending;
+	bool show_labels = false;
+	bool reorder_mode = false;
 
 	std::unordered_map<wxWindow*, Brush*> remembered_brushes;
 

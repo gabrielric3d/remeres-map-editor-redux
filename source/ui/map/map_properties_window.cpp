@@ -14,6 +14,8 @@
 
 #include <wx/dirdlg.h>
 
+#include <algorithm>
+
 namespace {
 
 const int kMapSizePresets[] = { 128, 256, 512, 1024, 2048, 4096, 8192 };
@@ -89,7 +91,7 @@ std::string BuildMapFilenameFromInput(const wxString& map_name_input, const std:
 
 } // anonymous namespace
 
-MapPropertiesWindow::MapPropertiesWindow(wxWindow* parent, MapTab* view, Editor& editor, bool allow_create_from_selection) :
+MapPropertiesWindow::MapPropertiesWindow(wxWindow* parent, MapTab* view, Editor& editor, bool allow_create_from_selection, const Position& selection_min, const Position& selection_max) :
 	wxDialog(parent, wxID_ANY, "Map Properties", wxDefaultPosition, FROM_DIP(parent, wxSize(300, 200)), wxRESIZE_BORDER | wxCAPTION),
 	view(view),
 	editor(editor),
@@ -101,7 +103,7 @@ MapPropertiesWindow::MapPropertiesWindow(wxWindow* parent, MapTab* view, Editor&
 	version_choice(nullptr),
 	protocol_choice(nullptr),
 	sync_external_files_checkbox(nullptr),
-	create_from_selection_checkbox(nullptr),
+	create_from_selection_choice(nullptr),
 	remember_save_location_checkbox(nullptr),
 	description_ctrl(nullptr),
 	house_filename_ctrl(nullptr),
@@ -114,6 +116,8 @@ MapPropertiesWindow::MapPropertiesWindow(wxWindow* parent, MapTab* view, Editor&
 	to_x_spin(nullptr),
 	to_y_spin(nullptr),
 	to_z_spin(nullptr),
+	selection_min(selection_min),
+	selection_max(selection_max),
 	updating_dimensions(false) {
 	// Setup data variables
 	Map& map = editor.map;
@@ -247,10 +251,26 @@ MapPropertiesWindow::MapPropertiesWindow(wxWindow* parent, MapTab* view, Editor&
 
 	// Create From Selection (conditional)
 	if (allow_create_from_selection) {
+		const wxString bounds_text = wxString::Format("(%d, %d, %d) .. (%d, %d, %d)", selection_min.x, selection_min.y, selection_min.z, selection_max.x, selection_max.y, selection_max.z);
+
 		grid_sizer->Add(newd wxStaticText(this, wxID_ANY, "Create From Selection"));
-		create_from_selection_checkbox = newd wxCheckBox(this, wxID_ANY, "Copy current selection to (0, 0, 7)");
-		create_from_selection_checkbox->SetToolTip("Paste the current selection into the new map at position (0, 0, 7)");
-		grid_sizer->Add(create_from_selection_checkbox, wxSizerFlags(1).Expand());
+		create_from_selection_choice = newd wxChoice(this, wxID_ANY);
+		create_from_selection_choice->Append("(None)");
+		create_from_selection_choice->Append("Keep original positions");
+		create_from_selection_choice->Append("Move to (0, 0, 7)");
+		create_from_selection_choice->SetSelection(0);
+		create_from_selection_choice->SetToolTip(
+			"Copy the current selection into the new map.\n"
+			"Keep original positions: tiles stay at the same coordinates they have now (" + bounds_text + ").\n"
+			"Move to (0, 0, 7): the selection is pasted with its top-left corner at (0, 0, 7)."
+		);
+		create_from_selection_choice->Bind(wxEVT_CHOICE, &MapPropertiesWindow::OnCreateFromSelectionChanged, this);
+		grid_sizer->Add(create_from_selection_choice, wxSizerFlags(1).Expand());
+
+		grid_sizer->Add(newd wxStaticText(this, wxID_ANY, "Selection Bounds"));
+		auto* bounds_label = newd wxStaticText(this, wxID_ANY, bounds_text);
+		bounds_label->SetToolTip("Bounding box of the current selection (from .. to, inclusive)");
+		grid_sizer->Add(bounds_label, wxSizerFlags(1).Expand());
 	}
 
 	// Auto External Files
@@ -525,6 +545,13 @@ void MapPropertiesWindow::OnClickOK(wxCommandEvent& WXUNUSED(event)) {
 			DialogUtil::PopupDialog(this, "Error", "The copy region does not fit inside the new map dimensions. Increase Map Dimensions or reduce 'To Position'.", wxOK);
 			return;
 		}
+	} else if (GetCreateFromSelectionMode() == CreateFromSelectionMode::KeepPositions) {
+		const int new_map_width = width_spin->GetValue();
+		const int new_map_height = height_spin->GetValue();
+		if (selection_max.x >= new_map_width || selection_max.y >= new_map_height) {
+			DialogUtil::PopupDialog(this, "Error", wxString::Format("The selection reaches (%d, %d) and does not fit inside the new map dimensions. Increase Map Dimensions or choose 'Move to (0, 0, 7)'.", selection_max.x, selection_max.y), wxOK);
+			return;
+		}
 	}
 
 	MapVersion old_ver = map.getVersion();
@@ -636,7 +663,59 @@ void MapPropertiesWindow::OnClickCancel(wxCommandEvent& WXUNUSED(event)) {
 MapPropertiesWindow::~MapPropertiesWindow() = default;
 
 bool MapPropertiesWindow::ShouldCreateFromSelection() const {
-	return create_from_selection_checkbox && create_from_selection_checkbox->GetValue();
+	return GetCreateFromSelectionMode() != CreateFromSelectionMode::None;
+}
+
+MapPropertiesWindow::CreateFromSelectionMode MapPropertiesWindow::GetCreateFromSelectionMode() const {
+	if (!create_from_selection_choice) {
+		return CreateFromSelectionMode::None;
+	}
+	switch (create_from_selection_choice->GetSelection()) {
+		case 1:
+			return CreateFromSelectionMode::KeepPositions;
+		case 2:
+			return CreateFromSelectionMode::MoveToOrigin;
+		default:
+			return CreateFromSelectionMode::None;
+	}
+}
+
+void MapPropertiesWindow::OnCreateFromSelectionChanged(wxCommandEvent&) {
+	if (GetCreateFromSelectionMode() == CreateFromSelectionMode::KeepPositions) {
+		// The tiles keep their coordinates, so the new map must be at least big enough to hold them.
+		EnsureDimensionsFit(selection_max.x + 1, selection_max.y + 1);
+	}
+}
+
+void MapPropertiesWindow::EnsureDimensionsFit(int required_width, int required_height) {
+	if (!width_spin || !height_spin) {
+		return;
+	}
+
+	// Grow to the smallest preset that fits (keeps the "nice" sizes), or to the exact size if no preset does.
+	auto fit = [](int current, int required, int hard_max) {
+		if (current >= required) {
+			return current;
+		}
+		for (int i = 0; i < kMapSizePresetCount; ++i) {
+			if (kMapSizePresets[i] >= required) {
+				return std::min(kMapSizePresets[i], hard_max);
+			}
+		}
+		return std::min(required, hard_max);
+	};
+
+	const int new_width = fit(width_spin->GetValue(), required_width, MAP_MAX_WIDTH);
+	const int new_height = fit(height_spin->GetValue(), required_height, MAP_MAX_HEIGHT);
+	if (new_width == width_spin->GetValue() && new_height == height_spin->GetValue()) {
+		return;
+	}
+
+	updating_dimensions = true;
+	width_spin->SetValue(new_width);
+	height_spin->SetValue(new_height);
+	updating_dimensions = false;
+	SyncSizePresetSelectionFromDimensions();
 }
 
 bool MapPropertiesWindow::ShouldCopyFromMap() const {
@@ -692,10 +771,10 @@ void MapPropertiesWindow::UpdateCopyFromMapControls() {
 	if (to_z_spin) {
 		to_z_spin->Enable(enabled);
 	}
-	if (create_from_selection_checkbox && enabled) {
-		create_from_selection_checkbox->SetValue(false);
-		create_from_selection_checkbox->Enable(false);
-	} else if (create_from_selection_checkbox) {
-		create_from_selection_checkbox->Enable(true);
+	if (create_from_selection_choice && enabled) {
+		create_from_selection_choice->SetSelection(0);
+		create_from_selection_choice->Enable(false);
+	} else if (create_from_selection_choice) {
+		create_from_selection_choice->Enable(true);
 	}
 }

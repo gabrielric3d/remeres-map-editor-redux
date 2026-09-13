@@ -1,13 +1,31 @@
 #include "palette/panels/brush_panel.h"
 #include "ui/gui.h"
 #include "app/settings.h"
-#include "app/settings.h"
 #include "palette/palette_window.h" // For PaletteWindow dynamic_casts
 #include "palette/controls/virtual_brush_grid.h"
 #include <spdlog/spdlog.h>
 #include <wx/wrapsizer.h>
 #include <algorithm>
+#include <cctype>
 #include <iterator>
+
+namespace {
+	// Case insensitive substring test that doesn't allocate, the filter runs
+	// over every brush of every tileset while the user types.
+	bool ContainsNoCase(const std::string& haystack, const std::string& needle_lower) {
+		if (needle_lower.empty()) {
+			return true;
+		}
+		const auto it = std::search(
+			haystack.begin(), haystack.end(),
+			needle_lower.begin(), needle_lower.end(),
+			[](char a, char b) {
+				return std::tolower(static_cast<unsigned char>(a)) == b;
+			}
+		);
+		return it != haystack.end();
+	}
+}
 
 // ============================================================================
 // Brush Panel
@@ -110,7 +128,26 @@ void BrushPanel::LoadContents() {
 	loaded = true;
 	sizer->Add(brushbox->GetSelfWindow(), 1, wxEXPAND);
 	Layout();
+	ApplyDisplayOptions();
 	brushbox->SelectFirstBrush();
+}
+
+void BrushPanel::ApplyDisplayOptions() {
+	if (!brushbox) {
+		return;
+	}
+	brushbox->SetShowLabels(show_labels);
+	brushbox->SetSort(sort_key, sort_dir);
+	brushbox->SetReorderMode(reorder_mode);
+
+	auto* vbg = dynamic_cast<VirtualBrushGrid*>(brushbox);
+	if (vbg) {
+		if (filter_text.empty()) {
+			vbg->ClearFilter();
+		} else {
+			vbg->SetFilter(filter_text);
+		}
+	}
 }
 
 void BrushPanel::SelectFirstBrush() {
@@ -155,6 +192,9 @@ bool BrushPanel::SelectBrushByOffset(int offset) {
 }
 
 void BrushPanel::SetFilter(const std::string& filter) {
+	// Remember it even when the grid isn't built yet, LoadContents reapplies it.
+	filter_text = filter;
+
 	if (!loaded || !brushbox) {
 		return;
 	}
@@ -172,6 +212,51 @@ void BrushPanel::ClearFilter() {
 	SetFilter("");
 }
 
+bool BrushPanel::HasVisibleBrushes() const {
+	if (!tileset) {
+		return false;
+	}
+	if (filter_text.empty()) {
+		return tileset->size() > 0;
+	}
+
+	const std::string needle = as_lower_str(filter_text);
+	for (const Brush* brush : tileset->brushlist) {
+		if (brush && ContainsNoCase(brush->getName(), needle)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+void BrushPanel::SetSort(TilesetSortKey key, TilesetSortDirection dir) {
+	sort_key = key;
+	sort_dir = dir;
+	if (loaded && brushbox) {
+		brushbox->SetSort(key, dir);
+	}
+}
+
+void BrushPanel::SetShowLabels(bool show) {
+	show_labels = show;
+	if (loaded && brushbox) {
+		brushbox->SetShowLabels(show);
+	}
+}
+
+void BrushPanel::SetReorderMode(bool enabled) {
+	reorder_mode = enabled;
+	if (loaded && brushbox) {
+		brushbox->SetReorderMode(enabled);
+	}
+}
+
+void BrushPanel::ResetCustomOrder() {
+	if (loaded && brushbox) {
+		brushbox->ResetCustomOrder();
+	}
+}
+
 void BrushPanel::OnSwitchIn() {
 	LoadContents();
 	if (brushbox) {
@@ -184,4 +269,3 @@ void BrushPanel::OnSwitchOut() {
 		brushbox->OnSwitchOut();
 	}
 }
-
