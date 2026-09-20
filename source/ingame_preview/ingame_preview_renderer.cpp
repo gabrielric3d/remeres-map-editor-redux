@@ -4,6 +4,7 @@
 #include "rendering/core/sprite_batch.h"
 #include "rendering/core/primitive_renderer.h"
 #include "rendering/core/light_buffer.h"
+#include "rendering/core/light_gatherer.h"
 #include "rendering/utilities/light_drawer.h"
 #include "rendering/drawers/entities/creature_drawer.h"
 #include "rendering/drawers/entities/creature_name_drawer.h"
@@ -170,13 +171,19 @@ namespace IngamePreview {
 			int base_draw_x = -view.view_scroll_x - floor_offset;
 			int base_draw_y = -view.view_scroll_y - floor_offset;
 
+			// Lights no longer ride along with DrawTile; they are gathered on a
+			// walk of their own.
+			if (lighting_enabled) {
+				LightGatherer::GatherFloor(map, view, options, z, *light_buffer);
+			}
+
 			for (int x = view.start_x; x <= view.end_x; ++x) {
 				for (int y = view.start_y; y <= view.end_y; ++y) {
 					const Tile* tile = map.getTile(x, y, z);
 					if (tile) {
 						int draw_x = (x * TILE_SIZE) + base_draw_x;
 						int draw_y = (y * TILE_SIZE) + base_draw_y;
-						tile_renderer->DrawTile(*sprite_batch, tile->location, view, options, 0, draw_x, draw_y, lighting_enabled ? light_buffer.get() : nullptr);
+						tile_renderer->DrawTile(*sprite_batch, tile->location, view, options, 0, draw_x, draw_y);
 
 						// Add names of creatures on this floor
 						if (creature_name_drawer && z == camera_pos.z) {

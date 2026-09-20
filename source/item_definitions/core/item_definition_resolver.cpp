@@ -14,11 +14,14 @@ bool ItemDefinitionResolver::resolve(const ItemDefinitionLoadInput& input, const
 	rows.clear();
 	switch (input.mode) {
 		case ItemDefinitionMode::DatOtb:
+		// O protobuf entrega os mesmos fragments.dat que o .dat entregaria,
+		// so que vindos de appearances -- a resolucao contra OTB/XML e a mesma.
+		case ItemDefinitionMode::ProtobufOtb:
 			return resolveDatOtb(fragments, rows, error, warnings);
 		case ItemDefinitionMode::DatOnly:
+		case ItemDefinitionMode::ProtobufOnly:
 			return resolveDatOnly(fragments, rows, error, warnings);
 		case ItemDefinitionMode::DatSrv:
-		case ItemDefinitionMode::Protobuf:
 			error = "Selected item definition mode is not implemented yet.";
 			return false;
 	}

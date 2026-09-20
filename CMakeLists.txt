@@ -72,6 +72,8 @@ find_package(wxWidgets 3.2 COMPONENTS html aui gl adv core net base propgrid REQ
 
 
 find_package(ZLIB REQUIRED)
+# Folhas de sprite dos clientes 12+/13 vem em LZMA cru (.bmp.lzma).
+find_package(LibLZMA REQUIRED)
 
 
 # wxWidgets_USE_FILE is set by vcpkg/system wxWidgets, but empty with Conan
@@ -98,6 +100,12 @@ if(NOT nanovg_FOUND)
 	target_include_directories(nanovg_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ext/nanovg/src)
 	add_library(nanovg::nanovg ALIAS nanovg_lib)
 endif()
+
+# Gera appearances.pb.{h,cc} a partir de source/protobuf/appearances.proto.
+# E o formato de assets dos clientes 12+/13 (Canary), lido pelo
+# ProtobufItemParser. Alvo separado para o codigo gerado nao passar pelos
+# nossos warnings/flags.
+add_subdirectory(source/protobuf)
 
 include(source/CMakeLists.txt)
 # Removed WIN32 to enable Console subsystem for persistent debugging logs
@@ -180,6 +188,8 @@ target_link_libraries(rme PRIVATE spdlog::spdlog)
 target_link_libraries(rme PRIVATE tomlplusplus::tomlplusplus)
 target_link_libraries(rme PRIVATE unofficial::lua::lua)
 target_link_libraries(rme PRIVATE cpr::cpr)
+target_link_libraries(rme PRIVATE protobuf)
+target_link_libraries(rme PRIVATE LibLZMA::LibLZMA)
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT "rme")
 

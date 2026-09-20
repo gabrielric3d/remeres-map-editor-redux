@@ -6,6 +6,17 @@
 #include <cstdint>
 #include "rendering/core/atlas_manager.h" // For AtlasRegion
 
+// Tamanho em pixels de um sprite. O .spr classico e sempre 32x32, mas os
+// assets 12+/13 trazem folhas com sprites 32x64, 64x32 e 64x64.
+struct ImageDimensions {
+	uint16_t width = 32;
+	uint16_t height = 32;
+
+	[[nodiscard]] size_t pixelCount() const {
+		return static_cast<size_t>(width) * static_cast<size_t>(height);
+	}
+};
+
 class Image {
 public:
 	Image();
@@ -26,6 +37,11 @@ public:
 	void visit(int64_t now) const {
 		lastaccess.store(now, std::memory_order_relaxed);
 	}
+	// Tamanho deste sprite na fonte. 32x32 salvo nas folhas 12+/13.
+	[[nodiscard]] virtual ImageDimensions getDimensions() const {
+		return {};
+	}
+
 	virtual void clean(time_t time, int longevity);
 
 	virtual std::unique_ptr<uint8_t[]> getRGBData() = 0;
@@ -37,7 +53,10 @@ public:
 
 protected:
 	// Helper to handle atlas interactions
-	const AtlasRegion* EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<uint8_t[]> preloaded_data = nullptr);
+	// dimensions descreve o que ha em preloaded_data (ou o que getRGBAData vai
+	// devolver). 32x32 para o .spr classico; as folhas 12+/13 tambem trazem
+	// 32x64, 64x32 e 64x64.
+	const AtlasRegion* EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<uint8_t[]> preloaded_data = nullptr, ImageDimensions dimensions = {});
 };
 
 #endif

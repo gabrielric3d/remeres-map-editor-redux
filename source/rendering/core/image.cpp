@@ -15,7 +15,7 @@ void Image::clean(time_t time, int longevity) {
 	// Base implementation does nothing
 }
 
-const AtlasRegion* Image::EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<uint8_t[]> preloaded_data) {
+const AtlasRegion* Image::EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<uint8_t[]> preloaded_data, ImageDimensions dimensions) {
 	if (g_gui.gfx.ensureAtlasManager()) {
 		AtlasManager* atlas_mgr = g_gui.gfx.getAtlasManager();
 
@@ -44,13 +44,15 @@ const AtlasRegion* Image::EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<
 		}
 
 		if (!rgba) {
-			// Fallback: Create a magenta texture to distinguish failure from garbage
-			// Use literal 32 to ensure compilation (OT sprites are always 32x32)
-			constexpr int SPRITE_DIMENSION = 32;
+			// Fallback: Create a magenta texture to distinguish failure from garbage.
+			// O placeholder e sempre uma celula 32x32, independente do tamanho que
+			// o sprite teria tido.
 			constexpr int RGBA_COMPONENTS = 4;
-			rgba = std::make_unique<uint8_t[]>(SPRITE_DIMENSION * SPRITE_DIMENSION * RGBA_COMPONENTS);
-			std::span<uint8_t> buffer(rgba.get(), SPRITE_DIMENSION * SPRITE_DIMENSION * RGBA_COMPONENTS);
-			for (int i : std::views::iota(0, SPRITE_DIMENSION * SPRITE_DIMENSION)) {
+			dimensions = {};
+			const int pixel_count = static_cast<int>(dimensions.pixelCount());
+			rgba = std::make_unique<uint8_t[]>(static_cast<size_t>(pixel_count) * RGBA_COMPONENTS);
+			std::span<uint8_t> buffer(rgba.get(), static_cast<size_t>(pixel_count) * RGBA_COMPONENTS);
+			for (int i : std::views::iota(0, pixel_count)) {
 				buffer[i * RGBA_COMPONENTS + 0] = 255;
 				buffer[i * RGBA_COMPONENTS + 1] = 0;
 				buffer[i * RGBA_COMPONENTS + 2] = 255;
@@ -60,7 +62,7 @@ const AtlasRegion* Image::EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<
 		}
 
 		// 3. Add to Atlas
-		region = atlas_mgr->addSprite(sprite_id, rgba.get());
+		region = atlas_mgr->addSprite(sprite_id, rgba.get(), dimensions.width, dimensions.height);
 
 		if (region) {
 			if (!isGLLoaded) {

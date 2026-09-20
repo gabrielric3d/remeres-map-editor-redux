@@ -103,6 +103,11 @@ struct DrawingOptions {
 
 	bool experimental_fog;
 
+	// Cache de chunks na GPU para as passadas de ground e border
+	// (Preferences > Graphics). Desligado, o editor volta a percorrer os tres
+	// passes tile a tile na CPU, como antes.
+	bool use_chunk_cache;
+
 	uint32_t current_house_id;
 	wxColor global_light_color;
 	float light_intensity;
@@ -117,6 +122,68 @@ struct DrawingOptions {
 	float zoom;
 
 	std::string screen_shader_name;
+
+	// Alguma das opcoes que TileColorCalculator::Calculate consulta esta ligada?
+	//
+	// Serve para pular a chamada por tile: com todas desligadas -- o caso comum --
+	// Calculate percorre uma duzia de ifs e devolve o mesmo 255/255/255 que entrou.
+	// O TileRenderer chama isso tres vezes por tile (uma por passada de andar), entao
+	// o desvio se paga.
+	//
+	// ATENCAO: opcao nova em TileColorCalculator::Calculate tem de entrar aqui tambem,
+	// senao o tint dela simplesmente nao aparece.
+	[[nodiscard]] bool hasTileColorModifiers() const noexcept {
+		return show_blocking || highlight_items || show_houses
+			|| show_sound_zones || show_instance_zones || show_worldboss_zones
+			|| show_special_tiles || show_only_colors;
+	}
+
+	// Fingerprint of every option the chunk cache bakes into its vertex buffers
+	// (ground/border sprite choice, tint and alpha). ChunkCacheManager compares
+	// it once per frame and re-bakes everything when it changes, so no option
+	// can silently go stale in the cache -- unlike a MarkDirty() call that a
+	// future setting might forget to make.
+	//
+	// ATTENTION: an option that changes how a ground or a border is drawn has
+	// to be listed here, or toggling it will not repaint the cached chunks.
+	[[nodiscard]] uint64_t chunkBakeSignature() const noexcept {
+		uint64_t sig = 0;
+		auto bit = [&sig](bool value) noexcept {
+			sig = (sig << 1) | (value ? 1u : 0u);
+		};
+		bit(transparent_items);
+		bit(transparent_grounds);
+		bit(show_items);
+		bit(show_only_grounds);
+		bit(show_tech_items);
+		bit(show_invalid_tiles);
+		bit(ingame);
+		bit(show_houses);
+		bit(extended_house_shader);
+		bit(show_blocking);
+		bit(highlight_items);
+		bit(show_spawns);
+		bit(show_sound_zones);
+		bit(show_instance_zones);
+		bit(show_worldboss_zones);
+		bit(show_special_tiles);
+		bit(show_only_colors);
+		bit(always_show_zones);
+		bit(show_mountain_overlay);
+		// Options that turn an item into an indicator/overlay case, which the
+		// bake refuses and hands back to the CPU renderer.
+		bit(highlight_locked_doors);
+		bit(show_hooks);
+		bit(show_pickupables);
+		bit(show_moveables);
+		bit(show_light_str);
+		bit(show_invalid_zones);
+		bit(show_creatures);
+		// The LOD gate, not the raw zoom: only crossing the threshold changes
+		// what gets baked, so panning and zooming do not thrash the cache.
+		bit(drawLooseItems());
+		return (sig << 32) ^ static_cast<uint64_t>(current_house_id);
+	}
 };
 
 #endif

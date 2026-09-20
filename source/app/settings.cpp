@@ -433,6 +433,7 @@ void Settings::IO(IOMode mode) {
 	Int(SEARCH_RESULTS_LIMIT, 100000);
 
 	section("Graphics");
+	Bool(USE_CHUNK_CACHE, true);
 	Bool(TEXTURE_MANAGEMENT, true);
 	Int(TEXTURE_CLEAN_PULSE, 15);
 	Int(TEXTURE_LONGEVITY, 20);

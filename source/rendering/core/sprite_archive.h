@@ -3,14 +3,24 @@
 
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
 class wxFileName;
+struct ImageDimensions;
 class wxString;
 
 class SpriteArchive {
 public:
+	// Como os sprites de uma folha 12+/13 estao dispostos nela.
+	enum class ProtobufSpriteLayout : uint8_t {
+		OneByOne = 0,
+		OneByTwo = 1,
+		TwoByOne = 2,
+		TwoByTwo = 3,
+	};
+
 	// One file of a fragmented set, covering the id range [start_id, end_id].
 	// The sprite offsets themselves stay in the shared table, so this only says
 	// WHICH file to open for a given id.
@@ -63,8 +73,50 @@ public:
 
 	[[nodiscard]] bool readCompressed(uint32_t sprite_id, std::unique_ptr<uint8_t[]>& target, uint16_t& size) const;
 
+	// --- Assets 12+/13 (catalog-content.json + folhas .bmp.lzma) -------------
+	//
+	// Um caminho a parte, ao lado do .spr: em vez de blobs RLE por sprite, o
+	// cliente novo guarda folhas de 384x384 comprimidas em LZMA, e cada sprite
+	// e um recorte da folha. Por isso este backend entrega RGBA pronto, nao o
+	// blob comprimido que readCompressed() devolve.
+	[[nodiscard]] static std::shared_ptr<SpriteArchive> loadProtobuf(const wxFileName& catalog_path, wxString& error, std::vector<std::string>& warnings);
+
+	[[nodiscard]] bool isProtobuf() const {
+		return backend_ == Backend::Protobuf;
+	}
+
+	// 32x32 no .spr; nas folhas novas pode ser 32x64, 64x32 ou 64x64.
+	[[nodiscard]] ImageDimensions spriteDimensions(uint32_t sprite_id) const;
+
+	// Pixels RGBA do sprite. Só o backend protobuf; o legado continua passando
+	// por readCompressed() + NormalImage::Decompress.
+	[[nodiscard]] bool readRGBA(uint32_t sprite_id, std::unique_ptr<uint8_t[]>& target, ImageDimensions& dimensions) const;
+
 private:
+	enum class Backend : uint8_t {
+		Legacy,
+		Protobuf,
+	};
+
+	struct ProtobufSheet {
+		uint32_t first_id = 0;
+		uint32_t last_id = 0;
+		ProtobufSpriteLayout layout = ProtobufSpriteLayout::OneByOne;
+		std::string path;
+		mutable std::shared_ptr<std::vector<uint8_t>> decoded_pixels;
+		mutable uint64_t last_access_tick = 0;
+
+		void releaseDecodedPixels() const {
+			decoded_pixels.reset();
+			last_access_tick = 0;
+		}
+	};
+
 	SpriteArchive(std::string filename, bool is_extended, uint32_t sprite_count, std::vector<uint32_t> sprite_offsets, std::vector<Fragment> fragments = {});
+	SpriteArchive(std::string filename, uint32_t sprite_count, std::vector<ProtobufSheet> sheets, std::vector<int32_t> sheet_lookup);
+
+	[[nodiscard]] bool loadSheetPixels(const ProtobufSheet& sheet) const;
+	void pruneDecodedSheetCache(int32_t keep_sheet_index) const;
 
 	// Which file holds this sprite. Returns nullptr when no fragment covers it;
 	// for a single-file archive it always answers filename_.
@@ -78,6 +130,13 @@ private:
 	std::vector<uint32_t> sprite_offsets_;
 	// Empty for a single .spr; otherwise sorted by start_id and disjoint.
 	std::vector<Fragment> fragments_;
+
+	Backend backend_ = Backend::Legacy;
+	mutable std::mutex protobuf_mutex_;
+	mutable uint64_t protobuf_sheet_access_tick_ = 0;
+	mutable size_t decoded_sheet_count_ = 0;
+	std::vector<ProtobufSheet> protobuf_sheets_;
+	std::vector<int32_t> protobuf_sheet_lookup_;
 };
 
 #endif

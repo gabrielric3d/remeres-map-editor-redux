@@ -6,6 +6,8 @@
 #define RME_RENDERING_CORE_SPRITE_PRELOADER_H_
 
 #include "rendering/core/game_sprite.h"
+#include "rendering/core/image.h"
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -85,6 +87,9 @@ private:
 		PendingSpriteKey pending;
 		std::unique_ptr<uint8_t[]> data;
 		std::shared_ptr<SpriteArchive> archive;
+		// Tamanho do que veio em data. A thread de trabalho ja sabe (a folha
+		// diz), e a principal precisa dele para reservar o slot certo no atlas.
+		ImageDimensions dimensions;
 	};
 
 	void workerLoop(std::stop_token stop_token);
@@ -102,7 +107,9 @@ private:
 	std::queue<Task> task_queue;
 	std::queue<Result> result_queue;
 	std::unordered_set<PendingSpriteKey, PendingSpriteKeyHash> pending_ids; // To avoid duplicate tasks for the same archive/id/generation/epoch
-	uint64_t active_epoch = 0;
+	// Atomico porque preload() consulta o epoch no laco de coleta, que roda fora do
+	// lock, para decidir se a marca preload_epoch da imagem ainda vale.
+	std::atomic<uint64_t> active_epoch = 0;
 };
 
 namespace rme {

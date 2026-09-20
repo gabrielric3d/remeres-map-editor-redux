@@ -83,7 +83,9 @@ bool TextureAtlas::initialize(int initial_layers) {
 	// Gate PBO because it currently causes random sprite corruption
 #ifdef USE_PBO_FOR_SPRITE_UPLOAD
 	pbo_ = std::make_unique<PixelBufferObject>();
-	if (!pbo_->initialize(SPRITE_SIZE * SPRITE_SIZE * 4)) {
+	// Dimensionado para o maior sprite possivel (2x2 celulas), senao um 64x64
+	// nao caberia no mapeamento e cairia sempre no caminho sincrono.
+	if (!pbo_->initialize(SPRITE_SIZE * 2 * SPRITE_SIZE * 2 * 4)) {
 		spdlog::error("TextureAtlas: Failed to initialize PBO");
 		return false;
 	}
@@ -143,11 +145,12 @@ bool TextureAtlas::addLayer() {
 	current_layer_ = layer_count_ - 1;
 	next_x_ = 0;
 	next_y_ = 0;
+	row_height_ = 0;
 
 	return true;
 }
 
-std::optional<AtlasRegion> TextureAtlas::addSprite(const uint8_t* rgba_data) {
+std::optional<AtlasRegion> TextureAtlas::addSprite(const uint8_t* rgba_data, int width, int height) {
 	if (!isValid()) {
 		spdlog::error("TextureAtlas::addSprite called on uninitialized atlas");
 		return std::nullopt;
@@ -158,50 +161,71 @@ std::optional<AtlasRegion> TextureAtlas::addSprite(const uint8_t* rgba_data) {
 		return std::nullopt;
 	}
 
-	int pixel_x, pixel_y, layer;
+	if (width <= 0 || height <= 0 || width % SPRITE_SIZE != 0 || height % SPRITE_SIZE != 0) {
+		spdlog::error("TextureAtlas::addSprite called with unsupported size {}x{}", width, height);
+		return std::nullopt;
+	}
 
-	// Check free list first (uses integer coordinates to avoid float precision issues)
-	if (!free_slots_.empty()) {
-		auto slot = free_slots_.back();
-		free_slots_.pop_back();
+	const int slot_width = width / SPRITE_SIZE;
+	const int slot_height = height / SPRITE_SIZE;
+	if (slot_width > SPRITES_PER_ROW || slot_height > SPRITES_PER_ROW) {
+		spdlog::error("TextureAtlas::addSprite: sprite {}x{} is larger than a layer", width, height);
+		return std::nullopt;
+	}
 
-		pixel_x = slot.pixel_x;
-		pixel_y = slot.pixel_y;
-		layer = slot.layer;
-	} else {
-		// Check if current layer is full
-		if (next_y_ >= SPRITES_PER_ROW) {
+	int pixel_x = 0, pixel_y = 0, layer = 0;
+	bool reused = false;
+
+	// Um slot livre so serve para um sprite do mesmo tamanho.
+	for (size_t index = free_slots_.size(); index > 0; --index) {
+		const auto& candidate = free_slots_[index - 1];
+		if (candidate.slot_width == slot_width && candidate.slot_height == slot_height) {
+			pixel_x = candidate.pixel_x;
+			pixel_y = candidate.pixel_y;
+			layer = candidate.layer;
+			free_slots_.erase(free_slots_.begin() + static_cast<std::ptrdiff_t>(index - 1));
+			reused = true;
+			break;
+		}
+	}
+
+	if (!reused) {
+		// Shelf packing: a prateleira corrente tem a altura do sprite mais alto
+		// que entrou nela, e so depois dela o cursor desce.
+		if (next_x_ + slot_width > SPRITES_PER_ROW) {
+			next_y_ += (row_height_ > 0 ? row_height_ : 1);
+			next_x_ = 0;
+			row_height_ = 0;
+		}
+
+		if (next_y_ + slot_height > SPRITES_PER_ROW) {
 			if (!addLayer()) {
 				return std::nullopt;
 			}
 		}
 
-		// Calculate pixel position in current layer
 		pixel_x = next_x_ * SPRITE_SIZE;
 		pixel_y = next_y_ * SPRITE_SIZE;
 		layer = current_layer_;
 
-		// Advance to next slot
-		next_x_++;
-		if (next_x_ >= SPRITES_PER_ROW) {
-			next_x_ = 0;
-			next_y_++;
-		}
+		next_x_ += slot_width;
+		row_height_ = std::max(row_height_, slot_height);
 		total_sprite_count_++;
 	}
 
 	// Upload sprite data to texture array
+	const size_t byte_count = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
 	bool uploaded = false;
 	if (pbo_) {
 		void* ptr = pbo_->mapWrite();
 		if (ptr) {
-			memcpy(ptr, rgba_data, SPRITE_SIZE * SPRITE_SIZE * 4);
+			memcpy(ptr, rgba_data, byte_count);
 			pbo_->unmap();
 
 			pbo_->bind(); // Binds GL_PIXEL_UNPACK_BUFFER
 
 			// Offset is 0 in PBO
-			glTextureSubImage3D(texture_id_->GetID(), 0, pixel_x, pixel_y, layer, SPRITE_SIZE, SPRITE_SIZE, 1, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+			glTextureSubImage3D(texture_id_->GetID(), 0, pixel_x, pixel_y, layer, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
 			pbo_->unbind();
 			pbo_->advance();
@@ -211,7 +235,7 @@ std::optional<AtlasRegion> TextureAtlas::addSprite(const uint8_t* rgba_data) {
 
 	if (!uploaded) {
 		// Fallback synchronously
-		glTextureSubImage3D(texture_id_->GetID(), 0, pixel_x, pixel_y, layer, SPRITE_SIZE, SPRITE_SIZE, 1, GL_RGBA, GL_UNSIGNED_BYTE, rgba_data);
+		glTextureSubImage3D(texture_id_->GetID(), 0, pixel_x, pixel_y, layer, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, rgba_data);
 	}
 
 	// Calculate UV coordinates with half-texel inset to prevent bleeding
@@ -222,10 +246,14 @@ std::optional<AtlasRegion> TextureAtlas::addSprite(const uint8_t* rgba_data) {
 	region.atlas_index = static_cast<uint32_t>(layer);
 	region.pixel_x = pixel_x;
 	region.pixel_y = pixel_y;
+	region.pixel_width = width;
+	region.pixel_height = height;
+	region.slot_width = slot_width;
+	region.slot_height = slot_height;
 	region.u_min = static_cast<float>(pixel_x) / ATLAS_SIZE + half_texel;
 	region.v_min = static_cast<float>(pixel_y) / ATLAS_SIZE + half_texel;
-	region.u_max = static_cast<float>(pixel_x + SPRITE_SIZE) / ATLAS_SIZE - half_texel;
-	region.v_max = static_cast<float>(pixel_y + SPRITE_SIZE) / ATLAS_SIZE - half_texel;
+	region.u_max = static_cast<float>(pixel_x + width) / ATLAS_SIZE - half_texel;
+	region.v_max = static_cast<float>(pixel_y + height) / ATLAS_SIZE - half_texel;
 
 	return region;
 }
@@ -235,6 +263,8 @@ void TextureAtlas::freeSlot(const AtlasRegion& region) {
 	slot.pixel_x = region.pixel_x;
 	slot.pixel_y = region.pixel_y;
 	slot.layer = static_cast<int>(region.atlas_index);
+	slot.slot_width = region.slot_width > 0 ? region.slot_width : 1;
+	slot.slot_height = region.slot_height > 0 ? region.slot_height : 1;
 
 	// Critical Fix: check if slot is already in free list (Double Free protection)
 	// Iterating vector is fine as free_slots_ is small (usually < 100)

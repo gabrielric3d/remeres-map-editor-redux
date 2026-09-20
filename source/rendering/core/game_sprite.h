@@ -8,6 +8,12 @@
 #include "game/outfit.h"
 #include "util/common.h"
 #include "rendering/core/animator.h"
+// touchAtlasAccess chama NormalImage::visit inline, e para isso o tipo precisa
+// estar completo aqui — a forward declaration abaixo nao basta. Sem este
+// include so compila quem ja tenha incluido normal_image.h por conta propria;
+// preferences.cpp nao inclui, e quebrava com "use of undefined type".
+// Nao ha ciclo: normal_image.h puxa apenas image.h.
+#include "rendering/core/normal_image.h"
 #include "rendering/core/sprite_light.h"
 #include "rendering/core/texture_garbage_collector.h"
 #include "rendering/core/atlas_manager.h"
@@ -95,6 +101,38 @@ public:
 	int getDrawHeight() const;
 	std::pair<int, int> getDrawOffset() const;
 	uint8_t getMiniMapColor() const;
+
+	// Este sprite invade os tiles vizinhos? Ou porque ocupa mais de uma celula
+	// da grade, ou porque tem deslocamento negativo (cresce para sudeste), ou
+	// porque o recorte em si passa de 32px (folhas 12+/13).
+	//
+	// UM helper so, porque o TileRenderer e o bake do chunk cache precisam
+	// responder isto do mesmo jeito: se discordarem, o mesmo ground sai
+	// desenhado duas vezes ou nenhuma.
+	[[nodiscard]] bool overhangsTile() const;
+
+	// Renews the atlas LRU timestamp of every image of this sprite.
+	//
+	// Image::visit() is the ONLY write to lastaccess, and it normally happens
+	// inside getAtlasRegion() -- the call the chunk cache stops making for
+	// baked grounds and borders. Without this, the texture GC would evict from
+	// the atlas exactly the sprites the cache is still drawing every frame.
+	void touchAtlasAccess(int64_t now) const {
+		for (NormalImage* img : spriteList) {
+			if (img) {
+				img->visit(now);
+			}
+		}
+	}
+
+	// Fast classifiers used by the chunk cache to tell baked (static) sprites
+	// apart from the ones that must keep going through the per-frame CPU path.
+	[[nodiscard]] bool isAnimated() const noexcept {
+		return frames > 1 && animator != nullptr;
+	}
+	[[nodiscard]] bool hasElevation() const noexcept {
+		return draw_height > 0;
+	}
 
 	bool hasLight() const noexcept {
 		return has_light;

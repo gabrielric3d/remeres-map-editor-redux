@@ -23,9 +23,11 @@
 class Editor;
 class TileRenderer;
 class GridDrawer;
+class ChunkCacheManager;
 struct RenderView;
 struct DrawingOptions;
 struct LightBuffer;
+struct RenderFrameContext;
 class SpriteBatch;
 class PrimitiveRenderer;
 
@@ -34,7 +36,10 @@ public:
 	MapLayerDrawer(TileRenderer* tile_renderer, GridDrawer* grid_drawer, Editor* editor);
 	~MapLayerDrawer();
 
-	void Draw(SpriteBatch& sprite_batch, int map_z, bool live_client, const RenderView& view, const DrawingOptions& options, LightBuffer& light_buffer);
+	// chunk_cache and ctx are optional: with both set and the floor eligible,
+	// the ground and border passes come from the GPU chunk cache instead of
+	// being walked tile by tile. The contents pass always runs on the CPU.
+	void Draw(SpriteBatch& sprite_batch, int map_z, bool live_client, const RenderView& view, const DrawingOptions& options, LightBuffer& light_buffer, ChunkCacheManager* chunk_cache = nullptr, const RenderFrameContext* ctx = nullptr);
 
 private:
 	TileRenderer* tile_renderer;

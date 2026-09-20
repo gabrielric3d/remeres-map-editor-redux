@@ -39,6 +39,10 @@ struct RenderView {
 	void Clear();
 
 	int getFloorAdjustment() const;
+	// Visible tile range for a given floor. Mirrors what Setup() stores in
+	// start_x/end_x for the camera floor, but expands the range for floors
+	// above the camera, whose tiles are drawn shifted towards the south-east.
+	ViewBounds getBoundsForFloor(int map_z, int extra_margin_tiles = 0) const;
 	bool IsTileVisible(int map_x, int map_y, int map_z, int& out_x, int& out_y) const;
 	bool IsPixelVisible(int draw_x, int draw_y, int margin = PAINTERS_ALGORITHM_SAFETY_MARGIN_PIXELS) const;
 	// Checks if a rectangle (e.g. a node) is visible

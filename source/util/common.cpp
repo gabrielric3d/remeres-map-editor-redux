@@ -216,11 +216,6 @@ wxString b2yn(bool value) {
 }
 
 wxColor colorFromEightBit(int color) {
-	if (color <= 0 || color >= 216) {
-		return wxColor(0, 0, 0);
-	}
-	const uint8_t red = static_cast<uint8_t>((color / 36) % 6 * 51);
-	const uint8_t green = static_cast<uint8_t>((color / 6) % 6 * 51);
-	const uint8_t blue = static_cast<uint8_t>(color % 6 * 51);
-	return wxColor(red, green, blue);
+	const EightBitColor rgb = rgbFromEightBit(color);
+	return wxColor(rgb.r, rgb.g, rgb.b);
 }

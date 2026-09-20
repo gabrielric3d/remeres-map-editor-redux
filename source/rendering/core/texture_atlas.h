@@ -12,7 +12,12 @@
  * AtlasRegion represents where a sprite is located in the texture atlas.
  * Contains UV coordinates and layer index for sampling.
  */
+// Celula base da grade do atlas. Um sprite ocupa 1x1, 1x2, 2x1 ou 2x2 delas.
+inline constexpr int ATLAS_SLOT_SIZE = 32;
+
 struct AtlasRegion {
+	static constexpr int SLOT_SIZE = ATLAS_SLOT_SIZE;
+
 	uint32_t atlas_index = 0; // Layer in texture array
 	float u_min = 0.0f; // UV left
 	float v_min = 0.0f; // UV top
@@ -21,6 +26,13 @@ struct AtlasRegion {
 	uint32_t debug_sprite_id = 0; // DEBUG: Track which sprite ID owns this region
 	int pixel_x = 0; // Pre-calculated pixel X in the atlas layer
 	int pixel_y = 0; // Pre-calculated pixel Y in the atlas layer
+	// Tamanho real do sprite. O .spr classico e sempre 32x32, mas as folhas
+	// dos clientes 12+/13 trazem 32x64, 64x32 e 64x64 -- e 90% dos sprites de
+	// um cliente 13 sao 64x64.
+	int pixel_width = SLOT_SIZE;
+	int pixel_height = SLOT_SIZE;
+	int slot_width = 1; // largura em celulas de 32x32
+	int slot_height = 1; // altura em celulas de 32x32
 
 	static constexpr uint32_t INVALID_SENTINEL = 0xFFFFFFFE;
 };
@@ -61,11 +73,27 @@ public:
 	bool initialize(int initial_layers = 8);
 
 	/**
-	 * Add a 32x32 sprite to the atlas.
-	 * @param rgba_data Pointer to 32*32*4 bytes of RGBA pixel data
+	 * Add a sprite to the atlas.
+	 * @param rgba_data Pointer to width*height*4 bytes of RGBA pixel data
+	 * @param width Sprite width in pixels (32 or 64)
+	 * @param height Sprite height in pixels (32 or 64)
 	 * @return AtlasRegion with layer and UV coordinates, or nullopt on failure
 	 */
-	std::optional<AtlasRegion> addSprite(const uint8_t* rgba_data);
+	std::optional<AtlasRegion> addSprite(const uint8_t* rgba_data, int width = SPRITE_SIZE, int height = SPRITE_SIZE);
+
+	/**
+	 * Get allocated layer capacity.
+	 */
+	int getAllocatedLayers() const noexcept {
+		return allocated_layers_;
+	}
+
+	/**
+	 * Total sprites stored in the atlas.
+	 */
+	int getTotalSpriteCount() const noexcept {
+		return total_sprite_count_;
+	}
 
 	/**
 	 * Free a sprite slot for reuse.
@@ -122,13 +150,21 @@ private:
 	int current_layer_ = 0;
 	int next_x_ = 0; // Next slot X in grid
 	int next_y_ = 0; // Next slot Y in grid
+	// Altura (em celulas) da prateleira que esta sendo preenchida. Um sprite de
+	// duas celulas de altura obriga a prateleira inteira a avancar duas, senao a
+	// linha seguinte cairia por cima da metade de baixo dele.
+	int row_height_ = 0;
 
 	// Freed slots stored as integer coordinates to avoid float round-trip precision loss
 	struct FreeSlot {
 		int pixel_x;
 		int pixel_y;
 		int layer;
+		int slot_width;
+		int slot_height;
 	};
+	// Um slot livre so e reaproveitado por um sprite do mesmo tamanho: evita
+	// fragmentar a grade e mantem a busca trivial.
 	std::vector<FreeSlot> free_slots_;
 };
 

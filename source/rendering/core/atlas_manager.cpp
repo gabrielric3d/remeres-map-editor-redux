@@ -20,6 +20,10 @@ bool AtlasManager::ensureInitialized() {
 
 	spdlog::info("AtlasManager: Texture array initialized ({}x{}, {} initial layers)", TextureAtlas::ATLAS_SIZE, TextureAtlas::ATLAS_SIZE, INITIAL_LAYERS);
 
+	if (!lut_.isValid()) {
+		lut_.initialize(SpriteAtlasLUT::DEFAULT_INITIAL_CAPACITY);
+	}
+
 	// Ensure white pixel exists (ID AtlasRegion::INVALID_SENTINEL)
 	std::vector<uint8_t> white_data(32 * 32 * 4, 255);
 	white_pixel_cache_ = addSprite(WHITE_PIXEL_ID, white_data.data());
@@ -32,7 +36,7 @@ bool AtlasManager::ensureInitialized() {
 	return true;
 }
 
-const AtlasRegion* AtlasManager::addSprite(uint32_t sprite_id, const uint8_t* rgba_data) {
+const AtlasRegion* AtlasManager::addSprite(uint32_t sprite_id, const uint8_t* rgba_data, int width, int height) {
 	// Fast check via direct lookup for common sprites
 	if (sprite_id < DIRECT_LOOKUP_SIZE && direct_lookup_[sprite_id] != nullptr) {
 		return direct_lookup_[sprite_id];
@@ -54,7 +58,7 @@ const AtlasRegion* AtlasManager::addSprite(uint32_t sprite_id, const uint8_t* rg
 	}
 
 	// Add to texture array
-	auto region = atlas_.addSprite(rgba_data);
+	auto region = atlas_.addSprite(rgba_data, width, height);
 	if (!region.has_value()) {
 		spdlog::error("AtlasManager: Failed to add sprite {} to texture array", sprite_id);
 		return nullptr;
@@ -72,6 +76,8 @@ const AtlasRegion* AtlasManager::addSprite(uint32_t sprite_id, const uint8_t* rg
 	if (sprite_id < DIRECT_LOOKUP_SIZE) {
 		direct_lookup_[sprite_id] = ptr;
 	}
+
+	lut_.updateSprite(sprite_id, *ptr);
 
 	return ptr;
 }
@@ -106,6 +112,9 @@ void AtlasManager::removeSprite(uint32_t sprite_id) {
 		// this region object after the slot has been reused for a new sprite.
 		region->debug_sprite_id = AtlasRegion::INVALID_SENTINEL;
 		region->atlas_index = AtlasRegion::INVALID_SENTINEL;
+
+		lut_.invalidateSprite(sprite_id);
+		++eviction_generation_;
 	}
 }
 
@@ -148,6 +157,8 @@ GLuint AtlasManager::getTextureId() const {
 
 void AtlasManager::clear() {
 	atlas_.release();
+	lut_.release();
+	++eviction_generation_;
 	region_storage_.clear();
 	sprite_regions_.clear();
 	std::fill(direct_lookup_.begin(), direct_lookup_.end(), nullptr);

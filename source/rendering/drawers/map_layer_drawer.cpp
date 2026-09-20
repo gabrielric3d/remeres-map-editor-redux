@@ -30,6 +30,10 @@
 #include "rendering/core/sprite_batch.h"
 #include "rendering/core/primitive_renderer.h"
 #include "rendering/core/sprite_preloader.h"
+#include "rendering/core/chunk_cache_manager.h"
+#include "rendering/core/render_frame_context.h"
+#include "rendering/core/atlas_manager.h"
+#include "rendering/core/light_gatherer.h"
 
 MapLayerDrawer::MapLayerDrawer(TileRenderer* tile_renderer, GridDrawer* grid_drawer, Editor* editor) :
 	tile_renderer(tile_renderer),
@@ -40,7 +44,7 @@ MapLayerDrawer::MapLayerDrawer(TileRenderer* tile_renderer, GridDrawer* grid_dra
 MapLayerDrawer::~MapLayerDrawer() {
 }
 
-void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client, const RenderView& view, const DrawingOptions& options, LightBuffer& light_buffer) {
+void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client, const RenderView& view, const DrawingOptions& options, LightBuffer& light_buffer, ChunkCacheManager* chunk_cache, const RenderFrameContext* ctx) {
 	int nd_start_x = view.start_x & ~3;
 	int nd_start_y = view.start_y & ~3;
 	int nd_end_x = (view.end_x & ~3) + 4;
@@ -57,7 +61,11 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 	int base_screen_x = -view.view_scroll_x - offset;
 	int base_screen_y = -view.view_scroll_y - offset;
 
-	bool draw_lights = options.isDrawLight() && view.zoom <= 10.0;
+	// The light buffer used to be filled by DrawTile as it walked the tiles.
+	// With the chunk cache that walk skips most tiles, so the lights come from
+	// a dedicated pass that runs whether or not the cache is on -- one code
+	// path, one behaviour.
+	LightGatherer::GatherFloor(editor->map, view, options, map_z, light_buffer);
 
 	// Common lambda to draw a node
 	auto drawNode = [&](MapNode* nd, int nd_map_x, int nd_map_y, bool live, TileRenderPass pass) {
@@ -96,12 +104,19 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 		for (int map_x = 0; map_x < 4; ++map_x, draw_x_base += TILE_SIZE) {
 			int draw_y = node_draw_y;
 			for (int map_y = 0; map_y < 4; ++map_y, ++location, draw_y += TILE_SIZE) {
+				// Tile vazio: DrawTile so voltaria na primeira linha dele. Testar aqui
+				// evita a chamada, e como sao tres passadas por andar o desconto vale
+				// tres vezes.
+				if (!location->get()) {
+					continue;
+				}
+
 				// Culling: Skip tiles that are far outside the viewport.
 				if (!fully_inside && !view.IsPixelVisible(draw_x_base, draw_y, PAINTERS_ALGORITHM_SAFETY_MARGIN_PIXELS)) {
 					continue;
 				}
 
-				tile_renderer->DrawTile(sprite_batch, location, view, options, options.current_house_id, draw_x_base, draw_y, draw_lights ? &light_buffer : nullptr, pass);
+				tile_renderer->DrawTile(sprite_batch, location, view, options, options.current_house_id, draw_x_base, draw_y, pass);
 			}
 		}
 	};
@@ -136,7 +151,52 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 		}
 	};
 
-	drawPass(TileRenderPass::Ground);
-	drawPass(TileRenderPass::Borders);
-	drawPass(TileRenderPass::Contents);
+	// The chunk cache only replaces the ground and border passes, and only for
+	// the plain rendering modes: the special ones paint squares instead of
+	// sprites, and a live client may not even hold the tiles yet.
+	const bool use_chunk_cache = options.use_chunk_cache && chunk_cache && ctx && chunk_cache->isValid() && !live_client
+		&& !options.show_as_minimap && !options.show_only_colors && !options.show_only_modified
+		&& !options.transient_selection_bounds.has_value();
+
+	if (!use_chunk_cache) {
+		drawPass(TileRenderPass::Ground);
+		drawPass(TileRenderPass::Borders);
+		drawPass(TileRenderPass::Contents);
+		return;
+	}
+
+	// Everything queued so far belongs under this floor's cached geometry,
+	// which goes straight to the framebuffer instead of into the batch.
+	sprite_batch.flush(ctx->atlas);
+	chunk_cache->renderFloor(map_z, editor->map, *ctx, view.projectionMatrix, ctx->atlas);
+
+	// Tiles the bake had to skip -- animated grounds, selected borders,
+	// overhang-free but interactive items -- still run through the CPU
+	// renderer, in the very same pass order.
+	auto drawDeferredTile = [&](int map_x, int map_y, TileRenderPass pass) {
+		TileLocation* location = editor->map.getTileL(map_x, map_y, map_z);
+		if (!location || !location->get()) {
+			return;
+		}
+
+		const int draw_x = map_x * TILE_SIZE + base_screen_x;
+		const int draw_y = map_y * TILE_SIZE + base_screen_y;
+		if (!view.IsPixelVisible(draw_x, draw_y, PAINTERS_ALGORITHM_SAFETY_MARGIN_PIXELS)) {
+			return;
+		}
+
+		tile_renderer->DrawTile(sprite_batch, location, view, options, options.current_house_id, draw_x, draw_y, pass);
+	};
+
+	chunk_cache->forEachDeferredTile(CHUNK_DEFER_GROUND, [&](int map_x, int map_y) {
+		drawDeferredTile(map_x, map_y, TileRenderPass::Ground);
+	});
+	chunk_cache->forEachDeferredTile(CHUNK_DEFER_BORDERS, [&](int map_x, int map_y) {
+		drawDeferredTile(map_x, map_y, TileRenderPass::Borders);
+	});
+	// This is where the frame time actually goes: with the contents baked too,
+	// only the tiles that really change per frame are walked on the CPU.
+	chunk_cache->forEachDeferredTile(CHUNK_DEFER_CONTENTS, [&](int map_x, int map_y) {
+		drawDeferredTile(map_x, map_y, TileRenderPass::Contents);
+	});
 }

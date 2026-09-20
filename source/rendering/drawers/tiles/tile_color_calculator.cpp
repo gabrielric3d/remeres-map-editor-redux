@@ -6,6 +6,9 @@
 #include "app/definitions.h"
 #include <array>
 
+// ATENCAO: o TileRenderer so chama esta funcao quando options.hasTileColorModifiers()
+// da true. Toda opcao consultada aqui precisa estar listada naquele helper, senao o
+// tint dela nunca chega a ser aplicado.
 void TileColorCalculator::Calculate(const Tile* tile, const DrawingOptions& options, uint32_t current_house_id, int spawn_count, uint8_t& r, uint8_t& g, uint8_t& b) {
 	bool showspecial = options.show_only_colors || options.show_special_tiles;
 

@@ -8,6 +8,7 @@ DrawingOptions::DrawingOptions() {
 }
 
 void DrawingOptions::SetDefault() {
+	use_chunk_cache = true;
 	transparent_floors = false;
 	ghost_floors_enabled = false;
 	ghost_floors_above = 0;
@@ -76,6 +77,7 @@ void DrawingOptions::SetDefault() {
 }
 
 void DrawingOptions::SetIngame() {
+	use_chunk_cache = true;
 	transparent_floors = false;
 	ghost_floors_enabled = false;
 	ghost_floors_above = 0;
@@ -142,6 +144,7 @@ void DrawingOptions::SetIngame() {
 #include <algorithm>
 
 void DrawingOptions::Update() {
+	use_chunk_cache = g_settings.getBoolean(Config::USE_CHUNK_CACHE);
 	transparent_floors = g_settings.getBoolean(Config::TRANSPARENT_FLOORS);
 	ghost_floors_enabled = g_settings.getBoolean(Config::GHOST_FLOORS_ENABLED);
 	ghost_floors_above = g_settings.getBoolean(Config::GHOST_FLOORS_ABOVE_ENABLED)

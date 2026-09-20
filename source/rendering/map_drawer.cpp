@@ -26,6 +26,9 @@
 #include "rendering/map_drawer.h"
 #include "brushes/brush.h"
 #include "rendering/drawers/map_layer_drawer.h"
+#include "rendering/core/render_frame_context.h"
+#include "rendering/core/atlas_manager.h"
+#include "item_definitions/core/item_definition_store.h"
 #include "rendering/ui/map_display.h"
 #include "editor/copybuffer.h"
 #include "live/live_socket.h"
@@ -43,6 +46,7 @@
 #include "brushes/waypoint/waypoint_brush.h"
 #include "rendering/utilities/light_drawer.h"
 #include "rendering/ui/tooltip_drawer.h"
+#include "rendering/ui/tooltip_collector.h"
 #include "rendering/core/drawing_options.h"
 #include "rendering/core/render_view.h"
 #include "rendering/core/sprite_batch.h"
@@ -197,6 +201,7 @@ void MapDrawer::SetupGL() {
 
 		sprite_batch->initialize();
 		primitive_renderer->initialize();
+		chunk_cache_manager.initialize();
 		renderers_initialized = true;
 	}
 
@@ -391,6 +396,14 @@ void MapDrawer::Draw() {
 	}
 	auto* atlas = g_gui.gfx.getAtlasManager();
 
+	// Chunk cache bookkeeping for this frame: age the cache, pick up the tiles
+	// the editor touched, and re-bake everything if a drawing option that the
+	// bake depends on was toggled.
+	chunk_cache_manager.advanceFrame(view.floor);
+	chunk_cache_manager.updateAtlasState(atlas);
+	chunk_cache_manager.updateDirtyState(editor.map.getChangeTracker());
+	chunk_cache_manager.updateOptionsState(options.chunkBakeSignature());
+
 	// Begin Batches
 	sprite_batch->begin(view.projectionMatrix, *atlas);
 	primitive_renderer->setProjectionMatrix(view.projectionMatrix);
@@ -410,6 +423,13 @@ void MapDrawer::Draw() {
 
 	// Save original view bounds before DrawMap modifies them per-floor
 	const ViewBounds original_bounds { view.start_x, view.start_y, view.end_x, view.end_y };
+
+	// Tooltips used to be filled by TileRenderer while it walked the tiles.
+	// The chunk cache skips most of those tiles now, so they are collected on
+	// a pass of their own -- over the camera floor only, and only when they
+	// are switched on. It runs before DrawMap because DrawMap widens
+	// view.start_x/end_x one floor at a time as it descends.
+	TooltipCollector::Collect(view, options, *tooltip_drawer, editor);
 
 	DrawMap();
 
@@ -540,7 +560,23 @@ void MapDrawer::DrawSpawnOverlays(NVGcontext* vg) {
 }
 
 void MapDrawer::DrawMapLayer(int map_z, bool live_client) {
-	map_layer_drawer->Draw(*sprite_batch, map_z, live_client, view, options, light_buffer);
+	AtlasManager* atlas = g_gui.gfx.getAtlasManager();
+	if (!atlas) {
+		map_layer_drawer->Draw(*sprite_batch, map_z, live_client, view, options, light_buffer);
+		return;
+	}
+
+	const RenderFrameContext ctx {
+		.atlas = *atlas,
+		.gfx = g_gui.gfx,
+		.item_definitions = g_item_definitions,
+		.options = options,
+		.view = view,
+		.elapsed_time = g_gui.gfx.getElapsedTime(),
+		.current_house_id = options.current_house_id,
+	};
+
+	map_layer_drawer->Draw(*sprite_batch, map_z, live_client, view, options, light_buffer, &chunk_cache_manager, &ctx);
 }
 
 void MapDrawer::DrawLight() {

@@ -177,6 +177,12 @@ GraphicsPage::GraphicsPage(wxWindow* parent) : ScrollablePreferencesPage(parent)
 		"Changing sprite caching requires an application restart before the new loading mode takes effect.",
 		Theme::Role::Warning
 	);
+	chunk_cache_chkbox = PreferencesLayout::AddCheckBoxRow(
+		performance_section,
+		"Cache terrain on the GPU",
+		"Keep ground and border sprites in per-chunk GPU buffers, rebuilt only where the map changes. Turn this off to walk every tile on the CPU each frame, like older versions.",
+		g_settings.getBoolean(Config::USE_CHUNK_CACHE)
+	);
 	fps_limit_spin = new wxSpinCtrl(performance_section, wxID_ANY, i2ws(g_settings.getInteger(Config::FRAME_RATE_LIMIT)), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 300);
 	PreferencesLayout::AddControlRow(
 		performance_section,
@@ -208,6 +214,8 @@ void GraphicsPage::Apply() {
 		must_restart = true;
 	}
 	g_settings.setInteger(Config::USE_MEMCACHED_SPRITES_TO_SAVE, use_memcached_chkbox->GetValue());
+
+	g_settings.setInteger(Config::USE_CHUNK_CACHE, chunk_cache_chkbox->GetValue());
 
 	g_settings.setInteger(Config::ANTI_ALIASING, anti_aliasing_chkbox->GetValue());
 	g_settings.setString(Config::SCREEN_SHADER, nstr(screen_shader_choice->GetStringSelection()));

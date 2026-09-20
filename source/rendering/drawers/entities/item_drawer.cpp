@@ -72,12 +72,12 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 
 	// teleport destination indicator (overlay icon, queued early so it shows regardless of
 	// sprite resolution or the technical-item special-case early returns below)
-	if (!options.ingame && options.show_tech_items && item->isTeleport()) {
+	if (options.show_tech_items && !options.ingame && item->isTeleport()) {
 		DrawDestinationIndicator(pos);
 	}
 
 	// Locked door indicator
-	if (!options.ingame && options.highlight_locked_doors && it.isDoor()) {
+	if (options.highlight_locked_doors && !options.ingame && it.isDoor()) {
 		bool locked = item->isLocked();
 
 		// Door orientation: horizontal wall -> West border (south=true), vertical wall -> North border (east=true)
@@ -91,11 +91,21 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 		}
 	}
 
-	bool is_transient_selected = !ephemeral && options.transient_selection_bounds && options.transient_selection_bounds->contains(pos.x, pos.y);
-	if (!options.ingame && (item->isSelected() || is_transient_selected)) {
-		red /= 2;
-		blue /= 2;
-		green /= 2;
+	// Ordem importa: `contains()` so e consultado quando o item NAO esta selecionado
+	// de verdade, e nem isso acontece no modo ingame. Antes o teste do retangulo
+	// rodava para todo item desenhado, selecionado ou nao.
+	if (!options.ingame) {
+		bool is_selected = item->isSelected();
+		if (!is_selected && !ephemeral && options.transient_selection_bounds) {
+			is_selected = options.transient_selection_bounds->contains(pos.x, pos.y);
+		}
+		if (is_selected) {
+			// Componentes de cor sao sempre 0..255, entao o shift equivale a dividir
+			// por dois sem o ajuste de sinal que o compilador emite para int.
+			red >>= 1;
+			blue >>= 1;
+			green >>= 1;
+		}
 	}
 
 	// item sprite. Quem chama (TileRenderer) ja teve de resolver o ponteiro para
@@ -114,7 +124,7 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 
 	// Display invisible and invalid items
 	// Ugly hacks. :)
-	if (!options.ingame && options.show_tech_items) {
+	if (options.show_tech_items && !options.ingame) {
 		// Red invalid client id
 		if (!it) {
 			sprite_drawer->glBlitSquare(sprite_batch, draw_x, draw_y, DrawColor(red, 0, 0, alpha));
@@ -195,10 +205,12 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 	int pattern_z = patterns.z;
 	int frame = patterns.frame;
 
-	if (!ephemeral && options.transparent_items && (!it.isGroundTile() || spr->width > 1 || spr->height > 1) && !it.isSplash() && (!it.hasFlag(ItemFlag::IsBorder) || spr->width > 1 || spr->height > 1)) {
-		alpha /= 2;
-	} else if (!ephemeral && options.transparent_grounds && (it.isGroundTile() || it.hasFlag(ItemFlag::IsBorder)) && spr->width == 1 && spr->height == 1 && !it.isSplash()) {
-		alpha /= 2;
+	// As duas opcoes vem primeiro: estao desligadas na maior parte das sessoes, e
+	// assim as consultas a definicao do item nem sao feitas.
+	if (options.transparent_items && !ephemeral && (!it.isGroundTile() || spr->width > 1 || spr->height > 1) && !it.isSplash() && (!it.hasFlag(ItemFlag::IsBorder) || spr->width > 1 || spr->height > 1)) {
+		alpha >>= 1;
+	} else if (options.transparent_grounds && !ephemeral && (it.isGroundTile() || it.hasFlag(ItemFlag::IsBorder)) && spr->width == 1 && spr->height == 1 && !it.isSplash()) {
+		alpha >>= 1;
 	}
 
 	// Mountain overlay mode: render mountain grounds as ghosts so the terrain behind them stays visible
@@ -216,11 +228,7 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 	if (is_podium) {
 		Podium* podium = static_cast<Podium*>(item);
 		if (!podium->hasShowPlatform() && !options.ingame) {
-			if (options.show_tech_items) {
-				alpha /= 2;
-			} else {
-				alpha = 0;
-			}
+			alpha = options.show_tech_items ? (alpha >> 1) : 0;
 		}
 	}
 

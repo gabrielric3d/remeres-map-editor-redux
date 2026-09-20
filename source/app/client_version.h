@@ -442,6 +442,13 @@ public:
 		return item_definition_mode;
 	}
 
+	// Assets 12+/13: appearances (protobuf) + catalog-content.json, no lugar
+	// do par .dat/.spr.
+	bool isProtobuf() const {
+		return item_definition_mode == ItemDefinitionMode::ProtobufOtb
+			|| item_definition_mode == ItemDefinitionMode::ProtobufOnly;
+	}
+
 	FileName getDataPath() const;
 	FileName getLocalDataPath() const;
 	FileName getClientPath() const {

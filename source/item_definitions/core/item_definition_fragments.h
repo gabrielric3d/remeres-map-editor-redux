@@ -19,6 +19,12 @@ struct DatItemFragment {
 	uint64_t flags = 0;
 	uint16_t way_speed = 100;
 	int always_on_top_order = 0;
+	// Only the protobuf (appearances) source fills these in. With a .dat the
+	// same data comes from the .otb, so they stay empty and the resolver keeps
+	// taking the OTB/XML values.
+	std::optional<uint16_t> max_text_len;
+	std::optional<uint16_t> slot_position;
+	std::string passive_metadata_json;
 };
 
 struct OtbItemFragment {

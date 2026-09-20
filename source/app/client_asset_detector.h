@@ -25,6 +25,10 @@ struct ClientAssetDetectionResult {
 class ClientAssetDetector {
 public:
 	[[nodiscard]] static ClientAssetDetectionResult detect(const ClientVersion& client);
+
+private:
+	// Caminho dos assets 12+/13 (appearances + catalog-content.json).
+	[[nodiscard]] static ClientAssetDetectionResult detectProtobufAssets(const ClientVersion& client, const wxFileName& client_path);
 };
 
 #endif

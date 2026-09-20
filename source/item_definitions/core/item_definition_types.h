@@ -82,7 +82,8 @@ enum class ItemDefinitionMode : uint8_t {
 	DatOtb,
 	DatOnly,
 	DatSrv,
-	Protobuf,
+	ProtobufOtb,
+	ProtobufOnly,
 };
 
 inline std::string toString(ItemDefinitionMode mode) {
@@ -93,8 +94,10 @@ inline std::string toString(ItemDefinitionMode mode) {
 			return "dat_only";
 		case ItemDefinitionMode::DatSrv:
 			return "dat_srv";
-		case ItemDefinitionMode::Protobuf:
-			return "protobuf";
+		case ItemDefinitionMode::ProtobufOtb:
+			return "protobuf_otb";
+		case ItemDefinitionMode::ProtobufOnly:
+			return "protobuf_only";
 	}
 	return "dat_otb";
 }
@@ -113,8 +116,13 @@ inline std::optional<ItemDefinitionMode> parseItemDefinitionMode(std::string val
 	if (value == "dat_srv") {
 		return ItemDefinitionMode::DatSrv;
 	}
-	if (value == "protobuf") {
-		return ItemDefinitionMode::Protobuf;
+	if (value == "protobuf_otb") {
+		return ItemDefinitionMode::ProtobufOtb;
+	}
+	// "protobuf" era o nome unico antes de o modo se dividir em dois; as
+	// configuracoes ja gravadas continuam abrindo.
+	if (value == "protobuf_only" || value == "protobuf") {
+		return ItemDefinitionMode::ProtobufOnly;
 	}
 	return std::nullopt;
 }
@@ -163,8 +171,25 @@ enum class ItemFlag : uint8_t {
 	WallHateMe,
 	HasRaw,
 	InOtherTileset,
+	// Flags que so a fonte protobuf (appearances) preenche. Ficam no FIM de
+	// proposito: o upstream os inseriu no meio do enum, o que renumeraria
+	// Tooltipable/WallHateMe/HasRaw/InOtherTileset -- e o valor do enumerador
+	// e o numero do bit em ItemDefinition::flags (uint64_t).
+	Translucent,
+	LensHelp,
+	NoMoveAnimation,
+	AnimateAlways,
+	DontHide,
+	Corpse,
+	Wrappable,
+	Unwrappable,
+	TopEffect,
+	Ammo,
+	Reportable,
+	Usable,
 	Count,
 };
+static_assert(static_cast<uint8_t>(ItemFlag::Count) <= 64, "ItemFlag must fit in the uint64_t flag mask");
 
 enum class ItemAttributeKey : uint8_t {
 	Volume,

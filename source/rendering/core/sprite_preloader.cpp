@@ -66,12 +66,18 @@ void SpritePreloader::preload(GameSprite* spr, int pattern_x, int pattern_y, int
 	}
 
 	struct PendingTask {
+		NormalImage* img = nullptr;
 		ArchiveSpriteKey key;
 		uint32_t generation_id = 0;
 	};
 
 	static thread_local std::vector<PendingTask> ids_to_enqueue;
 	ids_to_enqueue.clear();
+
+	// Marca que identifica "preload ja enfileirado nesta epoca". Ler o epoch aqui,
+	// fora do lock, pode pegar um valor que clear() acabou de mudar; o pior caso e
+	// um enqueue redundante, que pending_ids descarta logo abaixo.
+	const uint64_t epoch_mark = active_epoch.load(std::memory_order_relaxed) + 1;
 
 	// Reserve for typical sprite sizes (1x1, 2x2, max layers etc) to minimize allocations
 	if (ids_to_enqueue.capacity() < 64) {
@@ -96,11 +102,15 @@ void SpritePreloader::preload(GameSprite* spr, int pattern_x, int pattern_y, int
 				}
 
 				NormalImage* img = spr->spriteList[idx];
-				if (img && !img->isGLLoaded) {
+				// preload_epoch: enquanto o sprite nao chega, todo frame reenfileirava
+				// o mesmo id -- e a insercao em pending_ids que descartava a repeticao
+				// custava o lock da fila, disputado com os workers. Barrar aqui resolve
+				// antes de chegar no lock.
+				if (img && !img->isGLLoaded && img->preload_epoch != epoch_mark) {
 					// Ensure parent is set so GC can invalidate cached_default_region
 					// when evicting this sprite later (prevents stale cache -> wrong sprite)
 					img->parent = spr;
-					ids_to_enqueue.push_back({ { archive.get(), img->id }, img->generation_id });
+					ids_to_enqueue.push_back({ img, { archive.get(), img->id }, img->generation_id });
 				}
 			}
 		}
@@ -112,14 +122,16 @@ void SpritePreloader::preload(GameSprite* spr, int pattern_x, int pattern_y, int
 			return; // Drop requests if queue is slammed
 		}
 
+		const uint64_t epoch = active_epoch.load(std::memory_order_relaxed);
 		for (const auto& pending : ids_to_enqueue) {
 			const PendingSpriteKey pending_key {
 				.key = pending.key,
 				.generation_id = pending.generation_id,
-				.epoch = active_epoch,
+				.epoch = epoch,
 			};
 			if (pending_ids.insert(pending_key).second) {
 				task_queue.push({ pending_key, archive, has_transparency });
+				pending.img->preload_epoch = epoch + 1;
 			}
 		}
 		cv.notify_all();
@@ -139,22 +151,31 @@ void SpritePreloader::workerLoop(std::stop_token stop_token) {
 			task_queue.pop();
 		}
 
-		std::unique_ptr<uint8_t[]> dump;
-		uint16_t size = 0;
-		const bool success = task.archive && task.archive->readCompressed(task.pending.key.id, dump, size);
-
 		std::unique_ptr<uint8_t[]> rgba;
-		if (success && dump) {
-			rgba = GameSprite::Decompress(std::span { dump.get(), size }, task.has_transparency, task.pending.key.id);
+		ImageDimensions dimensions;
+
+		if (task.archive && task.archive->isProtobuf()) {
+			// Folhas 12+/13: os pixels ja saem em RGBA, sem blob RLE no meio.
+			if (!task.archive->readRGBA(task.pending.key.id, rgba, dimensions)) {
+				rgba.reset();
+			}
+		} else {
+			std::unique_ptr<uint8_t[]> dump;
+			uint16_t size = 0;
+			const bool success = task.archive && task.archive->readCompressed(task.pending.key.id, dump, size);
+			if (success && dump) {
+				rgba = GameSprite::Decompress(std::span { dump.get(), size }, task.has_transparency, task.pending.key.id);
+			}
 		}
 
 		{
 			std::lock_guard<std::mutex> lock(queue_mutex);
-			if (rgba) {
-				result_queue.push({ task.pending, std::move(rgba), std::move(task.archive) });
-			} else {
-				pending_ids.erase(task.pending);
-			}
+			// Mesmo sem pixels o resultado entra na fila. Quem limpa a marca de preload
+			// em voo e o update(), na thread principal, que e a unica que pode alcancar
+			// o NormalImage; soltar so o pending_ids aqui deixaria a marca presa e o
+			// sprite sem nunca mais ser pedido. O erase do pending_ids passa a sair de
+			// la junto com os demais.
+			result_queue.push({ task.pending, std::move(rgba), std::move(task.archive), dimensions });
 		}
 	}
 }
@@ -190,22 +211,32 @@ void SpritePreloader::update() {
 		const auto id = pending.key.id;
 		keys_processed.push_back(pending);
 
+		// A imagem e resolvida antes de qualquer descarte: este e o unico ponto depois
+		// do enqueue que alcanca o NormalImage, entao a marca de preload em voo tem de
+		// cair aqui mesmo quando o resultado nao serve (epoch velho, archive trocado,
+		// leitura falhada). Sem isso o sprite ficaria marcado para sempre.
+		NormalImage* img = nullptr;
+		if (!graphics_unloaded && id < g_gui.gfx.image_space.size()) {
+			auto& img_ptr = g_gui.gfx.image_space[id];
+			if (img_ptr && img_ptr->isNormalImage()) {
+				// Use static_cast for performance, as we know the type from loaders
+				img = static_cast<NormalImage*>(img_ptr.get());
+			}
+		}
+		if (img && img->preload_epoch == pending.epoch + 1) {
+			img->preload_epoch = 0;
+		}
+
 		if (pending.epoch != current_epoch) {
 			continue;
 		}
 
 		// Check if GraphicManager is loaded, for the correct sprite file, and ID is valid
-		if (res.archive == current_archive && !graphics_unloaded && id < g_gui.gfx.image_space.size()) {
-			auto& img_ptr = g_gui.gfx.image_space[id];
-			if (img_ptr && img_ptr->isNormalImage()) {
-				// Use static_cast for performance, as we know the type from loaders
-				auto* img = static_cast<NormalImage*>(img_ptr.get());
-
-				// Validate Sprite Identity & Generation
-				// Check ID match, Generation match, and GLLoaded state
-				if (img->id == id && img->generation_id == pending.generation_id && !img->isGLLoaded) {
-					img->fulfillPreload(std::move(res.data));
-				}
+		if (res.data && img && res.archive == current_archive) {
+			// Validate Sprite Identity & Generation
+			// Check ID match, Generation match, and GLLoaded state
+			if (img->id == id && img->generation_id == pending.generation_id && !img->isGLLoaded) {
+				img->fulfillPreload(std::move(res.data), res.dimensions);
 			}
 		}
 	}

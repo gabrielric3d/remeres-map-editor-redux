@@ -14,6 +14,16 @@ namespace {
 	}
 }
 
+// Tamanho deste sprite na fonte. O .spr classico e sempre 32x32; um catalogo
+// 12+/13 responde conforme a folha em que o sprite mora.
+ImageDimensions NormalImage::sourceDimensions() const {
+	const auto archive = g_gui.gfx.getSpriteArchive();
+	if (archive && archive->isProtobuf()) {
+		return archive->spriteDimensions(id);
+	}
+	return {};
+}
+
 NormalImage::NormalImage() :
 	id(0),
 	atlas_region(nullptr),
@@ -30,8 +40,9 @@ NormalImage::~NormalImage() {
 	}
 }
 
-void NormalImage::fulfillPreload(std::unique_ptr<uint8_t[]> data) {
-	atlas_region = EnsureAtlasSprite(id, std::move(data));
+void NormalImage::fulfillPreload(std::unique_ptr<uint8_t[]> data, ImageDimensions dimensions) {
+	atlas_region = EnsureAtlasSprite(id, std::move(data), dimensions);
+	preload_epoch = 0;
 	// Um sprite que acabou de subir para o atlas foi pedido AGORA: sem marcar,
 	// entra no atlas ja com lastaccess velho e pode ser o proximo a ser despejado.
 	visit();
@@ -55,6 +66,10 @@ void NormalImage::clean(time_t time, int longevity) {
 
 		// Invalidate any pending preloads for this sprite ID
 		generation_id++;
+
+		// O bump acima ja descarta o resultado em voo; liberar a marca deixa o
+		// proximo frame reenfileirar o sprite sem esperar aquele descarte.
+		preload_epoch = 0;
 
 		g_gui.gfx.collector.NotifyTextureUnloaded();
 	}
@@ -135,6 +150,16 @@ std::unique_ptr<uint8_t[]> NormalImage::getRGBAData() {
 		return std::make_unique<uint8_t[]>(pixels_data_size); // Value-initialized (zeroed)
 	}
 
+	// Folhas 12+/13 ja entregam RGBA: nao ha blob RLE para descomprimir.
+	if (const auto archive = g_gui.gfx.getSpriteArchive(); archive && archive->isProtobuf()) {
+		std::unique_ptr<uint8_t[]> rgba;
+		ImageDimensions dimensions;
+		if (!archive->readRGBA(id, rgba, dimensions)) {
+			return nullptr;
+		}
+		return rgba;
+	}
+
 	if (!dump) {
 		if (!loadDumpFromArchive(id, dump, size)) {
 			// This is the only case where we return nullptr for non-zero ID
@@ -161,7 +186,7 @@ const AtlasRegion* NormalImage::getAtlasRegion() {
 	}
 
 	if (!isGLLoaded) {
-		atlas_region = EnsureAtlasSprite(id);
+		atlas_region = EnsureAtlasSprite(id, nullptr, sourceDimensions());
 	}
 	visit();
 	return atlas_region;

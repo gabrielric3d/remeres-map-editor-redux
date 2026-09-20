@@ -155,7 +155,30 @@ uint32_t GameSprite::getSpriteId(int frameIndex, int pattern_x, int pattern_y) c
 }
 
 std::pair<int, int> GameSprite::getDrawOffset() const {
-	return std::make_pair(drawoffset_x, drawoffset_y);
+	// Um sprite maior que a celula de 32x32 e ancorado pelo canto inferior
+	// direito, entao ele "cresce" para o noroeste: o excedente entra como
+	// deslocamento, do mesmo jeito que o cliente faz. So as folhas 12+/13
+	// produzem sprites assim; com um .spr classico isto e sempre zero.
+	int extra_x = 0;
+	int extra_y = 0;
+	for (const NormalImage* img : spriteList) {
+		if (!img) {
+			continue;
+		}
+		const auto dimensions = img->getDimensions();
+		extra_x = std::max(extra_x, static_cast<int>(dimensions.width) - SPRITE_PIXELS);
+		extra_y = std::max(extra_y, static_cast<int>(dimensions.height) - SPRITE_PIXELS);
+	}
+
+	return std::make_pair(drawoffset_x + extra_x, drawoffset_y + extra_y);
+}
+
+bool GameSprite::overhangsTile() const {
+	if (width > 1 || height > 1 || drawoffset_x < 0 || drawoffset_y < 0) {
+		return true;
+	}
+	const auto [offset_x, offset_y] = getDrawOffset();
+	return offset_x > drawoffset_x || offset_y > drawoffset_y;
 }
 
 uint8_t GameSprite::getMiniMapColor() const {

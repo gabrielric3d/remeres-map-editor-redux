@@ -19,6 +19,7 @@ private:
 	wxSpinCtrl* hide_items_zoom_spin = nullptr;
 	wxCheckBox* icon_selection_shadow_chkbox = nullptr;
 	wxCheckBox* use_memcached_chkbox = nullptr;
+	wxCheckBox* chunk_cache_chkbox = nullptr;
 	wxCheckBox* anti_aliasing_chkbox = nullptr;
 
 	wxChoice* screen_shader_choice = nullptr;

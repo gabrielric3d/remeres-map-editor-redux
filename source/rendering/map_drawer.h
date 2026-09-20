@@ -37,6 +37,7 @@ class LightIndicatorDrawer;
 #include "rendering/core/sprite_batch.h"
 #include "rendering/core/primitive_renderer.h"
 #include "rendering/core/gl_resources.h"
+#include "rendering/core/chunk_cache_manager.h"
 #include "rendering/core/shader_program.h"
 
 class GridDrawer;
@@ -81,6 +82,7 @@ class MapDrawer {
 	RenderView view;
 	std::shared_ptr<LightDrawer> light_drawer;
 	LightBuffer light_buffer;
+	ChunkCacheManager chunk_cache_manager;
 	std::unique_ptr<TooltipDrawer> tooltip_drawer;
 	std::unique_ptr<GridDrawer> grid_drawer;
 	std::unique_ptr<LiveCursorDrawer> live_cursor_drawer;
@@ -143,12 +145,14 @@ public:
 
 	void SetupVars();
 	void SetupGL();
+	ChunkCacheManager& getChunkCacheManager() {
+		return chunk_cache_manager;
+	}
 	void Release();
 
 	void Draw();
 	void DrawBackground();
 	void DrawMap();
-	void DrawLiveCursors();
 	void DrawIngameBox(const ViewBounds& bounds);
 
 	void DrawGrid(const ViewBounds& bounds);

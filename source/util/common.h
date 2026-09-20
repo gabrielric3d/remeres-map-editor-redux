@@ -22,6 +22,7 @@
 #include "map/position.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <array>
 #include <cmath>
 #include <iomanip>
 #include <string>
@@ -94,6 +95,37 @@ bool posFromClipboard(Position& position, const int mapWidth = MAP_MAX_WIDTH, co
 
 // Returns 'yes' if the defined value is true or 'no' if it is false.
 wxString b2yn(bool v);
+
+// Paleta 8-bit do Tibia (216 cores, 6x6x6) pre-calculada em tempo de compilacao.
+// Existe porque a conversao aparece em lacos por luz e por item a cada frame, onde
+// as tres divisoes e a construcao do wxColor custam mais que o indice na tabela.
+struct EightBitColor {
+	uint8_t r = 0;
+	uint8_t g = 0;
+	uint8_t b = 0;
+};
+
+namespace rme_detail {
+	constexpr std::array<EightBitColor, 256> makeEightBitPalette() {
+		std::array<EightBitColor, 256> table {};
+		for (int color = 1; color < 216; ++color) {
+			table[color].r = static_cast<uint8_t>((color / 36) % 6 * 51);
+			table[color].g = static_cast<uint8_t>((color / 6) % 6 * 51);
+			table[color].b = static_cast<uint8_t>(color % 6 * 51);
+		}
+		return table;
+	}
+
+	inline constexpr std::array<EightBitColor, 256> eight_bit_palette = makeEightBitPalette();
+}
+
+// Fora de 0..215 devolve preto, igual a colorFromEightBit.
+[[nodiscard]] constexpr EightBitColor rgbFromEightBit(int color) noexcept {
+	if (color <= 0 || color >= 216) {
+		return {};
+	}
+	return rme_detail::eight_bit_palette[static_cast<size_t>(color)];
+}
 
 wxColor colorFromEightBit(int color);
 

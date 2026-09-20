@@ -2,6 +2,7 @@
 #define RME_RENDERING_CORE_ATLAS_MANAGER_H_
 
 #include "rendering/core/texture_atlas.h"
+#include "rendering/core/sprite_atlas_lut.h"
 #include <cstdint>
 #include <deque>
 #include <unordered_map>
@@ -34,7 +35,7 @@ public:
 	 * @param rgba_data 32x32x4 bytes of RGBA pixel data
 	 * @return Pointer to the region info, or nullptr on failure
 	 */
-	const AtlasRegion* addSprite(uint32_t sprite_id, const uint8_t* rgba_data);
+	const AtlasRegion* addSprite(uint32_t sprite_id, const uint8_t* rgba_data, int width = AtlasRegion::SLOT_SIZE, int height = AtlasRegion::SLOT_SIZE);
 
 	/**
 	 * Remove a sprite from the atlas, freeing its slot for reuse.
@@ -89,6 +90,32 @@ public:
 	}
 
 	/**
+	 * Bumped every time a sprite leaves the atlas. Consumers that cache
+	 * geometry by sprite id (the chunk cache) watch it to know their buffers
+	 * may now point at a freed slot.
+	 */
+	uint64_t getEvictionGeneration() const noexcept {
+		return eviction_generation_;
+	}
+
+	/**
+	 * Get the GPU SpriteAtlasLUT for SSBO sprite coordinate indirection.
+	 */
+	SpriteAtlasLUT& getLUT() noexcept {
+		return lut_;
+	}
+	const SpriteAtlasLUT& getLUT() const noexcept {
+		return lut_;
+	}
+
+	/**
+	 * Bind the GPU LUT buffer to an SSBO binding index.
+	 */
+	void bindLUT(GLuint binding_point = SpriteAtlasLUT::SSBO_BINDING_INDEX) {
+		lut_.bind(binding_point);
+	}
+
+	/**
 	 * Clear atlas and mappings.
 	 */
 	void clear();
@@ -100,6 +127,8 @@ public:
 
 private:
 	TextureAtlas atlas_;
+	SpriteAtlasLUT lut_;
+	uint64_t eviction_generation_ = 0;
 
 	// Stable storage for AtlasRegions (deque doesn't invalidate pointers)
 	std::deque<AtlasRegion> region_storage_;

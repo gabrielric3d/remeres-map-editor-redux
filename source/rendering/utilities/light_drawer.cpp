@@ -99,6 +99,10 @@ void LightDrawer::draw(const RenderView& view, bool fog, const LightBuffer& ligh
 	gpu_lights_.clear();
 	gpu_lights_.reserve(light_buffer.lights.size());
 
+	// Invariante do laco: junta a normalizacao 0..255 com a intensidade global, para
+	// que cada luz faca tres multiplicacoes em vez de tres divisoes mais tres.
+	const float color_scale = light_intensity * (1.0f / 255.0f);
+
 	for (const auto& light : light_buffer.lights) {
 		int lx_px = light.map_x * TILE_SIZE + TILE_SIZE / 2;
 		int ly_px = light.map_y * TILE_SIZE + TILE_SIZE / 2;
@@ -116,11 +120,12 @@ void LightDrawer::draw(const RenderView& view, bool fog, const LightBuffer& ligh
 			continue;
 		}
 
-		wxColor c = colorFromEightBit(light.color);
+		// Tabela em vez de wxColor: sao dezenas a centenas de luzes por frame.
+		const EightBitColor c = rgbFromEightBit(light.color);
 
 		gpu_lights_.push_back({ .position = { screen_x, screen_y }, .intensity = static_cast<float>(light.intensity), .padding = 0.0f,
 								// Pre-multiply intensity here if needed, or in shader
-								.color = { (c.Red() / 255.0f) * light_intensity, (c.Green() / 255.0f) * light_intensity, (c.Blue() / 255.0f) * light_intensity, 1.0f } });
+								.color = { c.r * color_scale, c.g * color_scale, c.b * color_scale, 1.0f } });
 	}
 
 	if (gpu_lights_.empty()) {

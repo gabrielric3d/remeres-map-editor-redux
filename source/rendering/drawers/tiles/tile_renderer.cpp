@@ -23,27 +23,9 @@
 #include "rendering/drawers/tiles/floor_drawer.h"
 #include "rendering/drawers/overlays/marker_drawer.h"
 #include "rendering/ui/tooltip_drawer.h"
-#include "rendering/core/light_buffer.h"
 #include "rendering/core/sprite_preloader.h"
 #include "rendering/utilities/pattern_calculator.h"
-#include "rendering/core/custom_item_light.h"
 #include "rendering/core/render_timer.h"
-
-static void tryAddCustomItemLight(LightBuffer* light_buffer, const Position& position, uint16_t clientId, uint32_t elapsed) {
-	const auto* customLight = CustomItemLightManager::instance().find(clientId);
-	if (!customLight) {
-		return;
-	}
-	uint32_t totalDur = customLight->getTotalPatternDuration();
-	uint32_t offset = totalDur > 0 ? (position.x * 7919u + position.y * 7927u + position.z * 7933u) % totalDur : 0;
-	uint8_t currentIntensity = CustomItemLightManager::instance().getCurrentIntensity(*customLight, elapsed, offset);
-	if (currentIntensity > 0) {
-		SpriteLight sl;
-		sl.color = customLight->color;
-		sl.intensity = currentIntensity;
-		light_buffer->AddLight(position.x, position.y, position.z, sl);
-	}
-}
 
 TileRenderer::TileRenderer(ItemDrawer* id, SpriteDrawer* sd, CreatureDrawer* cd, CreatureNameDrawer* cnd, FloorDrawer* fd, MarkerDrawer* md, TooltipDrawer* td, Editor* ed) :
 	item_drawer(id), sprite_drawer(sd), creature_drawer(cd), floor_drawer(fd), marker_drawer(md), tooltip_drawer(td), creature_name_drawer(cnd), editor(ed) {
@@ -67,134 +49,16 @@ static DrawColor invalidTileOverlayColor(InvalidOTBMItemMarkerColor markerColor,
 	return DrawColor(red, green, blue, 171);
 }
 
-// Helper function to populate tooltip data from an item (in-place)
-static bool FillItemTooltipData(TooltipData& data, Item* item, const ItemDefinitionView& it, const Position& pos, bool isHouseTile, float zoom) {
-	if (!item) {
-		return false;
-	}
-
-	const uint16_t id = item->getID();
-	if (id < 100) {
-		return false;
-	}
-
-	uint16_t unique = 0;
-	uint16_t action = 0;
-	std::string_view text;
-	std::string_view description;
-	uint8_t doorId = 0;
-	Position destination;
-	bool hasContent = false;
-
-	bool is_complex = item->isComplex();
-	// Early exit for simple items
-	// isTooltipable is cached (isContainer || isDoor || isTeleport)
-	if (!is_complex && !it.isTooltipable()) {
-		return false;
-	}
-
-	bool is_container = it.isContainer();
-	bool is_door = isHouseTile && item->isDoor();
-	bool is_teleport = item->isTeleport();
-
-	if (is_complex) {
-		unique = item->getUniqueID();
-		action = item->getActionID();
-		text = item->getText();
-		description = item->getDescription();
-	}
-
-	// Check if it's a door
-	if (is_door) {
-		if (const Door* door = item->asDoor()) {
-			if (door->isRealDoor()) {
-				doorId = door->getDoorID();
-			}
-		}
-	}
-
-	// Check if it's a teleport
-	if (is_teleport) {
-		Teleport* tp = static_cast<Teleport*>(item);
-		if (tp->hasDestination()) {
-			destination = tp->getDestination();
-		}
-	}
-
-	// Check if container has content
-	if (is_container) {
-		if (const Container* container = item->asContainer()) {
-			hasContent = container->getItemCount() > 0;
-		}
-	}
-
-	// Only create tooltip if there's something to show
-	if (unique == 0 && action == 0 && doorId == 0 && text.empty() && description.empty() && destination.x == 0 && !hasContent) {
-		return false;
-	}
-
-	// Get item name from database
-	std::string_view itemName = it.name();
-	if (itemName.empty()) {
-		itemName = "Item";
-	}
-
-	data.pos = pos;
-	data.itemId = id;
-	data.itemName = itemName; // Assign string_view to string_view (no copy)
-
-	data.actionId = action;
-	data.uniqueId = unique;
-	data.doorId = doorId;
-	data.text = text;
-	data.description = description;
-	data.destination = destination;
-
-	// Populate container items
-	if (it.isContainer() && zoom <= 1.5f) {
-		if (const Container* container = item->asContainer()) {
-			// Set capacity for rendering empty slots
-			data.containerCapacity = static_cast<uint8_t>(container->getVolume());
-
-			const auto& items = container->getVector();
-			data.containerItems.clear();
-			// Reserve only what we need (capped at 32)
-			data.containerItems.reserve(std::min(items.size(), size_t(32)));
-			for (const auto& subItem : items) {
-				if (subItem) {
-					ContainerItem ci;
-					ci.id = subItem->getID();
-					ci.subtype = subItem->getSubtype();
-					ci.count = subItem->getCount();
-					// Sanity check for count
-					if (ci.count == 0) {
-						ci.count = 1;
-					}
-
-					data.containerItems.push_back(ci);
-
-					// Limit preview items to avoid massive tooltips
-					if (data.containerItems.size() >= 32) {
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	data.updateCategory();
-
-	return true;
-}
-
-void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, const RenderView& view, const DrawingOptions& options, uint32_t current_house_id, int in_draw_x, int in_draw_y, LightBuffer* light_buffer, TileRenderPass pass) {
+void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, const RenderView& view, const DrawingOptions& options, uint32_t current_house_id, int in_draw_x, int in_draw_y, TileRenderPass pass) {
 	if (!location) {
 		return;
 	}
 
 	// Which slices of the tile this invocation renders. Side effects that must
-	// happen exactly once per tile (lights, tooltips, overlays, markers) are
-	// tied to the contents slice.
+	// happen exactly once per tile (overlays, markers) are tied to the contents
+	// slice. Lights and tooltips no longer ride along here: LightGatherer and
+	// TooltipCollector walk the map on their own, because the chunk cache makes
+	// this function skip the tiles it already baked.
 	const bool draw_ground = (pass == TileRenderPass::All || pass == TileRenderPass::Ground);
 	const bool draw_borders = (pass == TileRenderPass::All || pass == TileRenderPass::Borders);
 	const bool draw_contents = (pass == TileRenderPass::All || pass == TileRenderPass::Contents);
@@ -228,15 +92,6 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 
 	const auto& position = location->getPosition();
 
-	// Relogio das luzes animadas. So e lido quando ha luz custom para animar:
-	// wxGetLocalTimeMillis() e uma chamada ao sistema, e aqui estamos dentro do laco
-	// que roda uma vez por tile visivel -- num zoom afastado, centenas de milhares
-	// de vezes por frame para um valor que ninguem ia usar.
-	const bool needs_light_clock = light_buffer && options.show_custom_item_lights;
-	const uint32_t elapsed = needs_light_clock
-		? static_cast<uint32_t>(wxGetLocalTimeMillis().GetValue())
-		: 0u;
-
 	ItemDefinitionView ground_it;
 	if (tile->ground) {
 		ground_it = tile->ground->getDefinition();
@@ -258,40 +113,19 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 	if (tile->ground && ground_it && !hidden_invalid_ground) {
 		ground_sprite = tile->ground->getSprite();
 		if (ground_sprite) {
-			ground_overhangs = ground_sprite->width > 1 || ground_sprite->height > 1
-				|| ground_sprite->drawoffset_x < 0 || ground_sprite->drawoffset_y < 0;
+			ground_overhangs = ground_sprite->overhangsTile();
 		}
 	}
 
-	if (draw_contents) {
-		// Light Processing (Ground)
-		if (light_buffer && tile->hasLight()) {
-			if (tile->ground && tile->ground->hasLight() && !hidden_invalid_ground && !unresolved_invalid_ground) {
-				light_buffer->AddLight(position.x, position.y, position.z, tile->ground->getLight());
-			}
-		}
 
-		// Blocking tile tracking for shadow occlusion
-		if (light_buffer && (options.show_shadow_occlusion || options.show_forced_light_zones)) {
-			if (tile->isBlocking()) {
-				light_buffer->blocking_grid.setBlocking(position.x, position.y, true);
-			}
-		}
-
-		// Custom item lights (ground)
-		if (light_buffer && options.show_custom_item_lights && tile->ground) {
-			tryAddCustomItemLight(light_buffer, position, tile->ground->getClientID(), elapsed);
-		}
-	}
+	// O unico consumidor do ponteiro e o MarkerDrawer la no fim; com a condicao
+	// falsa a busca no mapa de waypoints (hash por posicao) e trabalho jogado
+	// fora. Os tooltips de waypoint agora saem do TooltipCollector.
+	const bool need_waypoint = view.zoom < 10.0 && !options.ingame && options.show_waypoints;
 
 	Waypoint* waypoint = nullptr;
-	if (draw_contents && location->getWaypointCount() > 0) {
+	if (draw_contents && need_waypoint && location->getWaypointCount() > 0) {
 		waypoint = editor->map.waypoints.getWaypoint(location);
-	}
-
-	// Waypoint tooltip (one per waypoint)
-	if (draw_contents && options.show_tooltips && waypoint && map_z == view.floor) {
-		tooltip_drawer->addWaypointTooltip(position, waypoint->name);
 	}
 
 	bool as_minimap = options.show_as_minimap;
@@ -299,8 +133,9 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 
 	uint8_t r = 255, g = 255, b = 255;
 
-	// begin filters for ground tile
-	if (!as_minimap) {
+	// begin filters for ground tile. O hasTileColorModifiers() pula a chamada quando
+	// nenhuma opcao de tint esta ligada -- Calculate devolveria 255/255/255 intacto.
+	if (!as_minimap && options.hasTileColorModifiers()) {
 		TileColorCalculator::Calculate(tile, options, current_house_id, location->getSpawnCount(), r, g, b);
 	}
 
@@ -367,16 +202,6 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 	// Cache isHouseTile â€” used multiple times below
 	const bool is_house_tile = tile->isHouseTile();
 
-	// Ground tooltip (one per item)
-	if (draw_contents && options.show_tooltips && map_z == view.floor && tile->ground && ground_it) {
-		TooltipData& groundData = tooltip_drawer->requestTooltipData();
-		if (FillItemTooltipData(groundData, tile->ground.get(), ground_it, position, is_house_tile, view.zoom)) {
-			if (groundData.hasVisibleFields()) {
-				tooltip_drawer->commitTooltip();
-			}
-		}
-	}
-
 	// end filters for ground tile
 
 	// Draw helper border for selected house tiles
@@ -409,8 +234,6 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 					boost = options.highlight_pulse * 0.6f;
 				}
 			}
-
-			bool process_tooltips = options.show_tooltips && map_z == view.floor;
 
 			// O blit de um item mora numa lambda porque a passada de contents
 			// percorre a lista duas vezes: primeiro os itens comuns e, depois da
@@ -501,27 +324,6 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 					continue;
 				}
 
-				if (draw_contents) {
-					if (light_buffer && item->hasLight()) {
-						light_buffer->AddLight(position.x, position.y, position.z, item->getLight());
-					}
-
-					// Custom item lights (override or supplement .dat light)
-					if (light_buffer && options.show_custom_item_lights) {
-						tryAddCustomItemLight(light_buffer, position, item->getClientID(), elapsed);
-					}
-
-					// item tooltip (one per item)
-					if (process_tooltips) {
-						TooltipData& itemData = tooltip_drawer->requestTooltipData();
-						if (FillItemTooltipData(itemData, item.get(), it, position, is_house_tile, view.zoom)) {
-							if (itemData.hasVisibleFields()) {
-								tooltip_drawer->commitTooltip();
-							}
-						}
-					}
-				}
-
 				if (!blit_in_this_pass) {
 					continue;
 				}
@@ -586,22 +388,5 @@ void TileRenderer::DrawTile(SpriteBatch& sprite_batch, TileLocation* location, c
 			// markers (waypoint, house exit, town temple, spawn)
 			marker_drawer->draw(sprite_batch, sprite_drawer, draw_x, draw_y, tile, waypoint, current_house_id, *editor, options);
 		}
-	}
-}
-
-void TileRenderer::PreloadItem(const Tile* tile, Item* item, const ItemDefinitionView& it, const SpritePatterns* cached_patterns) {
-	if (!item) {
-		return;
-	}
-
-	GameSprite* spr = item->getSprite();
-	if (spr && !spr->isSimpleAndLoaded()) {
-		SpritePatterns patterns;
-		if (cached_patterns) {
-			patterns = *cached_patterns;
-		} else {
-			patterns = PatternCalculator::Calculate(spr, it, item, tile, tile->getPosition());
-		}
-		rme::collectTileSprites(spr, patterns.x, patterns.y, patterns.z, patterns.frame);
 	}
 }
