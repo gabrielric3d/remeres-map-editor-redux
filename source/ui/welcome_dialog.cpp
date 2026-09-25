@@ -4,6 +4,7 @@
 #include <format>
 #include <ranges>
 #include <sstream>
+#include <utility>
 
 #include <wx/filedlg.h>
 #include <wx/filename.h>
@@ -558,12 +559,40 @@ void WelcomeDialog::SetSelectedClientIndex(int index, bool manual_selection) {
 	}
 
 	m_has_manual_client_selection = manual_selection;
+	m_manual_selection_map = manual_selection ? NormalizePathKey(GetSelectedMapPath()) : std::string {};
 	RefreshFooterState();
 }
 
 void WelcomeDialog::AutoSelectMatchingClient() {
-	if (m_has_manual_client_selection || m_selected_map_index == wxNOT_FOUND) {
+	const wxString map_path = GetSelectedMapPath();
+	if (map_path.IsEmpty()) {
 		return;
+	}
+
+	// A escolha manual so vale para o mapa em que foi feita.
+	if (m_has_manual_client_selection && m_manual_selection_map == NormalizePathKey(map_path)) {
+		return;
+	}
+	m_has_manual_client_selection = false;
+	m_manual_selection_map.clear();
+
+	const auto selectClient = [this](std::vector<StartupConfiguredClientEntry>::const_iterator it) {
+		const int new_index = static_cast<int>(std::distance(m_configured_clients.cbegin(), it));
+		if (new_index != m_selected_client_index) {
+			m_selected_client_index = new_index;
+			m_client_list->SetSelection(new_index);
+		}
+	};
+
+	// 1. O cliente com que este mapa foi aberto da ultima vez.
+	if (const ClientVersion* remembered = LoadRememberedClient(map_path)) {
+		const auto it = std::ranges::find_if(m_configured_clients, [remembered](const auto& entry) {
+			return entry.client == remembered;
+		});
+		if (it != m_configured_clients.cend()) {
+			selectClient(it);
+			return;
+		}
 	}
 
 	const OTBMStartupPeekResult* info = GetSelectedMapInfo();
@@ -571,22 +600,26 @@ void WelcomeDialog::AutoSelectMatchingClient() {
 		return;
 	}
 
-	auto exact_match = std::ranges::find_if(m_configured_clients, [info](const auto& client_entry) {
-		return client_entry.client->getOtbMajor() == info->items_major_version && client_entry.client->getOtbId() == info->items_minor_version;
-	});
-	if (exact_match == m_configured_clients.end()) {
-		exact_match = std::ranges::find_if(m_configured_clients, [info](const auto& client_entry) {
-			return client_entry.client->getOtbId() == info->items_minor_version;
-		});
+	// 2. A versao do otb gravada no cabecalho do OTBM. getByItemsVersion ja
+	// desempata pelo "Default client version" quando varios clientes declaram o
+	// mesmo par major/minor, e e a mesma funcao que preenche o "Client version"
+	// do painel de detalhes -- os dois nao podem discordar.
+	const ClientVersion* matched = ClientVersion::getByItemsVersion(info->items_major_version, info->items_minor_version);
+	if (!matched) {
+		matched = ClientVersion::getBestMatch(static_cast<OtbVersionID>(info->items_minor_version));
 	}
 
-	if (exact_match != m_configured_clients.end()) {
-		const int new_index = static_cast<int>(std::distance(m_configured_clients.begin(), exact_match));
-		if (new_index != m_selected_client_index) {
-			m_selected_client_index = new_index;
-			m_client_list->SetSelection(new_index);
+	if (matched) {
+		const auto it = std::ranges::find_if(m_configured_clients, [matched](const auto& entry) {
+			return entry.client == matched;
+		});
+		if (it != m_configured_clients.cend()) {
+			selectClient(it);
+			return;
 		}
-	} else if (m_selected_client_index == wxNOT_FOUND && !m_configured_clients.empty()) {
+	}
+
+	if (m_selected_client_index == wxNOT_FOUND && !m_configured_clients.empty()) {
 		m_selected_client_index = 0;
 		m_client_list->SetSelection(0);
 	}
@@ -639,6 +672,9 @@ bool WelcomeDialog::AttemptLoad(bool show_message) {
 			.force_client_mismatch = status == StartupCompatibilityStatus::Forced,
 		},
 	};
+
+	// Da proxima vez que este mapa for selecionado, o cliente ja vem escolhido.
+	RememberClientForMap(selected_path, selected_client);
 
 	auto* open_event = new wxCommandEvent(WELCOME_DIALOG_ACTION, wxID_OPEN);
 	open_event->SetString(m_pending_load_request->map_path);
@@ -824,6 +860,69 @@ void WelcomeDialog::SaveFavoritesToSettings() const {
 		stream << m_favorite_maps[i].path.ToStdString(wxConvUTF8);
 	}
 	g_settings.setString(Config::FAVORITE_FILES, stream.str());
+	g_settings.save();
+}
+
+namespace {
+	// Uma linha por mapa, "caminho|nome do cliente". Guardar so as ultimas entradas
+	// evita que a chave cresca para sempre com mapas que o usuario abriu uma vez.
+	constexpr size_t kMaxRememberedMaps = 64;
+
+	std::vector<std::pair<std::string, std::string>> readMapClientAssociations() {
+		std::vector<std::pair<std::string, std::string>> entries;
+		std::istringstream stream(g_settings.getString(Config::MAP_CLIENT_VERSIONS));
+		std::string line;
+		while (std::getline(stream, line)) {
+			if (!line.empty() && line.back() == '\r') {
+				line.pop_back();
+			}
+			const auto separator = line.rfind('|');
+			if (separator == std::string::npos || separator == 0 || separator + 1 >= line.size()) {
+				continue;
+			}
+			entries.emplace_back(line.substr(0, separator), line.substr(separator + 1));
+		}
+		return entries;
+	}
+}
+
+ClientVersion* WelcomeDialog::LoadRememberedClient(const wxString& map_path) const {
+	if (map_path.IsEmpty()) {
+		return nullptr;
+	}
+
+	const std::string key = NormalizePathKey(map_path);
+	for (const auto& [path, client_name] : readMapClientAssociations()) {
+		if (path == key) {
+			return ClientVersion::get(client_name);
+		}
+	}
+	return nullptr;
+}
+
+void WelcomeDialog::RememberClientForMap(const wxString& map_path, const ClientVersion* client) const {
+	if (map_path.IsEmpty() || client == nullptr) {
+		return;
+	}
+
+	const std::string key = NormalizePathKey(map_path);
+	auto entries = readMapClientAssociations();
+	std::erase_if(entries, [&key](const auto& entry) { return entry.first == key; });
+	entries.emplace_back(key, client->getName());
+
+	// O mais recente fica no fim, entao o corte tira as entradas mais antigas.
+	if (entries.size() > kMaxRememberedMaps) {
+		entries.erase(entries.begin(), entries.begin() + (entries.size() - kMaxRememberedMaps));
+	}
+
+	std::ostringstream stream;
+	for (size_t i = 0; i < entries.size(); ++i) {
+		if (i > 0) {
+			stream << "\n";
+		}
+		stream << entries[i].first << "|" << entries[i].second;
+	}
+	g_settings.setString(Config::MAP_CLIENT_VERSIONS, stream.str());
 	g_settings.save();
 }
 

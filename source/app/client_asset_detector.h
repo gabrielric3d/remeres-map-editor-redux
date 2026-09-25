@@ -24,7 +24,21 @@ struct ClientAssetDetectionResult {
 
 class ClientAssetDetector {
 public:
+	// Par de arquivos que substitui .dat/.spr nos assets 12+/13.
+	struct ProtobufAssetPaths {
+		wxFileName metadata; // appearances-<hash>.dat
+		wxFileName sprites; // catalog-content.json
+	};
+
 	[[nodiscard]] static ClientAssetDetectionResult detect(const ClientVersion& client);
+
+	// Onde estao os assets 12+/13 de uma pasta de cliente. Publico porque a
+	// carga (ClientVersion::hasValidPaths) precisa resolver os mesmos arquivos
+	// que a deteccao: o nome do appearances carrega um hash do conteudo, entao
+	// nem o editor nem o usuario podem fixa-lo no clients.toml.
+	// Os caminhos voltam preenchidos mesmo quando o arquivo nao existe -- sao o
+	// melhor palpite, para a mensagem de erro dizer onde se procurou.
+	[[nodiscard]] static ProtobufAssetPaths resolveProtobufPaths(const wxFileName& client_path, const std::string& configured_metadata_file);
 
 private:
 	// Caminho dos assets 12+/13 (appearances + catalog-content.json).

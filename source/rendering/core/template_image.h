@@ -16,6 +16,10 @@ public:
 	virtual std::unique_ptr<uint8_t[]> getRGBData() override;
 	virtual std::unique_ptr<uint8_t[]> getRGBAData() override;
 
+	// O tamanho e o do sprite base: nas folhas 12+/13 ele pode passar de 32x32,
+	// e quem desenha o icone precisa saber disso para ler o buffer certo.
+	[[nodiscard]] ImageDimensions getDimensions() const override;
+
 	const AtlasRegion* getAtlasRegion();
 	const AtlasRegion* atlas_region;
 

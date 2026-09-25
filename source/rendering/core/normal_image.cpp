@@ -84,6 +84,36 @@ std::unique_ptr<uint8_t[]> NormalImage::getRGBData() {
 		return std::make_unique<uint8_t[]>(pixels_data_size); // Value-initialized (zeroed)
 	}
 
+	// Folhas 12+/13 nao tem blob RLE para descomprimir, e o sprite pode ser maior
+	// que 32x32. Sem este desvio o caminho abaixo devolveria um buffer de 32x32
+	// preenchido com a cor de mascara, e quem desenha o icone leria a folha com o
+	// stride errado -- o sprite sai em listras diagonais.
+	if (const auto archive = g_gui.gfx.getSpriteArchive(); archive && archive->isProtobuf()) {
+		std::unique_ptr<uint8_t[]> rgba;
+		ImageDimensions dimensions;
+		if (!archive->readRGBA(id, rgba, dimensions)) {
+			return nullptr;
+		}
+
+		const size_t pixel_count = dimensions.pixelCount();
+		auto converted = std::make_unique<uint8_t[]>(pixel_count * RGB_COMPONENTS);
+		for (size_t pixel = 0; pixel < pixel_count; ++pixel) {
+			const size_t source = pixel * 4;
+			const size_t destination = pixel * RGB_COMPONENTS;
+			if (rgba[source + 3] == 0) {
+				// Magenta e a cor de mascara que os iconos usam como transparencia.
+				converted[destination + 0] = 0xFF;
+				converted[destination + 1] = 0x00;
+				converted[destination + 2] = 0xFF;
+				continue;
+			}
+			converted[destination + 0] = rgba[source + 0];
+			converted[destination + 1] = rgba[source + 1];
+			converted[destination + 2] = rgba[source + 2];
+		}
+		return converted;
+	}
+
 	if (!dump) {
 		if (!loadDumpFromArchive(id, dump, size)) {
 			return nullptr;

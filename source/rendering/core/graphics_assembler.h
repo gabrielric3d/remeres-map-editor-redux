@@ -21,7 +21,7 @@ public:
 private:
 	static NormalImage* ensureImage(GraphicManager& manager, uint32_t sprite_id);
 	static void installAnimation(GameSprite& sprite, const DatCatalogEntry& entry);
-	static bool installSpriteEntry(GraphicManager& manager, const DatCatalogEntry& entry, std::vector<std::string>& warnings);
+	static bool installSpriteEntry(GraphicManager& manager, const DatCatalogEntry& entry, const SpriteArchive& sprite_archive, std::vector<std::string>& warnings);
 	static void resetRuntimeState(GraphicManager& manager);
 };
 

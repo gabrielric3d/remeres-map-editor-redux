@@ -86,6 +86,15 @@ namespace {
 	}
 } // namespace
 
+ImageDimensions TemplateImage::getDimensions() const {
+	if (parent == nullptr || sprite_index < 0 || static_cast<size_t>(sprite_index) >= parent->spriteList.size()) {
+		return {};
+	}
+
+	const NormalImage* base = parent->spriteList[static_cast<size_t>(sprite_index)];
+	return base != nullptr ? base->getDimensions() : ImageDimensions {};
+}
+
 std::unique_ptr<uint8_t[]> TemplateImage::getRGBData() {
 	size_t mask_index = 0;
 	if (!validateTemplateParentAndIndices(this, sprite_index, mask_index)) {
@@ -104,7 +113,7 @@ std::unique_ptr<uint8_t[]> TemplateImage::getRGBData() {
 
 	clampTemplateLookValues(this);
 
-	GameSprite::ColorizeTemplatePixels(rgbdata.get(), template_rgbdata.get(), SPRITE_PIXELS * SPRITE_PIXELS, lookHead, lookBody, lookLegs, lookFeet, false);
+	GameSprite::ColorizeTemplatePixels(rgbdata.get(), template_rgbdata.get(), getDimensions().pixelCount(), lookHead, lookBody, lookLegs, lookFeet, false);
 
 	return rgbdata;
 }
@@ -130,7 +139,7 @@ std::unique_ptr<uint8_t[]> TemplateImage::getRGBAData() {
 	clampTemplateLookValues(this);
 
 	// Note: the base data is RGBA (4 channels) while the mask data is RGB (3 channels).
-	GameSprite::ColorizeTemplatePixels(rgbadata.get(), template_rgbdata.get(), SPRITE_PIXELS * SPRITE_PIXELS, lookHead, lookBody, lookLegs, lookFeet, true);
+	GameSprite::ColorizeTemplatePixels(rgbadata.get(), template_rgbdata.get(), getDimensions().pixelCount(), lookHead, lookBody, lookLegs, lookFeet, true);
 
 	return rgbadata;
 }

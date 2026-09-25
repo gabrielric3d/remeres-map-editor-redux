@@ -180,6 +180,12 @@ public:
 	int16_t drawoffset_x;
 	int16_t drawoffset_y;
 
+	// Quanto o maior sprite do objeto passa da celula de 32x32, calculado uma vez
+	// na carga (GraphicsAssembler). Zero no .spr classico e em todo sprite 32x32;
+	// getDrawOffset() soma isto ao drawoffset.
+	int16_t overhang_x = 0;
+	int16_t overhang_y = 0;
+
 	uint16_t minimap_color;
 
 	bool has_light = false;

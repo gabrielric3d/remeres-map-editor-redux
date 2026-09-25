@@ -229,9 +229,21 @@ int NanoVGCanvas::GetOrCreateSpriteTexture(NVGcontext* vg, Sprite* sprite) {
 }
 
 int NanoVGCanvas::CreateGameSpriteTexture(NVGcontext* vg, GameSprite* gs, uint64_t spriteId) {
+	// Tamanho da celula: 32x32 no .spr classico, mas nas folhas 12+/13 um sprite
+	// pode ser 32x64, 64x32 ou 64x64 -- e ali gs->width/height continuam 1, porque
+	// o objeto ocupa uma celula so, maior. Ler o buffer com 32 fixo o percorre com
+	// o stride errado e o icone sai em listras diagonais.
+	ImageDimensions cell;
+	for (const NormalImage* first_image : gs->spriteList) {
+		if (first_image != nullptr) {
+			cell = first_image->getDimensions();
+			break;
+		}
+	}
+
 	// Calculate composite size
-	int w = gs->width * 32;
-	int h = gs->height * 32;
+	int w = gs->width * cell.width;
+	int h = gs->height * cell.height;
 	if (w <= 0 || h <= 0) {
 		return 0;
 	}
@@ -272,15 +284,21 @@ int NanoVGCanvas::CreateGameSpriteTexture(NVGcontext* vg, GameSprite* gs, uint64
 					continue;
 				}
 
-				int part_x = (gs->width - sw - 1) * 32;
-				int part_y = (gs->height - sh - 1) * 32;
+				// O tamanho sai desta imagem, e nao da celula: dois sprites do mesmo
+				// objeto podem vir de folhas diferentes.
+				const ImageDimensions source_size = image->getDimensions();
+				int part_x = (gs->width - sw - 1) * cell.width;
+				int part_y = (gs->height - sh - 1) * cell.height;
 
-				for (int sy = 0; sy < 32; ++sy) {
-					for (int sx = 0; sx < 32; ++sx) {
+				for (int sy = 0; sy < source_size.height; ++sy) {
+					for (int sx = 0; sx < source_size.width; ++sx) {
 						int dy = part_y + sy;
 						int dx = part_x + sx;
+						if (dx < 0 || dy < 0 || dx >= w || dy >= h) {
+							continue;
+						}
 						int di = (dy * w + dx) * 4;
-						int si = (sy * 32 + sx) * 4;
+						int si = (sy * source_size.width + sx) * 4;
 
 						uint8_t sa = data[si + 3];
 						if (sa == 0) {

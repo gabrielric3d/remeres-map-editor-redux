@@ -28,6 +28,7 @@
 #include "util/file_system.h"
 #include "ui/dialog_util.h"
 #include "app/client_version.h"
+#include "app/client_asset_detector.h"
 #include "rendering/core/sprite_archive.h"
 
 #include <wx/dir.h>
@@ -395,6 +396,16 @@ ClientVersion* ClientVersion::getBestMatch(OtbVersionID id) {
 }
 
 ClientVersion* ClientVersion::getByItemsVersion(uint32_t major, uint32_t minor) {
+	// Varios clientes podem declarar o mesmo par major/minor -- tres entradas
+	// 10.98, por exemplo, cada uma com o seu items.otb. Devolver a primeira da
+	// lista e arbitrario, entao o "Default client version" das preferencias
+	// desempata: e o unico lugar onde o usuario diz qual deles vale.
+	if (ClientVersion* preferred = getLatestVersion()) {
+		if (preferred->getOtbMajor() == major && preferred->getOtbId() == minor) {
+			return preferred;
+		}
+	}
+
 	for (const auto& client_version : client_versions) {
 		ClientVersion* candidate = client_version.get();
 		if (!candidate->isVisible()) {
@@ -484,6 +495,18 @@ bool ClientVersion::hasValidPaths() {
 
 	wxDir dir(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR));
 
+	// Assets 12+/13: os objetos vem num appearances-<hash>.dat (protobuf) e os
+	// sprites em folhas listadas pelo catalog-content.json. Nao ha .dat/.spr
+	// para cair de volta nem assinatura para conferir, e o nome do appearances
+	// muda a cada build de assets -- quem sabe qual e o certo e o catalogo,
+	// entao a resolucao e a mesma que a deteccao usa.
+	if (isProtobuf()) {
+		const auto paths = ClientAssetDetector::resolveProtobufPaths(client_path, metadata_file);
+		metadata_path = paths.metadata;
+		sprites_path = paths.sprites;
+		return metadata_path.FileExists() && sprites_path.FileExists();
+	}
+
 	// OTFI loading removed (deprecated)
 	// Metadata and sprites paths are now set in loadVersionsFromTOML or defaulted.
 	// We just verify they exist here.
@@ -546,7 +569,17 @@ bool ClientVersion::loadValidPaths() {
 		message << "Attempted metadata file: %s\n";
 		message << "Attempted sprites file: %s\n";
 
-		DialogUtil::PopupDialog("Error", wxString::Format(message, name, metadata_path.GetFullPath(), sprites_path.GetFullPath()), wxOK);
+		wxString text = wxString::Format(message, name, metadata_path.GetFullPath(), sprites_path.GetFullPath());
+
+		// A pasta e de cliente 12+/13 e esta versao esta configurada como
+		// DAT+SPR. Sem dizer isso, o usuario so ve um Tibia.dat que nunca vai
+		// existir nessa pasta, e trocar de pasta nao resolve nada.
+		if (!isProtobuf() && ClientAssetDetector::resolveProtobufPaths(client_path, metadata_file).sprites.FileExists()) {
+			text << "\nThis folder holds 12+/13 assets (catalog-content.json and appearances-<hash>.dat).\n"
+				"Set this client version's Configuration Type to protobuf_otb (or protobuf_only) and try again.";
+		}
+
+		DialogUtil::PopupDialog("Error", text, wxOK);
 
 		wxString dirHelpText("Select assets directory.");
 		wxDirDialog file_dlg(nullptr, dirHelpText, "", wxDD_DIR_MUST_EXIST);

@@ -159,18 +159,11 @@ std::pair<int, int> GameSprite::getDrawOffset() const {
 	// direito, entao ele "cresce" para o noroeste: o excedente entra como
 	// deslocamento, do mesmo jeito que o cliente faz. So as folhas 12+/13
 	// produzem sprites assim; com um .spr classico isto e sempre zero.
-	int extra_x = 0;
-	int extra_y = 0;
-	for (const NormalImage* img : spriteList) {
-		if (!img) {
-			continue;
-		}
-		const auto dimensions = img->getDimensions();
-		extra_x = std::max(extra_x, static_cast<int>(dimensions.width) - SPRITE_PIXELS);
-		extra_y = std::max(extra_y, static_cast<int>(dimensions.height) - SPRITE_PIXELS);
-	}
-
-	return std::make_pair(drawoffset_x + extra_x, drawoffset_y + extra_y);
+	//
+	// O excedente vem pronto da carga (overhang_x/y): o desenho de item pela CPU
+	// chama isto a cada quadro para todo item animado, e percorrer spriteList ali
+	// custaria padroes x quadros consultas ao archive por item.
+	return std::make_pair(drawoffset_x + overhang_x, drawoffset_y + overhang_y);
 }
 
 bool GameSprite::overhangsTile() const {

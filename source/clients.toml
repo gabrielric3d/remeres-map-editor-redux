@@ -1107,9 +1107,14 @@ dataDirectory = "1310"
 datSignature = "4A10"
 sprSignature = "59E48E02"
 description = "sample description"
-configType = "otb"
-metadataFile = "Tibia.dat"
-spritesFile = "Tibia.spr"
+# O cliente 13.10 nao tem Tibia.dat nem Tibia.spr: os objetos vem num
+# appearances-<hash>.dat (protobuf) e os sprites em folhas .bmp.lzma listadas
+# pelo catalog-content.json. O metadataFile fica vazio de proposito — o nome
+# carrega o hash do conteudo e muda a cada build de assets, entao o detector
+# procura por "appearances*.dat" na pasta.
+configType = "protobuf_otb"
+metadataFile = ""
+spritesFile = "catalog-content.json"
 transparency = true
 extended = true
 frameDurations = true

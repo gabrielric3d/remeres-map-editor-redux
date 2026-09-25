@@ -29,18 +29,22 @@ namespace {
 	constexpr size_t kDecodedSheetCacheLimit = 64;
 	constexpr std::array<uint8_t, 5> kProtobufSheetMagic { 0x70, 0x0A, 0xFA, 0x80, 0x24 };
 
+	// Todo tamanho de sprite que cabe numa folha 384x384, pelo "spritetype" do
+	// catalogo -- a mesma tabela do SpriteSheet::getSpriteSize do cliente. Os
+	// assets do proprio cliente so usam 0-3 e 21; o conjunto dobrado do battle
+	// royale (scripts/make_assets_2x.py) usa 3, 9, 19 e 21.
 	std::pair<int, int> protobufSourceDimensions(SpriteArchive::ProtobufSpriteLayout layout) {
-		switch (layout) {
-			case SpriteArchive::ProtobufSpriteLayout::OneByOne:
-				return { 32, 32 };
-			case SpriteArchive::ProtobufSpriteLayout::OneByTwo:
-				return { 32, 64 };
-			case SpriteArchive::ProtobufSpriteLayout::TwoByOne:
-				return { 64, 32 };
-			case SpriteArchive::ProtobufSpriteLayout::TwoByTwo:
-				return { 64, 64 };
-		}
-		return { 32, 32 };
+		static constexpr std::array<std::pair<int, int>, 36> kSizes { {
+			{ 32, 32 }, { 32, 64 }, { 64, 32 }, { 64, 64 },
+			{ 32, 96 }, { 32, 128 }, { 32, 192 }, { 32, 384 },
+			{ 64, 96 }, { 64, 128 }, { 64, 192 }, { 64, 384 },
+			{ 96, 32 }, { 96, 64 }, { 96, 96 }, { 96, 128 }, { 96, 192 }, { 96, 384 },
+			{ 128, 32 }, { 128, 64 }, { 128, 96 }, { 128, 128 }, { 128, 192 }, { 128, 384 },
+			{ 192, 32 }, { 192, 64 }, { 192, 96 }, { 192, 128 }, { 192, 192 }, { 192, 384 },
+			{ 384, 32 }, { 384, 64 }, { 384, 96 }, { 384, 128 }, { 384, 192 }, { 384, 384 },
+		} };
+		const auto index = static_cast<size_t>(layout);
+		return index < kSizes.size() ? kSizes[index] : kSizes[0];
 	}
 
 	// "SCAT" read as a little-endian u32, matching how the client and the
@@ -456,7 +460,18 @@ std::shared_ptr<SpriteArchive> SpriteArchive::loadProtobuf(const wxFileName& cat
 		}
 	}
 
-	return std::shared_ptr<SpriteArchive>(new SpriteArchive(catalog_path.GetFullPath().ToStdString(), sprite_count, std::move(sheets), std::move(sheet_lookup)));
+	// O conjunto dobrado nao tem nenhuma folha 32x32: todo sprite 32x32 do
+	// cliente virou 64x64. O conjunto do proprio cliente tem centenas.
+	const bool doubled = std::ranges::none_of(sheets, [](const ProtobufSheet& sheet) {
+		return sheet.layout == ProtobufSpriteLayout::OneByOne;
+	});
+
+	auto archive = std::shared_ptr<SpriteArchive>(new SpriteArchive(catalog_path.GetFullPath().ToStdString(), sprite_count, std::move(sheets), std::move(sheet_lookup)));
+	if (doubled) {
+		archive->asset_scale_ = 2;
+		spdlog::info("SpriteArchive: {} e um conjunto de 64 px por casa; os sprites sao lidos de volta a 32 px por casa.", catalog_path.GetFullPath().ToStdString());
+	}
+	return archive;
 }
 
 ImageDimensions SpriteArchive::spriteDimensions(uint32_t sprite_id) const {
@@ -471,8 +486,8 @@ ImageDimensions SpriteArchive::spriteDimensions(uint32_t sprite_id) const {
 
 	const auto [width, height] = protobufSourceDimensions(protobuf_sheets_[static_cast<size_t>(sheet_index)].layout);
 	return ImageDimensions {
-		static_cast<uint16_t>(width),
-		static_cast<uint16_t>(height),
+		static_cast<uint16_t>(width / asset_scale_),
+		static_cast<uint16_t>(height / asset_scale_),
 	};
 }
 
@@ -670,6 +685,71 @@ bool SpriteArchive::readRGBA(uint32_t sprite_id, std::unique_ptr<uint8_t[]>& tar
 
 	const int sprite_column = static_cast<int>(sprite_offset % static_cast<uint32_t>(columns));
 	const auto* pixels = sheet.decoded_pixels->data();
+
+	if (asset_scale_ > 1) {
+		// Cada pixel do editor e um bloco scale x scale da folha. Ele fica com a
+		// cor que mais aparece no bloco, e nao com a media: a mascara de cor de
+		// um outfit e amarelo, vermelho, verde e azul puros, e a media inventaria
+		// laranja onde duas regioes se encontram. Coberto por menos da metade dos
+		// pixels, o bloco fica transparente.
+		const int scale = asset_scale_;
+		dimensions = ImageDimensions {
+			static_cast<uint16_t>(source_width / scale),
+			static_cast<uint16_t>(source_height / scale),
+		};
+		target = std::make_unique<uint8_t[]>(dimensions.pixelCount() * 4);
+		std::fill(target.get(), target.get() + dimensions.pixelCount() * 4, 0);
+		const int block = scale * scale;
+		std::array<uint32_t, 16> colors {};
+		std::array<int, 16> counts {};
+		for (int row = 0; row < dimensions.height; ++row) {
+			for (int column = 0; column < dimensions.width; ++column) {
+				int distinct = 0;
+				int opaque = 0;
+				for (int dy = 0; dy < scale; ++dy) {
+					const size_t line = (static_cast<size_t>(sprite_row * source_height + row * scale + dy) * kSheetDimension + static_cast<size_t>(sprite_column * source_width + column * scale)) * 4;
+					for (int dx = 0; dx < scale; ++dx) {
+						const uint8_t* p = pixels + line + static_cast<size_t>(dx) * 4;
+						if (p[3] == 0) {
+							continue;
+						}
+						++opaque;
+						uint32_t color = 0;
+						std::memcpy(&color, p, 4);
+						int slot = 0;
+						while (slot < distinct && colors[slot] != color) {
+							++slot;
+						}
+						if (slot == distinct && distinct < static_cast<int>(colors.size())) {
+							colors[distinct] = color;
+							counts[distinct] = 0;
+							++distinct;
+						}
+						if (slot < distinct) {
+							++counts[slot];
+						}
+					}
+				}
+				if (opaque * 2 < block || distinct == 0) {
+					continue;
+				}
+				int best = 0;
+				for (int slot = 1; slot < distinct; ++slot) {
+					if (counts[slot] > counts[best]) {
+						best = slot;
+					}
+				}
+				uint8_t source_pixel[4];
+				std::memcpy(source_pixel, &colors[best], 4);
+				const size_t destination_pixel = (static_cast<size_t>(row) * dimensions.width + static_cast<size_t>(column)) * 4;
+				target[destination_pixel + 0] = source_pixel[2];
+				target[destination_pixel + 1] = source_pixel[1];
+				target[destination_pixel + 2] = source_pixel[0];
+				target[destination_pixel + 3] = source_pixel[3];
+			}
+		}
+		return true;
+	}
 
 	// BGRA na folha, RGBA na saida.
 	for (int row = 0; row < source_height; ++row) {

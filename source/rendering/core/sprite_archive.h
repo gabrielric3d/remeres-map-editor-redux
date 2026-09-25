@@ -85,6 +85,14 @@ public:
 		return backend_ == Backend::Protobuf;
 	}
 
+	// Quantos pixels da folha fazem um pixel do editor. 1 nos assets do proprio
+	// cliente; 2 no conjunto dobrado (things/1310-x2, 64 px por casa), que o
+	// editor le de volta a 32 px por casa: a grade do mapa nao muda, so a
+	// resolucao da arte.
+	[[nodiscard]] int assetScale() const {
+		return asset_scale_;
+	}
+
 	// 32x32 no .spr; nas folhas novas pode ser 32x64, 64x32 ou 64x64.
 	[[nodiscard]] ImageDimensions spriteDimensions(uint32_t sprite_id) const;
 
@@ -132,6 +140,7 @@ private:
 	std::vector<Fragment> fragments_;
 
 	Backend backend_ = Backend::Legacy;
+	int asset_scale_ = 1;
 	mutable std::mutex protobuf_mutex_;
 	mutable uint64_t protobuf_sheet_access_tick_ = 0;
 	mutable size_t decoded_sheet_count_ = 0;

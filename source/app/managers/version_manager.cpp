@@ -116,7 +116,19 @@ bool VersionManager::LoadDataFiles(wxString& error, std::vector<std::string>& wa
 	} else {
 		asset_request.otb_path = wxFileName(base_data_path + wxString(otb_file));
 	}
+
+	// O items.xml tem de ser o par do items.otb: as duas fontes sao cruzadas
+	// por server id, e os ids de um otb de servidor nao sao os do otb que
+	// acompanha a versao. Quando o otbFile aponta para fora (a pasta de um
+	// servidor), o items.xml de la e o que vale; sem ele, fica o da versao.
 	asset_request.xml_path = wxFileName(base_data_path + "items.xml");
+	if (otb_path.IsAbsolute()) {
+		wxFileName sibling_xml(asset_request.otb_path);
+		sibling_xml.SetFullName("items.xml");
+		if (sibling_xml.FileExists()) {
+			asset_request.xml_path = sibling_xml;
+		}
+	}
 
 	AssetBundle bundle;
 	AssetBundleLoader bundle_loader;

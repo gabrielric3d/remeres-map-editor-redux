@@ -179,12 +179,14 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 		return;
 	}
 
-	// int screenx = draw_x - spr->getDrawOffset().first;
-	// int screeny = draw_y - spr->getDrawOffset().second;
-	// The original code modified draw_x/draw_y AFTER calculating screenx/screeny using the original draw_x/draw_y
-	// screenx use input draw_x
-	int screenx = draw_x - spr->drawoffset_x;
-	int screeny = draw_y - spr->drawoffset_y;
+	// getDrawOffset(), e nao drawoffset_x/y cru: nas folhas 12+/13 um sprite
+	// maior que 32x32 cresce para o noroeste, e o excedente entra no
+	// deslocamento. Cru, todo item que cai neste caminho (animado, selecionado,
+	// com indicador) sai uma casa para o sudeste do que o chunk cache desenha.
+	// screenx usa o draw_x de entrada: a elevacao deste item so empurra os de cima.
+	const auto [offset_x, offset_y] = spr->getDrawOffset();
+	int screenx = draw_x - offset_x;
+	int screeny = draw_y - offset_y;
 
 	// Set the newd drawing height accordingly
 	draw_x -= spr->draw_height;

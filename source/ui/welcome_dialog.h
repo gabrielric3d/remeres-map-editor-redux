@@ -63,6 +63,13 @@ private:
 
 	[[nodiscard]] std::vector<wxString> LoadFavoritesFromSettings() const;
 	void SaveFavoritesToSettings() const;
+
+	// Qual cliente o usuario abriu da ultima vez para cada mapa. A versao do
+	// otb gravada no OTBM nem sempre aponta o cliente certo -- um mapa salvo
+	// com um items.otb mais antigo continua sendo editado com assets novos --
+	// entao a escolha anterior vale mais que o palpite do cabecalho.
+	[[nodiscard]] ClientVersion* LoadRememberedClient(const wxString& map_path) const;
+	void RememberClientForMap(const wxString& map_path, const ClientVersion* client) const;
 	void ToggleFavoriteByPath(const wxString& path);
 
 	void EnsurePeeked(const wxString& path);
@@ -95,6 +102,10 @@ private:
 	int m_selected_favorite_index = wxNOT_FOUND;
 	int m_selected_client_index = wxNOT_FOUND;
 	bool m_has_manual_client_selection = false;
+	// A escolha manual vale para o mapa em que foi feita. Trocar de mapa volta
+	// a deixar o editor escolher, senao um clique no cliente congela a lista
+	// pelo resto do dialogo.
+	std::string m_manual_selection_map;
 	bool m_selection_in_favorites = false;
 };
 

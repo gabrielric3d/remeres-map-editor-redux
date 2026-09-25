@@ -311,10 +311,28 @@ namespace {
 }
 
 namespace {
+	// O catalogo fica na raiz da pasta escolhida ou numa subpasta "assets", que
+	// e o layout do cliente oficial. Quando nao esta em nenhuma das duas, volta
+	// o palpite da raiz: e o caminho que a mensagem de erro vai mostrar.
+	wxFileName findCatalogFile(const wxFileName& client_path) {
+		const wxString base = client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
+
+		wxFileName catalog(base, "catalog-content.json");
+		if (catalog.FileExists()) {
+			return catalog;
+		}
+
+		wxFileName nested(base + "assets" + wxFileName::GetPathSeparator(), "catalog-content.json");
+		if (nested.FileExists()) {
+			return nested;
+		}
+
+		return catalog;
+	}
+
 	// O nome que o catalog-content.json declara, que e a unica fonte autoritativa:
 	// e por ele que o proprio cliente escolhe o arquivo.
-	std::string appearancesFromCatalog(const wxFileName& client_path) {
-		wxFileName catalog(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), "catalog-content.json");
+	std::string appearancesFromCatalog(const wxFileName& catalog) {
 		if (!catalog.FileExists()) {
 			return {};
 		}
@@ -340,17 +358,20 @@ namespace {
 		return {};
 	}
 
-	// Acha o appearances-<hash>.dat. Em ordem: o que o catalogo declara, o nome
-	// configurado, e por ultimo o primeiro "appearances*.dat" do diretorio.
+	// Acha o appearances-<hash>.dat ao lado do catalogo. Em ordem: o que o
+	// catalogo declara, o nome configurado, e por ultimo o primeiro
+	// "appearances*.dat" do diretorio.
 	//
 	// ⛔ O catalogo vem primeiro porque o nome carrega o hash do conteudo: uma
 	// pasta que ja foi regravada tem mais de um appearances, e o glob pega
 	// qualquer um deles — na pratica, a versao errada, escolhida pela ordem do
 	// sistema de arquivos. O catalogo aponta para o que vale.
-	wxFileName findAppearancesFile(const wxFileName& client_path, const std::string& configured_name) {
-		const auto from_catalog = appearancesFromCatalog(client_path);
+	wxFileName findAppearancesFile(const wxFileName& catalog, const std::string& configured_name) {
+		const wxString assets_dir = catalog.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
+
+		const auto from_catalog = appearancesFromCatalog(catalog);
 		if (!from_catalog.empty()) {
-			wxFileName declared(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), wxString::FromUTF8(from_catalog));
+			wxFileName declared(assets_dir, wxString::FromUTF8(from_catalog));
 			if (declared.FileExists()) {
 				return declared;
 			}
@@ -358,44 +379,60 @@ namespace {
 		}
 
 		if (!configured_name.empty()) {
-			wxFileName configured(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), wxString::FromUTF8(configured_name));
+			wxFileName configured(assets_dir, wxString::FromUTF8(configured_name));
 			if (configured.FileExists()) {
 				return configured;
 			}
 		}
 
-		wxDir dir(client_path.GetPath());
+		wxDir dir(assets_dir);
 		if (!dir.IsOpened()) {
 			return {};
 		}
 
 		wxString name;
 		if (dir.GetFirst(&name, "appearances*.dat", wxDIR_FILES)) {
-			return wxFileName(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), name);
+			return wxFileName(assets_dir, name);
 		}
 		return {};
 	}
 }
 
+ClientAssetDetector::ProtobufAssetPaths ClientAssetDetector::resolveProtobufPaths(const wxFileName& client_path, const std::string& configured_metadata_file) {
+	ProtobufAssetPaths paths;
+	paths.sprites = findCatalogFile(client_path);
+	paths.metadata = findAppearancesFile(paths.sprites, configured_metadata_file);
+
+	if (!paths.metadata.IsOk() || !paths.metadata.FileExists()) {
+		const wxString assets_dir = paths.sprites.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
+		const wxString guess = configured_metadata_file.empty()
+			? wxString("appearances.dat")
+			: wxString::FromUTF8(configured_metadata_file);
+		paths.metadata = wxFileName(assets_dir, guess);
+	}
+
+	return paths;
+}
+
 ClientAssetDetectionResult ClientAssetDetector::detectProtobufAssets(const ClientVersion& client, const wxFileName& client_path) {
 	ClientAssetDetectionResult result;
 
-	const auto appearances = findAppearancesFile(client_path, client.getMetadataFile());
-	if (!appearances.IsOk() || !appearances.FileExists()) {
+	const auto paths = resolveProtobufPaths(client_path, client.getMetadataFile());
+
+	if (!paths.metadata.FileExists()) {
 		const auto message = "Client asset detection failed: no appearances file was found in the selected client path.";
 		spdlog::warn(message);
 		result.warnings.emplace_back(message);
 	} else {
-		result.metadata_file_name = appearances.GetFullName().ToStdString();
+		result.metadata_file_name = paths.metadata.GetFullName().ToStdString();
 	}
 
-	wxFileName catalog(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), "catalog-content.json");
-	if (!catalog.FileExists()) {
+	if (!paths.sprites.FileExists()) {
 		const auto message = "Client asset detection failed: catalog-content.json was not found in the selected client path.";
 		spdlog::warn(message);
 		result.warnings.emplace_back(message);
 	} else {
-		result.sprites_file_name = catalog.GetFullName().ToStdString();
+		result.sprites_file_name = paths.sprites.GetFullName().ToStdString();
 	}
 
 	// O formato novo nao carrega assinatura nem a flag "extended" -- e sempre
@@ -429,7 +466,7 @@ ClientAssetDetectionResult ClientAssetDetector::detect(const ClientVersion& clie
 	// Sem esta checagem o usuario recebe "SPR file was not found", que e
 	// verdade e nao ajuda: o .spr nao existe nesse formato e nunca vai existir.
 	// O que falta e o Configuration Type, e a mensagem tem de dizer isso.
-	if (wxFileName(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), "catalog-content.json").FileExists()) {
+	if (findCatalogFile(client_path).FileExists()) {
 		const auto message = "Client asset detection failed: this folder holds 12+/13 assets "
 							 "(catalog-content.json and appearances-<hash>.dat), but this client "
 							 "version is set to a DAT+SPR Configuration Type. Set it to "

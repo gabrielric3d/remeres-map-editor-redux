@@ -3,10 +3,34 @@
 #include <algorithm>
 #include <format>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace {
 	constexpr uint64_t flagMask(ItemFlag flag) {
 		return uint64_t { 1 } << static_cast<uint8_t>(flag);
+	}
+
+	// Quantos exemplos entram no aviso. O resto vira contagem: a lista completa
+	// e util num relatorio, nao numa janela que o usuario le de relance.
+	constexpr size_t kMissingItemSamples = 10;
+
+	void reportMissingDatDefinitions(const std::vector<std::pair<ServerItemId, ClientItemId>>& missing, std::vector<std::string>& warnings) {
+		if (missing.empty()) {
+			return;
+		}
+
+		warnings.push_back(std::format(
+			"{} items.otb entries point to client ids the client assets do not have; those items are not available in the editor.",
+			missing.size()));
+
+		const size_t shown = std::min(missing.size(), kMissingItemSamples);
+		for (size_t i = 0; i < shown; ++i) {
+			warnings.push_back(std::format("  server id {} -> client id {}", missing[i].first, missing[i].second));
+		}
+		if (missing.size() > shown) {
+			warnings.push_back(std::format("  ... and {} more.", missing.size() - shown));
+		}
 	}
 }
 
@@ -31,6 +55,12 @@ bool ItemDefinitionResolver::resolve(const ItemDefinitionLoadInput& input, const
 
 bool ItemDefinitionResolver::resolveDatOtb(const ItemDefinitionFragments& fragments, std::vector<ResolvedItemDefinitionRow>& rows, wxString& error, std::vector<std::string>& warnings) {
 	rows.reserve(fragments.otb.size());
+
+	// Um items.otb de servidor guarda ids que o cliente ja removeu: no 13.10 do
+	// battle royale sao ~3.700 de 38.000. Nao da para abortar a carga por causa
+	// deles, nem para soltar um aviso por item -- a janela de avisos viraria uma
+	// lista de milhares de linhas. Ficam contados aqui e resumidos no fim.
+	std::vector<std::pair<ServerItemId, ClientItemId>> missing_in_dat;
 
 	for (const auto& [server_id, otb] : fragments.otb) {
 		ResolvedItemDefinitionRow row;
@@ -68,8 +98,8 @@ bool ItemDefinitionResolver::resolveDatOtb(const ItemDefinitionFragments& fragme
 
 		const auto dat_it = fragments.dat.find(effective_client_id);
 		if (dat_it == fragments.dat.end()) {
-			error = wxString::FromUTF8(std::format("Missing DAT definition for client id {} (server id {}).", effective_client_id, server_id));
-			return false;
+			missing_in_dat.emplace_back(server_id, effective_client_id);
+			continue;
 		}
 		row.flags |= dat_it->second.flags & ~flagMask(ItemFlag::Moveable);
 
@@ -84,6 +114,8 @@ bool ItemDefinitionResolver::resolveDatOtb(const ItemDefinitionFragments& fragme
 		error = "No item definitions were resolved from DAT/OTB/XML.";
 		return false;
 	}
+
+	reportMissingDatDefinitions(missing_in_dat, warnings);
 
 	std::sort(rows.begin(), rows.end(), [](const ResolvedItemDefinitionRow& a, const ResolvedItemDefinitionRow& b) {
 		return a.server_id < b.server_id;
