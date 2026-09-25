@@ -22,6 +22,7 @@
 #include "rendering/ui/map_display.h"
 #include "rendering/ui/radial_wheel.h"
 #include "rendering/ui/border_variant_hud.h"
+#include "rendering/utilities/render_profiler.h"
 #include "ui/map_window.h"
 #include "ui/gui.h"
 #include "editor/hotkey_manager.h"
@@ -166,6 +167,12 @@ void KeyboardHandler::OnKeyDown(MapCanvas* canvas, wxKeyEvent& event) {
 			// Selection handler re-arms the flood fill itself when nothing is selected,
 			// so this branch only matters when those hotkeys are rebound or disabled.
 			canvas->keyCode = WXK_CONTROL_D;
+			break;
+		}
+		case WXK_F9: {
+			// Profiler de frame: tabela no canto do canvas + resumo no rme_debug.log.
+			RenderProfiler::Toggle();
+			canvas->Refresh();
 			break;
 		}
 		default: {

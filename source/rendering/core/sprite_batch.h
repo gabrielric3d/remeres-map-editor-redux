@@ -84,6 +84,13 @@ public:
 	void end(const AtlasManager& atlas_manager);
 
 	/**
+	 * Send what is queued to the GPU without ending the batch, so another
+	 * renderer can draw straight to the framebuffer on top of it.
+	 * Shader, VAO and buffers are rebound on the next flush.
+	 */
+	void flush(const AtlasManager& atlas_manager);
+
+	/**
 	 * Set global tint for subsequent draws in current batch.
 	 * If pending sprites exist, they will be flushed using the provided atlas manager.
 	 */
@@ -116,8 +123,6 @@ public:
 	}
 
 private:
-	void flush(const AtlasManager& atlas_manager);
-
 	std::unique_ptr<ShaderProgram> shader_;
 
 	std::unique_ptr<GLVertexArray> vao_;

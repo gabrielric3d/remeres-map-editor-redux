@@ -1,6 +1,7 @@
 #include "rendering/core/image.h"
 #include "ui/gui.h" // For g_gui
 #include "rendering/core/graphics.h" // For GraphicManager
+#include "rendering/utilities/render_profiler.h"
 
 Image::Image() :
 	isGLLoaded(false),
@@ -36,6 +37,12 @@ const AtlasRegion* Image::EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<
 		}
 
 		// 2. Load data
+		// Sem dado do preloader, a leitura do arquivo e a decodificacao acontecem
+		// aqui mesmo, no thread principal e no meio do desenho do frame.
+		const bool synchronous = !preloaded_data;
+		RenderProfiler::Count(synchronous ? RenderProfiler::Counter::SyncSpriteLoads : RenderProfiler::Counter::PreloadUploads);
+		const RenderProfiler::Scope sync_load_scope(RenderProfiler::Section::SyncSpriteLoad, synchronous);
+
 		std::unique_ptr<uint8_t[]> rgba;
 		if (preloaded_data) {
 			rgba = std::move(preloaded_data);

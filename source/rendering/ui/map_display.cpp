@@ -72,6 +72,7 @@
 #include "rendering/ui/radial_wheel.h"
 #include "rendering/ui/toast_renderer.h"
 #include "rendering/ui/border_variant_hud.h"
+#include "rendering/utilities/render_profiler.h"
 #include "rendering/drawers/overlays/lua_overlay_drawer.h"
 
 #include "brushes/doodad/doodad_brush.h"
@@ -299,72 +300,95 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 	TextRenderer::BeginFrame(vg, GetSize().x, GetSize().y, GetContentScaleFactor());
 
 	if (options.show_creatures && options.show_creature_names) {
+		RENDER_PROFILE_SCOPE(NvgCreatureNames);
 		drawer->DrawCreatureNames(vg);
 	}
 	if (options.show_tooltips) {
+		RENDER_PROFILE_SCOPE(NvgTooltips);
 		drawer->DrawTooltips(vg);
 	}
 	if (options.show_hooks) {
+		RENDER_PROFILE_SCOPE(NvgHooks);
 		drawer->DrawHookIndicators(vg);
 	}
 	if (options.show_tech_items) {
+		RENDER_PROFILE_SCOPE(NvgLightIndicators);
 		drawer->DrawLightIndicators(vg);
 	}
 	if (options.highlight_locked_doors) {
+		RENDER_PROFILE_SCOPE(NvgDoors);
 		drawer->DrawDoorIndicators(vg);
 	}
 	if (options.show_pickupables || options.show_moveables || options.show_tech_items) {
+		RENDER_PROFILE_SCOPE(NvgItemIndicators);
 		drawer->DrawItemIndicators(vg);
 	}
 	if (options.show_mountain_overlay) {
+		RENDER_PROFILE_SCOPE(NvgMountain);
 		drawer->DrawMountainOverlay(vg);
 	}
 	if (options.show_blocking) {
+		RENDER_PROFILE_SCOPE(NvgPathing);
 		drawer->DrawPathingOverlay(vg);
 	}
 	if (options.show_wall_borders) {
+		RENDER_PROFILE_SCOPE(NvgWallBorders);
 		drawer->DrawWallBorders(vg);
 	}
 	if (options.show_stair_direction) {
+		RENDER_PROFILE_SCOPE(NvgStairs);
 		drawer->DrawStairDirections(vg);
 	}
 	if (options.show_spawns) {
+		RENDER_PROFILE_SCOPE(NvgSpawnLabels);
 		drawer->DrawSpawnOverlays(vg);
 	}
 	if (options.show_lights && options.show_zone_boundaries) {
+		RENDER_PROFILE_SCOPE(NvgZoneLabels);
 		drawer->DrawZoneLabels(vg);
 	}
 	// Antes dos rotulos de proposito: o preenchimento e opaco e cobriria o nome da
 	// zona se viesse depois.
 	if (options.show_instance_zones && options.solid_instance_zones) {
+		RENDER_PROFILE_SCOPE(NvgSolidZones);
 		drawer->DrawSolidInstanceZones(vg);
 	}
 	if (options.show_instance_zones || options.show_sound_zones) {
+		RENDER_PROFILE_SCOPE(NvgPaintedZones);
 		drawer->DrawPaintedZoneLabels(vg);
 	}
 	if (options.show_worldboss_zones) {
+		RENDER_PROFILE_SCOPE(NvgWorldBoss);
 		drawer->DrawWorldBossLabels(vg);
 	}
 	if (drawer->getLuaOverlayDrawer()) {
+		RENDER_PROFILE_SCOPE(NvgLuaUI);
 		drawer->getLuaOverlayDrawer()->DrawUI(vg, drawer->getView(), options);
 	}
 
-	// Which ground border variant is being painted (bottom-left badge)
-	BorderVariantHUD::Draw(vg, GetSize().x, GetSize().y);
+	{
+		RENDER_PROFILE_SCOPE(NvgHud);
 
-	// Draw toast notifications
-	if (g_toast.HasActiveToasts()) {
-		g_toast.Draw(vg, GetSize().x, GetSize().y);
-		// Keep refreshing while toasts are animating
+		// Which ground border variant is being painted (bottom-left badge)
+		BorderVariantHUD::Draw(vg, GetSize().x, GetSize().y);
+
+		// Draw toast notifications
 		if (g_toast.HasActiveToasts()) {
-			Refresh();
+			g_toast.Draw(vg, GetSize().x, GetSize().y);
+			// Keep refreshing while toasts are animating
+			if (g_toast.HasActiveToasts()) {
+				Refresh();
+			}
+		}
+
+		// Draw radial wheel overlay (always on top)
+		if (radial_wheel && radial_wheel->IsOpen()) {
+			radial_wheel->Draw(vg, GetSize().x, GetSize().y);
 		}
 	}
 
-	// Draw radial wheel overlay (always on top)
-	if (radial_wheel && radial_wheel->IsOpen()) {
-		radial_wheel->Draw(vg, GetSize().x, GetSize().y);
-	}
+	// F9: tabela do profiler de frame, por cima de tudo.
+	RenderProfiler::DrawHud(vg, GetSize().x, GetSize().y);
 
 	TextRenderer::EndFrame(vg);
 
@@ -384,6 +408,8 @@ void MapCanvas::PerformGarbageCollection() {
 }
 
 void MapCanvas::OnPaint(wxPaintEvent& event) {
+	RenderProfiler::BeginFrame();
+
 	wxPaintDC dc(this); // validates the paint event
 	if (m_glContext) {
 		g_gl_context.EnsureContextCurrent(*m_glContext, this);
@@ -394,13 +420,19 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 
 	if (g_gui.IsRenderingEnabled()) {
 		// Advance graphics clock and drain the preloader queue before rendering
-		g_gui.gfx.updateTime();
+		{
+			RENDER_PROFILE_SCOPE(PreloadDrain);
+			g_gui.gfx.updateTime();
+		}
 
 		DrawingOptions& options = drawer->getOptions();
-		if (screenshot_controller->IsCapturing()) {
-			options.SetIngame();
-		} else {
-			options.Update();
+		{
+			RENDER_PROFILE_SCOPE(OptionsUpdate);
+			if (screenshot_controller->IsCapturing()) {
+				options.SetIngame();
+			} else {
+				options.Update();
+			}
 		}
 
 		options.dragging = selection_controller->IsDragging();
@@ -422,9 +454,18 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 
 		// BatchRenderer calls removed - MapDrawer handles its own renderers
 
-		drawer->SetupVars();
-		drawer->SetupGL();
-		drawer->Draw();
+		{
+			RENDER_PROFILE_SCOPE(SetupVars);
+			drawer->SetupVars();
+		}
+		{
+			RENDER_PROFILE_SCOPE(SetupGL);
+			drawer->SetupGL();
+		}
+		{
+			RENDER_PROFILE_SCOPE(Draw);
+			drawer->Draw();
+		}
 
 		if (screenshot_controller->IsCapturing()) {
 			drawer->TakeScreenshot(screenshot_controller->GetBuffer());
@@ -433,14 +474,27 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 		drawer->Release();
 
 		// Draw UI (Tooltips, Overlays & HUD) using NanoVG
-		DrawOverlays(m_nvg.get(), options);
+		{
+			RENDER_PROFILE_SCOPE(NanoVG);
+			DrawOverlays(m_nvg.get(), options);
+		}
 
 		drawer->ClearFrameOverlays();
 	}
 
-	PerformGarbageCollection();
+	{
+		RENDER_PROFILE_SCOPE(TextureGC);
+		PerformGarbageCollection();
+	}
 
-	SwapBuffers();
+	// Com o profiler ligado, esperar a GPU aqui separa o tempo dela do SwapBuffers
+	// (que tambem espera o vsync).
+	RenderProfiler::GpuSync(RenderProfiler::Section::GpuWaitFrame);
+	{
+		RENDER_PROFILE_SCOPE(SwapBuffers);
+		SwapBuffers();
+	}
+	RenderProfiler::MarkFrameEnd();
 
 	// FPS tracking and limiting
 	int frame_sprites = -1;
@@ -451,11 +505,24 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 			frame_draws = batch->getFrameDrawCallCount();
 		}
 	}
-	frame_pacer.UpdateAndLimit(g_settings.getInteger(Config::FRAME_RATE_LIMIT), g_settings.getBoolean(Config::SHOW_FPS_COUNTER), frame_sprites, frame_draws);
+	RenderProfiler::SetCounter(RenderProfiler::Counter::Sprites, frame_sprites);
+	RenderProfiler::SetCounter(RenderProfiler::Counter::DrawCalls, frame_draws);
+	{
+		RENDER_PROFILE_SCOPE(FpsLimiter);
+		frame_pacer.UpdateAndLimit(g_settings.getInteger(Config::FRAME_RATE_LIMIT), g_settings.getBoolean(Config::SHOW_FPS_COUNTER), frame_sprites, frame_draws);
+	}
 
 	// Send newd node requests
 	if (editor.live_manager.GetClient()) {
 		editor.live_manager.GetClient()->sendNodeRequests();
+	}
+
+	if (RenderProfiler::IsEnabled() && drawer) {
+		RenderProfiler::EndFrame(drawer->getOptions(), GetFloor());
+		// Medir pede frames seguidos: o editor so redesenha quando algo muda, e
+		// parado a janela de 1s fecharia com um frame so. O Refresh da base so
+		// invalida; o proximo paint vem da fila, depois do input.
+		wxGLCanvas::Refresh();
 	}
 }
 

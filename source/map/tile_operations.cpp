@@ -73,6 +73,21 @@ namespace TileOperations {
 
 	} // anonymous namespace
 
+	// O chunk cache assa a geometria do tile na GPU, inclusive o realce da
+	// selecao (tint pela metade). Trocar a selecao muda o que vai para o buffer
+	// mesmo sem mudar o conteudo do tile, entao o chunk tem de ser reassado -- e
+	// select/deselect/update sao os caminhos que alteram os flags no lugar, sem
+	// passar por uma Action.
+	void markSelectionDirty(const Tile* tile) {
+		if (!tile) {
+			return;
+		}
+
+		if (Editor* editor = g_gui.GetCurrentEditor()) {
+			editor->map.getChangeTracker().markTileDirty(tile->getPosition());
+		}
+	}
+
 	void markSelectionChanged(Tile* tile) {
 		if (!tile) {
 			return;
@@ -306,6 +321,7 @@ namespace TileOperations {
 		});
 
 		tile->statflags |= TILESTATE_SELECTED;
+		markSelectionDirty(tile);
 	}
 
 	void deselect(Tile* tile) {
@@ -324,6 +340,7 @@ namespace TileOperations {
 		});
 
 		tile->statflags &= ~TILESTATE_SELECTED;
+		markSelectionDirty(tile);
 	}
 
 	void selectGround(Tile* tile) {
@@ -341,6 +358,7 @@ namespace TileOperations {
 		if (selected_) {
 			tile->statflags |= TILESTATE_SELECTED;
 		}
+		markSelectionDirty(tile);
 	}
 
 	void deselectGround(Tile* tile) {
@@ -353,6 +371,7 @@ namespace TileOperations {
 		}
 
 		TileOperations::update(tile);
+		markSelectionDirty(tile);
 	}
 
 	std::vector<std::unique_ptr<Item>> popSelectedItems(Tile* tile, bool ignoreTileSelected) {
@@ -519,6 +538,10 @@ namespace TileOperations {
 
 		if (wasSelected || tile->isSelected()) {
 			markSelectionChanged(tile);
+			// O chunk cache assa o item selecionado com o tint pela metade, entao
+			// trocar a selecao de um item neste tile (Selection::add/remove sem
+			// subsession mexem no item e chamam so este update) exige re-bake.
+			markSelectionDirty(tile);
 		}
 	}
 

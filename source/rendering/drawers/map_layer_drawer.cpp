@@ -34,6 +34,7 @@
 #include "rendering/core/render_frame_context.h"
 #include "rendering/core/atlas_manager.h"
 #include "rendering/core/light_gatherer.h"
+#include "rendering/utilities/render_profiler.h"
 
 MapLayerDrawer::MapLayerDrawer(TileRenderer* tile_renderer, GridDrawer* grid_drawer, Editor* editor) :
 	tile_renderer(tile_renderer),
@@ -65,7 +66,10 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 	// With the chunk cache that walk skips most tiles, so the lights come from
 	// a dedicated pass that runs whether or not the cache is on -- one code
 	// path, one behaviour.
-	LightGatherer::GatherFloor(editor->map, view, options, map_z, light_buffer);
+	{
+		RENDER_PROFILE_SCOPE(LightGather);
+		LightGatherer::GatherFloor(editor->map, view, options, map_z, light_buffer);
+	}
 
 	// Common lambda to draw a node
 	auto drawNode = [&](MapNode* nd, int nd_map_x, int nd_map_y, bool live, TileRenderPass pass) {
@@ -116,6 +120,7 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 					continue;
 				}
 
+				RenderProfiler::Count(RenderProfiler::Counter::CpuTiles);
 				tile_renderer->DrawTile(sprite_batch, location, view, options, options.current_house_id, draw_x_base, draw_y, pass);
 			}
 		}
@@ -151,14 +156,15 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 		}
 	};
 
-	// The chunk cache only replaces the ground and border passes, and only for
-	// the plain rendering modes: the special ones paint squares instead of
-	// sprites, and a live client may not even hold the tiles yet.
+	// The chunk cache only works for the plain rendering modes: the special ones
+	// paint squares instead of sprites, and a live client may not even hold the
+	// tiles yet. O retangulo de selecao em arrasto NAO desliga mais o cache: o
+	// shader dele escurece o que cai no retangulo, como o BlitItem.
 	const bool use_chunk_cache = options.use_chunk_cache && chunk_cache && ctx && chunk_cache->isValid() && !live_client
-		&& !options.show_as_minimap && !options.show_only_colors && !options.show_only_modified
-		&& !options.transient_selection_bounds.has_value();
+		&& !options.show_as_minimap && !options.show_only_colors && !options.show_only_modified;
 
 	if (!use_chunk_cache) {
+		RENDER_PROFILE_SCOPE(CpuTilePasses);
 		drawPass(TileRenderPass::Ground);
 		drawPass(TileRenderPass::Borders);
 		drawPass(TileRenderPass::Contents);
@@ -167,13 +173,19 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 
 	// Everything queued so far belongs under this floor's cached geometry,
 	// which goes straight to the framebuffer instead of into the batch.
-	sprite_batch.flush(ctx->atlas);
-	chunk_cache->renderFloor(map_z, editor->map, *ctx, view.projectionMatrix, ctx->atlas);
+	{
+		RENDER_PROFILE_SCOPE(FloorBatchFlush);
+		sprite_batch.flush(ctx->atlas);
+	}
+	{
+		RENDER_PROFILE_SCOPE(ChunkRender);
+		chunk_cache->renderFloor(map_z, editor->map, *ctx, view.projectionMatrix, ctx->atlas);
+	}
 
 	// Tiles the bake had to skip -- animated grounds, selected borders,
 	// overhang-free but interactive items -- still run through the CPU
 	// renderer, in the very same pass order.
-	auto drawDeferredTile = [&](int map_x, int map_y, TileRenderPass pass) {
+	auto drawDeferredTile = [&](int map_x, int map_y, TileRenderPass pass, RenderProfiler::Counter counter) {
 		TileLocation* location = editor->map.getTileL(map_x, map_y, map_z);
 		if (!location || !location->get()) {
 			return;
@@ -185,18 +197,42 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 			return;
 		}
 
+		RenderProfiler::Count(counter);
 		tile_renderer->DrawTile(sprite_batch, location, view, options, options.current_house_id, draw_x, draw_y, pass);
 	};
 
-	chunk_cache->forEachDeferredTile(CHUNK_DEFER_GROUND, [&](int map_x, int map_y) {
-		drawDeferredTile(map_x, map_y, TileRenderPass::Ground);
-	});
-	chunk_cache->forEachDeferredTile(CHUNK_DEFER_BORDERS, [&](int map_x, int map_y) {
-		drawDeferredTile(map_x, map_y, TileRenderPass::Borders);
-	});
+	{
+		RENDER_PROFILE_SCOPE(DeferredGround);
+		chunk_cache->forEachDeferredTile(CHUNK_DEFER_GROUND, [&](int map_x, int map_y) {
+			drawDeferredTile(map_x, map_y, TileRenderPass::Ground, RenderProfiler::Counter::DeferredGround);
+		});
+	}
+	{
+		RENDER_PROFILE_SCOPE(DeferredBorders);
+		chunk_cache->forEachDeferredTile(CHUNK_DEFER_BORDERS, [&](int map_x, int map_y) {
+			drawDeferredTile(map_x, map_y, TileRenderPass::Borders, RenderProfiler::Counter::DeferredBorders);
+		});
+	}
+
+	// O conteudo cacheado vem so agora, depois das passadas de CPU de chao e
+	// borda: um chao deferido (agua animada, por exemplo) fica embaixo do
+	// conteudo dos vizinhos -- inclusive das montanhas, que moram nessa faixa.
+	// E a mesma ordem das tres passadas sem cache.
+	{
+		RENDER_PROFILE_SCOPE(FloorBatchFlush);
+		sprite_batch.flush(ctx->atlas);
+	}
+	{
+		RENDER_PROFILE_SCOPE(ChunkRenderContents);
+		chunk_cache->renderFloorContents(*ctx, view.projectionMatrix, ctx->atlas);
+	}
+
 	// This is where the frame time actually goes: with the contents baked too,
 	// only the tiles that really change per frame are walked on the CPU.
-	chunk_cache->forEachDeferredTile(CHUNK_DEFER_CONTENTS, [&](int map_x, int map_y) {
-		drawDeferredTile(map_x, map_y, TileRenderPass::Contents);
-	});
+	{
+		RENDER_PROFILE_SCOPE(DeferredContents);
+		chunk_cache->forEachDeferredTile(CHUNK_DEFER_CONTENTS, [&](int map_x, int map_y) {
+			drawDeferredTile(map_x, map_y, TileRenderPass::Contents, RenderProfiler::Counter::DeferredContents);
+		});
+	}
 }

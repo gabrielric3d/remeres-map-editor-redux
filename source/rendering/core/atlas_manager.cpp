@@ -1,4 +1,5 @@
 #include "rendering/core/atlas_manager.h"
+#include "rendering/utilities/render_profiler.h"
 #include <iostream>
 #include <algorithm>
 #include <spdlog/spdlog.h>
@@ -115,6 +116,7 @@ void AtlasManager::removeSprite(uint32_t sprite_id) {
 
 		lut_.invalidateSprite(sprite_id);
 		++eviction_generation_;
+		RenderProfiler::Count(RenderProfiler::Counter::AtlasEvictions);
 	}
 }
 

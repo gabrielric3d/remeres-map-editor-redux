@@ -94,6 +94,7 @@
 #include <vector>
 #include "rendering/core/forced_light_zone.h"
 #include "rendering/core/custom_item_light.h"
+#include "rendering/utilities/render_profiler.h"
 
 // Shader Sources
 const char* screen_vert = R"(
@@ -360,7 +361,10 @@ void MapDrawer::Release() {
 }
 
 void MapDrawer::Draw() {
-	g_gui.gfx.updateTime();
+	{
+		RENDER_PROFILE_SCOPE(PreloadDrain);
+		g_gui.gfx.updateTime();
+	}
 	sprite_batch->beginFrameStats();
 
 	light_buffer.Clear();
@@ -399,10 +403,16 @@ void MapDrawer::Draw() {
 	// Chunk cache bookkeeping for this frame: age the cache, pick up the tiles
 	// the editor touched, and re-bake everything if a drawing option that the
 	// bake depends on was toggled.
-	chunk_cache_manager.advanceFrame(view.floor);
-	chunk_cache_manager.updateAtlasState(atlas);
-	chunk_cache_manager.updateDirtyState(editor.map.getChangeTracker());
-	chunk_cache_manager.updateOptionsState(options.chunkBakeSignature());
+	{
+		RENDER_PROFILE_SCOPE(ChunkBookkeeping);
+		chunk_cache_manager.advanceFrame(view.floor);
+		chunk_cache_manager.updateAtlasState(atlas);
+		chunk_cache_manager.updateDirtyState(editor.map.getChangeTracker());
+		chunk_cache_manager.updateOptionsState(options.chunkBakeSignature());
+		// Frame corrente de cada sprite animado que ja esta no cache (o shader
+		// troca o sprite; a CPU so publica o frame).
+		chunk_cache_manager.updateAnimationClock(g_gui.gfx);
+	}
 
 	// Begin Batches
 	sprite_batch->begin(view.projectionMatrix, *atlas);
@@ -429,25 +439,41 @@ void MapDrawer::Draw() {
 	// a pass of their own -- over the camera floor only, and only when they
 	// are switched on. It runs before DrawMap because DrawMap widens
 	// view.start_x/end_x one floor at a time as it descends.
-	TooltipCollector::Collect(view, options, *tooltip_drawer, editor);
+	{
+		RENDER_PROFILE_SCOPE(TooltipCollect);
+		TooltipCollector::Collect(view, options, *tooltip_drawer, editor);
+	}
 
-	DrawMap();
+	{
+		RENDER_PROFILE_SCOPE(DrawMap);
+		DrawMap();
+	}
 
 	// Flush Map for Light Pass
-	sprite_batch->end(*atlas);
-	primitive_renderer->flush();
+	{
+		RENDER_PROFILE_SCOPE(MapFlush);
+		sprite_batch->end(*atlas);
+		primitive_renderer->flush();
+	}
+	// Profiler ligado: quanto a GPU ainda devia do mapa quando a CPU acabou de
+	// enviar. Grande aqui = gargalo de GPU, nao do laco de tiles.
+	RenderProfiler::GpuSync(RenderProfiler::Section::GpuWaitMap);
 
 	if (options.isDrawLight()) {
+		RENDER_PROFILE_SCOPE(Light);
 		DrawLight();
 	}
 
 	// If using FBO, we must now Resolve to Screen
 	if (use_fbo) {
+		RENDER_PROFILE_SCOPE(PostProcess);
 		DrawPostProcess(view, options);
 		// Reset to default FBO for overlays
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glViewport(view.viewport_x, view.viewport_y, view.screensize_x, view.screensize_y);
 	}
+
+	RENDER_PROFILE_SCOPE(GlOverlays);
 
 	// Resume Batch for Overlays
 	sprite_batch->begin(view.projectionMatrix, *atlas);
@@ -458,18 +484,23 @@ void MapDrawer::Draw() {
 
 	live_cursor_drawer->draw(*sprite_batch, view, editor, options);
 
-	brush_overlay_drawer->draw(*sprite_batch, *primitive_renderer, this, item_drawer.get(), sprite_drawer.get(), creature_drawer.get(), view, options, editor);
+	{
+		RENDER_PROFILE_SCOPE(BrushOverlay);
+		brush_overlay_drawer->draw(*sprite_batch, *primitive_renderer, this, item_drawer.get(), sprite_drawer.get(), creature_drawer.get(), view, options, editor);
+	}
 
 	if (camera_path_drawer) {
 		camera_path_drawer->draw(*primitive_renderer, view, options, editor);
 	}
 
 	if (options.show_spawns) {
+		RENDER_PROFILE_SCOPE(SpawnOverlay);
 		spawn_overlay_drawer->collect(editor, view, options);
 		spawn_overlay_drawer->draw(*primitive_renderer, view, options);
 	}
 
 	if (options.show_grid) {
+		RENDER_PROFILE_SCOPE(Grid);
 		DrawGrid(original_bounds);
 	}
 	if (options.show_ingame_box) {
@@ -493,7 +524,10 @@ void MapDrawer::Draw() {
 	}
 
 	// Draw Lua Overlays (sprites, lines, rects, etc.)
-	lua_overlay_drawer->Draw(view, options);
+	{
+		RENDER_PROFILE_SCOPE(LuaOverlay);
+		lua_overlay_drawer->Draw(view, options);
+	}
 
 	// Draw creature names (Overlay) moved to DrawCreatureNames()
 
@@ -517,14 +551,19 @@ void MapDrawer::DrawMap() {
 
 	for (int map_z = view.start_z; map_z >= view.superend_z; map_z--) {
 		if (map_z == view.end_z && view.start_z != view.end_z) {
+			RENDER_PROFILE_SCOPE(Shade);
 			shade_drawer->draw(*sprite_batch, view, options);
 		}
 
 		if (map_z >= view.end_z) {
+			RenderProfiler::Count(RenderProfiler::Counter::FloorsDrawn);
 			DrawMapLayer(map_z, live_client);
 		}
 
-		preview_drawer->draw(*sprite_batch, canvas, view, map_z, options, editor, item_drawer.get(), sprite_drawer.get(), creature_drawer.get(), options.current_house_id);
+		{
+			RENDER_PROFILE_SCOPE(Preview);
+			preview_drawer->draw(*sprite_batch, canvas, view, map_z, options, editor, item_drawer.get(), sprite_drawer.get(), creature_drawer.get(), options.current_house_id);
+		}
 
 		--view.start_x;
 		--view.start_y;
@@ -532,6 +571,7 @@ void MapDrawer::DrawMap() {
 		++view.end_y;
 	}
 
+	RENDER_PROFILE_SCOPE(FloorDrawer);
 	floor_drawer->draw(*sprite_batch, item_drawer.get(), sprite_drawer.get(), creature_drawer.get(), view, options, editor);
 }
 
