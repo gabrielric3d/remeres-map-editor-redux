@@ -153,6 +153,9 @@ namespace TileOperations {
 		copy->minimapColor = tile->minimapColor;
 		copy->house_id = tile->house_id;
 		copy->soundZoneId = tile->soundZoneId; // BlackTalon: keep the sound zone on tile copies
+		// Battle Royale: every brush paints on a copy made here. Without this line, a
+		// ground or an item drawn over a loot zone would quietly take the tile out of it.
+		copy->brLootZoneId = tile->brLootZoneId;
 		if (tile->invalidZones) {
 			copy->invalidZones = std::make_unique<InvalidZoneState>(*tile->invalidZones);
 		}
@@ -187,6 +190,9 @@ namespace TileOperations {
 		}
 		if (src->instanceZoneId) {
 			dest->instanceZoneId = src->instanceZoneId; // BlackTalon
+		}
+		if (src->brLootZoneId) {
+			dest->brLootZoneId = src->brLootZoneId; // Battle Royale
 		}
 		// BlackTalon: World Boss junto do PZ. Sem esta linha, colar com MERGE_PASTE
 		// ligado por cima de chao existente perderia a flag -- e ficaria a assimetria

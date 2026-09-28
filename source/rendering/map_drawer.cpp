@@ -87,6 +87,7 @@
 #include "rendering/drawers/overlays/stair_direction_drawer.h"
 #include "rendering/drawers/overlays/zone_overlay_drawer.h"
 #include "rendering/drawers/overlays/zone_label_drawer.h"
+#include "rendering/drawers/overlays/br_loot_overlay_drawer.h"
 #include "rendering/drawers/overlays/worldboss_label_drawer.h"
 #include "game/instance_zones.h"
 #include "game/sound_zones.h"
@@ -157,6 +158,7 @@ MapDrawer::MapDrawer(MapCanvas* canvas) :
 	zone_overlay_drawer = std::make_unique<ZoneOverlayDrawer>();
 	zone_label_drawer = std::make_unique<ZoneLabelDrawer>();
 	worldboss_label_drawer = std::make_unique<WorldBossLabelDrawer>();
+	br_loot_drawer = std::make_unique<BRLootOverlayDrawer>();
 
 	sprite_batch = std::make_unique<SpriteBatch>();
 	primitive_renderer = std::make_unique<PrimitiveRenderer>();
@@ -192,6 +194,11 @@ void MapDrawer::SetupVars() {
 	// O zoom so existe depois do Setup, e os drawers de tile/item nao recebem a
 	// view: copiar aqui e o que permite a eles decidirem o nivel de detalhe.
 	options.zoom = view.zoom;
+
+	// Battle Royale: the tint of a loot zone depends on its tier, which is map data.
+	// The generation goes into the chunk bake signature, so a tier change re-bakes.
+	options.br_loot_zones = &editor.map.br_loot_zones;
+	options.br_loot_generation = editor.map.br_loot_zones.getGeneration();
 }
 
 void MapDrawer::SetupGL() {
@@ -483,6 +490,12 @@ void MapDrawer::Draw() {
 	}
 
 	live_cursor_drawer->draw(*sprite_batch, view, editor, options);
+
+	// Battle Royale: the items placed by hand, as their sprite. Before the brush
+	// overlay, so the preview of the next one is drawn on top.
+	if (options.show_br_loot_zones) {
+		br_loot_drawer->drawItemSprites(*sprite_batch, sprite_drawer.get(), item_drawer.get(), view, editor);
+	}
 
 	{
 		RENDER_PROFILE_SCOPE(BrushOverlay);
@@ -777,6 +790,10 @@ void MapDrawer::DrawWorldBossLabels(NVGcontext* vg) {
 
 void MapDrawer::DrawSolidInstanceZones(NVGcontext* vg) {
 	solid_zone_fill_drawer->draw(vg, view, editor);
+}
+
+void MapDrawer::DrawBRLootOverlay(NVGcontext* vg) {
+	br_loot_drawer->draw(vg, view, options, editor, *zone_label_drawer);
 }
 
 void MapDrawer::DrawWallBorders(NVGcontext* vg) {

@@ -69,6 +69,13 @@ Change* Change::Create(const CameraPathsSnapshot& snapshot) {
 	return c;
 }
 
+Change* Change::Create(const BRLootZonesState& state) {
+	Change* c = newd Change();
+	c->type = CHANGE_BR_LOOT;
+	c->data = BRLootChangeData { .state = state };
+	return c;
+}
+
 Change::~Change() {
 	clear();
 }
@@ -97,6 +104,10 @@ const CameraPathsChangeData* Change::getCameraPathsData() const {
 	return std::get_if<CameraPathsChangeData>(&data);
 }
 
+const BRLootChangeData* Change::getBRLootData() const {
+	return std::get_if<BRLootChangeData>(&data);
+}
+
 uint32_t Change::memsize() const {
 	uint32_t mem = sizeof(*this);
 	if (auto* t = std::get_if<std::unique_ptr<Tile>>(&data)) {
@@ -113,6 +124,10 @@ uint32_t Change::memsize() const {
 			mem += path.name.capacity();
 			mem += path.keyframes.capacity() * sizeof(CameraKeyframe);
 		}
+	} else if (auto* loot = std::get_if<BRLootChangeData>(&data)) {
+		mem += sizeof(BRLootChangeData);
+		mem += static_cast<uint32_t>(loot->state.zones.size() * (sizeof(BRLootZone) + 48));
+		mem += static_cast<uint32_t>(loot->state.items.capacity() * sizeof(BRLootItem));
 	}
 	return mem;
 }
@@ -293,6 +308,16 @@ void Action::commit(DirtyList* dirty_list) {
 			case CHANGE_CAMERA_PATHS: {
 				auto& cpd = std::get<CameraPathsChangeData>(c->data);
 				editor.map.camera_paths.swapSnapshot(cpd.snapshot);
+				editor.map.doChange();
+				g_gui.RefreshPalettes(&editor.map);
+				g_gui.RefreshView();
+				break;
+			}
+
+			case CHANGE_BR_LOOT: {
+				// Swap, so the same change undoes and redoes itself.
+				auto& loot = std::get<BRLootChangeData>(c->data);
+				editor.map.br_loot_zones.swapState(loot.state);
 				editor.map.doChange();
 				g_gui.RefreshPalettes(&editor.map);
 				g_gui.RefreshView();
@@ -484,6 +509,16 @@ void Action::undo(DirtyList* dirty_list) {
 			case CHANGE_CAMERA_PATHS: {
 				auto& cpd = std::get<CameraPathsChangeData>(c->data);
 				editor.map.camera_paths.swapSnapshot(cpd.snapshot);
+				editor.map.doChange();
+				g_gui.RefreshPalettes(&editor.map);
+				g_gui.RefreshView();
+				break;
+			}
+
+			case CHANGE_BR_LOOT: {
+				// Swap, so the same change undoes and redoes itself.
+				auto& loot = std::get<BRLootChangeData>(c->data);
+				editor.map.br_loot_zones.swapState(loot.state);
 				editor.map.doChange();
 				g_gui.RefreshPalettes(&editor.map);
 				g_gui.RefreshView();

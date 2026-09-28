@@ -42,6 +42,11 @@ public:
 	static void SelectCreatureBrush(Selection& selection);
 	static void SelectSpawnBrush();
 	static void SelectSmartBrush(Editor& editor, Tile* tile);
+	// Battle Royale: the loot zone of this tile, or the item placed by hand on it,
+	// becomes what the loot brush paints, picked in its palette page. False (with a
+	// word in the status bar) when the tile has none.
+	static bool SelectBRLootZone(Editor& editor, Tile* tile);
+	static bool SelectBRLootItem(Editor& editor, Tile* tile);
 
 private:
 	BrushSelector() = delete;

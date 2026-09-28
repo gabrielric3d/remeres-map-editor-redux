@@ -53,3 +53,11 @@ void PaletteMenuHandler::OnSelectCameraPathPalette(wxCommandEvent& WXUNUSED(even
 void PaletteMenuHandler::OnSelectRawPalette(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.SelectPalettePage(TILESET_RAW);
 }
+
+void PaletteMenuHandler::OnSelectBRLootZonePalette(wxCommandEvent& WXUNUSED(event)) {
+	g_gui.SelectPalettePage(TILESET_BR_LOOT_ZONE);
+}
+
+void PaletteMenuHandler::OnSelectBRLootItemPalette(wxCommandEvent& WXUNUSED(event)) {
+	g_gui.SelectPalettePage(TILESET_BR_LOOT_ITEM);
+}

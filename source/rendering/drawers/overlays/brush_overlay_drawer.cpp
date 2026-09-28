@@ -43,6 +43,10 @@
 #include "brushes/door/door_brush.h"
 #include "brushes/flag/flag_brush.h"
 #include "brushes/border/optional_border_brush.h"
+#include "brushes/br_loot/br_loot_item_brush.h"
+#include "brushes/br_loot/br_loot_zone_brush.h"
+#include "game/br_loot_zones.h"
+#include "rendering/drawers/tiles/tile_color_calculator.h"
 
 #include "brushes/waypoint/waypoint_brush.h"
 
@@ -127,6 +131,20 @@ void BrushOverlayDrawer::draw(SpriteBatch& sprite_batch, PrimitiveRenderer& prim
 	}
 
 	glm::vec4 brushColor = get_brush_color(brushColorType);
+	// Battle Royale: the loot zone brush previews in the color of the zone's tier, so
+	// the stroke already says what it is going to paint. With no zone picked a stroke
+	// paints nothing (DrawOperations refuses it), and the preview says so in red instead
+	// of promising the "unknown tier" color.
+	if (brush->is<BRLootZoneBrush>()) {
+		const uint32_t zone_id = brush->as<BRLootZoneBrush>()->getZone();
+		if (zone_id == 0) {
+			brushColor = get_brush_color(COLOR_INVALID);
+		} else {
+			uint8_t r = 255, g = 255, b = 255;
+			TileColorCalculator::GetBRLootZoneColor(editor.map.br_loot_zones.tierOf(zone_id), zone_id, r, g, b);
+			brushColor = glm::vec4(r / 255.0f, g / 255.0f, b / 255.0f, 0.55f);
+		}
+	}
 
 	if (drawer->canvas->drawing_controller->IsDraggingDraw()) {
 		ASSERT(brush->canDrag());
@@ -413,6 +431,17 @@ void BrushOverlayDrawer::draw(SpriteBatch& sprite_batch, PrimitiveRenderer& prim
 
 			const glm::vec4 spawn_border_color(220.0f / 255.0f, 0.0f, 220.0f / 255.0f, 0.86f);
 			primitive_renderer.drawBox(glm::vec4(bx, by, bw, bh), spawn_border_color, 2.0f);
+		} else if (brush->is<BRLootItemBrush>()) {
+			// One tile, whatever the brush size: the item that the click would place.
+			const BRLootItemBrush* item_brush = brush->as<BRLootItemBrush>();
+			const int cx = view.mouse_map_x * TILE_SIZE - view.view_scroll_x - view.getFloorAdjustment();
+			const int cy = view.mouse_map_y * TILE_SIZE - view.view_scroll_y - view.getFloorAdjustment();
+			const Position mouse_pos(view.mouse_map_x, view.mouse_map_y, view.floor);
+			if (item_brush->getServerId() != 0 && item_brush->canDraw(&editor.map, mouse_pos)) {
+				item_drawer->DrawRawBrush(sprite_batch, sprite_drawer, cx, cy, item_brush->getServerId(), 160, 160, 160, 160);
+			} else if (g_gui.gfx.ensureAtlasManager()) {
+				sprite_batch.drawRect(static_cast<float>(cx), static_cast<float>(cy), static_cast<float>(TILE_SIZE), static_cast<float>(TILE_SIZE), get_check_color(brush, editor, mouse_pos), *g_gui.gfx.getAtlasManager());
+			}
 		} else if (!brush->is<DoodadBrush>()) {
 			RAWBrush* raw_brush = nullptr;
 			if (brush->is<RAWBrush>()) { // Textured brush

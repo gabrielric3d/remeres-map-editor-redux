@@ -26,6 +26,8 @@ class WaypointPalettePanel;
 class CameraPathPalettePanel;
 class SoundZonePalettePanel;
 class InstanceZonePalettePanel;
+class BRLootZonePalettePanel;
+class BRLootItemPalettePanel;
 
 class PaletteWindow : public wxPanel {
 public:
@@ -50,6 +52,9 @@ public:
 	PaletteType GetSelectedPage() const;
 	// Access the camera path palette panel
 	CameraPathPalettePanel* GetCameraPathPalette() const { return camera_path_palette; }
+	// Battle Royale: the loot pages, for picking a zone or an item straight from the map
+	BRLootZonePalettePanel* GetBRLootZonePalette() const { return br_loot_zone_palette; }
+	BRLootItemPalettePanel* GetBRLootItemPalette() const { return br_loot_item_palette; }
 
 	// Select a brush relative to the current selection in the active panel
 	bool SelectBrushByOffset(int offset);
@@ -81,6 +86,8 @@ protected:
 	static PalettePanel* CreateCameraPathPalette(wxWindow* parent, const TilesetContainer& tilesets);
 	static PalettePanel* CreateSoundZonePalette(wxWindow* parent, const TilesetContainer& tilesets);
 	static PalettePanel* CreateInstanceZonePalette(wxWindow* parent, const TilesetContainer& tilesets);
+	static PalettePanel* CreateBRLootZonePalette(wxWindow* parent, const TilesetContainer& tilesets);
+	static PalettePanel* CreateBRLootItemPalette(wxWindow* parent, const TilesetContainer& tilesets);
 
 	wxChoicebook* choicebook;
 
@@ -93,6 +100,8 @@ protected:
 	CameraPathPalettePanel* camera_path_palette;
 	SoundZonePalettePanel* sound_zone_palette;
 	InstanceZonePalettePanel* instance_zone_palette;
+	BRLootZonePalettePanel* br_loot_zone_palette;
+	BRLootItemPalettePanel* br_loot_item_palette;
 	BrushPalettePanel* raw_palette;
 };
 

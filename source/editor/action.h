@@ -20,6 +20,7 @@
 
 #include "map/position.h"
 #include "game/camera_paths.h"
+#include "game/br_loot_zones.h"
 #include "map/tile.h"
 
 #include <cstdint>
@@ -45,6 +46,7 @@ enum ChangeType {
 	CHANGE_MOVE_HOUSE_EXIT,
 	CHANGE_MOVE_WAYPOINT,
 	CHANGE_CAMERA_PATHS,
+	CHANGE_BR_LOOT, // Battle Royale: the whole loot zone table + placed items, swapped
 };
 
 struct HouseExitChangeData {
@@ -61,9 +63,13 @@ struct CameraPathsChangeData {
 	CameraPathsSnapshot snapshot;
 };
 
+struct BRLootChangeData {
+	BRLootZonesState state;
+};
+
 class Change {
 private:
-	using Data = std::variant<std::monostate, std::unique_ptr<Tile>, HouseExitChangeData, WaypointChangeData, CameraPathsChangeData>;
+	using Data = std::variant<std::monostate, std::unique_ptr<Tile>, HouseExitChangeData, WaypointChangeData, CameraPathsChangeData, BRLootChangeData>;
 	ChangeType type;
 	Position position;
 	Data data;
@@ -76,6 +82,7 @@ public:
 	static Change* Create(House* house, const Position& where);
 	static Change* Create(Waypoint* wp, const Position& where);
 	static Change* Create(const CameraPathsSnapshot& snapshot);
+	static Change* Create(const BRLootZonesState& state);
 	~Change();
 	void clear();
 
@@ -86,6 +93,7 @@ public:
 	const HouseExitChangeData* getHouseExitData() const;
 	const WaypointChangeData* getWaypointData() const;
 	const CameraPathsChangeData* getCameraPathsData() const;
+	const BRLootChangeData* getBRLootData() const;
 
 	// Get memory footprint
 	uint32_t memsize() const;

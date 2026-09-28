@@ -302,6 +302,8 @@ void Settings::IO(IOMode mode) {
 	Bool(SHOW_SOUND_ZONES, true);
 	Bool(SHOW_INSTANCE_ZONES, true);
 	Bool(INSTANCE_ZONE_SOLID_FILL, false);
+	Bool(SHOW_BR_LOOT_ZONES, true);
+	Bool(BR_LOOT_ZONE_SOLID_FILL, false);
 	// BlackTalon: nasce DESLIGADO, ao contrario das outras zonas. As zonas de som e
 	// de instancia tem registro proprio no Map, entao o drawer delas sai por um
 	// `empty()` quando o mapa nao tem nenhuma. World Boss e so um bit no tile: nao

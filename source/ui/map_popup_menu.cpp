@@ -32,6 +32,19 @@
 #include "brushes/table/table_brush.h"
 #include "lua/lua_script_manager.h"
 
+namespace {
+	// Battle Royale: pick the loot zone of this tile, or the item placed by hand on it,
+	// the way Select House picks the house.
+	void appendBRLootEntries(wxMenu& menu, const Map& map, const Tile* tile) {
+		if (const BRLootZone* zone = map.br_loot_zones.getZone(tile->getBRLootZoneId())) {
+			menu.Append(MAP_POPUP_MENU_SELECT_BR_LOOT_ZONE, wxString::Format("Select Loot Zone %d-%u", zone->tier, static_cast<unsigned>(zone->id)), "Paint with the loot zone of this tile (battle royale).")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_BOX_OPEN, wxSize(16, 16)));
+		}
+		if (map.br_loot_zones.itemAt(tile->getPosition())) {
+			menu.Append(MAP_POPUP_MENU_SELECT_BR_LOOT_ITEM, "Select Loot Item", "Load the loot item placed by hand on this tile into the brush (battle royale).")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_GEM, wxSize(16, 16)));
+		}
+	}
+} // namespace
+
 MapPopupMenu::MapPopupMenu(Editor& editor) :
 	wxMenu(""), editor(editor) {
 	////
@@ -209,6 +222,7 @@ void MapPopupMenu::Update() {
 				if (tile->isHouseTile()) {
 					Append(MAP_POPUP_MENU_SELECT_HOUSE_BRUSH, "Select House", "Draw with the house on this tile.")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_HOUSE, wxSize(16, 16)));
 				}
+				appendBRLootEntries(*this, editor.map, tile);
 
 				AppendSeparator();
 				Append(MAP_POPUP_MENU_PROPERTIES, "&Properties", "Properties for the current object")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_GEAR, wxSize(16, 16)));
@@ -237,6 +251,7 @@ void MapPopupMenu::Update() {
 				if (tile->isHouseTile()) {
 					Append(MAP_POPUP_MENU_SELECT_HOUSE_BRUSH, "Select House", "Draw with the house on this tile.")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_HOUSE, wxSize(16, 16)));
 				}
+				appendBRLootEntries(*this, editor.map, tile);
 
 				if (tile->hasGround() || topCreature || topSpawn) {
 					AppendSeparator();

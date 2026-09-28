@@ -435,7 +435,10 @@ REM /p:CL_MPCount=N -> LIMITA o /MP a N processos cl.exe. CRITICO: o gerador Vis
 REM Studio do CMake converte "/MP4" em <MultiProcessorCompilation>true</...> e DESCARTA
 REM o numero, entao sem isso o cl.exe usa TODOS os nucleos (ex: 32) e trava a maquina.
 REM CL_MPCount preenche o <ProcessorNumber> que o /MP realmente respeita.
-cmake --build "!BUILD_DIR!" --config Release --target rme -- /maxcpucount:1 /p:CL_MPCount=!COMPILE_JOBS! 2>&1 | powershell -Command "$input | Tee-Object -Append -FilePath '!LOG_FILE!'"
+REM The build runs INSIDE PowerShell, which exits with the cmake exit code. Piped from
+REM cmd into PowerShell, ERRORLEVEL was the PowerShell one, always 0: a failed build
+REM printed BUILD SUCCESSFUL and left the old rme.exe in place (2026-09-27).
+powershell -NoProfile -Command "& cmake --build '!BUILD_DIR!' --config Release --target rme '--' '/maxcpucount:1' '/p:CL_MPCount=!COMPILE_JOBS!' 2>&1 | ForEach-Object { $_.ToString() } | Tee-Object -Append -FilePath '!LOG_FILE!'; exit $LASTEXITCODE"
 
 if !ERRORLEVEL! neq 0 (
     echo.

@@ -11,6 +11,7 @@
 #include "brushes/house/house_exit_brush.h"
 #include "brushes/spawn/spawn_brush.h"
 #include "brushes/waypoint/waypoint_brush.h"
+#include "brushes/br_loot/br_loot_item_brush.h"
 #include "game/sprites.h"
 #include "palette/palette_window.h"
 #include "rendering/core/game_sprite.h"
@@ -445,7 +446,7 @@ bool ToolOptionsSurface::HasBrushSizeControls() const {
 		return false;
 	}
 
-	return !active_brush->is<WaypointBrush>() && !active_brush->is<HouseExitBrush>();
+	return !active_brush->is<WaypointBrush>() && !active_brush->is<HouseExitBrush>() && !active_brush->is<BRLootItemBrush>();
 }
 
 bool ToolOptionsSurface::HasThicknessControl() const {

@@ -53,6 +53,9 @@ void EditorPersistence::loadMap(Editor& editor, const FileName& fn, const MapLoa
 	// then on the label drawer keeps them up to date incrementally.
 	editor.map.instance_zones.recalculateBounds();
 	editor.map.sound_zones.recalculateBounds();
+	// Battle Royale: "<map>-brloot.json". It paints the zone ids onto the tiles, so it
+	// has to come after the OTBM (and it seeds its own bounds while doing it).
+	editor.map.br_loot_zones.loadFromFile(fn);
 	spdlog::info("EditorPersistence::loadMap - DONE");
 }
 
@@ -200,6 +203,7 @@ void EditorPersistence::saveMap(Editor& editor, FileName filename, bool showdial
 	// BlackTalon: save ambient sound zone metadata to "<map>-sound.xml"
 	editor.map.sound_zones.saveToFile(FileName(wxstr(savefile)));
 	editor.map.instance_zones.saveToFile(FileName(wxstr(savefile)));
+	editor.map.br_loot_zones.saveToFile(FileName(wxstr(savefile)));
 
 	// Move to permanent backup
 	if (!save_as && g_settings.getInteger(Config::ALWAYS_MAKE_BACKUP)) {

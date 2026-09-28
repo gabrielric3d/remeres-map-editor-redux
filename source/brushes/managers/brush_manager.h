@@ -25,6 +25,8 @@ class WaypointBrush;
 class CameraPathBrush;
 class SoundZoneBrush;
 class InstanceZoneBrush;
+class BRLootZoneBrush;
+class BRLootItemBrush;
 class OptionalBorderBrush;
 class EraserBrush;
 class SpawnBrush;
@@ -182,6 +184,8 @@ public:
 	CameraPathBrush* camera_path_brush;
 	SoundZoneBrush* sound_zone_brush;
 	InstanceZoneBrush* instance_zone_brush;
+	BRLootZoneBrush* br_loot_zone_brush; // Battle Royale
+	BRLootItemBrush* br_loot_item_brush; // Battle Royale
 	OptionalBorderBrush* optional_brush;
 	EraserBrush* eraser;
 	SpawnBrush* spawn_brush;

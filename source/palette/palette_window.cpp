@@ -30,6 +30,7 @@
 #include "palette/palette_camera_paths.h"
 #include "palette/palette_sound_zones.h"
 #include "palette/palette_instance_zones.h"
+#include "palette/palette_br_loot.h"
 #include "util/image_manager.h"
 
 // Removed includes for size/tool panels as they are no longer managed here
@@ -52,6 +53,8 @@ PaletteWindow::PaletteWindow(wxWindow* parent, const TilesetContainer& tilesets)
 	camera_path_palette(nullptr),
 	sound_zone_palette(nullptr),
 	instance_zone_palette(nullptr),
+	br_loot_zone_palette(nullptr),
+	br_loot_item_palette(nullptr),
 	raw_palette(nullptr) {
 	SetMinSize(wxSize(225, 250));
 
@@ -67,6 +70,8 @@ PaletteWindow::PaletteWindow(wxWindow* parent, const TilesetContainer& tilesets)
 	imageList->Add(IMAGE_MANAGER.GetBitmap(ICON_DRAGON, wxSize(16, 16)));
 	imageList->Add(IMAGE_MANAGER.GetBitmap(ICON_CUBES, wxSize(16, 16)));
 	imageList->Add(IMAGE_MANAGER.GetBitmap(ICON_VIDEO, wxSize(16, 16)));
+	imageList->Add(IMAGE_MANAGER.GetBitmap(ICON_BOX_OPEN, wxSize(16, 16))); // 8: BR loot zones
+	imageList->Add(IMAGE_MANAGER.GetBitmap(ICON_GEM, wxSize(16, 16))); // 9: BR loot items
 	choicebook->AssignImageList(imageList);
 
 	Bind(wxEVT_CHOICEBOOK_PAGE_CHANGING, &PaletteWindow::OnSwitchingPage, this, PALETTE_CHOICEBOOK);
@@ -99,6 +104,12 @@ PaletteWindow::PaletteWindow(wxWindow* parent, const TilesetContainer& tilesets)
 
 	instance_zone_palette = static_cast<InstanceZonePalettePanel*>(CreateInstanceZonePalette(choicebook, tilesets));
 	choicebook->AddPage(instance_zone_palette, instance_zone_palette->GetName(), false, 4);
+
+	br_loot_zone_palette = static_cast<BRLootZonePalettePanel*>(CreateBRLootZonePalette(choicebook, tilesets));
+	choicebook->AddPage(br_loot_zone_palette, br_loot_zone_palette->GetName(), false, 8);
+
+	br_loot_item_palette = static_cast<BRLootItemPalettePanel*>(CreateBRLootItemPalette(choicebook, tilesets));
+	choicebook->AddPage(br_loot_item_palette, br_loot_item_palette->GetName(), false, 9);
 
 	raw_palette = static_cast<BrushPalettePanel*>(CreateRAWPalette(choicebook, tilesets));
 	choicebook->AddPage(raw_palette, raw_palette->GetName(), false, 6);
@@ -172,6 +183,14 @@ PalettePanel* PaletteWindow::CreateInstanceZonePalette(wxWindow* parent, const T
 	return panel;
 }
 
+PalettePanel* PaletteWindow::CreateBRLootZonePalette(wxWindow* parent, const TilesetContainer& tilesets) {
+	return newd BRLootZonePalettePanel(parent);
+}
+
+PalettePanel* PaletteWindow::CreateBRLootItemPalette(wxWindow* parent, const TilesetContainer& tilesets) {
+	return newd BRLootItemPalettePanel(parent);
+}
+
 PalettePanel* PaletteWindow::CreateRAWPalette(wxWindow* parent, const TilesetContainer& tilesets) {
 	BrushPalettePanel* panel = newd BrushPalettePanel(parent, tilesets, TILESET_RAW);
 	panel->SetListType(wxstr(g_settings.getString(Config::PALETTE_RAW_STYLE)));
@@ -208,6 +227,12 @@ void PaletteWindow::ReloadSettings(Map* map) {
 	}
 	if (instance_zone_palette) {
 		instance_zone_palette->SetMap(map);
+	}
+	if (br_loot_zone_palette) {
+		br_loot_zone_palette->SetMap(map);
+	}
+	if (br_loot_item_palette) {
+		br_loot_item_palette->SetMap(map);
 	}
 	InvalidateContents();
 }
@@ -445,6 +470,14 @@ void PaletteWindow::OnUpdate(Map* map) {
 	if (instance_zone_palette) {
 		instance_zone_palette->SetMap(map);
 		instance_zone_palette->OnUpdate();
+	}
+	if (br_loot_zone_palette) {
+		br_loot_zone_palette->SetMap(map);
+		br_loot_zone_palette->OnUpdate();
+	}
+	if (br_loot_item_palette) {
+		br_loot_item_palette->SetMap(map);
+		br_loot_item_palette->OnUpdate();
 	}
 }
 

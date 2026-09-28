@@ -28,6 +28,8 @@ BrushManager::BrushManager() :
 	camera_path_brush(nullptr),
 	sound_zone_brush(nullptr),
 	instance_zone_brush(nullptr),
+	br_loot_zone_brush(nullptr),
+	br_loot_item_brush(nullptr),
 	optional_brush(nullptr),
 	eraser(nullptr),
 	normal_door_brush(nullptr),

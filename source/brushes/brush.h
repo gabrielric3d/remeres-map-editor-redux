@@ -57,6 +57,8 @@ class WaypointBrush;
 class CameraPathBrush;
 class SoundZoneBrush;
 class InstanceZoneBrush;
+class BRLootZoneBrush;
+class BRLootItemBrush;
 class FlagBrush;
 class EraserBrush;
 

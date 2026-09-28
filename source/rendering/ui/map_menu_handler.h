@@ -47,6 +47,8 @@ public:
 	void OnSelectCreatureBrush(wxCommandEvent& event);
 	void OnSelectSpawnBrush(wxCommandEvent& event);
 	void OnSelectHouseBrush(wxCommandEvent& event);
+	void OnSelectBRLootZone(wxCommandEvent& event);
+	void OnSelectBRLootItem(wxCommandEvent& event);
 	void OnSelectCollectionBrush(wxCommandEvent& event);
 	void OnSelectMoveTo(wxCommandEvent& event);
 	void OnOpenInBrushesEditor(wxCommandEvent& event);

@@ -21,6 +21,8 @@
 #include "brushes/spawn/spawn_brush.h"
 #include "brushes/door/door_brush.h"
 #include "brushes/camera/camera_path_brush.h"
+#include "brushes/br_loot/br_loot_item_brush.h"
+#include "brushes/br_loot/br_loot_zone_brush.h"
 #include "brushes/managers/brush_manager.h"
 #include "map/map.h"
 #include "map/tile.h"
@@ -63,6 +65,67 @@ namespace {
 			}
 		}
 		return true;
+	}
+
+	// Battle Royale: the loot zone brush with no zone picked would stamp nothing and
+	// still leave an empty step in the undo history. The click and the smear come
+	// through the plain draw, the Shift-drag through the one with borders: both ask.
+	// Ctrl (erase) needs no zone -- it takes the tiles out of whatever zone.
+	//
+	// A zone that left the table (Delete, or undoing New) is refused too, and dropped
+	// from the brush: painted back, its id would reach the next save as an unknown id,
+	// and be adopted as a brand-new tier 1 zone.
+	bool refuseEmptyLootZoneStroke(Editor& editor, Brush* brush, bool dodraw) {
+		if (!dodraw || !brush->is<BRLootZoneBrush>()) {
+			return false;
+		}
+		BRLootZoneBrush* zone_brush = brush->as<BRLootZoneBrush>();
+		const uint32_t zone = zone_brush->getZone();
+		if (zone != 0 && editor.map.br_loot_zones.getZone(zone)) {
+			return false;
+		}
+		const wxString hint = "Pick or create a zone in the BR Loot Zones palette first. A click on a painted tile picks its zone.";
+		if (zone != 0) {
+			zone_brush->setZone(0);
+			g_gui.SetStatusText(wxString::Format("Loot zone %u no longer exists. ", static_cast<unsigned>(zone)) + hint);
+		} else {
+			g_gui.SetStatusText(hint);
+		}
+		return true;
+	}
+
+	// Battle Royale: a click with the loot item brush adds (or replaces) the item
+	// placed by hand on that tile; Ctrl+click takes it off. It is a change to the
+	// loot table, not to the tile, so it goes through ApplyBRLootState and undoes
+	// like any other stroke.
+	void placeBRLootItem(Editor& editor, BRLootItemBrush* brush, const Position& pos, bool dodraw) {
+		BRLootZonesState state = editor.map.br_loot_zones.snapshot();
+		const auto it = std::find_if(state.items.begin(), state.items.end(), [&](const BRLootItem& item) {
+			return item.pos == pos;
+		});
+		if (!dodraw) {
+			if (it == state.items.end()) {
+				return;
+			}
+			state.items.erase(it);
+		} else {
+			if (!brush->canDraw(&editor.map, pos)) {
+				if (brush->getItemName().empty()) {
+					g_gui.SetStatusText("Pick an item in the BR Loot Items palette first.");
+				}
+				return;
+			}
+			BRLootItem item = brush->makeItem(pos);
+			if (it != state.items.end()) {
+				if (*it == item) {
+					return;
+				}
+				*it = std::move(item);
+			} else {
+				state.items.push_back(std::move(item));
+			}
+		}
+		editor.ApplyBRLootState(state, ACTION_DRAW);
 	}
 
 	// True when erasing with this brush would really change the tile: a ground brush only
@@ -592,6 +655,16 @@ void DrawOperations::draw(Editor& editor, const PositionVector& tilestodraw, boo
 		return;
 	}
 
+	if (brush->is<BRLootItemBrush>()) {
+		if (!tilestodraw.empty()) {
+			placeBRLootItem(editor, brush->as<BRLootItemBrush>(), tilestodraw.front(), dodraw);
+		}
+		return;
+	}
+	if (refuseEmptyLootZoneStroke(editor, brush, dodraw)) {
+		return;
+	}
+
 #ifdef __DEBUG__
 	if (brush->is<GroundBrush>() || brush->is<WallBrush>()) {
 		// Wrong function, end call
@@ -742,6 +815,9 @@ void DrawOperations::draw(Editor& editor, const PositionVector& tilestodraw, boo
 void DrawOperations::draw(Editor& editor, const PositionVector& tilestodraw, PositionVector& tilestoborder, bool alt, bool dodraw) {
 	Brush* brush = g_gui.GetCurrentBrush();
 	if (!brush) {
+		return;
+	}
+	if (refuseEmptyLootZoneStroke(editor, brush, dodraw)) {
 		return;
 	}
 
@@ -1004,6 +1080,13 @@ bool DrawOperations::extraFloorEraseEnabled() {
 void DrawOperations::eraseExtraFloors(Editor& editor, const PositionVector& footprint) {
 	if (footprint.empty() || !extraFloorEraseEnabled()) {
 		return;
+	}
+	// Battle Royale: Ctrl with a loot brush takes a zone mark or a placed item off the
+	// tile -- it never erases the tile, so there is nothing to follow above or below.
+	if (Brush* current = g_gui.GetCurrentBrush()) {
+		if (current->is<BRLootZoneBrush>() || current->is<BRLootItemBrush>()) {
+			return;
+		}
 	}
 
 	const auto floorCount = [](Config::Key enabled_key, Config::Key count_key) -> int {

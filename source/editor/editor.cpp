@@ -152,6 +152,22 @@ void Editor::ApplyCameraPathsSnapshot(const CameraPathsSnapshot& snapshot, Actio
 	addBatch(std::move(batch), 2);
 }
 
+void Editor::ApplyBRLootState(const BRLootZonesState& state, ActionIdentifier actionType) {
+	ApplyBRLootState(state, std::vector<std::unique_ptr<Tile>>(), actionType);
+}
+
+void Editor::ApplyBRLootState(const BRLootZonesState& state, std::vector<std::unique_ptr<Tile>> tiles, ActionIdentifier actionType) {
+	auto batch = actionQueue->createBatch(actionType);
+	auto action = actionQueue->createAction(batch.get());
+	// Tiles and table in the same action: one Ctrl+Z restores both, or neither.
+	for (auto& tile : tiles) {
+		action->addChange(std::make_unique<Change>(std::move(tile)));
+	}
+	action->addChange(std::unique_ptr<Change>(Change::Create(state)));
+	batch->addAndCommitAction(std::move(action));
+	addBatch(std::move(batch), 2);
+}
+
 void Editor::drawGroundHoleToFloorBelow(const PositionVector& tilestodraw, const PositionVector& tilestoborder) {
 	DrawOperations::punchGroundToFloorBelow(*this, tilestodraw, tilestoborder);
 }

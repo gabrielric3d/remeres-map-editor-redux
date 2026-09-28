@@ -14,6 +14,10 @@ public:
 	// same idea as GetHouseColor so each painted zone reads as its own color.
 	static void GetSoundZoneColor(uint32_t zone_id, uint8_t& r, uint8_t& g, uint8_t& b);
 	static void GetInstanceZoneColor(uint32_t zone_id, uint8_t& r, uint8_t& g, uint8_t& b);
+	// Battle Royale: a loot zone takes the color of its TIER -- the same colors the HUB
+	// uses -- shaded a little per zone, so two touching zones of one tier read apart.
+	// tier 0 (unknown) gets its own color.
+	static void GetBRLootZoneColor(int tier, uint32_t zone_id, uint8_t& r, uint8_t& g, uint8_t& b);
 	static void GetMinimapColor(const Tile* tile, uint8_t& r, uint8_t& g, uint8_t& b);
 };
 

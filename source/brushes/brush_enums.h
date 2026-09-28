@@ -36,6 +36,8 @@ enum TilesetCategoryType {
 	TILESET_CAMERA_PATH,
 	TILESET_SOUND_ZONE,
 	TILESET_INSTANCE_ZONE,
+	TILESET_BR_LOOT_ZONE, // Battle Royale: loot zones
+	TILESET_BR_LOOT_ITEM, // Battle Royale: loot items placed by hand
 	TILESET_UNKNOWN,
 };
 

@@ -22,6 +22,8 @@ public:
 	void OnSelectWaypointPalette(wxCommandEvent& event);
 	void OnSelectCameraPathPalette(wxCommandEvent& event);
 	void OnSelectRawPalette(wxCommandEvent& event);
+	void OnSelectBRLootZonePalette(wxCommandEvent& event);
+	void OnSelectBRLootItemPalette(wxCommandEvent& event);
 
 protected:
 	MainFrame* frame;

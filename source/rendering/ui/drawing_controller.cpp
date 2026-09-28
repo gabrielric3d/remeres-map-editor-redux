@@ -30,6 +30,8 @@
 #include "brushes/waypoint/waypoint_brush.h"
 #include "brushes/camera/camera_path_brush.h"
 #include "brushes/door/door_brush.h"
+#include "brushes/br_loot/br_loot_zone_brush.h"
+#include "rendering/ui/brush_selector.h"
 
 DrawingController::DrawingController(MapCanvas* canvas, Editor& editor) :
 	canvas(canvas),
@@ -97,6 +99,14 @@ bool DrawingController::IsGroundReplaceModifier(bool shift_down, bool ctrl_down,
 
 void DrawingController::HandleClick(const Position& mouse_map_pos, bool shift_down, bool ctrl_down, bool alt_down) {
 	Brush* brush = g_gui.GetCurrentBrush();
+	// Battle Royale: with no loot zone picked, a plain click on a painted tile picks its
+	// zone -- refusing the stroke was the only other answer. A tile in no zone falls
+	// through, and the stroke is refused with the hint.
+	if (brush && brush->is<BRLootZoneBrush>() && brush->as<BRLootZoneBrush>()->getZone() == 0 && !shift_down && !ctrl_down && !alt_down) {
+		if (BrushSelector::SelectBRLootZone(editor, editor.map.getTile(mouse_map_pos))) {
+			return;
+		}
+	}
 	if (brush) {
 		const BrushFootprint footprint = g_gui.GetBrushFootprint();
 		// The hole punch owns Alt+Shift, so it paints free-hand instead of starting the

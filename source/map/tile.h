@@ -82,6 +82,7 @@ public: // Members
 	uint32_t house_id; // House id for this tile (pointer not safe)
 	uint32_t soundZoneId; // BlackTalon: ambient sound zone id painted on this tile (0 = none)
 	uint32_t instanceZoneId; // BlackTalon: instance zone id painted on this tile (0 = none)
+	uint32_t brLootZoneId; // Battle Royale: loot zone painted on this tile (0 = none); saved to <map>-brloot.json, not to the OTBM
 	uint32_t mapflags;
 	uint16_t statflags;
 	uint8_t minimapColor;
@@ -267,6 +268,11 @@ public: // Functions
 	uint32_t getInstanceZoneId() const;
 	void setInstanceZoneId(uint32_t newInstanceZoneId);
 
+	// Battle Royale: loot zone painted on this tile (see BRLootZoneBrush).
+	bool isBRLootZoneTile() const;
+	uint32_t getBRLootZoneId() const;
+	void setBRLootZoneId(uint32_t newBRLootZoneId);
+
 	// Mapflags (PZ, PVPZONE etc.)
 	void setMapFlags(uint32_t _flags);
 	void unsetMapFlags(uint32_t _flags);
@@ -320,6 +326,18 @@ inline uint32_t Tile::getInstanceZoneId() const {
 
 inline void Tile::setInstanceZoneId(uint32_t newInstanceZoneId) {
 	instanceZoneId = newInstanceZoneId;
+}
+
+inline bool Tile::isBRLootZoneTile() const {
+	return brLootZoneId != 0;
+}
+
+inline uint32_t Tile::getBRLootZoneId() const {
+	return brLootZoneId;
+}
+
+inline void Tile::setBRLootZoneId(uint32_t newBRLootZoneId) {
+	brLootZoneId = newBRLootZoneId;
 }
 
 inline InvalidZoneState& Tile::getOrCreateInvalidZones() {

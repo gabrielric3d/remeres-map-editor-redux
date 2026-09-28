@@ -58,6 +58,8 @@ void MapMenuHandler::BindEvents() {
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnSelectCreatureBrush, this, MAP_POPUP_MENU_SELECT_CREATURE_BRUSH);
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnSelectSpawnBrush, this, MAP_POPUP_MENU_SELECT_SPAWN_BRUSH);
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnSelectHouseBrush, this, MAP_POPUP_MENU_SELECT_HOUSE_BRUSH);
+	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnSelectBRLootZone, this, MAP_POPUP_MENU_SELECT_BR_LOOT_ZONE);
+	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnSelectBRLootItem, this, MAP_POPUP_MENU_SELECT_BR_LOOT_ITEM);
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnSelectMoveTo, this, MAP_POPUP_MENU_MOVE_TO_TILESET);
 	canvas->Bind(wxEVT_MENU, &MapMenuHandler::OnOpenInBrushesEditor, this, MAP_POPUP_MENU_OPEN_IN_BRUSHES_EDITOR);
 
@@ -195,6 +197,18 @@ void MapMenuHandler::OnSelectTableBrush(wxCommandEvent& WXUNUSED(event)) {
 
 void MapMenuHandler::OnSelectHouseBrush(wxCommandEvent& WXUNUSED(event)) {
 	BrushSelector::SelectHouseBrush(editor, editor.selection);
+}
+
+void MapMenuHandler::OnSelectBRLootZone(wxCommandEvent& WXUNUSED(event)) {
+	if (editor.selection.size() == 1) {
+		BrushSelector::SelectBRLootZone(editor, editor.selection.getSelectedTile());
+	}
+}
+
+void MapMenuHandler::OnSelectBRLootItem(wxCommandEvent& WXUNUSED(event)) {
+	if (editor.selection.size() == 1) {
+		BrushSelector::SelectBRLootItem(editor, editor.selection.getSelectedTile());
+	}
 }
 
 void MapMenuHandler::OnSelectCollectionBrush(wxCommandEvent& WXUNUSED(event)) {

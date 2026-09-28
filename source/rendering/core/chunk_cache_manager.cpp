@@ -1167,9 +1167,9 @@ size_t ChunkCacheManager::AnimSequenceKeyHash::operator()(const AnimSequenceKey&
 }
 
 uint32_t ChunkCacheManager::animClockSlotFor(const GameSprite* spr) {
-	const auto [it, inserted] = anim_clock_slot_of_.try_emplace(spr->id, static_cast<uint32_t>(anim_clock_ids_.size()));
+	const auto [it, inserted] = anim_clock_slot_of_.try_emplace(spr->getId(), static_cast<uint32_t>(anim_clock_ids_.size()));
 	if (inserted) {
-		anim_clock_ids_.push_back(spr->id);
+		anim_clock_ids_.push_back(spr->getId());
 		// O frame de agora, nao zero: o chunk recem-assado e desenhado ainda neste
 		// quadro, antes do proximo updateAnimationClock().
 		anim_clock_.push_back(spr->animator ? static_cast<uint32_t>(std::max(0, spr->animator->getFrame())) : 0u);
@@ -1180,7 +1180,7 @@ uint32_t ChunkCacheManager::animClockSlotFor(const GameSprite* spr) {
 
 uint32_t ChunkCacheManager::animSequenceFor(GameSprite* spr, int cell_x, int cell_y, int layer, const SpritePatterns& patterns, bool& pending) {
 	const AnimSequenceKey key {
-		.client_id = spr->id,
+		.client_id = spr->getId(),
 		.cell_x = static_cast<int16_t>(cell_x),
 		.cell_y = static_cast<int16_t>(cell_y),
 		.layer = static_cast<int16_t>(layer),

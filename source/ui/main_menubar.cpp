@@ -779,6 +779,14 @@ void MainMenuBar::OnSelectRawPalette(wxCommandEvent& event) {
 	paletteMenuHandler->OnSelectRawPalette(event);
 }
 
+void MainMenuBar::OnSelectBRLootZonePalette(wxCommandEvent& event) {
+	paletteMenuHandler->OnSelectBRLootZonePalette(event);
+}
+
+void MainMenuBar::OnSelectBRLootItemPalette(wxCommandEvent& event) {
+	paletteMenuHandler->OnSelectBRLootItemPalette(event);
+}
+
 void MainMenuBar::OnScriptsOpenFolder(wxCommandEvent& event) {
 	if (scriptMenuHandler) scriptMenuHandler->OnScriptsOpenFolder(event);
 }

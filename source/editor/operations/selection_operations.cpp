@@ -22,6 +22,8 @@
 #include "brushes/house/house_exit_brush.h"
 #include "brushes/waypoint/waypoint_brush.h"
 #include "brushes/camera/camera_path_brush.h"
+#include "brushes/br_loot/br_loot_item_brush.h"
+#include "brushes/br_loot/br_loot_zone_brush.h"
 #include "game/item.h"
 #include "ui/replace_tool/brush_mapping_service.h"
 
@@ -484,9 +486,18 @@ bool SelectionOperations::fillSelection(Editor& editor) {
 		g_gui.SetStatusText("No brush selected. Pick a brush in the palette, then fill the selection.");
 		return false;
 	}
-	if (brush->is<HouseExitBrush>() || brush->is<WaypointBrush>() || brush->is<CameraPathBrush>()) {
+	if (brush->is<HouseExitBrush>() || brush->is<WaypointBrush>() || brush->is<CameraPathBrush>() || brush->is<BRLootItemBrush>()) {
 		g_gui.SetStatusText("This brush places a single point and can't fill an area.");
 		return false;
+	}
+	// A zone that left the table (Delete, or undoing New) counts as none: filled back
+	// in, its id would be adopted as a brand-new tier 1 zone at the next save.
+	if (brush->is<BRLootZoneBrush>()) {
+		const uint32_t zone = brush->as<BRLootZoneBrush>()->getZone();
+		if (zone == 0 || !editor.map.br_loot_zones.getZone(zone)) {
+			g_gui.SetStatusText("Pick or create a zone in the BR Loot Zones palette first.");
+			return false;
+		}
 	}
 
 	// Selected tiles are unique, so the positions are too. They may span several
@@ -614,6 +625,8 @@ void SelectionOperations::moveSelection(Editor& editor, Position offset) {
 			new_src_tile->soundZoneId = 0;
 			tmp_storage_tile->instanceZoneId = new_src_tile->instanceZoneId; // BlackTalon
 			new_src_tile->instanceZoneId = 0;
+			tmp_storage_tile->brLootZoneId = new_src_tile->brLootZoneId; // Battle Royale
+			new_src_tile->brLootZoneId = 0;
 			tmp_storage_tile->setMapFlags(new_src_tile->getMapFlags());
 			new_src_tile->setMapFlags(TILESTATE_NONE);
 			doborders = true;
@@ -922,6 +935,8 @@ void SelectionOperations::rotateSelection(Editor& editor, int quarterTurns) {
 			new_src_tile->soundZoneId = 0;
 			tmp_storage_tile->instanceZoneId = new_src_tile->instanceZoneId; // BlackTalon
 			new_src_tile->instanceZoneId = 0;
+			tmp_storage_tile->brLootZoneId = new_src_tile->brLootZoneId; // Battle Royale
+			new_src_tile->brLootZoneId = 0;
 			tmp_storage_tile->setMapFlags(new_src_tile->getMapFlags());
 			new_src_tile->setMapFlags(TILESTATE_NONE);
 			doborders = true;

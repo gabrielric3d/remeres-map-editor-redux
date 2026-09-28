@@ -200,6 +200,8 @@
 		<item name="Show sound zones" hotkey="" action="SHOW_SOUND_ZONES" help="Show painted ambient sound zones (each zone tinted with its own color)."/>
 		<item name="Show instance zones" hotkey="" action="SHOW_INSTANCE_ZONES" help="Show painted instance zones (each zone tinted with its own color, with its name and instance count labelled on the map)."/>
 		<item name="Instance zones: solid fill" hotkey="" action="INSTANCE_ZONE_SOLID_FILL" help="Paint each instance zone as a solid block of its own color instead of a translucent tint. Makes the zone outline obvious, but hides the selection and brush preview underneath. Requires Show instance zones."/>
+		<item name="Show loot zones (BR)" hotkey="" action="SHOW_BR_LOOT_ZONES" help="Battle Royale: tint each loot zone with the color of its tier (1 green, 2 blue, 3 orange), outline it, write its id, and show the items placed by hand."/>
+		<item name="Loot zones (BR): solid fill" hotkey="" action="BR_LOOT_ZONE_SOLID_FILL" help="Paint each loot zone as a solid block of its tier color, to check what is covered. Hides the selection and brush preview underneath. Requires Show loot zones (BR)."/>
 		<item name="Show world boss areas" hotkey="" action="SHOW_WORLDBOSS_ZONES" help="Tint tiles flagged as World Boss (amber) and write &quot;World Boss&quot; over the middle of each painted area. The flag makes the server send combat effects only to whoever caused them."/>
 		<item name="Show pathing" hotkey="O" action="SHOW_PATHING" help="Show blocking tiles."/>
 		<item name="Show towns" hotkey="" action="SHOW_TOWNS" help="Show temple positions."/>
@@ -262,6 +264,9 @@
 			<item name="Creature" hotkey="C" action="SELECT_CREATURE" help="Select the Creature palette."/>
 			<item name="Waypoint" hotkey="W" action="SELECT_WAYPOINT" help="Select the Waypoint palette."/>
 			<item name="RAW" hotkey="R" action="SELECT_RAW" help="Select the RAW palette."/>
+			<separator/>
+			<item name="BR Loot Zones" action="SELECT_BR_LOOT_ZONE" help="Battle Royale: select the loot zone palette (paint zones and set their tier)."/>
+			<item name="BR Loot Items" action="SELECT_BR_LOOT_ITEM" help="Battle Royale: select the loot item palette (place an item by hand on a tile)."/>
 		</menu>
 		<menu name="Toolbars">
 			<item name="Brushes" action="VIEW_TOOLBARS_BRUSHES" help="Show or hide the Brushes toolbar."/>

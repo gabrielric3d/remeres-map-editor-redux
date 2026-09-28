@@ -100,6 +100,12 @@ public: // Functions
 	// Apply a camera paths snapshot as an undoable action
 	void ApplyCameraPathsSnapshot(const CameraPathsSnapshot& snapshot, ActionIdentifier actionType = ACTION_DRAW);
 
+	// Battle Royale: apply a loot zone table as ONE undoable step. `tiles` are tile
+	// copies committed in the same step -- a deleted zone takes its paint along, so
+	// undo brings the zone and its tiles back together.
+	void ApplyBRLootState(const BRLootZonesState& state, ActionIdentifier actionType = ACTION_CHANGE_PROPERTIES);
+	void ApplyBRLootState(const BRLootZonesState& state, std::vector<std::unique_ptr<Tile>> tiles, ActionIdentifier actionType);
+
 	// Draw using the current brush to the target position
 	// alt is whether the ALT key is pressed
 	void draw(const Position& offset, bool alt);

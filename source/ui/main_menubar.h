@@ -143,6 +143,8 @@ namespace MenuBar {
 		SHOW_SOUND_ZONES, // BlackTalon: tint painted ambient sound zones
 		SHOW_INSTANCE_ZONES, // BlackTalon: tint painted instance zones + map labels
 		INSTANCE_ZONE_SOLID_FILL, // BlackTalon: pintar a zona opaca em vez de tint
+		SHOW_BR_LOOT_ZONES, // Battle Royale: loot zones + items placed by hand
+		BR_LOOT_ZONE_SOLID_FILL, // Battle Royale: opaque fill instead of the tint
 		SHOW_WORLDBOSS_ZONES, // BlackTalon: tint ambar + rotulo "World Boss" nas arenas
 		SHOW_PATHING,
 		SHOW_TOOLTIPS,
@@ -171,6 +173,8 @@ namespace MenuBar {
 		SELECT_WAYPOINT,
 		SELECT_CAMERA_PATH,
 		SELECT_RAW,
+		SELECT_BR_LOOT_ZONE, // Battle Royale: the loot zone palette
+		SELECT_BR_LOOT_ITEM, // Battle Royale: the loot item palette
 		FLOOR_0,
 		FLOOR_1,
 		FLOOR_2,
@@ -399,6 +403,8 @@ public:
 	void OnSelectWaypointPalette(wxCommandEvent& event);
 	void OnSelectCameraPathPalette(wxCommandEvent& event);
 	void OnSelectRawPalette(wxCommandEvent& event);
+	void OnSelectBRLootZonePalette(wxCommandEvent& event);
+	void OnSelectBRLootItemPalette(wxCommandEvent& event);
 
 	void OnScriptsOpenFolder(wxCommandEvent& event);
 	void OnScriptsReload(wxCommandEvent& event);

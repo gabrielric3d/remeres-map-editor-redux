@@ -60,6 +60,8 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/brushes/camera/camera_path_brush.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/sound_zone/sound_zone_brush.h
     ${CMAKE_CURRENT_LIST_DIR}/brushes/instance_zone/instance_zone_brush.h
+    ${CMAKE_CURRENT_LIST_DIR}/brushes/br_loot/br_loot_zone_brush.h
+    ${CMAKE_CURRENT_LIST_DIR}/brushes/br_loot/br_loot_item_brush.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/action.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/action_queue.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/copybuffer.h
@@ -100,6 +102,8 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/game/camera_paths.h
     ${CMAKE_CURRENT_LIST_DIR}/game/sound_zones.h
     ${CMAKE_CURRENT_LIST_DIR}/game/instance_zones.h
+    ${CMAKE_CURRENT_LIST_DIR}/game/br_loot_zones.h
+    ${CMAKE_CURRENT_LIST_DIR}/game/br_loot_catalog.h
     ${CMAKE_CURRENT_LIST_DIR}/game/zone_bounds.h
     ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_types.h
     ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_fragments.h
@@ -190,6 +194,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_camera_paths.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_sound_zones.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_instance_zones.h
+    ${CMAKE_CURRENT_LIST_DIR}/palette/palette_br_loot.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/house_palette.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/edit_house_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_window.h
@@ -275,6 +280,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/stair_direction_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/zone_overlay_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/zone_label_drawer.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/br_loot_overlay_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/worldboss_label_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/floor_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/shade_drawer.h
@@ -540,6 +546,8 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/brushes/camera/camera_path_brush.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/sound_zone/sound_zone_brush.cpp
     ${CMAKE_CURRENT_LIST_DIR}/brushes/instance_zone/instance_zone_brush.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/brushes/br_loot/br_loot_zone_brush.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/brushes/br_loot/br_loot_item_brush.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/action.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/action_queue.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/copybuffer.cpp
@@ -574,6 +582,8 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/game/camera_paths.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/sound_zones.cpp
     ${CMAKE_CURRENT_LIST_DIR}/game/instance_zones.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/game/br_loot_zones.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/game/br_loot_catalog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/asset_bundle_loader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_recipe.cpp
     ${CMAKE_CURRENT_LIST_DIR}/item_definitions/core/item_definition_store.cpp
@@ -654,6 +664,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_camera_paths.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_sound_zones.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_instance_zones.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/palette/palette_br_loot.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/house_palette.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/edit_house_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_window.cpp
@@ -733,6 +744,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/stair_direction_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/zone_overlay_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/zone_label_drawer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/br_loot_overlay_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/overlays/worldboss_label_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/floor_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/shade_drawer.cpp

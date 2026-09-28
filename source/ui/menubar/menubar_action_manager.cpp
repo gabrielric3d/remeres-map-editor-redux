@@ -148,6 +148,8 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION_ICON(SHOW_SOUND_ZONES, wxITEM_CHECK, ICON_MUSIC, OnChangeViewSettings);
 	MAKE_ACTION_ICON(SHOW_INSTANCE_ZONES, wxITEM_CHECK, ICON_CLONE, OnChangeViewSettings);
 	MAKE_ACTION(INSTANCE_ZONE_SOLID_FILL, wxITEM_CHECK, OnChangeViewSettings);
+	MAKE_ACTION_ICON(SHOW_BR_LOOT_ZONES, wxITEM_CHECK, ICON_BOX_OPEN, OnChangeViewSettings);
+	MAKE_ACTION(BR_LOOT_ZONE_SOLID_FILL, wxITEM_CHECK, OnChangeViewSettings);
 	MAKE_ACTION_ICON(SHOW_WORLDBOSS_ZONES, wxITEM_CHECK, ICON_SKULL, OnChangeViewSettings);
 	MAKE_ACTION_ICON(SHOW_PATHING, wxITEM_CHECK, ICON_ROUTE, OnChangeViewSettings);
 	MAKE_ACTION_ICON(SHOW_TOOLTIPS, wxITEM_CHECK, ICON_COMMENT_DOTS, OnChangeViewSettings);
@@ -191,6 +193,8 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(SELECT_WAYPOINT, wxITEM_NORMAL, OnSelectWaypointPalette);
 	MAKE_ACTION(SELECT_CAMERA_PATH, wxITEM_NORMAL, OnSelectCameraPathPalette);
 	MAKE_ACTION(SELECT_RAW, wxITEM_NORMAL, OnSelectRawPalette);
+	MAKE_ACTION(SELECT_BR_LOOT_ZONE, wxITEM_NORMAL, OnSelectBRLootZonePalette);
+	MAKE_ACTION(SELECT_BR_LOOT_ITEM, wxITEM_NORMAL, OnSelectBRLootItemPalette);
 
 	MAKE_ACTION(FLOOR_0, wxITEM_RADIO, OnChangeFloor);
 	MAKE_ACTION(FLOOR_1, wxITEM_RADIO, OnChangeFloor);
@@ -355,6 +359,8 @@ void MenuBarActionManager::UpdateState(MainMenuBar* mb) {
 	mb->EnableItem(SELECT_WAYPOINT, loaded);
 	mb->EnableItem(SELECT_CAMERA_PATH, loaded);
 	mb->EnableItem(SELECT_RAW, loaded);
+	mb->EnableItem(SELECT_BR_LOOT_ZONE, loaded);
+	mb->EnableItem(SELECT_BR_LOOT_ITEM, loaded);
 
 	mb->EnableItem(LIVE_START, is_local);
 	mb->EnableItem(LIVE_JOIN, loaded);

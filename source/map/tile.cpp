@@ -82,6 +82,7 @@ Tile::Tile(int x, int y, int z) :
 	house_id(0),
 	soundZoneId(0),
 	instanceZoneId(0),
+	brLootZoneId(0),
 	mapflags(0),
 	statflags(0),
 	minimapColor(INVALID_MINIMAP_COLOR) {
@@ -96,6 +97,7 @@ Tile::Tile(TileLocation& loc) :
 	house_id(0),
 	soundZoneId(0),
 	instanceZoneId(0),
+	brLootZoneId(0),
 	mapflags(0),
 	statflags(0),
 	minimapColor(INVALID_MINIMAP_COLOR) {
@@ -191,6 +193,7 @@ std::unique_ptr<Tile> Tile::deepCopy() const {
 	copy->house_id = house_id;
 	copy->soundZoneId = soundZoneId;
 	copy->instanceZoneId = instanceZoneId;
+	copy->brLootZoneId = brLootZoneId;
 	copy->mapflags = mapflags;
 	copy->statflags = statflags;
 	copy->minimapColor = minimapColor;

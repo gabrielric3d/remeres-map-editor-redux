@@ -142,6 +142,30 @@ namespace {
 		nvgFill(vg);
 	}
 
+	// Chest: one path, lid and body joined, with the seam and the lock as HOLES -- the
+	// same trick as the skull, so the dark outline copy keeps the shape.
+	void drawLootIcon(NVGcontext* vg, float cx, float cy, float size, NVGcolor color) {
+		const float w = size * 0.86f;
+		const float left = cx - w * 0.5f;
+		const float top = cy - size * 0.36f;
+		const float lid_h = size * 0.30f;
+		const float body_h = size * 0.44f;
+		const float seam = std::max(1.0f, size * 0.06f);
+		const float lock_w = size * 0.16f;
+
+		nvgFillColor(vg, color);
+		nvgBeginPath(vg);
+		nvgRoundedRect(vg, left, top, w, lid_h + seam + body_h, size * 0.08f);
+		// seam between lid and body
+		nvgRect(vg, left + seam, top + lid_h, w - seam * 2.0f, seam);
+		nvgPathWinding(vg, NVG_HOLE);
+		// lock, just under the seam. It must not overlap the seam: with the nonzero rule
+		// two holes over the same pixels cancel out and fill it again.
+		nvgRect(vg, cx - lock_w * 0.5f, top + lid_h + seam * 2.0f, lock_w, lock_w);
+		nvgPathWinding(vg, NVG_HOLE);
+		nvgFill(vg);
+	}
+
 	void drawIcon(NVGcontext* vg, ZoneLabelIcon icon, float cx, float cy, float size, NVGcolor color) {
 		switch (icon) {
 			case ZoneLabelIcon::Music:
@@ -152,6 +176,9 @@ namespace {
 				break;
 			case ZoneLabelIcon::Boss:
 				drawBossIcon(vg, cx, cy, size, color);
+				break;
+			case ZoneLabelIcon::Loot:
+				drawLootIcon(vg, cx, cy, size, color);
 				break;
 			case ZoneLabelIcon::None:
 			default:
@@ -203,10 +230,19 @@ void ZoneLabelDrawer::draw(NVGcontext* vg, const RenderView& view, int floor, co
 		// Size comes from the zone's extent in MAP space (tiles), never from how big
 		// it looks on screen right now. That is what keeps the label identical in
 		// window pixels at every zoom. Position follows the map; size does not.
-		const float span_w = static_cast<float>(label.max_x - label.min_x + 1) * static_cast<float>(TILE_SIZE);
-		const float span_h = static_cast<float>(label.max_y - label.min_y + 1) * static_cast<float>(TILE_SIZE);
+		// (Except a follow_zoom label -- the loot zones -- see ZoneLabel.)
+		float span_w = static_cast<float>(label.max_x - label.min_x + 1) * static_cast<float>(TILE_SIZE);
+		float span_h = static_cast<float>(label.max_y - label.min_y + 1) * static_cast<float>(TILE_SIZE);
+		if (label.follow_zoom) {
+			span_w /= zoom;
+			span_h /= zoom;
+		}
 
-		float font = std::min(BASE_FONT, std::min(span_w, span_h) * SMALL_ZONE_RATIO);
+		const float base_font = (label.max_font > 0.0f) ? label.max_font : BASE_FONT;
+		float font = std::min(base_font, std::min(span_w, span_h) * SMALL_ZONE_RATIO);
+		if (label.follow_zoom && font < MIN_FONT) {
+			continue;
+		}
 		font = std::max(font, MIN_FONT);
 		nvgFontSize(vg, font);
 
@@ -236,10 +272,10 @@ void ZoneLabelDrawer::draw(NVGcontext* vg, const RenderView& view, int floor, co
 		// whole block back inside the window -- still map-anchored, just clamped.
 		const float pad_x = block_w * 0.5f + EDGE_MARGIN;
 		const float pad_y = std::max(text_h, icon_size) * 0.5f + EDGE_MARGIN;
-		if (win_w > pad_x * 2.0f) {
+		if (!label.follow_zoom && win_w > pad_x * 2.0f) {
 			center_x = std::clamp(center_x, pad_x, win_w - pad_x);
 		}
-		if (win_h > pad_y * 2.0f) {
+		if (!label.follow_zoom && win_h > pad_y * 2.0f) {
 			center_y = std::clamp(center_y, pad_y, win_h - pad_y);
 		}
 

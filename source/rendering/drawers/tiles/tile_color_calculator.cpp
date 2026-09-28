@@ -4,6 +4,7 @@
 #include "game/item.h"
 #include "rendering/core/drawing_options.h"
 #include "app/definitions.h"
+#include "game/br_loot_zones.h"
 #include <array>
 
 // ATENCAO: o TileRenderer so chama esta funcao quando options.hasTileColorModifiers()
@@ -76,6 +77,18 @@ void TileColorCalculator::Calculate(const Tile* tile, const DrawingOptions& opti
 	if (options.show_instance_zones && tile->isInstanceZoneTile()) {
 		uint8_t zr = 255, zg = 255, zb = 255;
 		GetInstanceZoneColor(tile->getInstanceZoneId(), zr, zg, zb);
+		r = static_cast<uint8_t>((r * zr + r) >> 8);
+		g = static_cast<uint8_t>((g * zg + g) >> 8);
+		b = static_cast<uint8_t>((b * zb + b) >> 8);
+	}
+
+	// Battle Royale: loot zones, tinted by tier. The tier is map data, so it comes
+	// from the zone table the drawer hands over in the options.
+	if (options.show_br_loot_zones && tile->isBRLootZoneTile()) {
+		const uint32_t zone_id = tile->getBRLootZoneId();
+		const int tier = options.br_loot_zones ? options.br_loot_zones->tierOf(zone_id) : 0;
+		uint8_t zr = 255, zg = 255, zb = 255;
+		GetBRLootZoneColor(tier, zone_id, zr, zg, zb);
 		r = static_cast<uint8_t>((r * zr + r) >> 8);
 		g = static_cast<uint8_t>((g * zg + g) >> 8);
 		b = static_cast<uint8_t>((b * zb + b) >> 8);
@@ -182,6 +195,34 @@ void TileColorCalculator::GetInstanceZoneColor(uint32_t zone_id, uint8_t& r, uin
 		g += 110;
 		b += 110;
 	}
+}
+
+void TileColorCalculator::GetBRLootZoneColor(int tier, uint32_t zone_id, uint8_t& r, uint8_t& g, uint8_t& b) {
+	// The HUB's tier colors (tools/hub/loot_view.js, LT_TIER_COLORS): the map and the
+	// HUB must say the same thing with the same color.
+	switch (tier) {
+		case 1:
+			r = 70, g = 200, b = 110;
+			break;
+		case 2:
+			r = 70, g = 150, b = 255;
+			break;
+		case 3:
+			r = 255, g = 160, b = 40;
+			break;
+		default:
+			r = 200, g = 90, b = 220;
+			break;
+	}
+
+	// 82..100% of the tier color, fixed per zone id (a FOURTH salt of the same hash).
+	uint32_t hash = zone_id * 2654435761u + 0xc2b2ae35u;
+	hash = ((hash >> 16) ^ hash) * 0x45d9f3b;
+	hash = (hash >> 16) ^ hash;
+	const uint32_t shade = 210 + (hash % 46);
+	r = static_cast<uint8_t>((r * shade) / 255);
+	g = static_cast<uint8_t>((g * shade) / 255);
+	b = static_cast<uint8_t>((b * shade) / 255);
 }
 
 void TileColorCalculator::GetMinimapColor(const Tile* tile, uint8_t& r, uint8_t& g, uint8_t& b) {

@@ -74,6 +74,7 @@ class LuaOverlayDrawer;
 class ZoneOverlayDrawer;
 class ZoneLabelDrawer;
 class WorldBossLabelDrawer;
+class BRLootOverlayDrawer;
 
 class MapDrawer {
 	MapCanvas* canvas;
@@ -115,6 +116,7 @@ class MapDrawer {
 	std::unique_ptr<ZoneOverlayDrawer> zone_overlay_drawer;
 	std::unique_ptr<ZoneLabelDrawer> zone_label_drawer;
 	std::unique_ptr<WorldBossLabelDrawer> worldboss_label_drawer;
+	std::unique_ptr<BRLootOverlayDrawer> br_loot_drawer; // Battle Royale
 	std::unique_ptr<SpriteBatch> sprite_batch;
 	std::unique_ptr<PrimitiveRenderer> primitive_renderer;
 
@@ -176,6 +178,7 @@ public:
 	void DrawPaintedZoneLabels(NVGcontext* vg);
 	void DrawWorldBossLabels(NVGcontext* vg);
 	void DrawSolidInstanceZones(NVGcontext* vg);
+	void DrawBRLootOverlay(NVGcontext* vg); // Battle Royale: loot zone outline, ids, placed items
 
 	void TakeScreenshot(uint8_t* screenshot_buffer);
 

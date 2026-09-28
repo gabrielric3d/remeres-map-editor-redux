@@ -29,6 +29,7 @@
 #include "game/camera_paths.h"
 #include "game/sound_zones.h"
 #include "game/instance_zones.h"
+#include "game/br_loot_zones.h"
 #include "io/templates.h"
 
 class MapConverter;
@@ -191,6 +192,7 @@ public:
 	CameraPaths camera_paths;
 	SoundZones sound_zones; // BlackTalon: ambient sound zones (painted areas)
 	InstanceZones instance_zones; // BlackTalon: instance zones (painted areas)
+	BRLootZones br_loot_zones; // Battle Royale: loot zones (painted areas) and items placed by hand
 
 private:
 	uint64_t generation;

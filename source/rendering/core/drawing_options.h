@@ -7,6 +7,8 @@
 #include <optional>
 #include "map/position.h"
 
+class BRLootZones;
+
 struct DrawingOptions {
 	DrawingOptions();
 
@@ -64,6 +66,13 @@ struct DrawingOptions {
 	bool show_sound_zones; // BlackTalon: tint ambient sound zones by color
 	bool show_instance_zones; // BlackTalon: tint instance zones by color
 	bool solid_instance_zones; // BlackTalon: opaque fill instead of tint (needs the above)
+	bool show_br_loot_zones; // Battle Royale: loot zones (tint by tier, outline, id) and items placed by hand
+	bool solid_br_loot_zones; // Battle Royale: opaque fill instead of tint (needs the above)
+	// Battle Royale: the loot zone table of the map being drawn -- the tint asks it the
+	// tier of a zone. Set every frame in MapDrawer::SetupVars; null anywhere else, and
+	// the tint then paints the zone in the "unknown tier" color.
+	const BRLootZones* br_loot_zones = nullptr;
+	uint32_t br_loot_generation = 0;
 	bool show_worldboss_zones; // BlackTalon: tint + rotulo "World Boss" nas arenas com a flag 0x40
 	bool show_shade;
 	bool show_special_tiles;
@@ -134,7 +143,7 @@ struct DrawingOptions {
 	// senao o tint dela simplesmente nao aparece.
 	[[nodiscard]] bool hasTileColorModifiers() const noexcept {
 		return show_blocking || highlight_items || show_houses
-			|| show_sound_zones || show_instance_zones || show_worldboss_zones
+			|| show_sound_zones || show_instance_zones || show_br_loot_zones || show_worldboss_zones
 			|| show_special_tiles || show_only_colors;
 	}
 
@@ -165,6 +174,7 @@ struct DrawingOptions {
 		bit(show_spawns);
 		bit(show_sound_zones);
 		bit(show_instance_zones);
+		bit(show_br_loot_zones);
 		bit(show_worldboss_zones);
 		bit(show_special_tiles);
 		bit(show_only_colors);
@@ -182,7 +192,10 @@ struct DrawingOptions {
 		// The LOD gate, not the raw zoom: only crossing the threshold changes
 		// what gets baked, so panning and zooming do not thrash the cache.
 		bit(drawLooseItems());
-		return (sig << 32) ^ static_cast<uint64_t>(current_house_id);
+		// The loot zone tint depends on the tier of each zone, which is map data and
+		// not an option: a tier change bumps the generation, and that has to re-bake.
+		return ((sig << 32) ^ static_cast<uint64_t>(current_house_id))
+			^ (static_cast<uint64_t>(br_loot_generation) * 0x9E3779B97F4A7C15ull);
 	}
 };
 

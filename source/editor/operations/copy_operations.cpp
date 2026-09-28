@@ -39,6 +39,7 @@ void CopyOperations::copy(Editor& editor, CopyBuffer& buffer, int floor) {
 			copied_tile->house_id = tile->house_id;
 			copied_tile->soundZoneId = tile->soundZoneId; // BlackTalon
 			copied_tile->instanceZoneId = tile->instanceZoneId; // BlackTalon
+			copied_tile->brLootZoneId = tile->brLootZoneId; // Battle Royale
 			copied_tile->setMapFlags(tile->getMapFlags());
 		}
 
@@ -102,6 +103,8 @@ void CopyOperations::cut(Editor& editor, CopyBuffer& buffer, int floor) {
 			newtile->soundZoneId = 0;
 			copied_tile->instanceZoneId = newtile->instanceZoneId; // BlackTalon
 			newtile->instanceZoneId = 0;
+			copied_tile->brLootZoneId = newtile->brLootZoneId; // Battle Royale
+			newtile->brLootZoneId = 0;
 			copied_tile->setMapFlags(tile->getMapFlags());
 			newtile->setMapFlags(TILESTATE_NONE);
 		}

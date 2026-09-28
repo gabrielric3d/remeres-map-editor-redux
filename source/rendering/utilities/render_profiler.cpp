@@ -81,6 +81,7 @@ namespace RenderProfiler {
 			{ "solid instance zones", "NvgSolidZones", 2 },
 			{ "instance/sound zone labels", "NvgPaintedZones", 2 },
 			{ "world boss labels", "NvgWorldBoss", 2 },
+			{ "BR loot zones", "NvgBRLoot", 2 },
 			{ "Lua UI", "NvgLuaUI", 2 },
 			{ "HUD, toasts, radial", "NvgHud", 2 },
 			{ "this profiler", "NvgProfilerHud", 2 },

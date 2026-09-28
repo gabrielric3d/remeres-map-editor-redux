@@ -57,6 +57,8 @@ namespace Config {
 		SHOW_SOUND_ZONES,
 		SHOW_INSTANCE_ZONES,
 		INSTANCE_ZONE_SOLID_FILL, // BlackTalon: pintar a zona opaca em vez de tint
+		SHOW_BR_LOOT_ZONES, // Battle Royale: tint by tier + outline + id of the loot zones, and the items placed by hand
+		BR_LOOT_ZONE_SOLID_FILL, // Battle Royale: opaque fill instead of the tint
 		SHOW_WORLDBOSS_ZONES, // BlackTalon: tint + rotulo das arenas World Boss
 		SHOW_SHADE,
 		SHOW_SPECIAL_TILES,

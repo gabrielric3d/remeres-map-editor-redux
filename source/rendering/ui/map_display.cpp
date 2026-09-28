@@ -361,6 +361,10 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 		RENDER_PROFILE_SCOPE(NvgWorldBoss);
 		drawer->DrawWorldBossLabels(vg);
 	}
+	if (options.show_br_loot_zones) {
+		RENDER_PROFILE_SCOPE(NvgBRLoot);
+		drawer->DrawBRLootOverlay(vg);
+	}
 	if (drawer->getLuaOverlayDrawer()) {
 		RENDER_PROFILE_SCOPE(NvgLuaUI);
 		drawer->getLuaOverlayDrawer()->DrawUI(vg, drawer->getView(), options);

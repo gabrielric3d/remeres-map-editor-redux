@@ -78,6 +78,7 @@ namespace RenderProfiler {
 		NvgSolidZones,
 		NvgPaintedZones,
 		NvgWorldBoss,
+		NvgBRLoot,
 		NvgLuaUI,
 		NvgHud,
 		NvgProfilerHud,

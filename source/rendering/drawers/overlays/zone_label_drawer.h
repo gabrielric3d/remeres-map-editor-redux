@@ -37,6 +37,7 @@ enum class ZoneLabelIcon {
 	Music,    // sound zones
 	Instance, // instance zones -- stacked copies
 	Boss,     // arenas World Boss -- caveira
+	Loot,     // Battle Royale loot zones -- a chest
 };
 
 struct ZoneLabel {
@@ -45,6 +46,15 @@ struct ZoneLabel {
 	int min_x = 0, min_y = 0, max_x = 0, max_y = 0; // painted bounds on this floor, in tiles
 	uint8_t r = 255, g = 255, b = 255;              // the zone's own color
 	ZoneLabelIcon icon = ZoneLabelIcon::None;
+
+	// Battle Royale loot zones are MANY and SMALL (a room each). The default label is
+	// sized in window pixels whatever the zoom, which suits a few big regions and
+	// buries a town of rooms under their own names when zoomed out. With this set the
+	// size follows the zone ON SCREEN, the label is skipped when it would be smaller
+	// than the minimum, and it is not pulled back inside the window.
+	bool follow_zoom = false;
+	// Cap for the font (0 = the drawer's default).
+	float max_font = 0.0f;
 };
 
 class ZoneLabelDrawer {

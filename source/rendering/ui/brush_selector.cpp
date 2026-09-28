@@ -33,6 +33,11 @@
 #include "brushes/spawn/spawn_brush.h"
 #include "brushes/creature/creature_brush.h"
 #include "brushes/door/door_brush.h"
+#include "brushes/br_loot/br_loot_item_brush.h"
+#include "brushes/br_loot/br_loot_zone_brush.h"
+#include "game/br_loot_zones.h"
+#include "palette/palette_br_loot.h"
+#include "palette/palette_window.h"
 
 void BrushSelector::SelectRAWBrush(Selection& selection) {
 	if (selection.size() != 1) {
@@ -249,6 +254,20 @@ void BrushSelector::SelectSpawnBrush() {
 }
 
 void BrushSelector::SelectSmartBrush(Editor& editor, Tile* tile) {
+	// Battle Royale: with a loot brush in hand the picker picks what that brush paints
+	// -- the zone of the tile, or the item placed by hand on it -- and never trades
+	// the loot brush for a RAW one.
+	if (Brush* current = g_gui.GetCurrentBrush()) {
+		if (current->is<BRLootZoneBrush>()) {
+			SelectBRLootZone(editor, tile);
+			return;
+		}
+		if (current->is<BRLootItemBrush>()) {
+			SelectBRLootItem(editor, tile);
+			return;
+		}
+	}
+
 	if (tile && tile->size() > 0) {
 		// Select visible creature
 		if (tile->creature && g_settings.getInteger(Config::SHOW_CREATURES)) {
@@ -268,4 +287,70 @@ void BrushSelector::SelectSmartBrush(Editor& editor, Tile* tile) {
 			g_gui.RestoreBrushSizeState(sizeState);
 		}
 	}
+}
+
+// Battle Royale: the way to change a zone straight from the map. Its row is picked in
+// the BR Loot Zones page and the brush paints it: paint to grow it, Ctrl to shrink
+// it, Set tier to retier it.
+bool BrushSelector::SelectBRLootZone(Editor& editor, Tile* tile) {
+	const uint32_t id = tile ? tile->getBRLootZoneId() : 0;
+	const BRLootZone* zone = editor.map.br_loot_zones.getZone(id);
+	if (!zone) {
+		if (id != 0) {
+			g_gui.SetStatusText(wxString::Format("Loot zone %u is not in this map's table yet: saving the map adopts it as tier 1.", static_cast<unsigned>(id)));
+		} else {
+			g_gui.SetStatusText("No loot zone on this tile.");
+		}
+		return false;
+	}
+	const int tier = zone->tier;
+
+	// Picked to be changed, so it has to be seen: the zones overlay comes on, the way
+	// placing a creature turns the spawns on.
+	if (!g_settings.getBoolean(Config::SHOW_BR_LOOT_ZONES)) {
+		g_settings.setInteger(Config::SHOW_BR_LOOT_ZONES, 1);
+		g_gui.UpdateMenubar();
+	}
+
+	const auto sizeState = g_brush_manager.GetBrushSizeState();
+	// The page first: switching pages asks the page for its brush, and the pick below
+	// has to be the last word.
+	g_gui.SelectPalettePage(TILESET_BR_LOOT_ZONE);
+	PaletteWindow* palette = g_gui.GetPalette();
+	BRLootZonePalettePanel* panel = palette ? palette->GetBRLootZonePalette() : nullptr;
+	if (!panel || !panel->PickZone(id)) {
+		g_gui.RestoreBrushSizeState(sizeState);
+		return false;
+	}
+	// The two-argument form: the brush already carries the zone, and the no-argument
+	// one would hand over the house brush if a house is picked in the house palette.
+	g_gui.SelectBrush(g_brush_manager.br_loot_zone_brush, TILESET_BR_LOOT_ZONE);
+	g_gui.RestoreBrushSizeState(sizeState);
+	g_gui.SetStatusText(wxString::Format("Loot zone %d-%u picked: paint to add tiles, Ctrl+click takes them out, Set tier changes its tier.", tier, static_cast<unsigned>(id)));
+	return true;
+}
+
+// Battle Royale: the item placed by hand on this tile is loaded into the loot item
+// brush, like a click on its row: clicking the tile again rewrites it.
+bool BrushSelector::SelectBRLootItem(Editor& editor, Tile* tile) {
+	const BRLootItem* item = tile ? editor.map.br_loot_zones.itemAt(tile->getPosition()) : nullptr;
+	if (!item) {
+		g_gui.SetStatusText("No loot item placed by hand on this tile.");
+		return false;
+	}
+	const std::string name = item->name;
+	const Position pos = item->pos;
+
+	const auto sizeState = g_brush_manager.GetBrushSizeState();
+	g_gui.SelectPalettePage(TILESET_BR_LOOT_ITEM);
+	PaletteWindow* palette = g_gui.GetPalette();
+	BRLootItemPalettePanel* panel = palette ? palette->GetBRLootItemPalette() : nullptr;
+	if (!panel || !panel->PickPlaced(pos)) {
+		g_gui.RestoreBrushSizeState(sizeState);
+		return false;
+	}
+	g_gui.SelectBrush(g_brush_manager.br_loot_item_brush, TILESET_BR_LOOT_ITEM);
+	g_gui.RestoreBrushSizeState(sizeState);
+	g_gui.SetStatusText("Loot item " + wxstr(name) + " picked: change it in the palette and click its tile to rewrite it.");
+	return true;
 }
