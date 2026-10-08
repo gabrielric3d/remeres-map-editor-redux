@@ -2,6 +2,7 @@
 
 #include "app/definitions.h"
 #include "io/filehandle.h"
+#include "item_definitions/formats/godot/godot_things_reader.h"
 #include "rendering/core/image.h"
 #include "util/json.h"
 
@@ -15,6 +16,8 @@
 #include <lzma.h>
 #include <spdlog/spdlog.h>
 #include <wx/filename.h>
+#include <wx/image.h>
+#include <wx/log.h>
 #include <wx/string.h>
 
 namespace {
@@ -25,7 +28,11 @@ namespace {
 	constexpr int kSheetDimension = 384;
 	constexpr int kSheetBytes = kSheetDimension * kSheetDimension * 4;
 	constexpr int kBmpHeaderPadding = 122;
-	// Teto de folhas decodificadas em memoria: 64 x 384x384x4 = ~36 MB.
+	// Teto de folhas decodificadas em memoria: 64 x 384x384x4 = ~36 MB. No
+	// conjunto dobrado (assetScale 2) uma folha guarda 4x menos sprites -- so 9
+	// dos de 128x128 --, e o teto acompanha: 64 x 2 x 2 = 256 folhas, ~144 MB.
+	// Com 64, abrir uma area nova do mapa do BR decodificava a mesma folha
+	// varias vezes seguidas.
 	constexpr size_t kDecodedSheetCacheLimit = 64;
 	constexpr std::array<uint8_t, 5> kProtobufSheetMagic { 0x70, 0x0A, 0xFA, 0x80, 0x24 };
 
@@ -45,6 +52,52 @@ namespace {
 		} };
 		const auto index = static_cast<size_t>(layout);
 		return index < kSizes.size() ? kSizes[index] : kSizes[0];
+	}
+
+	// O inverso: o indice do Godot da o tamanho do sprite em pixels, e nao o spritetype.
+	bool protobufLayoutFor(int width, int height, SpriteArchive::ProtobufSpriteLayout& layout) {
+		for (int index = 0; index < 36; ++index) {
+			const auto candidate = static_cast<SpriteArchive::ProtobufSpriteLayout>(index);
+			if (protobufSourceDimensions(candidate) == std::pair<int, int> { width, height }) {
+				layout = candidate;
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// Uma folha PNG do cliente Godot, como BGRA de cima para baixo: o mesmo arranjo em que a
+	// folha .bmp.lzma fica depois de desvirada, para o recorte de readRGBA servir as duas.
+	std::shared_ptr<std::vector<uint8_t>> decodePngSheet(const std::string& path) {
+		wxImage image;
+		{
+			// O preloader roda fora da thread principal: falha vira log, nunca um dialogo.
+			wxLogNull silence;
+			if (!image.LoadFile(wxString::FromUTF8(path), wxBITMAP_TYPE_PNG) || !image.IsOk()) {
+				spdlog::error("SpriteArchive: failed to load Godot sprite sheet {}", path);
+				return nullptr;
+			}
+		}
+		if (image.GetWidth() != kSheetDimension || image.GetHeight() != kSheetDimension) {
+			spdlog::error("SpriteArchive: Godot sprite sheet {} is {}x{}, expected {}x{}", path, image.GetWidth(), image.GetHeight(), kSheetDimension, kSheetDimension);
+			return nullptr;
+		}
+		if (!image.HasAlpha()) {
+			// Um PNG com cor-chave (tRNS) chega como mascara; sem nada, opaco.
+			image.InitAlpha();
+		}
+
+		const uint8_t* rgb = image.GetData();
+		const uint8_t* alpha = image.GetAlpha();
+		auto pixels = std::make_shared<std::vector<uint8_t>>(kSheetBytes, 0);
+		for (size_t pixel = 0; pixel < static_cast<size_t>(kSheetDimension) * kSheetDimension; ++pixel) {
+			uint8_t* out = pixels->data() + pixel * 4;
+			out[0] = rgb[pixel * 3 + 2];
+			out[1] = rgb[pixel * 3 + 1];
+			out[2] = rgb[pixel * 3 + 0];
+			out[3] = alpha ? alpha[pixel] : 255;
+		}
+		return pixels;
 	}
 
 	// "SCAT" read as a little-endian u32, matching how the client and the
@@ -404,6 +457,10 @@ bool SpriteArchive::readCompressed(uint32_t sprite_id, std::unique_ptr<uint8_t[]
 // ---------------------------------------------------------------------------
 
 std::shared_ptr<SpriteArchive> SpriteArchive::loadProtobuf(const wxFileName& catalog_path, wxString& error, std::vector<std::string>& warnings) {
+	if (GodotThings::isThingsFile(catalog_path.GetFullPath().ToStdString())) {
+		return loadGodotThings(catalog_path, error, warnings);
+	}
+
 	std::ifstream file(catalog_path.GetFullPath().ToStdString(), std::ios::in | std::ios::binary);
 	if (!file.is_open()) {
 		error = wxString::FromUTF8(std::format("Failed to open protobuf catalog {}.", catalog_path.GetFullPath().utf8_string()));
@@ -474,6 +531,65 @@ std::shared_ptr<SpriteArchive> SpriteArchive::loadProtobuf(const wxFileName& cat
 	return archive;
 }
 
+// O indice do cliente Godot (client-godot/assets/things/<versao>/things.bin): a tabela das
+// folhas faz o papel do catalog-content.json. O tamanho da casa vem no cabecalho, e nao da
+// ausencia de folhas 32x32 como no conjunto dobrado: as folhas que a repintura criou so tem
+// sprites de 64x64, como qualquer outra do x2.
+std::shared_ptr<SpriteArchive> SpriteArchive::loadGodotThings(const wxFileName& things_path, wxString& error, std::vector<std::string>& warnings) {
+	GodotThings::Header header;
+	std::string reason;
+	if (!GodotThings::readHeader(things_path.GetFullPath().ToStdString(), header, reason)) {
+		error = wxString::FromUTF8(reason);
+		return nullptr;
+	}
+	if (header.tile_pixels < SPRITE_PIXELS || header.tile_pixels % SPRITE_PIXELS != 0 || header.tile_pixels / SPRITE_PIXELS > 4) {
+		error = wxString::FromUTF8(std::format("{} declares {} px per tile; the editor reads 32, 64, 96 or 128.", things_path.GetFullPath().utf8_string(), header.tile_pixels));
+		return nullptr;
+	}
+
+	std::vector<ProtobufSheet> sheets;
+	sheets.reserve(header.sheets.size());
+	uint32_t sprite_count = 0;
+	for (const auto& entry : header.sheets) {
+		ProtobufSheet sheet;
+		sheet.first_id = entry.first_id;
+		sheet.last_id = entry.last_id;
+		sheet.png = true;
+		sheet.path = GodotThings::sheetPath(things_path.GetFullPath(), entry.first_id);
+		if (!protobufLayoutFor(entry.sprite_width, entry.sprite_height, sheet.layout)) {
+			warnings.push_back(std::format("Skipping Godot sprite sheet {}: {}x{} sprites do not tile a 384x384 sheet.", sheet.path, entry.sprite_width, entry.sprite_height));
+			continue;
+		}
+		if (sheet.last_id < sheet.first_id) {
+			warnings.push_back(std::format("Skipping Godot sprite sheet {}: inverted range {}-{}.", sheet.path, sheet.first_id, sheet.last_id));
+			continue;
+		}
+		if (sheet.last_id > MAX_SPRITES) {
+			error = wxString::FromUTF8(std::format("Godot sprite sheet {} exceeds MAX_SPRITES={} with last sprite id {}.", sheet.path, MAX_SPRITES, sheet.last_id));
+			return nullptr;
+		}
+		sprite_count = std::max(sprite_count, sheet.last_id);
+		sheets.push_back(std::move(sheet));
+	}
+
+	if (sheets.empty()) {
+		error = wxString::FromUTF8(std::format("{} lists no sprite sheets.", things_path.GetFullPath().utf8_string()));
+		return nullptr;
+	}
+
+	std::vector<int32_t> sheet_lookup(static_cast<size_t>(sprite_count) + 1, -1);
+	for (size_t index = 0; index < sheets.size(); ++index) {
+		for (uint32_t sprite_id = sheets[index].first_id; sprite_id <= sheets[index].last_id; ++sprite_id) {
+			sheet_lookup[sprite_id] = static_cast<int32_t>(index);
+		}
+	}
+
+	auto archive = std::shared_ptr<SpriteArchive>(new SpriteArchive(things_path.GetFullPath().ToStdString(), sprite_count, std::move(sheets), std::move(sheet_lookup)));
+	archive->asset_scale_ = header.tile_pixels / SPRITE_PIXELS;
+	spdlog::info("SpriteArchive: indice do cliente Godot {} (appearances {}), {} folhas PNG, {} px por casa.", things_path.GetFullPath().utf8_string(), header.appearances_version, archive->protobuf_sheets_.size(), header.tile_pixels);
+	return archive;
+}
+
 ImageDimensions SpriteArchive::spriteDimensions(uint32_t sprite_id) const {
 	if (backend_ != Backend::Protobuf || sprite_id == 0 || sprite_id >= protobuf_sheet_lookup_.size()) {
 		return {};
@@ -491,29 +607,29 @@ ImageDimensions SpriteArchive::spriteDimensions(uint32_t sprite_id) const {
 	};
 }
 
-bool SpriteArchive::loadSheetPixels(const ProtobufSheet& sheet) const {
-	if (sheet.decoded_pixels) {
-		return true;
+std::shared_ptr<std::vector<uint8_t>> SpriteArchive::decodeSheetPixels(const ProtobufSheet& sheet) const {
+	if (sheet.png) {
+		return decodePngSheet(sheet.path);
 	}
 
 	std::ifstream file(sheet.path, std::ios::binary | std::ios::in);
 	if (!file.is_open()) {
 		spdlog::error("SpriteArchive: failed to open protobuf sprite sheet {}", sheet.path);
-		return false;
+		return nullptr;
 	}
 
 	file.seekg(0, std::ios::end);
 	const std::streamsize size = file.tellg();
 	if (size <= 0) {
 		spdlog::error("SpriteArchive: protobuf sprite sheet {} is empty", sheet.path);
-		return false;
+		return nullptr;
 	}
 
 	file.seekg(0, std::ios::beg);
 	std::vector<uint8_t> buffer(static_cast<size_t>(size));
 	if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
 		spdlog::error("SpriteArchive: failed to read protobuf sprite sheet {}", sheet.path);
-		return false;
+		return nullptr;
 	}
 
 	// Cabecalho CipSoft: zeros de padding, a assinatura, e um campo de tamanho
@@ -524,13 +640,13 @@ bool SpriteArchive::loadSheetPixels(const ProtobufSheet& sheet) const {
 	}
 	if (position >= buffer.size()) {
 		spdlog::error("SpriteArchive: protobuf sprite sheet {} is missing the CipSoft header", sheet.path);
-		return false;
+		return nullptr;
 	}
 
 	if (position + kProtobufSheetMagic.size() > buffer.size()
 		|| !std::equal(kProtobufSheetMagic.begin(), kProtobufSheetMagic.end(), buffer.begin() + static_cast<std::ptrdiff_t>(position))) {
 		spdlog::error("SpriteArchive: protobuf sprite sheet {} has an invalid header", sheet.path);
-		return false;
+		return nullptr;
 	}
 
 	position += kProtobufSheetMagic.size();
@@ -538,7 +654,7 @@ bool SpriteArchive::loadSheetPixels(const ProtobufSheet& sheet) const {
 	}
 	if (position + 13 > buffer.size()) {
 		spdlog::error("SpriteArchive: protobuf sprite sheet {} has an incomplete LZMA header", sheet.path);
-		return false;
+		return nullptr;
 	}
 
 	// LZMA1 cru: os parametros vem no proprio cabecalho, nao ha container .xz.
@@ -565,7 +681,7 @@ bool SpriteArchive::loadSheetPixels(const ProtobufSheet& sheet) const {
 
 	if (lzma_raw_decoder(&stream, filters) != LZMA_OK) {
 		spdlog::error("SpriteArchive: failed to initialize LZMA decoder for {}", sheet.path);
-		return false;
+		return nullptr;
 	}
 
 	auto decompressed = std::make_unique<uint8_t[]>(kSheetBytes + kBmpHeaderPadding);
@@ -578,14 +694,14 @@ bool SpriteArchive::loadSheetPixels(const ProtobufSheet& sheet) const {
 	lzma_end(&stream);
 	if (ret != LZMA_STREAM_END || stream.total_out < static_cast<uint64_t>(kBmpHeaderPadding) + kSheetBytes) {
 		spdlog::error("SpriteArchive: failed to decode protobuf sprite sheet {} (lzma ret={})", sheet.path, static_cast<int>(ret));
-		return false;
+		return nullptr;
 	}
 
 	uint32_t pixel_offset = 0;
 	std::memcpy(&pixel_offset, decompressed.get() + 10, sizeof(uint32_t));
 	if (pixel_offset > static_cast<uint32_t>(kBmpHeaderPadding)) {
 		spdlog::error("SpriteArchive: protobuf sprite sheet {} has an invalid BMP pixel offset", sheet.path);
-		return false;
+		return nullptr;
 	}
 
 	// BMP guarda as linhas de baixo para cima; a folha e desvirada aqui, uma
@@ -597,13 +713,12 @@ bool SpriteArchive::loadSheetPixels(const ProtobufSheet& sheet) const {
 		std::memcpy(decoded_pixels->data() + row * kSheetDimension * 4, pixel_data + source_row * kSheetDimension * 4, static_cast<size_t>(kSheetDimension) * 4);
 	}
 
-	sheet.decoded_pixels = std::move(decoded_pixels);
-	++decoded_sheet_count_;
-	return true;
+	return decoded_pixels;
 }
 
 void SpriteArchive::pruneDecodedSheetCache(int32_t keep_sheet_index) const {
-	while (decoded_sheet_count_ > kDecodedSheetCacheLimit) {
+	const size_t limit = kDecodedSheetCacheLimit * static_cast<size_t>(asset_scale_) * static_cast<size_t>(asset_scale_);
+	while (decoded_sheet_count_ > limit) {
 		size_t oldest_index = protobuf_sheets_.size();
 		uint64_t oldest_tick = std::numeric_limits<uint64_t>::max();
 
@@ -630,7 +745,7 @@ void SpriteArchive::pruneDecodedSheetCache(int32_t keep_sheet_index) const {
 	}
 }
 
-bool SpriteArchive::readRGBA(uint32_t sprite_id, std::unique_ptr<uint8_t[]>& target, ImageDimensions& dimensions) const {
+bool SpriteArchive::readRGBA(uint32_t sprite_id, std::unique_ptr<uint8_t[]>& target, ImageDimensions& dimensions, bool native) const {
 	target.reset();
 	dimensions = {};
 
@@ -655,14 +770,37 @@ bool SpriteArchive::readRGBA(uint32_t sprite_id, std::unique_ptr<uint8_t[]>& tar
 	}
 
 	// O preloader roda fora da thread principal, e duas threads podem cair na
-	// mesma folha ao mesmo tempo.
-	std::lock_guard<std::mutex> lock(protobuf_mutex_);
-	auto& sheet = protobuf_sheets_[static_cast<size_t>(sheet_index)];
-	if (!loadSheetPixels(sheet) || !sheet.decoded_pixels) {
-		return false;
+	// mesma folha ao mesmo tempo. A trava so cobre o cache (o ponteiro da folha,
+	// o relogio do LRU e a poda): a decodificacao -- milissegundos por folha --
+	// roda fora dela. Antes a trava ficava presa durante a decodificacao inteira:
+	// os workers decodificavam um de cada vez e a thread principal, quando
+	// precisava de um sprite na hora, esperava a fila deles. Duas threads que
+	// decodificam a mesma folha ao mesmo tempo so desperdicam uma decodificacao;
+	// a primeira a voltar fica no cache. O shared_ptr local segura os pixels
+	// mesmo que a poda solte a folha logo em seguida.
+	const auto& sheet = protobuf_sheets_[static_cast<size_t>(sheet_index)];
+	std::shared_ptr<std::vector<uint8_t>> sheet_pixels;
+	{
+		std::lock_guard<std::mutex> lock(protobuf_mutex_);
+		sheet_pixels = sheet.decoded_pixels;
+		if (sheet_pixels) {
+			sheet.last_access_tick = ++protobuf_sheet_access_tick_;
+		}
 	}
-	sheet.last_access_tick = ++protobuf_sheet_access_tick_;
-	pruneDecodedSheetCache(sheet_index);
+	if (!sheet_pixels) {
+		auto decoded = decodeSheetPixels(sheet);
+		if (!decoded) {
+			return false;
+		}
+		std::lock_guard<std::mutex> lock(protobuf_mutex_);
+		if (!sheet.decoded_pixels) {
+			sheet.decoded_pixels = std::move(decoded);
+			++decoded_sheet_count_;
+		}
+		sheet_pixels = sheet.decoded_pixels;
+		sheet.last_access_tick = ++protobuf_sheet_access_tick_;
+		pruneDecodedSheetCache(sheet_index);
+	}
 
 	const auto [source_width, source_height] = protobufSourceDimensions(sheet.layout);
 	dimensions = ImageDimensions {
@@ -684,9 +822,9 @@ bool SpriteArchive::readRGBA(uint32_t sprite_id, std::unique_ptr<uint8_t[]>& tar
 	}
 
 	const int sprite_column = static_cast<int>(sprite_offset % static_cast<uint32_t>(columns));
-	const auto* pixels = sheet.decoded_pixels->data();
+	const auto* pixels = sheet_pixels->data();
 
-	if (asset_scale_ > 1) {
+	if (asset_scale_ > 1 && !native) {
 		// Cada pixel do editor e um bloco scale x scale da folha. Ele fica com a
 		// cor que mais aparece no bloco, e nao com a media: a mascara de cor de
 		// um outfit e amarelo, vermelho, verde e azul puros, e a media inventaria

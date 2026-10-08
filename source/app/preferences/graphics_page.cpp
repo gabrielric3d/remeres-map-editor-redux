@@ -8,6 +8,8 @@
 #include "rendering/postprocess/post_process_manager.h"
 #include "ui/gui.h"
 
+#include <algorithm>
+
 GraphicsPage::GraphicsPage(wxWindow* parent) : ScrollablePreferencesPage(parent) {
 	auto* page_sizer = GetPageSizer();
 
@@ -47,6 +49,17 @@ GraphicsPage::GraphicsPage(wxWindow* parent) : ScrollablePreferencesPage(parent)
 		"Screen shader",
 		"Apply a post-processing effect to the map viewport. Keep this on the default effect for the cleanest editing view.",
 		screen_shader_choice
+	);
+	render_order_choice = new wxChoice(rendering_section, wxID_ANY);
+	render_order_choice->Append("Automatic (by client)");
+	render_order_choice->Append("Black Talon");
+	render_order_choice->Append("Battle Royale");
+	render_order_choice->SetSelection(std::clamp(g_settings.getInteger(Config::RENDER_ORDER_PROFILE), 0, 2));
+	PreferencesLayout::AddControlRow(
+		rendering_section,
+		"Draw order",
+		"Which game client the map view copies when stacking sprites. Black Talon draws the tiles row by row and lifts only big grounds without the full-ground flag over their neighbours. Battle Royale draws them diagonal by diagonal, keeps every 1x1 ground and border (and flat decoration such as flowers and stones) under everything else on the floor. Automatic picks Battle Royale for protobuf (12+) assets and Black Talon for classic .dat/.spr.",
+		render_order_choice
 	);
 	page_sizer->Add(rendering_section, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(10));
 
@@ -216,6 +229,7 @@ void GraphicsPage::Apply() {
 	g_settings.setInteger(Config::USE_MEMCACHED_SPRITES_TO_SAVE, use_memcached_chkbox->GetValue());
 
 	g_settings.setInteger(Config::USE_CHUNK_CACHE, chunk_cache_chkbox->GetValue());
+	g_settings.setInteger(Config::RENDER_ORDER_PROFILE, std::max(0, render_order_choice->GetSelection()));
 
 	g_settings.setInteger(Config::ANTI_ALIASING, anti_aliasing_chkbox->GetValue());
 	g_settings.setString(Config::SCREEN_SHADER, nstr(screen_shader_choice->GetStringSelection()));

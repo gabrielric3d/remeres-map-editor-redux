@@ -52,11 +52,22 @@ public:
 	}
 
 protected:
+	// Os pixels que sobem para o atlas do mapa quando nao veio nada do preloader.
+	// Por padrao os mesmos de getRGBAData(), na escala do editor. Quem le a arte
+	// na resolucao da folha (NormalImage/TemplateImage com o conjunto dobrado do
+	// battle royale) corrige dimensions e asset_scale.
+	virtual std::unique_ptr<uint8_t[]> getAtlasRGBAData(ImageDimensions& dimensions, int& asset_scale) {
+		(void)dimensions;
+		(void)asset_scale;
+		return getRGBAData();
+	}
+
 	// Helper to handle atlas interactions
 	// dimensions descreve o que ha em preloaded_data (ou o que getRGBAData vai
 	// devolver). 32x32 para o .spr classico; as folhas 12+/13 tambem trazem
-	// 32x64, 64x32 e 64x64.
-	const AtlasRegion* EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<uint8_t[]> preloaded_data = nullptr, ImageDimensions dimensions = {});
+	// 32x64, 64x32 e 64x64. asset_scale: pixels por unidade do mundo nesses
+	// dados (2 na arte de 64 px por casa) -- vira o draw_width/height da regiao.
+	const AtlasRegion* EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<uint8_t[]> preloaded_data = nullptr, ImageDimensions dimensions = {}, int asset_scale = 1);
 };
 
 #endif

@@ -35,6 +35,9 @@
 #include "rendering/core/atlas_manager.h"
 #include "rendering/core/light_gatherer.h"
 #include "rendering/utilities/render_profiler.h"
+#include "rendering/core/render_order.h"
+
+#include <algorithm>
 
 MapLayerDrawer::MapLayerDrawer(TileRenderer* tile_renderer, GridDrawer* grid_drawer, Editor* editor) :
 	tile_renderer(tile_renderer),
@@ -71,8 +74,8 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 		LightGatherer::GatherFloor(editor->map, view, options, map_z, light_buffer);
 	}
 
-	// Common lambda to draw a node
-	auto drawNode = [&](MapNode* nd, int nd_map_x, int nd_map_y, bool live, TileRenderPass pass) {
+	// Common lambda to collect the tiles of a node
+	auto gatherNode = [&](MapNode* nd, int nd_map_x, int nd_map_y, bool live) {
 		int node_draw_x = nd_map_x * TILE_SIZE + base_screen_x;
 		int node_draw_y = nd_map_y * TILE_SIZE + base_screen_y;
 
@@ -82,17 +85,14 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 		}
 
 		if (live && !nd->isVisible(map_z > GROUND_LAYER)) {
-			// Only the first pass requests the node and draws the placeholder.
-			if (pass == TileRenderPass::Ground || pass == TileRenderPass::All) {
-				if (!nd->isRequested(map_z > GROUND_LAYER)) {
-					// Request the node
-					if (editor->live_manager.GetClient()) {
-						editor->live_manager.GetClient()->queryNode(nd_map_x, nd_map_y, map_z > GROUND_LAYER);
-					}
-					nd->setRequested(map_z > GROUND_LAYER, true);
+			if (!nd->isRequested(map_z > GROUND_LAYER)) {
+				// Request the node
+				if (editor->live_manager.GetClient()) {
+					editor->live_manager.GetClient()->queryNode(nd_map_x, nd_map_y, map_z > GROUND_LAYER);
 				}
-				grid_drawer->DrawNodeLoadingPlaceholder(sprite_batch, nd_map_x, nd_map_y, view);
+				nd->setRequested(map_z > GROUND_LAYER, true);
 			}
+			grid_drawer->DrawNodeLoadingPlaceholder(sprite_batch, nd_map_x, nd_map_y, view);
 			return;
 		}
 
@@ -108,9 +108,7 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 		for (int map_x = 0; map_x < 4; ++map_x, draw_x_base += TILE_SIZE) {
 			int draw_y = node_draw_y;
 			for (int map_y = 0; map_y < 4; ++map_y, ++location, draw_y += TILE_SIZE) {
-				// Tile vazio: DrawTile so voltaria na primeira linha dele. Testar aqui
-				// evita a chamada, e como sao tres passadas por andar o desconto vale
-				// tres vezes.
+				// Tile vazio: DrawTile so voltaria na primeira linha dele.
 				if (!location->get()) {
 					continue;
 				}
@@ -120,8 +118,7 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 					continue;
 				}
 
-				RenderProfiler::Count(RenderProfiler::Counter::CpuTiles);
-				tile_renderer->DrawTile(sprite_batch, location, view, options, options.current_house_id, draw_x_base, draw_y, pass);
+				ordered_tiles_.push_back(OrderedTile { location, draw_x_base, draw_y, nd_map_x + map_x, nd_map_y + map_y });
 			}
 		}
 	};
@@ -129,8 +126,28 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 	// Three passes per floor, mirroring the client: every ground first, then
 	// every ground border, then the remaining contents. This keeps sprites
 	// that overhang a neighbouring tile (draw offsets, big sprites) from
-	// being covered by that neighbour's lower-order sprites.
+	// being covered by that neighbour's lower-order sprites. Dentro de cada
+	// passada os tiles saem na ordem do cliente (linha no Black Talon, diagonal
+	// no Battle Royale), e nao mais na ordem em que a grade espacial os guarda.
 	auto drawPass = [&](TileRenderPass pass) {
+		for (const OrderedTile& entry : ordered_tiles_) {
+			RenderProfiler::Count(RenderProfiler::Counter::CpuTiles);
+			tile_renderer->DrawTile(sprite_batch, entry.location, view, options, options.current_house_id, entry.draw_x, entry.draw_y, pass);
+		}
+	};
+
+	// The chunk cache only works for the plain rendering modes: the special ones
+	// paint squares instead of sprites, and a live client may not even hold the
+	// tiles yet. O retangulo de selecao em arrasto NAO desliga mais o cache: o
+	// shader dele escurece o que cai no retangulo, como o BlitItem.
+	const bool use_chunk_cache = options.use_chunk_cache && chunk_cache && ctx && chunk_cache->isValid() && !live_client
+		&& !options.show_as_minimap && !options.show_only_colors && !options.show_only_modified;
+
+	const bool battle_royale = options.render_order == RenderOrderProfile::BattleRoyale;
+
+	if (!use_chunk_cache) {
+		RENDER_PROFILE_SCOPE(CpuTilePasses);
+		ordered_tiles_.clear();
 		if (live_client) {
 			for (int nd_map_x = nd_start_x; nd_map_x <= nd_end_x; nd_map_x += 4) {
 				for (int nd_map_y = nd_start_y; nd_map_y <= nd_end_y; nd_map_y += 4) {
@@ -139,7 +156,7 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 						nd = editor->map.createLeaf(nd_map_x, nd_map_y);
 						nd->setVisible(false, false);
 					}
-					drawNode(nd, nd_map_x, nd_map_y, true, pass);
+					gatherNode(nd, nd_map_x, nd_map_y, true);
 				}
 			}
 		} else {
@@ -151,20 +168,13 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 			int safe_end_y = nd_end_y + PAINTERS_ALGORITHM_SAFETY_MARGIN_PIXELS / TILE_SIZE;
 
 			editor->map.visitLeaves(safe_start_x, safe_start_y, safe_end_x, safe_end_y, [&](MapNode* nd, int nd_map_x, int nd_map_y) {
-				drawNode(nd, nd_map_x, nd_map_y, false, pass);
+				gatherNode(nd, nd_map_x, nd_map_y, false);
 			});
 		}
-	};
-
-	// The chunk cache only works for the plain rendering modes: the special ones
-	// paint squares instead of sprites, and a live client may not even hold the
-	// tiles yet. O retangulo de selecao em arrasto NAO desliga mais o cache: o
-	// shader dele escurece o que cai no retangulo, como o BlitItem.
-	const bool use_chunk_cache = options.use_chunk_cache && chunk_cache && ctx && chunk_cache->isValid() && !live_client
-		&& !options.show_as_minimap && !options.show_only_colors && !options.show_only_modified;
-
-	if (!use_chunk_cache) {
-		RENDER_PROFILE_SCOPE(CpuTilePasses);
+		// Nos modos de quadrado colorido a ordem nao muda nada na tela.
+		if (!options.show_as_minimap && !options.show_only_colors) {
+			sortOrderedTiles(battle_royale);
+		}
 		drawPass(TileRenderPass::Ground);
 		drawPass(TileRenderPass::Borders);
 		drawPass(TileRenderPass::Contents);
@@ -184,34 +194,42 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 
 	// Tiles the bake had to skip -- animated grounds, selected borders,
 	// overhang-free but interactive items -- still run through the CPU
-	// renderer, in the very same pass order.
-	auto drawDeferredTile = [&](int map_x, int map_y, TileRenderPass pass, RenderProfiler::Counter counter) {
-		TileLocation* location = editor->map.getTileL(map_x, map_y, map_z);
-		if (!location || !location->get()) {
-			return;
-		}
+	// renderer, in the very same pass order. Os deferidos de todos os chunks
+	// visiveis entram numa lista so, ordenada pela chave do perfil: a ordem
+	// global do andar, e nao chunk a chunk.
+	auto drawDeferredPass = [&](ChunkDeferredPass mask, TileRenderPass pass, RenderProfiler::Counter counter) {
+		deferred_tiles_.clear();
+		chunk_cache->forEachDeferredTile(mask, [&](int map_x, int map_y) {
+			deferred_tiles_.push_back(DeferredTile { RenderOrder::tileKey(options.render_order, map_x, map_y), map_x, map_y });
+		});
+		std::sort(deferred_tiles_.begin(), deferred_tiles_.end(), [](const DeferredTile& a, const DeferredTile& b) {
+			return a.key < b.key;
+		});
 
-		const int draw_x = map_x * TILE_SIZE + base_screen_x;
-		const int draw_y = map_y * TILE_SIZE + base_screen_y;
-		if (!view.IsPixelVisible(draw_x, draw_y, PAINTERS_ALGORITHM_SAFETY_MARGIN_PIXELS)) {
-			return;
-		}
+		for (const DeferredTile& deferred : deferred_tiles_) {
+			TileLocation* location = editor->map.getTileL(deferred.map_x, deferred.map_y, map_z);
+			if (!location || !location->get()) {
+				continue;
+			}
 
-		RenderProfiler::Count(counter);
-		tile_renderer->DrawTile(sprite_batch, location, view, options, options.current_house_id, draw_x, draw_y, pass);
+			const int draw_x = deferred.map_x * TILE_SIZE + base_screen_x;
+			const int draw_y = deferred.map_y * TILE_SIZE + base_screen_y;
+			if (!view.IsPixelVisible(draw_x, draw_y, PAINTERS_ALGORITHM_SAFETY_MARGIN_PIXELS)) {
+				continue;
+			}
+
+			RenderProfiler::Count(counter);
+			tile_renderer->DrawTile(sprite_batch, location, view, options, options.current_house_id, draw_x, draw_y, pass);
+		}
 	};
 
 	{
 		RENDER_PROFILE_SCOPE(DeferredGround);
-		chunk_cache->forEachDeferredTile(CHUNK_DEFER_GROUND, [&](int map_x, int map_y) {
-			drawDeferredTile(map_x, map_y, TileRenderPass::Ground, RenderProfiler::Counter::DeferredGround);
-		});
+		drawDeferredPass(CHUNK_DEFER_GROUND, TileRenderPass::Ground, RenderProfiler::Counter::DeferredGround);
 	}
 	{
 		RENDER_PROFILE_SCOPE(DeferredBorders);
-		chunk_cache->forEachDeferredTile(CHUNK_DEFER_BORDERS, [&](int map_x, int map_y) {
-			drawDeferredTile(map_x, map_y, TileRenderPass::Borders, RenderProfiler::Counter::DeferredBorders);
-		});
+		drawDeferredPass(CHUNK_DEFER_BORDERS, TileRenderPass::Borders, RenderProfiler::Counter::DeferredBorders);
 	}
 
 	// O conteudo cacheado vem so agora, depois das passadas de CPU de chao e
@@ -231,8 +249,43 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 	// only the tiles that really change per frame are walked on the CPU.
 	{
 		RENDER_PROFILE_SCOPE(DeferredContents);
-		chunk_cache->forEachDeferredTile(CHUNK_DEFER_CONTENTS, [&](int map_x, int map_y) {
-			drawDeferredTile(map_x, map_y, TileRenderPass::Contents, RenderProfiler::Counter::DeferredContents);
-		});
+		drawDeferredPass(CHUNK_DEFER_CONTENTS, TileRenderPass::Contents, RenderProfiler::Counter::DeferredContents);
+	}
+}
+
+void MapLayerDrawer::sortOrderedTiles(bool battle_royale) {
+	if (ordered_tiles_.size() < 2) {
+		return;
+	}
+
+	// Counting sort estavel por uma chave inteira pequena (a faixa visivel).
+	auto countingSort = [this](std::vector<OrderedTile>& from, std::vector<OrderedTile>& to, auto&& key) {
+		int lo = key(from.front());
+		int hi = lo;
+		for (const OrderedTile& entry : from) {
+			const int k = key(entry);
+			lo = std::min(lo, k);
+			hi = std::max(hi, k);
+		}
+		sort_counts_.assign(static_cast<size_t>(hi - lo) + 2, 0u);
+		for (const OrderedTile& entry : from) {
+			++sort_counts_[static_cast<size_t>(key(entry) - lo) + 1];
+		}
+		for (size_t i = 1; i < sort_counts_.size(); ++i) {
+			sort_counts_[i] += sort_counts_[i - 1];
+		}
+		to.resize(from.size());
+		for (const OrderedTile& entry : from) {
+			to[sort_counts_[static_cast<size_t>(key(entry) - lo)]++] = entry;
+		}
+	};
+
+	// Secundaria primeiro (x crescente), depois a primaria, estavel: a mesma
+	// ordem de RenderOrder::tileKey().
+	countingSort(ordered_tiles_, ordered_scratch_, [](const OrderedTile& entry) { return entry.map_x; });
+	if (battle_royale) {
+		countingSort(ordered_scratch_, ordered_tiles_, [](const OrderedTile& entry) { return entry.map_x + entry.map_y; });
+	} else {
+		countingSort(ordered_scratch_, ordered_tiles_, [](const OrderedTile& entry) { return entry.map_y; });
 	}
 }

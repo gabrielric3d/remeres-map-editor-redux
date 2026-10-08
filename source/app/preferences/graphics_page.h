@@ -23,6 +23,7 @@ private:
 	wxCheckBox* anti_aliasing_chkbox = nullptr;
 
 	wxChoice* screen_shader_choice = nullptr;
+	wxChoice* render_order_choice = nullptr;
 	wxChoice* icon_background_choice = nullptr;
 	wxChoice* screenshot_format_choice = nullptr;
 

@@ -158,7 +158,7 @@ MapCanvas::MapCanvas(wxWindow* parent, Editor& editor, int* attriblist) :
 	wxGLCanvas(parent, GetCoreProfileAttributes(), wxID_ANY, wxDefaultPosition, wxDefaultSize, wxWANTS_CHARS),
 	editor(editor),
 	floor(GROUND_LAYER),
-	zoom(1.0),
+	zoom(g_gui.gfx.getNormalZoom()),
 	renderer_initialized(false),
 	cursor_x(-1),
 	cursor_y(-1),
@@ -1031,7 +1031,7 @@ void MapCanvas::Reset() {
 	cursor_x = 0;
 	cursor_y = 0;
 
-	zoom = 1.0;
+	zoom = g_gui.gfx.getNormalZoom();
 	floor = GROUND_LAYER;
 
 	dragging = false;

@@ -126,7 +126,8 @@ void NavigationMenuHandler::OnZoomOut(wxCommandEvent& event) {
 }
 
 void NavigationMenuHandler::OnZoomNormal(wxCommandEvent& event) {
-	g_gui.SetCurrentZoom(1.0);
+	// 100% do projeto: 64 px por casa na arte dobrada do battle royale.
+	g_gui.SetCurrentZoom(g_gui.gfx.getNormalZoom());
 }
 
 void NavigationMenuHandler::OnGotoPreviousPosition(wxCommandEvent& WXUNUSED(event)) {

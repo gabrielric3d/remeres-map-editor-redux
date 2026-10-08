@@ -207,6 +207,9 @@ public:
 
 	double GetCurrentZoom();
 	void SetCurrentZoom(double zoom);
+	// O zoom do canvas como a porcentagem mostrada ao usuario: 100 no zoom
+	// normal do projeto (GraphicManager::getNormalZoom), 200 com as casas no dobro.
+	double GetZoomPercent(double zoom) const;
 
 	void SwitchMode();
 	void SetSelectionMode();

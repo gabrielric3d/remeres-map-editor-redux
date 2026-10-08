@@ -6,6 +6,7 @@
 #include "rendering/utilities/render_profiler.h"
 
 #include "rendering/core/drawing_options.h"
+#include "rendering/core/render_order.h"
 
 #include <glad/glad.h>
 #include <nanovg.h>
@@ -198,11 +199,11 @@ namespace RenderProfiler {
 		// (so quando muda) para que duas medicoes possam ser comparadas.
 		std::string describeOptions(const DrawingOptions& o) {
 			return std::format(
-				"cache={} anim={} lights={} shader={} aa={} allFloors={} ghostFloors={} shade={} grid={} | "
+				"cache={} order={} anim={} lights={} shader={} aa={} allFloors={} ghostFloors={} shade={} grid={} | "
 				"indicators: pickup={} move={} tech={} hooks={} doors={} lightStr={} | "
 				"overlays: tooltips={} creatures={} names={} spawns={} houses={} mountain={} pathing={} walls={} stairs={} "
 				"instanceZones={} soundZones={} worldBoss={} invalidZones={} | hideItems={} below {:.0f}%",
-				o.use_chunk_cache, o.show_preview, o.show_lights, o.screen_shader_name.empty() ? "none" : o.screen_shader_name,
+				o.use_chunk_cache, RenderOrder::profileName(o.render_order), o.show_preview, o.show_lights, o.screen_shader_name.empty() ? "none" : o.screen_shader_name,
 				o.anti_aliasing, o.show_all_floors, o.ghost_floors_enabled, o.show_shade, o.show_grid,
 				o.show_pickupables, o.show_moveables, o.show_tech_items, o.show_hooks, o.highlight_locked_doors, o.show_light_str,
 				o.show_tooltips, o.show_creatures, o.show_creature_names, o.show_spawns, o.show_houses, o.show_mountain_overlay,

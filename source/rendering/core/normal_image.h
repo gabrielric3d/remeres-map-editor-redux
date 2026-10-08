@@ -16,6 +16,11 @@ public:
 
 	const AtlasRegion* getAtlasRegion();
 
+	// A regiao do atlas se o sprite JA esta la; nullptr se nao estiver, sem
+	// carregar nada. O chunk cache usa isto para nao decodificar folha na thread
+	// principal: o que falta ele pede ao SpritePreloader e re-assa quando chega.
+	const AtlasRegion* peekAtlasRegion();
+
 	// We use the sprite id as key
 	uint32_t id;
 	const AtlasRegion* atlas_region;
@@ -46,9 +51,26 @@ public:
 		return sourceDimensions();
 	}
 
+	// preloaded_data vem do SpritePreloader, que le as folhas 12+/13 na
+	// resolucao cheia (SpriteArchive::readRGBA com native = true).
 	void fulfillPreload(std::unique_ptr<uint8_t[]> preloaded_data, ImageDimensions dimensions = {});
 
+	// Os pixels deste sprite como o atlas do mapa os quer: na resolucao da folha,
+	// com asset_scale = pixels por unidade do mundo. No .spr classico, o mesmo
+	// que getRGBAData() em 32x32 e escala 1. Publico porque o TemplateImage
+	// monta o outfit a partir do sprite base e da mascara.
+	std::unique_ptr<uint8_t[]> readAtlasRGBA(ImageDimensions& dimensions, int& asset_scale);
+
+	// RGBA -> RGB com magenta onde e transparente: o formato de getRGBData(), que
+	// os icones e a mascara de outfit (GameSprite::ColorizeTemplatePixels) usam.
+	static std::unique_ptr<uint8_t[]> RGBAToMaskedRGB(const uint8_t* rgba, size_t pixel_count);
+
 	GameSprite* parent = nullptr;
+
+protected:
+	std::unique_ptr<uint8_t[]> getAtlasRGBAData(ImageDimensions& dimensions, int& asset_scale) override {
+		return readAtlasRGBA(dimensions, asset_scale);
+	}
 };
 
 #endif

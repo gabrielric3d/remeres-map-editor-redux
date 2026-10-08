@@ -16,7 +16,7 @@ void Image::clean(time_t time, int longevity) {
 	// Base implementation does nothing
 }
 
-const AtlasRegion* Image::EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<uint8_t[]> preloaded_data, ImageDimensions dimensions) {
+const AtlasRegion* Image::EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<uint8_t[]> preloaded_data, ImageDimensions dimensions, int asset_scale) {
 	if (g_gui.gfx.ensureAtlasManager()) {
 		AtlasManager* atlas_mgr = g_gui.gfx.getAtlasManager();
 
@@ -47,7 +47,7 @@ const AtlasRegion* Image::EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<
 		if (preloaded_data) {
 			rgba = std::move(preloaded_data);
 		} else {
-			rgba = getRGBAData();
+			rgba = getAtlasRGBAData(dimensions, asset_scale);
 		}
 
 		if (!rgba) {
@@ -56,6 +56,7 @@ const AtlasRegion* Image::EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<
 			// o sprite teria tido.
 			constexpr int RGBA_COMPONENTS = 4;
 			dimensions = {};
+			asset_scale = 1;
 			const int pixel_count = static_cast<int>(dimensions.pixelCount());
 			rgba = std::make_unique<uint8_t[]>(static_cast<size_t>(pixel_count) * RGBA_COMPONENTS);
 			std::span<uint8_t> buffer(rgba.get(), static_cast<size_t>(pixel_count) * RGBA_COMPONENTS);
@@ -69,7 +70,7 @@ const AtlasRegion* Image::EnsureAtlasSprite(uint32_t sprite_id, std::unique_ptr<
 		}
 
 		// 3. Add to Atlas
-		region = atlas_mgr->addSprite(sprite_id, rgba.get(), dimensions.width, dimensions.height);
+		region = atlas_mgr->addSprite(sprite_id, rgba.get(), dimensions.width, dimensions.height, asset_scale);
 
 		if (region) {
 			if (!isGLLoaded) {

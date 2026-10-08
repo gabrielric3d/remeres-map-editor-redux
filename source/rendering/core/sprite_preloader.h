@@ -41,6 +41,18 @@ public:
 	// Explicit shutdown to be called before global destruction
 	void shutdown();
 
+	// Quantas vezes update() ja entregou pelo menos um sprite ao atlas. O chunk
+	// cache guarda o valor do bake: um chunk que ficou esperando sprites so e
+	// re-assado quando algo novo chegou. So a thread principal escreve e le.
+	[[nodiscard]] uint64_t deliveryGeneration() const noexcept {
+		return delivery_generation_;
+	}
+
+	// Nada na fila, nada em voo, nenhum resultado por entregar: o que ainda falta
+	// nao vai chegar pelo preloader (a leitura falhou, ou o pedido foi descartado
+	// com a fila cheia), e quem espera pode carregar na hora.
+	[[nodiscard]] bool isIdle();
+
 private:
 	SpritePreloader();
 	~SpritePreloader();
@@ -110,6 +122,7 @@ private:
 	// Atomico porque preload() consulta o epoch no laco de coleta, que roda fora do
 	// lock, para decidir se a marca preload_epoch da imagem ainda vale.
 	std::atomic<uint64_t> active_epoch = 0;
+	uint64_t delivery_generation_ = 0;
 };
 
 namespace rme {

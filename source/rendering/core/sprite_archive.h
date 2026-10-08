@@ -79,6 +79,10 @@ public:
 	// cliente novo guarda folhas de 384x384 comprimidas em LZMA, e cada sprite
 	// e um recorte da folha. Por isso este backend entrega RGBA pronto, nao o
 	// blob comprimido que readCompressed() devolve.
+	//
+	// O mesmo caminho le o indice do cliente Godot do battle royale (things.bin,
+	// GodotThings): as folhas sao PNG de 384x384 em sheets/<primeiro sprite>.png,
+	// ja com a transparencia, e o tamanho de cada sprite vem na tabela do indice.
 	[[nodiscard]] static std::shared_ptr<SpriteArchive> loadProtobuf(const wxFileName& catalog_path, wxString& error, std::vector<std::string>& warnings);
 
 	[[nodiscard]] bool isProtobuf() const {
@@ -98,7 +102,13 @@ public:
 
 	// Pixels RGBA do sprite. Só o backend protobuf; o legado continua passando
 	// por readCompressed() + NormalImage::Decompress.
-	[[nodiscard]] bool readRGBA(uint32_t sprite_id, std::unique_ptr<uint8_t[]>& target, ImageDimensions& dimensions) const;
+	//
+	// native = false: na escala do editor (32 px por casa) -- e o que icones,
+	// paleta, scanners e quem mais le pixels na CPU esperam. native = true: na
+	// resolucao da folha (64 px por casa no conjunto dobrado), para o atlas do
+	// mapa, que desenha o quad no tamanho da casa e deixa a GPU amostrar a arte
+	// inteira. Com assetScale() == 1 as duas sao a mesma coisa.
+	[[nodiscard]] bool readRGBA(uint32_t sprite_id, std::unique_ptr<uint8_t[]>& target, ImageDimensions& dimensions, bool native = false) const;
 
 private:
 	enum class Backend : uint8_t {
@@ -111,6 +121,8 @@ private:
 		uint32_t last_id = 0;
 		ProtobufSpriteLayout layout = ProtobufSpriteLayout::OneByOne;
 		std::string path;
+		// PNG do cliente Godot (caminho em UTF-8) em vez de .bmp.lzma.
+		bool png = false;
 		mutable std::shared_ptr<std::vector<uint8_t>> decoded_pixels;
 		mutable uint64_t last_access_tick = 0;
 
@@ -123,7 +135,11 @@ private:
 	SpriteArchive(std::string filename, bool is_extended, uint32_t sprite_count, std::vector<uint32_t> sprite_offsets, std::vector<Fragment> fragments = {});
 	SpriteArchive(std::string filename, uint32_t sprite_count, std::vector<ProtobufSheet> sheets, std::vector<int32_t> sheet_lookup);
 
-	[[nodiscard]] bool loadSheetPixels(const ProtobufSheet& sheet) const;
+	[[nodiscard]] static std::shared_ptr<SpriteArchive> loadGodotThings(const wxFileName& things_path, wxString& error, std::vector<std::string>& warnings);
+	// Decodifica a folha inteira (BGRA de cima para baixo). Nao toca em nada
+	// do archive: roda FORA da trava, para os workers do preloader decodificarem
+	// em paralelo e a thread principal nao esperar a folha de outro sprite.
+	[[nodiscard]] std::shared_ptr<std::vector<uint8_t>> decodeSheetPixels(const ProtobufSheet& sheet) const;
 	void pruneDecodedSheetCache(int32_t keep_sheet_index) const;
 
 	// Which file holds this sprite. Returns nullptr when no fragment covers it;

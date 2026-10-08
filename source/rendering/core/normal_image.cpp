@@ -41,7 +41,13 @@ NormalImage::~NormalImage() {
 }
 
 void NormalImage::fulfillPreload(std::unique_ptr<uint8_t[]> data, ImageDimensions dimensions) {
-	atlas_region = EnsureAtlasSprite(id, std::move(data), dimensions);
+	// O worker do preloader le as folhas 12+/13 na resolucao cheia; o id 0 (sem
+	// sprite) sai sempre como uma casa vazia de 32x32.
+	int asset_scale = 1;
+	if (const auto archive = g_gui.gfx.getSpriteArchive(); id != 0 && archive && archive->isProtobuf()) {
+		asset_scale = archive->assetScale();
+	}
+	atlas_region = EnsureAtlasSprite(id, std::move(data), dimensions, asset_scale);
 	preload_epoch = 0;
 	// Um sprite que acabou de subir para o atlas foi pedido AGORA: sem marcar,
 	// entra no atlas ja com lastaccess velho e pode ser o proximo a ser despejado.
@@ -95,23 +101,7 @@ std::unique_ptr<uint8_t[]> NormalImage::getRGBData() {
 			return nullptr;
 		}
 
-		const size_t pixel_count = dimensions.pixelCount();
-		auto converted = std::make_unique<uint8_t[]>(pixel_count * RGB_COMPONENTS);
-		for (size_t pixel = 0; pixel < pixel_count; ++pixel) {
-			const size_t source = pixel * 4;
-			const size_t destination = pixel * RGB_COMPONENTS;
-			if (rgba[source + 3] == 0) {
-				// Magenta e a cor de mascara que os iconos usam como transparencia.
-				converted[destination + 0] = 0xFF;
-				converted[destination + 1] = 0x00;
-				converted[destination + 2] = 0xFF;
-				continue;
-			}
-			converted[destination + 0] = rgba[source + 0];
-			converted[destination + 1] = rgba[source + 1];
-			converted[destination + 2] = rgba[source + 2];
-		}
-		return converted;
+		return RGBAToMaskedRGB(rgba.get(), dimensions.pixelCount());
 	}
 
 	if (!dump) {
@@ -199,6 +189,52 @@ std::unique_ptr<uint8_t[]> NormalImage::getRGBAData() {
 	}
 
 	return GameSprite::Decompress(std::span { dump.get(), size }, g_gui.gfx.hasTransparency(), id);
+}
+
+const AtlasRegion* NormalImage::peekAtlasRegion() {
+	if (!isGLLoaded || !atlas_region) {
+		return nullptr;
+	}
+	// Regiao velha (despejada ou de outro sprite): fica para o getAtlasRegion()
+	// sincrono, que sabe se recuperar dela. Aqui so nao serve.
+	if (atlas_region->debug_sprite_id == AtlasRegion::INVALID_SENTINEL || (atlas_region->debug_sprite_id != 0 && atlas_region->debug_sprite_id != id)) {
+		return nullptr;
+	}
+	visit();
+	return atlas_region;
+}
+
+std::unique_ptr<uint8_t[]> NormalImage::RGBAToMaskedRGB(const uint8_t* rgba, size_t pixel_count) {
+	auto converted = std::make_unique<uint8_t[]>(pixel_count * RGB_COMPONENTS);
+	for (size_t pixel = 0; pixel < pixel_count; ++pixel) {
+		const size_t source = pixel * 4;
+		const size_t destination = pixel * RGB_COMPONENTS;
+		if (rgba[source + 3] == 0) {
+			// Magenta e a cor de mascara que os iconos usam como transparencia.
+			converted[destination + 0] = 0xFF;
+			converted[destination + 1] = 0x00;
+			converted[destination + 2] = 0xFF;
+			continue;
+		}
+		converted[destination + 0] = rgba[source + 0];
+		converted[destination + 1] = rgba[source + 1];
+		converted[destination + 2] = rgba[source + 2];
+	}
+	return converted;
+}
+
+std::unique_ptr<uint8_t[]> NormalImage::readAtlasRGBA(ImageDimensions& dimensions, int& asset_scale) {
+	if (const auto archive = g_gui.gfx.getSpriteArchive(); id != 0 && archive && archive->isProtobuf()) {
+		std::unique_ptr<uint8_t[]> rgba;
+		if (!archive->readRGBA(id, rgba, dimensions, true)) {
+			return nullptr;
+		}
+		asset_scale = archive->assetScale();
+		return rgba;
+	}
+	dimensions = {};
+	asset_scale = 1;
+	return getRGBAData();
 }
 
 const AtlasRegion* NormalImage::getAtlasRegion() {

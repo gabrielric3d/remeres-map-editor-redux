@@ -6,6 +6,7 @@
 #include <string>
 #include <optional>
 #include "map/position.h"
+#include "rendering/core/render_order_profile.h"
 
 class BRLootZones;
 
@@ -117,6 +118,11 @@ struct DrawingOptions {
 	// passes tile a tile na CPU, como antes.
 	bool use_chunk_cache;
 
+	// Ordem de desenho do cliente que o mapa atende (Preferences > Graphics >
+	// "Draw order"): resolvida por frame em Update(), com o automatico escolhendo
+	// pelo cliente carregado. Ver rendering/core/render_order_profile.h.
+	RenderOrderProfile render_order = RenderOrderProfile::BlackTalon;
+
 	uint32_t current_house_id;
 	wxColor global_light_color;
 	float light_intensity;
@@ -192,6 +198,9 @@ struct DrawingOptions {
 		// The LOD gate, not the raw zoom: only crossing the threshold changes
 		// what gets baked, so panning and zooming do not thrash the cache.
 		bit(drawLooseItems());
+		// A ordem de desenho decide em que faixa do chunk cada sprite vai e em
+		// que ordem os tiles sao assados.
+		bit(render_order == RenderOrderProfile::BattleRoyale);
 		// The loot zone tint depends on the tier of each zone, which is map data and
 		// not an option: a tier change bumps the generation, and that has to re-bake.
 		return ((sig << 32) ^ static_cast<uint64_t>(current_house_id))

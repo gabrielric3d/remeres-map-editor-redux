@@ -83,9 +83,10 @@ bool TextureAtlas::initialize(int initial_layers) {
 	// Gate PBO because it currently causes random sprite corruption
 #ifdef USE_PBO_FOR_SPRITE_UPLOAD
 	pbo_ = std::make_unique<PixelBufferObject>();
-	// Dimensionado para o maior sprite possivel (2x2 celulas), senao um 64x64
-	// nao caberia no mapeamento e cairia sempre no caminho sincrono.
-	if (!pbo_->initialize(SPRITE_SIZE * 2 * SPRITE_SIZE * 2 * 4)) {
+	// Dimensionado para o maior sprite possivel, senao ele nao caberia no
+	// mapeamento e cairia sempre no caminho sincrono. O maior sprite que sobe e o 64x64 das folhas 12+/13 em resolucao dobrada:
+	// 128x128. Um sprite maior que o PBO vai pelo caminho sincrono abaixo.
+	if (!pbo_->initialize(SPRITE_SIZE * 4 * SPRITE_SIZE * 4 * 4)) {
 		spdlog::error("TextureAtlas: Failed to initialize PBO");
 		return false;
 	}
@@ -216,7 +217,7 @@ std::optional<AtlasRegion> TextureAtlas::addSprite(const uint8_t* rgba_data, int
 	// Upload sprite data to texture array
 	const size_t byte_count = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
 	bool uploaded = false;
-	if (pbo_) {
+	if (pbo_ && byte_count <= pbo_->getSize()) {
 		void* ptr = pbo_->mapWrite();
 		if (ptr) {
 			memcpy(ptr, rgba_data, byte_count);

@@ -19,6 +19,7 @@
 #include "rendering/core/sprite_archive.h"
 #include "item_definitions/core/item_definition_fragments.h"
 #include "item_definitions/formats/dat/dat_item_parser.h"
+#include "item_definitions/formats/godot/godot_things_reader.h"
 
 namespace {
 	constexpr size_t kMaxSampleOffsets = 24;
@@ -400,6 +401,17 @@ namespace {
 
 ClientAssetDetector::ProtobufAssetPaths ClientAssetDetector::resolveProtobufPaths(const wxFileName& client_path, const std::string& configured_metadata_file) {
 	ProtobufAssetPaths paths;
+
+	// O cliente Godot do battle royale (client-godot/assets/things/<versao>): o things.bin e o
+	// appearances e a lista das folhas ao mesmo tempo (GodotThings), e as folhas PNG ficam em
+	// sheets/ ao lado dele.
+	const wxFileName things(client_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR), GodotThings::kFileName);
+	if (things.FileExists()) {
+		paths.sprites = things;
+		paths.metadata = things;
+		return paths;
+	}
+
 	paths.sprites = findCatalogFile(client_path);
 	paths.metadata = findAppearancesFile(paths.sprites, configured_metadata_file);
 
@@ -428,7 +440,7 @@ ClientAssetDetectionResult ClientAssetDetector::detectProtobufAssets(const Clien
 	}
 
 	if (!paths.sprites.FileExists()) {
-		const auto message = "Client asset detection failed: catalog-content.json was not found in the selected client path.";
+		const auto message = "Client asset detection failed: neither catalog-content.json nor things.bin (Godot client) was found in the selected client path.";
 		spdlog::warn(message);
 		result.warnings.emplace_back(message);
 	} else {
@@ -466,7 +478,7 @@ ClientAssetDetectionResult ClientAssetDetector::detect(const ClientVersion& clie
 	// Sem esta checagem o usuario recebe "SPR file was not found", que e
 	// verdade e nao ajuda: o .spr nao existe nesse formato e nunca vai existir.
 	// O que falta e o Configuration Type, e a mensagem tem de dizer isso.
-	if (findCatalogFile(client_path).FileExists()) {
+	if (resolveProtobufPaths(client_path, {}).sprites.FileExists()) {
 		const auto message = "Client asset detection failed: this folder holds 12+/13 assets "
 							 "(catalog-content.json and appearances-<hash>.dat), but this client "
 							 "version is set to a DAT+SPR Configuration Type. Set it to "

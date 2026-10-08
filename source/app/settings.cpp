@@ -436,6 +436,8 @@ void Settings::IO(IOMode mode) {
 
 	section("Graphics");
 	Bool(USE_CHUNK_CACHE, true);
+	// Ordem de desenho: 0 = automatico pelo cliente, 1 = Black Talon, 2 = Battle Royale.
+	Int(RENDER_ORDER_PROFILE, 0);
 	Bool(TEXTURE_MANAGEMENT, true);
 	Int(TEXTURE_CLEAN_PULSE, 15);
 	Int(TEXTURE_LONGEVITY, 20);

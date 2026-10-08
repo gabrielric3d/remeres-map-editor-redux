@@ -31,6 +31,12 @@ struct AtlasRegion {
 	// um cliente 13 sao 64x64.
 	int pixel_width = SLOT_SIZE;
 	int pixel_height = SLOT_SIZE;
+	// Tamanho do quad no mapa, em unidades do mundo (32 por casa). Igual ao
+	// pixel_* salvo quando a arte e mais fina que a casa: o conjunto dobrado do
+	// battle royale (64 px por casa) sobe para o atlas na resolucao cheia e e
+	// desenhado na metade -- a GPU amostra os 64 px dentro da casa de 32.
+	int draw_width = SLOT_SIZE;
+	int draw_height = SLOT_SIZE;
 	int slot_width = 1; // largura em celulas de 32x32
 	int slot_height = 1; // altura em celulas de 32x32
 

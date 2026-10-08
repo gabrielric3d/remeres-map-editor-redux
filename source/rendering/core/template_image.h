@@ -23,6 +23,13 @@ public:
 	const AtlasRegion* getAtlasRegion();
 	const AtlasRegion* atlas_region;
 
+protected:
+	// O outfit colorido na resolucao da folha (base + mascara lidos por
+	// NormalImage::readAtlasRGBA), para o atlas do mapa.
+	std::unique_ptr<uint8_t[]> getAtlasRGBAData(ImageDimensions& dimensions, int& asset_scale) override;
+
+public:
+
 	uint32_t texture_id; // Unique ID for AtlasManager key
 	GameSprite* parent;
 	int sprite_index;

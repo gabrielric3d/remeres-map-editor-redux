@@ -121,9 +121,11 @@ namespace {
 			case DatFlagRotateable:
 				fragment.flags |= flagMask(ItemFlag::Rotatable);
 				return true;
+			case DatFlagLyingCorpse:
+				fragment.flags |= flagMask(ItemFlag::LyingObject);
+				return true;
 			case DatFlagDontHide:
 			case DatFlagTranslucent:
-			case DatFlagLyingCorpse:
 			case DatFlagAnimateAlways:
 			case DatFlagLook:
 			case DatFlagWrappable:

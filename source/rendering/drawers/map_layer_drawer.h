@@ -18,7 +18,9 @@
 #ifndef RME_MAP_LAYER_DRAWER_H
 #define RME_MAP_LAYER_DRAWER_H
 
+#include <cstdint>
 #include <iosfwd>
+#include <vector>
 
 class Editor;
 class TileRenderer;
@@ -30,6 +32,7 @@ struct LightBuffer;
 struct RenderFrameContext;
 class SpriteBatch;
 class PrimitiveRenderer;
+class TileLocation;
 
 class MapLayerDrawer {
 public:
@@ -42,9 +45,34 @@ public:
 	void Draw(SpriteBatch& sprite_batch, int map_z, bool live_client, const RenderView& view, const DrawingOptions& options, LightBuffer& light_buffer, ChunkCacheManager* chunk_cache = nullptr, const RenderFrameContext* ctx = nullptr);
 
 private:
+	// Um tile visivel do andar, na ordem de desenho do perfil do cliente
+	// (RenderOrder::tileKey). Reusados entre frames para nao alocar.
+	struct OrderedTile {
+		TileLocation* location = nullptr;
+		int draw_x = 0;
+		int draw_y = 0;
+		int map_x = 0;
+		int map_y = 0;
+	};
+	// Tile deferido pelo chunk cache, com a chave da ordem global.
+	struct DeferredTile {
+		uint64_t key = 0;
+		int map_x = 0;
+		int map_y = 0;
+	};
+
+	// Ordena ordered_tiles_ pela chave do perfil: dois counting sorts estaveis
+	// (x, depois a chave primaria -- y ou x+y), O(n) no numero de tiles.
+	void sortOrderedTiles(bool battle_royale);
+
 	TileRenderer* tile_renderer;
 	GridDrawer* grid_drawer;
 	Editor* editor;
+
+	std::vector<OrderedTile> ordered_tiles_;
+	std::vector<OrderedTile> ordered_scratch_;
+	std::vector<uint32_t> sort_counts_;
+	std::vector<DeferredTile> deferred_tiles_;
 };
 
 #endif

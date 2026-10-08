@@ -20,6 +20,7 @@
 #include "game/sprites.h"
 #include "rendering/core/graphics.h"
 #include "rendering/core/sprite_preloader.h"
+#include "rendering/core/sprite_archive.h"
 #include <nanovg.h>
 #include <spdlog/spdlog.h>
 #include <nanovg_gl.h>
@@ -56,6 +57,13 @@ GraphicManager::~GraphicManager() {
 	if (atlas_manager_) {
 		atlas_manager_->clear();
 	}
+}
+
+double GraphicManager::getNormalZoom() const {
+	if (sprite_archive_ && sprite_archive_->isProtobuf() && sprite_archive_->assetScale() > 1) {
+		return 1.0 / static_cast<double>(sprite_archive_->assetScale());
+	}
+	return 1.0;
 }
 
 bool GraphicManager::hasTransparency() const {

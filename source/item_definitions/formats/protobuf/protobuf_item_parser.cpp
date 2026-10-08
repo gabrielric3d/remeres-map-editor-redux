@@ -3,6 +3,7 @@
 #include "appearances.pb.h"
 #include "app/client_version.h"
 #include "app/definitions.h"
+#include "item_definitions/formats/godot/godot_things_reader.h"
 #include "util/json.h"
 
 #include <fstream>
@@ -232,6 +233,7 @@ namespace {
 		setMappedFlag(fragment.flags, flags.corpse() || flags.player_corpse(), ItemFlag::Corpse);
 		setMappedFlag(fragment.flags, flags.ammo(), ItemFlag::Ammo);
 		setMappedFlag(fragment.flags, flags.reportable(), ItemFlag::Reportable);
+		setMappedFlag(fragment.flags, flags.lying_object(), ItemFlag::LyingObject);
 
 		entry.draw_height = flags.has_height() ? static_cast<uint16_t>(flags.height().elevation()) : 0;
 		entry.minimap_color = flags.has_automap() ? static_cast<uint16_t>(flags.automap().color()) : 0;
@@ -360,16 +362,26 @@ bool ProtobufItemParser::parseCatalog(const ItemDefinitionLoadInput& input, DatC
 		return false;
 	}
 
-	std::ifstream stream(input.dat_path.GetFullPath().ToStdString(), std::ios::in | std::ios::binary);
-	if (!stream.is_open()) {
-		error = wxString::FromUTF8(std::format("Failed to open {} for reading.", input.dat_path.GetFullPath().utf8_string()));
-		return false;
-	}
-
 	Appearances appearances;
-	if (!appearances.ParseFromIstream(&stream)) {
-		error = "Failed to parse protobuf appearances file.";
-		return false;
+	const std::string appearances_path = input.dat_path.GetFullPath().ToStdString();
+	if (GodotThings::isThingsFile(appearances_path)) {
+		// O indice do cliente Godot vira a mesma mensagem, e daqui para baixo nada muda.
+		std::string reason;
+		if (!GodotThings::readAppearances(appearances_path, appearances, reason, warnings)) {
+			error = wxString::FromUTF8(reason);
+			return false;
+		}
+	} else {
+		std::ifstream stream(appearances_path, std::ios::in | std::ios::binary);
+		if (!stream.is_open()) {
+			error = wxString::FromUTF8(std::format("Failed to open {} for reading.", input.dat_path.GetFullPath().utf8_string()));
+			return false;
+		}
+
+		if (!appearances.ParseFromIstream(&stream)) {
+			error = "Failed to parse protobuf appearances file.";
+			return false;
+		}
 	}
 
 	uint32_t item_count = 0;

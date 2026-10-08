@@ -2,6 +2,8 @@
 #include "ui/gui.h"
 #include "rendering/core/drawing_options.h"
 #include "rendering/postprocess/post_process_manager.h"
+#include "rendering/core/render_order.h"
+#include "app/settings.h"
 
 DrawingOptions::DrawingOptions() {
 	SetDefault();
@@ -9,6 +11,7 @@ DrawingOptions::DrawingOptions() {
 
 void DrawingOptions::SetDefault() {
 	use_chunk_cache = true;
+	render_order = RenderOrderProfile::BlackTalon; // resolvido de verdade em Update()
 	transparent_floors = false;
 	ghost_floors_enabled = false;
 	ghost_floors_above = 0;
@@ -80,6 +83,8 @@ void DrawingOptions::SetDefault() {
 
 void DrawingOptions::SetIngame() {
 	use_chunk_cache = true;
+	// O preview ingame mostra o que o jogador ve: mesma ordem do cliente.
+	render_order = RenderOrder::resolveProfile(g_settings.getInteger(Config::RENDER_ORDER_PROFILE));
 	transparent_floors = false;
 	ghost_floors_enabled = false;
 	ghost_floors_above = 0;
@@ -149,6 +154,8 @@ void DrawingOptions::SetIngame() {
 
 void DrawingOptions::Update() {
 	use_chunk_cache = g_settings.getBoolean(Config::USE_CHUNK_CACHE);
+	render_order = RenderOrder::resolveProfile(g_settings.getInteger(Config::RENDER_ORDER_PROFILE));
+	RenderOrder::syncShadowCasters();
 	transparent_floors = g_settings.getBoolean(Config::TRANSPARENT_FLOORS);
 	ghost_floors_enabled = g_settings.getBoolean(Config::GHOST_FLOORS_ENABLED);
 	ghost_floors_above = g_settings.getBoolean(Config::GHOST_FLOORS_ABOVE_ENABLED)

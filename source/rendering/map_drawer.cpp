@@ -321,7 +321,11 @@ void MapDrawer::UpdateFBO(const RenderView& view, const DrawingOptions& options)
 	// Determine FBO size.
 	// If upscaling (Zoom < 1.0, e.g. 0.25), we want 1 pixel = 1 map unit.
 	// width_pixels = screen_width * zoom.
-	float scale_factor = view.zoom < 1.0f ? view.zoom : 1.0f;
+	// A arte do conjunto dobrado tem 2 pixels por unidade do mundo (64 px por
+	// casa): o FBO acompanha a densidade dela, senao o shader de tela devolveria
+	// a imagem a 32 px por casa e o 100% do battle royale perderia a arte em 64.
+	const float art_density = static_cast<float>(1.0 / g_gui.gfx.getNormalZoom());
+	float scale_factor = std::min(1.0f, view.zoom * art_density);
 	// If zoom > 1.0 (minified), we render at screen res (or native map size?)
 	// Rendering at screen res with Zoom > 1.0 means primitives are small.
 

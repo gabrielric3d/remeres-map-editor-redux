@@ -155,8 +155,9 @@ void SpritePreloader::workerLoop(std::stop_token stop_token) {
 		ImageDimensions dimensions;
 
 		if (task.archive && task.archive->isProtobuf()) {
-			// Folhas 12+/13: os pixels ja saem em RGBA, sem blob RLE no meio.
-			if (!task.archive->readRGBA(task.pending.key.id, rgba, dimensions)) {
+			// Folhas 12+/13: os pixels ja saem em RGBA, sem blob RLE no meio, e na
+			// resolucao da folha -- o atlas do mapa desenha a arte inteira.
+			if (!task.archive->readRGBA(task.pending.key.id, rgba, dimensions, true)) {
 				rgba.reset();
 			}
 		} else {
@@ -199,6 +200,7 @@ void SpritePreloader::update() {
 	thread_local std::vector<PendingSpriteKey> keys_processed;
 	keys_processed.clear();
 	keys_processed.reserve(results.size());
+	bool delivered = false;
 
 	const auto current_archive = g_gui.gfx.getSpriteArchive();
 	const bool graphics_unloaded = g_gui.gfx.isUnloaded();
@@ -237,6 +239,7 @@ void SpritePreloader::update() {
 			// Check ID match, Generation match, and GLLoaded state
 			if (img->id == id && img->generation_id == pending.generation_id && !img->isGLLoaded) {
 				img->fulfillPreload(std::move(res.data), res.dimensions);
+				delivered = true;
 			}
 		}
 	}
@@ -247,6 +250,15 @@ void SpritePreloader::update() {
 			pending_ids.erase(pending);
 		}
 	}
+
+	if (delivered) {
+		++delivery_generation_;
+	}
+}
+
+bool SpritePreloader::isIdle() {
+	std::lock_guard<std::mutex> lock(queue_mutex);
+	return task_queue.empty() && result_queue.empty() && pending_ids.empty();
 }
 
 namespace rme {

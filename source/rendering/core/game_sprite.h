@@ -111,6 +111,10 @@ public:
 	// desenhado duas vezes ou nenhuma.
 	[[nodiscard]] bool overhangsTile() const;
 
+	// Como getAtlasRegion(), mas sem carregar: nullptr se a imagem daquela
+	// celula/pattern/frame ainda nao esta no atlas (NormalImage::peekAtlasRegion).
+	[[nodiscard]] const AtlasRegion* peekAtlasRegion(int _x, int _y, int _layer, int _count, int _pattern_x, int _pattern_y, int _pattern_z, int _frame);
+
 	// Renews the atlas LRU timestamp of every image of this sprite.
 	//
 	// Image::visit() is the ONLY write to lastaccess, and it normally happens

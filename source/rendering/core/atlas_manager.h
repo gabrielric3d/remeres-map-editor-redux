@@ -35,7 +35,9 @@ public:
 	 * @param rgba_data 32x32x4 bytes of RGBA pixel data
 	 * @return Pointer to the region info, or nullptr on failure
 	 */
-	const AtlasRegion* addSprite(uint32_t sprite_id, const uint8_t* rgba_data, int width = AtlasRegion::SLOT_SIZE, int height = AtlasRegion::SLOT_SIZE);
+	// asset_scale: quantos pixels de rgba_data fazem uma unidade do mundo (1 no
+	// .spr classico e nos dados ja reduzidos; 2 na arte de 64 px por casa).
+	const AtlasRegion* addSprite(uint32_t sprite_id, const uint8_t* rgba_data, int width = AtlasRegion::SLOT_SIZE, int height = AtlasRegion::SLOT_SIZE, int asset_scale = 1);
 
 	/**
 	 * Remove a sprite from the atlas, freeing its slot for reuse.

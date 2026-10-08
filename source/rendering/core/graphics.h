@@ -153,6 +153,12 @@ public:
 		return sprite_archive_;
 	}
 
+	// O zoom do "100%" do projeto carregado: aquele em que cada pixel da arte cai
+	// num pixel de tela. 1.0 (32 px por casa) no .spr classico; 0.5 (64 px por
+	// casa) na arte dobrada do battle royale (SpriteArchive::assetScale() == 2).
+	// O zoom do canvas continua em unidades do mundo por pixel de tela.
+	[[nodiscard]] double getNormalZoom() const;
+
 	ClientVersion* client_version;
 
 	// Sprite Atlas (Phase 2) - manages all game sprites in a texture array

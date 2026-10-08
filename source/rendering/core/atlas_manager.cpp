@@ -37,7 +37,7 @@ bool AtlasManager::ensureInitialized() {
 	return true;
 }
 
-const AtlasRegion* AtlasManager::addSprite(uint32_t sprite_id, const uint8_t* rgba_data, int width, int height) {
+const AtlasRegion* AtlasManager::addSprite(uint32_t sprite_id, const uint8_t* rgba_data, int width, int height, int asset_scale) {
 	// Fast check via direct lookup for common sprites
 	if (sprite_id < DIRECT_LOOKUP_SIZE && direct_lookup_[sprite_id] != nullptr) {
 		return direct_lookup_[sprite_id];
@@ -68,6 +68,10 @@ const AtlasRegion* AtlasManager::addSprite(uint32_t sprite_id, const uint8_t* rg
 	// Store in stable deque
 	region_storage_.push_back(*region);
 	AtlasRegion* ptr = &region_storage_.back();
+
+	const int scale = std::max(1, asset_scale);
+	ptr->draw_width = std::max(1, width / scale);
+	ptr->draw_height = std::max(1, height / scale);
 
 	// Store pointer in hash map
 	ptr->debug_sprite_id = sprite_id;

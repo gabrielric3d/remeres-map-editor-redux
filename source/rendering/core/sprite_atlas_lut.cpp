@@ -19,7 +19,8 @@ SpriteAtlasLUT::SpriteAtlasLUT(SpriteAtlasLUT&& other) noexcept :
 	gpu_capacity_(other.gpu_capacity_),
 	dirty_min_id_(other.dirty_min_id_),
 	dirty_max_id_(other.dirty_max_id_),
-	has_dirty_entries_(other.has_dirty_entries_) {
+	has_dirty_entries_(other.has_dirty_entries_),
+	dirty_slots_(std::move(other.dirty_slots_)) {
 	other.ssbo_ = 0;
 	other.gpu_capacity_ = 0;
 	other.dirty_min_id_ = UINT32_MAX;
@@ -36,6 +37,7 @@ SpriteAtlasLUT& SpriteAtlasLUT::operator=(SpriteAtlasLUT&& other) noexcept {
 		dirty_min_id_ = other.dirty_min_id_;
 		dirty_max_id_ = other.dirty_max_id_;
 		has_dirty_entries_ = other.has_dirty_entries_;
+		dirty_slots_ = std::move(other.dirty_slots_);
 
 		other.ssbo_ = 0;
 		other.gpu_capacity_ = 0;
@@ -63,6 +65,7 @@ bool SpriteAtlasLUT::initialize(size_t initial_capacity) {
 	has_dirty_entries_ = false;
 	dirty_min_id_ = UINT32_MAX;
 	dirty_max_id_ = 0;
+	dirty_slots_.clear();
 
 	spdlog::info("[SpriteAtlasLUT] Initialized SSBO with capacity {} entries ({} KB GPU buffer) | SSBO ID: {}",
 		cpu_entries_.size(), (cpu_entries_.size() * sizeof(SpriteLUTEntry)) / 1024, ssbo_);
@@ -80,6 +83,7 @@ void SpriteAtlasLUT::release() {
 	has_dirty_entries_ = false;
 	dirty_min_id_ = UINT32_MAX;
 	dirty_max_id_ = 0;
+	dirty_slots_.clear();
 }
 
 void SpriteAtlasLUT::ensureCapacity(size_t required_capacity) {
@@ -101,6 +105,7 @@ void SpriteAtlasLUT::ensureCapacity(size_t required_capacity) {
 		has_dirty_entries_ = false;
 		dirty_min_id_ = UINT32_MAX;
 		dirty_max_id_ = 0;
+		dirty_slots_.clear();
 
 		spdlog::info("[SpriteAtlasLUT] Capacity expanded: {} -> {} entries ({} KB GPU buffer) | SSBO ID: {}",
 			old_capacity, new_capacity, (new_capacity * sizeof(SpriteLUTEntry)) / 1024, ssbo_);
@@ -130,6 +135,7 @@ void SpriteAtlasLUT::updateSprite(uint32_t sprite_id, const AtlasRegion& region)
 	dirty_min_id_ = std::min(dirty_min_id_, slot);
 	dirty_max_id_ = std::max(dirty_max_id_, slot);
 	has_dirty_entries_ = true;
+	dirty_slots_.push_back(slot);
 }
 
 void SpriteAtlasLUT::invalidateSprite(uint32_t sprite_id) {
@@ -146,6 +152,7 @@ void SpriteAtlasLUT::invalidateSprite(uint32_t sprite_id) {
 	dirty_min_id_ = std::min(dirty_min_id_, slot);
 	dirty_max_id_ = std::max(dirty_max_id_, slot);
 	has_dirty_entries_ = true;
+	dirty_slots_.push_back(slot);
 }
 
 void SpriteAtlasLUT::flush() {
@@ -153,14 +160,43 @@ void SpriteAtlasLUT::flush() {
 		return;
 	}
 
-	const size_t offset = dirty_min_id_ * sizeof(SpriteLUTEntry);
-	const size_t size = (dirty_max_id_ - dirty_min_id_ + 1) * sizeof(SpriteLUTEntry);
+	auto uploadRange = [this](uint32_t first, uint32_t last) {
+		const size_t offset = static_cast<size_t>(first) * sizeof(SpriteLUTEntry);
+		const size_t size = static_cast<size_t>(last - first + 1) * sizeof(SpriteLUTEntry);
+		glNamedBufferSubData(ssbo_, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(size), cpu_entries_.data() + first);
+	};
 
-	glNamedBufferSubData(ssbo_, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(size), cpu_entries_.data() + dirty_min_id_);
+	// Intervalo pequeno: uma chamada so, como antes. Grande e esparso (ids
+	// distantes mudados no mesmo frame): sobe so os trechos mudados, juntando os
+	// que estao a ate MERGE_GAP entradas um do outro. Os ids do conjunto dobrado
+	// do battle royale vao ate ~280 mil, e o intervalo inteiro entre um sprite de
+	// id baixo e um de id alto chegava a ~9 MB por flush durante a carga.
+	constexpr uint32_t SINGLE_RANGE_ENTRIES = 16384; // 512 KB
+	constexpr uint32_t MERGE_GAP = 64;
+	const uint32_t span = dirty_max_id_ - dirty_min_id_ + 1;
+	if (span <= SINGLE_RANGE_ENTRIES || dirty_slots_.empty()) {
+		uploadRange(dirty_min_id_, dirty_max_id_);
+	} else {
+		std::sort(dirty_slots_.begin(), dirty_slots_.end());
+		uint32_t run_first = dirty_slots_.front();
+		uint32_t run_last = run_first;
+		for (size_t i = 1; i < dirty_slots_.size(); ++i) {
+			const uint32_t slot = dirty_slots_[i];
+			if (slot <= run_last + MERGE_GAP) {
+				run_last = std::max(run_last, slot);
+				continue;
+			}
+			uploadRange(run_first, run_last);
+			run_first = slot;
+			run_last = slot;
+		}
+		uploadRange(run_first, run_last);
+	}
 
 	has_dirty_entries_ = false;
 	dirty_min_id_ = UINT32_MAX;
 	dirty_max_id_ = 0;
+	dirty_slots_.clear();
 }
 
 void SpriteAtlasLUT::bind(GLuint binding_point) {

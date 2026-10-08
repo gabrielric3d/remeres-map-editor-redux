@@ -144,6 +144,43 @@ std::unique_ptr<uint8_t[]> TemplateImage::getRGBAData() {
 	return rgbadata;
 }
 
+std::unique_ptr<uint8_t[]> TemplateImage::getAtlasRGBAData(ImageDimensions& dimensions, int& asset_scale) {
+	size_t mask_index = 0;
+	if (!validateTemplateParentAndIndices(this, sprite_index, mask_index)) {
+		return nullptr;
+	}
+
+	NormalImage* base = parent->spriteList[sprite_index];
+	NormalImage* mask = parent->spriteList[mask_index];
+
+	ImageDimensions base_dimensions;
+	int base_scale = 1;
+	auto rgbadata = base->readAtlasRGBA(base_dimensions, base_scale);
+	ImageDimensions mask_dimensions;
+	int mask_scale = 1;
+	auto mask_rgba = mask->readAtlasRGBA(mask_dimensions, mask_scale);
+
+	if (!rgbadata || !mask_rgba) {
+		spdlog::warn("TemplateImage: Failed to load atlas data for sprite_index={} (template_id={}) (mask_index={})", sprite_index, texture_id, mask_index);
+		return nullptr;
+	}
+	if (base_dimensions.width != mask_dimensions.width || base_dimensions.height != mask_dimensions.height) {
+		spdlog::warn("TemplateImage: base {}x{} and mask {}x{} differ for template_id={}", base_dimensions.width, base_dimensions.height, mask_dimensions.width, mask_dimensions.height, texture_id);
+		return nullptr;
+	}
+
+	clampTemplateLookValues(this);
+
+	// A mascara entra como RGB com magenta no transparente, igual a getRGBData().
+	const size_t pixel_count = base_dimensions.pixelCount();
+	const auto template_rgbdata = NormalImage::RGBAToMaskedRGB(mask_rgba.get(), pixel_count);
+	GameSprite::ColorizeTemplatePixels(rgbadata.get(), template_rgbdata.get(), pixel_count, lookHead, lookBody, lookLegs, lookFeet, true);
+
+	dimensions = base_dimensions;
+	asset_scale = base_scale;
+	return rgbadata;
+}
+
 const AtlasRegion* TemplateImage::getAtlasRegion() {
 	if (isGLLoaded && atlas_region) {
 		// Self-Healing: Check for stale atlas region pointer

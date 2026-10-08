@@ -264,6 +264,34 @@ const AtlasRegion* GameSprite::getAtlasRegion(int _x, int _y, int _layer, int _c
 	return nullptr;
 }
 
+const AtlasRegion* GameSprite::peekAtlasRegion(int _x, int _y, int _layer, int _count, int _pattern_x, int _pattern_y, int _pattern_z, int _frame) {
+	if (numsprites == 0) {
+		return nullptr;
+	}
+
+	// O mesmo indice do caminho geral de getAtlasRegion(); num sprite simples ele
+	// da 0, igual ao atalho de la.
+	(void)_pattern_z;
+	uint32_t v;
+	if (_count >= 0 && height <= 1 && width <= 1) {
+		v = _count;
+	} else {
+		v = ((((((_frame)*pattern_y + _pattern_y) * pattern_x + _pattern_x) * layers + _layer) * height + _y) * width + _x);
+	}
+	if (v >= numsprites) {
+		if (numsprites == 1) {
+			v = 0;
+		} else {
+			v %= numsprites;
+		}
+	}
+	if (v >= spriteList.size() || !spriteList[v]) {
+		return nullptr;
+	}
+	spriteList[v]->parent = this;
+	return spriteList[v]->peekAtlasRegion();
+}
+
 TemplateImage* GameSprite::getTemplateImage(int sprite_index, const Outfit& outfit) {
 	// While this is linear lookup, it is very rare for the list to contain more than 4-8 entries,
 	// so it's faster than a hashmap anyways.

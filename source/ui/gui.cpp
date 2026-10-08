@@ -299,9 +299,16 @@ void GUI::ChangeFloor(int new_floor) {
 
 		if (old_floor != new_floor) {
 			tab->GetCanvas()->ChangeFloor(new_floor);
-			g_status.SetStatusText(std::format("Floor: {} | Zoom: {:.0f}%", new_floor, GetCurrentZoom() * 100), STATUS_FIELD_FLOOR_ZOOM);
+			g_status.SetStatusText(std::format("Floor: {} | Zoom: {:.0f}%", new_floor, GetZoomPercent(GetCurrentZoom())), STATUS_FIELD_FLOOR_ZOOM);
 		}
 	}
+}
+
+double GUI::GetZoomPercent(double zoom) const {
+	if (zoom <= 0.0) {
+		return 100.0;
+	}
+	return gfx.getNormalZoom() / zoom * 100.0;
 }
 
 double GUI::GetCurrentZoom() {
@@ -316,7 +323,7 @@ void GUI::SetCurrentZoom(double zoom) {
 	MapTab* mapTab = GetCurrentMapTab();
 	if (mapTab) {
 		mapTab->GetCanvas()->SetZoom(zoom);
-		g_status.SetStatusText(std::format("Floor: {} | Zoom: {:.0f}%", GetCurrentFloor(), zoom * 100), STATUS_FIELD_FLOOR_ZOOM);
+		g_status.SetStatusText(std::format("Floor: {} | Zoom: {:.0f}%", GetCurrentFloor(), GetZoomPercent(GetCurrentZoom())), STATUS_FIELD_FLOOR_ZOOM);
 	}
 }
 

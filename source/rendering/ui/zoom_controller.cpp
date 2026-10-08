@@ -67,7 +67,7 @@ void ZoomController::ApplyRelativeZoom(MapCanvas* canvas, double diff) {
 }
 
 void ZoomController::UpdateStatus(MapCanvas* canvas) {
-	int percentage = static_cast<int>((1.0 / canvas->zoom) * 100);
+	int percentage = static_cast<int>(std::lround(g_gui.GetZoomPercent(canvas->zoom)));
 	wxString ss;
 	ss << "zoom: " << percentage << "%";
 	g_gui.root->SetStatusText(ss, 3);

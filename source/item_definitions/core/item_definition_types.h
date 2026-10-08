@@ -187,6 +187,9 @@ enum class ItemFlag : uint8_t {
 	Ammo,
 	Reportable,
 	Usable,
+	// "Lying corpse" do .dat / lying_object do protobuf. So a ordem de desenho do
+	// perfil Battle Royale consulta: um item deitado nunca e decoracao rasteira.
+	LyingObject,
 	Count,
 };
 static_assert(static_cast<uint8_t>(ItemFlag::Count) <= 64, "ItemFlag must fit in the uint64_t flag mask");

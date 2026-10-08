@@ -28,11 +28,16 @@ class ItemDefinitionView;
 // neighbouring tile (draw offsets, big sprites) must not be covered by that
 // neighbour's lower-order sprites, so the map layer runs three passes per
 // floor instead of drawing each tile completely in map order.
+//
+// O que cai em cada passada depende do perfil de ordem do cliente
+// (RenderOrder::visitTileElements): no Battle Royale, por exemplo, so ground e
+// borda 1x1 ficam nas duas primeiras, e a decoracao rasteira desce para a de
+// bordas.
 enum class TileRenderPass {
 	All, // single pass: everything (legacy behavior)
-	Ground, // ground item only
-	Borders, // ground borders (always-on-bottom, top order 1) only
-	Contents // everything else (walls, items, creatures, overlays)
+	Ground, // RenderOrder::Layer::Ground
+	Borders, // RenderOrder::Layer::Borders
+	Contents // RenderOrder::Layer::Contents, plus overlays and markers
 };
 
 class TileRenderer {

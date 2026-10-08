@@ -109,6 +109,10 @@ private:
 	uint32_t dirty_min_id_ = UINT32_MAX;
 	uint32_t dirty_max_id_ = 0;
 	bool has_dirty_entries_ = false;
+	// Os slots mudados desde o ultimo flush. Os ids do conjunto dobrado do battle
+	// royale vao ate ~280 mil: um sprite de id baixo e um de id alto carregados no
+	// mesmo frame faziam o flush subir o intervalo inteiro entre eles (~9 MB).
+	std::vector<uint32_t> dirty_slots_;
 };
 
 #endif

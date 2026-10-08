@@ -12,6 +12,7 @@
 #include "rendering/core/graphics.h"
 #include "rendering/core/render_frame_context.h"
 #include "rendering/core/render_view.h"
+#include "rendering/core/render_order.h"
 #include "rendering/core/shared_geometry.h"
 #include "rendering/core/sprite_atlas_lut.h"
 #include "rendering/core/sprite_preloader.h"
@@ -30,6 +31,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <chrono>
+#include <cstdint>
+#include <vector>
 
 namespace {
 	// Geometry stores a sprite id; the fragment's atlas UVs come from the
@@ -150,6 +154,12 @@ void main() {
 				break;
 		}
 		return cid >= 39092 && cid <= 39100;
+	}
+
+	// Relogio monotono em ms, para as folgas do bake (o relogio do GraphicManager
+	// e de segundos, e o da animacao para quando a animacao esta desligada).
+	int64_t steadyNowMs() noexcept {
+		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 	}
 
 	// Resposta de itemBakeRefusal() para "pode ir para o cache".
@@ -317,6 +327,14 @@ void ChunkCacheManager::release() {
 			*buffer = 0;
 		}
 	}
+	for (FloorSpill& floor : floor_spill_) {
+		if (floor.vbo != 0) {
+			glDeleteBuffers(1, &floor.vbo);
+		}
+		floor = FloorSpill {};
+	}
+	spill_refs_.clear();
+	spill_merge_buffer_.clear();
 	anim_sequences_.clear();
 	anim_frames_.clear();
 	anim_clock_.clear();
@@ -334,6 +352,8 @@ void ChunkCacheManager::release() {
 	active_floor_ = -1;
 	shader_initialized_ = false;
 	current_frame_ = 0;
+	last_touch_time_ = 0;
+	touch_frame_ = UINT64_MAX;
 	has_bake_signature_ = false;
 	last_atlas_ = nullptr;
 	last_eviction_generation_ = 0;
@@ -353,7 +373,6 @@ void ChunkCacheManager::updateDirtyState(SpatialChangeTracker& change_tracker) {
 		auto it = cached_chunks_.find(coord);
 		if (it != cached_chunks_.end()) {
 			it->second.is_dirty = true;
-			it->second.pending_bake_retries = 0;
 		}
 	}
 }
@@ -408,7 +427,6 @@ void ChunkCacheManager::updateAtlasState(const AtlasManager* atlas) {
 void ChunkCacheManager::invalidateAll() {
 	for (auto& [coord, chunk] : cached_chunks_) {
 		chunk.is_dirty = true;
-		chunk.pending_bake_retries = 0;
 	}
 }
 
@@ -416,7 +434,6 @@ void ChunkCacheManager::invalidateChunk(int32_t cx, int32_t cy, int32_t z) {
 	auto it = cached_chunks_.find(ChunkCoord { cx, cy, z });
 	if (it != cached_chunks_.end()) {
 		it->second.is_dirty = true;
-		it->second.pending_bake_retries = 0;
 	}
 }
 
@@ -457,7 +474,11 @@ void ChunkCacheManager::uploadChunk(CachedChunk& chunk, const std::vector<TileIn
 	}
 }
 
-void ChunkCacheManager::bakeChunk(CachedChunk& chunk, const Map& map, const RenderFrameContext& ctx) {
+bool ChunkCacheManager::syncLoadAllowed(bool allow_sync_loads) const {
+	return allow_sync_loads || steadyNowMs() - frame_start_ms_ < SYNC_LOAD_BUDGET_MS;
+}
+
+void ChunkCacheManager::bakeChunk(CachedChunk& chunk, const Map& map, const RenderFrameContext& ctx, bool allow_sync_loads) {
 	RENDER_PROFILE_SCOPE(ChunkBake);
 	RenderProfiler::Count(RenderProfiler::Counter::ChunksBaked);
 
@@ -466,6 +487,9 @@ void ChunkCacheManager::bakeChunk(CachedChunk& chunk, const Map& map, const Rend
 	chunk.used_sprites.clear();
 	chunk.defer_reasons.fill(0);
 	chunk.contents_offset = 0;
+	chunk.spill_instances.clear();
+	chunk.spill_keys.clear();
+	chunk.bake_serial = ++bake_serial_counter_;
 
 	const DrawingOptions& options = ctx.options;
 	const int32_t base_x = chunk.coord.cx * CHUNK_SIZE;
@@ -507,6 +531,7 @@ void ChunkCacheManager::bakeChunk(CachedChunk& chunk, const Map& map, const Rend
 	if (!any_floor) {
 		chunk.is_empty = true;
 		chunk.is_dirty = false;
+		chunk.waiting_for_sprites = false;
 		chunk.instance_count = 0;
 		return;
 	}
@@ -524,6 +549,10 @@ void ChunkCacheManager::bakeChunk(CachedChunk& chunk, const Map& map, const Rend
 	// selecao em arrasto. selected: item selecionado -- tint pela metade, como o
 	// BlitItem faz. Sprite animado sai com a sequencia de frames da celula
 	// (anim_seq), e o shader troca o frame.
+	//
+	// emit_spilled vira true quando algum quad sai da celula 32x32 do tile: esse
+	// sprite se sobrepoe a vizinhos e a ordem entre eles importa.
+	bool emit_spilled = false;
 	auto emitSprite = [&](GameSprite* spr, const SpritePatterns& pat, int screen_x, int screen_y, uint8_t r, uint8_t g, uint8_t b, int alpha, int tile_x, int tile_y, bool selected) {
 		if (std::find(chunk.used_sprites.begin(), chunk.used_sprites.end(), spr) == chunk.used_sprites.end()) {
 			chunk.used_sprites.push_back(spr);
@@ -542,11 +571,21 @@ void ChunkCacheManager::bakeChunk(CachedChunk& chunk, const Map& map, const Rend
 		const uint32_t tile_xy = (static_cast<uint32_t>(tile_x) & 0xFFFFu) | (static_cast<uint32_t>(tile_y) << 16);
 		const uint32_t flags = selected ? TILE_INSTANCE_SELECTED : 0u;
 		const bool animated = spr->isAnimated();
+		const int tile_px = tile_x * TILE_SIZE;
+		const int tile_py = tile_y * TILE_SIZE;
 
 		auto push = [&](int cx, int cy, int cf, int px, int py) {
-			const AtlasRegion* region = spr->getAtlasRegion(cx, cy, cf, pat.subtype, pat.x, pat.y, pat.z, pat.frame);
+			// O que ja esta no atlas sai direto. O que nao esta so e carregado na
+			// hora dentro da folga do frame; fora dela fica para o preloader (o
+			// pedido saiu em emitElement, por collectTileSprites) e o chunk e
+			// re-assado quando ele chegar.
+			const AtlasRegion* region = spr->peekAtlasRegion(cx, cy, cf, pat.subtype, pat.x, pat.y, pat.z, pat.frame);
+			if (!region && syncLoadAllowed(allow_sync_loads)) {
+				region = spr->getAtlasRegion(cx, cy, cf, pat.subtype, pat.x, pat.y, pat.z, pat.frame);
+			}
 			if (!region || region->debug_sprite_id == AtlasRegion::INVALID_SENTINEL) {
-				// Still streaming in, or its slot was just freed: try again next frame.
+				// Still streaming in, or its slot was just freed: re-baked when it arrives.
+				rme::collectTileSprites(spr, pat.x, pat.y, pat.z, pat.frame);
 				sprite_pending = true;
 				return;
 			}
@@ -556,18 +595,24 @@ void ChunkCacheManager::bakeChunk(CachedChunk& chunk, const Map& map, const Rend
 			}
 			uint32_t anim_seq = 0;
 			if (animated) {
-				anim_seq = animSequenceFor(spr, cx, cy, cf, pat, sprite_pending);
+				anim_seq = animSequenceFor(spr, cx, cy, cf, pat, sprite_pending, allow_sync_loads);
 				if (anim_seq == 0) {
 					return; // algum frame ainda sem regiao: sprite_pending ja diz para tentar de novo
 				}
+			}
+			// No tamanho do mundo: a arte de 64 px por casa ocupa a casa de 32.
+			const int quad_w = region->draw_width;
+			const int quad_h = region->draw_height;
+			if (px < tile_px || py < tile_py || px + quad_w > tile_px + TILE_SIZE || py + quad_h > tile_py + TILE_SIZE) {
+				emit_spilled = true;
 			}
 			TileInstance inst;
 			inst.x = static_cast<float>(px);
 			inst.y = static_cast<float>(py);
 			// Tamanho real: as folhas 12+/13 trazem sprites de 64px, e um quad
 			// de 32 recortaria o sprite pela metade.
-			inst.w = static_cast<float>(region->pixel_width);
-			inst.h = static_cast<float>(region->pixel_height);
+			inst.w = static_cast<float>(quad_w);
+			inst.h = static_cast<float>(quad_h);
 			inst.sprite_id = region->debug_sprite_id;
 			inst.flags = flags;
 			inst.r = rf;
@@ -629,32 +674,6 @@ void ChunkCacheManager::bakeChunk(CachedChunk& chunk, const Map& map, const Rend
 		return false;
 	};
 
-	// Same filters the CPU pass applies, in the same order. with_borders: the
-	// ground borders (top order 1) belong to this slice too -- the overhanging
-	// ground case, which TileRenderer draws whole in the contents pass.
-	auto skipItem = [&](const Item* item, bool with_borders) {
-		const int top_order = item->isAlwaysOnBottom() ? item->getTopOrder() : 0;
-		if (top_order == 1 && !with_borders) {
-			return true; // ground border, handled by the border pass
-		}
-		return options.show_only_grounds && !item->isBorder() && !item->isOptionalBorder();
-	};
-
-	// First refusal among the items the slice shows, or kBakeable. Invalid items
-	// are invisible here: with show_invalid_tiles the tile was already deferred.
-	auto itemsRefusal = [&](const Tile* tile, bool with_borders) {
-		for (const auto& item : tile->items) {
-			if (skipItem(item.get(), with_borders) || item->isInvalidOTBMItem()) {
-				continue;
-			}
-			const ChunkDeferReason refusal = itemBakeRefusal(item.get(), item->getDefinition(), item->getSprite(), options);
-			if (refusal != kBakeable) {
-				return refusal;
-			}
-		}
-		return kBakeable;
-	};
-
 	// The alpha BlitItem gives a ground: the two transparency options and the
 	// mountain overlay ghost.
 	auto groundAlpha = [&](const Tile* tile, const ItemDefinitionView& ground_it, const GameSprite* ground_sprite) {
@@ -668,30 +687,26 @@ void ChunkCacheManager::bakeChunk(CachedChunk& chunk, const Map& map, const Rend
 		return alpha;
 	};
 
-	// Emits the items of a tile the way TileRenderer::DrawTile does: stack order
-	// with the elevation stacking ItemDrawer applies, then the on-top items (top
-	// order 3) last and without elevation. The caller already made sure every
-	// one of them is bakeable.
-	auto emitTileItems = [&](const Tile* tile, const Position& position, int x, int y, uint8_t r, uint8_t g, uint8_t b, bool with_borders, int elevation) {
-		// The house tint is stable; only its pulse is not, and a pulsing tile
-		// never gets here (tileNeedsCpu).
-		uint8_t house_r = 255, house_g = 255, house_b = 255;
-		const bool calculate_house_color = options.extended_house_shader && options.show_houses && tile->isHouseTile();
-		if (calculate_house_color) {
-			TileColorCalculator::GetHouseColor(tile->getHouseID(), house_r, house_g, house_b);
+	// Emite um elemento do tile (chao ou item) como o TileRenderer o desenharia:
+	// mesmo tint, mesmo alpha, mesma posicao (celula - elevacao - deslocamento).
+	// house_rgb: o tint da casa para os itens que nao sao borda (o pulso da casa
+	// selecionada nunca chega aqui -- esses tiles vao para a CPU).
+	auto emitElement = [&](const Tile* tile, const Position& position, int x, int y, const RenderOrder::TileElement& element, uint8_t r, uint8_t g, uint8_t b, bool calculate_house_color, uint8_t house_r, uint8_t house_g, uint8_t house_b) {
+		GameSprite* spr = element.sprite;
+		const SpritePatterns patterns = PatternCalculator::Calculate(spr, element.definition, element.item, tile, position);
+		if (!spr->isSimpleAndLoaded()) {
+			rme::collectTileSprites(spr, patterns.x, patterns.y, patterns.z, patterns.frame);
 		}
 
-		auto emitItem = [&](const Item* item, int item_elevation) {
-			const ItemDefinitionView it = item->getDefinition();
-			GameSprite* spr = item->getSprite();
-
-			const SpritePatterns patterns = PatternCalculator::Calculate(spr, it, item, tile, position);
-			if (!spr->isSimpleAndLoaded()) {
-				rme::collectTileSprites(spr, patterns.x, patterns.y, patterns.z, patterns.frame);
-			}
-
-			uint8_t ir = 255, ig = 255, ib = 255;
-			if (item->isBorder()) {
+		uint8_t ir = 255, ig = 255, ib = 255;
+		int alpha = 255;
+		if (element.kind == RenderOrder::ElementKind::Ground) {
+			ir = r;
+			ig = g;
+			ib = b;
+			alpha = groundAlpha(tile, element.definition, spr);
+		} else {
+			if (element.item->isBorder()) {
 				ir = r;
 				ig = g;
 				ib = b;
@@ -700,322 +715,199 @@ void ChunkCacheManager::bakeChunk(CachedChunk& chunk, const Map& map, const Rend
 				ig = house_g;
 				ib = house_b;
 			}
-
-			const int alpha = applyTransparency(255, it, spr, options);
-			const auto [item_off_x, item_off_y] = spr->getDrawOffset();
-			emitSprite(spr, patterns, x * TILE_SIZE - item_elevation - item_off_x, y * TILE_SIZE - item_elevation - item_off_y, ir, ig, ib, alpha, x, y, show_selection && item->isSelected());
-		};
-
-		bool has_top_items = false;
-		for (const auto& item : tile->items) {
-			if (skipItem(item.get(), with_borders) || item->isInvalidOTBMItem()) {
-				continue;
-			}
-			// Top order 3 closes the tile, above the common items, and without
-			// the elevation they accumulated -- Tile::drawTop draws at dest.
-			if (item->isAlwaysOnBottom() && item->getTopOrder() == 3) {
-				has_top_items = true;
-				continue;
-			}
-			emitItem(item.get(), elevation);
-			elevation += item->getSprite()->draw_height;
+			alpha = applyTransparency(255, element.definition, spr, options);
 		}
 
-		if (has_top_items) {
-			for (const auto& item : tile->items) {
-				if (skipItem(item.get(), with_borders) || item->isInvalidOTBMItem()) {
-					continue;
-				}
-				if (!item->isAlwaysOnBottom() || item->getTopOrder() != 3) {
-					continue;
-				}
-				emitItem(item.get(), 0);
-			}
-		}
+		const auto [off_x, off_y] = spr->getDrawOffset();
+		emitSprite(spr, patterns, x * TILE_SIZE - element.elevation - off_x, y * TILE_SIZE - element.elevation - off_y, ir, ig, ib, alpha, x, y, show_selection && element.item->isSelected());
 	};
 
-	// Bakes the contents slice of one tile: every item that is not a ground
-	// border, in stack order.
-	//
-	// All or nothing. Splitting a tile's contents between the GPU and the CPU
-	// would break the elevation chain and the stack order, so a single item
-	// the bake cannot express sends the whole slice back to TileRenderer.
-	auto bakeTileContents = [&](const Tile* tile, const TileLocation* loc, const Position& position, int x, int y, uint8_t r, uint8_t g, uint8_t b, auto&& defer) {
-		if (tileNeedsCpu(tile, loc)) {
-			defer(CHUNK_DEFER_CONTENTS, ChunkDeferReason::Marker);
-			return;
-		}
-		if (tileHasInvalidOverlay(tile)) {
-			defer(CHUNK_DEFER_CONTENTS, ChunkDeferReason::Other);
-			return;
-		}
-		// Past the LOD threshold the contents pass blits nothing else.
-		if (!options.drawLooseItems()) {
-			return;
-		}
-		if (const ChunkDeferReason refusal = itemsRefusal(tile, false); refusal != kBakeable) {
-			defer(CHUNK_DEFER_CONTENTS, refusal);
-			return;
-		}
-		emitTileItems(tile, position, x, y, r, g, b, false, 0);
-	};
-
-	// Um chao maior que o tile (montanha 64x64) ou com deslocamento negativo
-	// transborda para os vizinhos. O TileRenderer desenha chao, bordas e itens
-	// desse tile juntos, na passada de conteudo, para que ele cubra o que ja foi
-	// desenhado a noroeste -- e o bake faz o mesmo, na faixa de conteudo do chunk.
-	// A ordem se mantem: dentro do chunk o conteudo sai coluna a coluna (x, depois
-	// y) e os chunks sao visitados linha a linha, entao tudo que fica a noroeste
-	// ja foi emitido antes. Antes disto o tile inteiro ia para a CPU -- num mapa de
-	// montanha, praticamente o andar todo, a cada frame.
-	auto bakeOverhangTile = [&](const Tile* tile, const TileLocation* loc, const Position& position, int x, int y, uint8_t r, uint8_t g, uint8_t b, GameSprite* ground_sprite, auto&& defer) {
-		const ItemDefinitionView ground_it = tile->ground->getDefinition();
-		if (const ChunkDeferReason refusal = itemBakeRefusal(tile->ground.get(), ground_it, ground_sprite, options); refusal != kBakeable) {
-			defer(CHUNK_DEFER_CONTENTS, refusal);
-			return;
-		}
-		if (tileNeedsCpu(tile, loc)) {
-			defer(CHUNK_DEFER_CONTENTS, ChunkDeferReason::Marker);
-			return;
-		}
-		if (tileHasInvalidOverlay(tile)) {
-			defer(CHUNK_DEFER_CONTENTS, ChunkDeferReason::Other);
-			return;
-		}
-		// Borders are loose items: past the LOD threshold only the ground shows.
-		const bool loose_items = options.drawLooseItems();
-		if (loose_items) {
-			if (const ChunkDeferReason refusal = itemsRefusal(tile, true); refusal != kBakeable) {
-				defer(CHUNK_DEFER_CONTENTS, refusal);
-				return;
-			}
-		}
-
-		const SpritePatterns patterns = PatternCalculator::Calculate(ground_sprite, ground_it, tile->ground.get(), tile, position);
-		if (!ground_sprite->isSimpleAndLoaded()) {
-			rme::collectTileSprites(ground_sprite, patterns.x, patterns.y, patterns.z, patterns.frame);
-		}
-		const auto [ground_off_x, ground_off_y] = ground_sprite->getDrawOffset();
-		emitSprite(ground_sprite, patterns, x * TILE_SIZE - ground_off_x, y * TILE_SIZE - ground_off_y, r, g, b, groundAlpha(tile, ground_it, ground_sprite), x, y, show_selection && tile->ground->isSelected());
-
-		if (loose_items) {
-			// No TileRenderer chao, bordas e itens deste tile dividem o mesmo
-			// draw_x/draw_y, entao a elevacao continua a partir da do chao.
-			emitTileItems(tile, position, x, y, r, g, b, true, ground_sprite->draw_height);
-		}
-	};
+	// Os elementos de uma camada de um tile, juntados antes de decidir o bake.
+	// O bake so roda na thread do GL, entao o buffer estatico e seguro.
+	static std::vector<RenderOrder::TileElement> elements;
 
 	// Posicao de cada tile em chunk.deferred_tiles, mais um (0 = nao deferido).
 	// Troca a busca linear que o defer() fazia a cada chamada.
 	std::array<uint16_t, CHUNK_SIZE * CHUNK_SIZE> deferred_slot {};
 	size_t contents_start = 0;
 
-	// One sweep per pass over the whole chunk, in the order the CPU renderer
-	// uses: every ground, then every border, then the contents. That is what
-	// keeps a ground from covering a neighbour's border.
+	// Uma varredura por camada sobre o chunk inteiro, na ordem de tiles do
+	// cliente (RenderOrder::chunkTileOrder): todo chao, depois toda borda, depois
+	// o conteudo. Em que camada cada sprite vai -- e com que elevacao -- vem do
+	// classificador compartilhado com o TileRenderer (visitTileElements).
+	//
+	// Cada camada de um tile e tudo ou nada: um unico elemento que o bake nao
+	// expressa manda a camada inteira do tile para a CPU, para nao quebrar a
+	// ordem nem a cadeia de elevacao.
+	const RenderOrderProfile profile = options.render_order;
+	const RenderOrder::ChunkTileOrder& tile_order = RenderOrder::chunkTileOrder(profile);
+
 	for (int pass = 0; pass < 3; ++pass) {
-		const bool ground_pass = (pass == 0);
-		const bool contents_pass = (pass == 2);
+		const RenderOrder::Layer layer = pass == 0 ? RenderOrder::Layer::Ground : (pass == 1 ? RenderOrder::Layer::Borders : RenderOrder::Layer::Contents);
+		// Um chao recusado leva as bordas junto para a CPU, para elas ficarem por cima dele.
+		const uint8_t refusal_mask = pass == 0 ? static_cast<uint8_t>(CHUNK_DEFER_GROUND | CHUNK_DEFER_BORDERS) : (pass == 1 ? static_cast<uint8_t>(CHUNK_DEFER_BORDERS) : static_cast<uint8_t>(CHUNK_DEFER_CONTENTS));
 
 		// Daqui em diante e a faixa de conteudo (renderFloorContents).
-		if (contents_pass) {
+		if (pass == 2) {
 			contents_start = bake_buffer_.size();
 		}
 
-		for (int tx = 0; tx < CHUNK_SIZE; ++tx) {
-			for (int ty = 0; ty < CHUNK_SIZE; ++ty) {
-				const Floor* fl = floors[tx >> 2][ty >> 2];
-				if (!fl) {
+		for (const auto& cell : tile_order) {
+			const int tx = cell.first;
+			const int ty = cell.second;
+			const Floor* fl = floors[tx >> 2][ty >> 2];
+			if (!fl) {
+				continue;
+			}
+
+			const TileLocation* loc = &fl->locs[(tx & 3) * 4 + (ty & 3)];
+			const Tile* tile = loc->get();
+			if (!tile) {
+				continue;
+			}
+
+			const int x = base_x + tx;
+			const int y = base_y + ty;
+			const Position position(x, y, z);
+
+			uint8_t r = 255, g = 255, b = 255;
+			if (options.hasTileColorModifiers()) {
+				TileColorCalculator::Calculate(tile, options, options.current_house_id, loc->getSpawnCount(), r, g, b);
+			}
+
+			uint16_t& slot = deferred_slot[tx * CHUNK_SIZE + ty];
+			auto defer = [&](uint8_t mask, ChunkDeferReason reason) {
+				++chunk.defer_reasons[static_cast<size_t>(reason)];
+				if (slot != 0) {
+					chunk.deferred_tiles[slot - 1].pass_mask |= mask;
+					return;
+				}
+				chunk.deferred_tiles.push_back(DeferredTileInfo { static_cast<uint8_t>(tx), static_cast<uint8_t>(ty), mask });
+				slot = static_cast<uint16_t>(chunk.deferred_tiles.size());
+			};
+
+			// O chao (e as bordas) da casa selecionada pulsam: o tint vem do
+			// TileColorCalculator com o highlight_pulse do frame.
+			const bool selected_house = options.show_houses && tile->isHouseTile() && tile->getHouseID() == options.current_house_id;
+
+			if (pass == 0) {
+				if (!tile->ground) {
+					// A groundless tile still paints a zone square on the CPU,
+					// and its borders have to follow it so they stay on top.
+					if (options.always_show_zones && (r != 255 || g != 255 || b != 255)) {
+						defer(CHUNK_DEFER_GROUND | CHUNK_DEFER_BORDERS, ChunkDeferReason::Other);
+					}
 					continue;
 				}
-
-				const TileLocation* loc = &fl->locs[(tx & 3) * 4 + (ty & 3)];
-				const Tile* tile = loc->get();
-				if (!tile) {
+				if (selected_house) {
+					defer(CHUNK_DEFER_GROUND | CHUNK_DEFER_BORDERS, ChunkDeferReason::Marker);
 					continue;
 				}
-
-				const int x = base_x + tx;
-				const int y = base_y + ty;
-				const Position position(x, y, z);
-
-				uint8_t r = 255, g = 255, b = 255;
-				if (options.hasTileColorModifiers()) {
-					TileColorCalculator::Calculate(tile, options, options.current_house_id, loc->getSpawnCount(), r, g, b);
-				}
-
-				uint16_t& slot = deferred_slot[tx * CHUNK_SIZE + ty];
-				auto defer = [&](uint8_t mask, ChunkDeferReason reason) {
-					++chunk.defer_reasons[static_cast<size_t>(reason)];
-					if (slot != 0) {
-						chunk.deferred_tiles[slot - 1].pass_mask |= mask;
-						return;
-					}
-					chunk.deferred_tiles.push_back(DeferredTileInfo { static_cast<uint8_t>(tx), static_cast<uint8_t>(ty), mask });
-					slot = static_cast<uint16_t>(chunk.deferred_tiles.size());
-				};
-
-				// Same test as TileRenderer: a hidden invalid ground is not drawn,
-				// so it overhangs nothing.
-				GameSprite* ground_sprite = tile->ground ? tile->ground->getSprite() : nullptr;
-				const bool hidden_invalid_ground = tile->ground && tile->ground->isInvalidOTBMItem() && !options.show_invalid_tiles;
-				const bool ground_overhangs = !hidden_invalid_ground && ground_sprite && ground_sprite->overhangsTile();
-				if (ground_overhangs) {
-					if (contents_pass) {
-						bakeOverhangTile(tile, loc, position, x, y, r, g, b, ground_sprite, defer);
-					}
-					continue;
-				}
-
-				if (ground_pass) {
-					if (!tile->ground) {
-						// A groundless tile still paints a zone square on the CPU,
-						// and its borders have to follow it so they stay on top.
-						if (options.always_show_zones && (r != 255 || g != 255 || b != 255)) {
-							defer(CHUNK_DEFER_GROUND | CHUNK_DEFER_BORDERS, ChunkDeferReason::Other);
-						}
-						continue;
-					}
-
-					// O chao (e as bordas) da casa selecionada pulsam: o tint vem do
-					// TileColorCalculator com o highlight_pulse do frame.
-					if (options.show_houses && tile->isHouseTile() && tile->getHouseID() == options.current_house_id) {
-						defer(CHUNK_DEFER_GROUND | CHUNK_DEFER_BORDERS, ChunkDeferReason::Marker);
-						continue;
-					}
-
-					const ItemDefinitionView ground_it = tile->ground->getDefinition();
-					if (const ChunkDeferReason refusal = itemBakeRefusal(tile->ground.get(), ground_it, ground_sprite, options); refusal != kBakeable) {
-						// An animated or interactive ground has to keep its borders
-						// on the CPU too, or they would be drawn underneath it.
-						defer(CHUNK_DEFER_GROUND | CHUNK_DEFER_BORDERS, refusal);
-						continue;
-					}
-
-					const SpritePatterns patterns = PatternCalculator::Calculate(ground_sprite, ground_it, tile->ground.get(), tile, position);
-					if (!ground_sprite->isSimpleAndLoaded()) {
-						rme::collectTileSprites(ground_sprite, patterns.x, patterns.y, patterns.z, patterns.frame);
-					}
-
-					const auto [ground_off_x, ground_off_y] = ground_sprite->getDrawOffset();
-					emitSprite(ground_sprite, patterns, x * TILE_SIZE - ground_off_x, y * TILE_SIZE - ground_off_y, r, g, b, groundAlpha(tile, ground_it, ground_sprite), x, y, show_selection && tile->ground->isSelected());
-					continue;
-				}
-
-				if (contents_pass) {
-					// Um chao ou uma borda deferidos nao arrastam mais o conteudo do
-					// tile para a CPU: a faixa de conteudo e desenhada DEPOIS das
-					// passadas de CPU de chao e borda, entao ja fica por cima deles.
-					bakeTileContents(tile, loc, position, x, y, r, g, b, defer);
-					continue;
-				}
-
-				// Border pass: ground borders only (always-on-bottom, top order 1).
-				// Borders are loose items, so the LOD gate hides them wholesale.
-				if (!options.drawLooseItems()) {
-					continue;
-				}
-
+			} else if (pass == 1) {
 				if (slot != 0 && (chunk.deferred_tiles[slot - 1].pass_mask & CHUNK_DEFER_BORDERS)) {
 					continue;
 				}
-
-				// Two sweeps: the first one decides whether every border of this
-				// tile can be baked, the second emits them. All or nothing keeps
-				// their order and stacked elevation identical to the CPU path.
-				ChunkDeferReason border_refusal = kBakeable;
-				bool has_border = false;
-				for (const auto& item : tile->items) {
-					if (!item->isAlwaysOnBottom() || item->getTopOrder() != 1) {
-						continue;
-					}
-					if (options.show_only_grounds && !item->isBorder() && !item->isOptionalBorder()) {
-						continue;
-					}
-					if (item->isInvalidOTBMItem()) {
-						if (options.show_invalid_tiles) {
-							// Com a opcao ligada a CPU desenha a borda invalida.
-							border_refusal = ChunkDeferReason::Other;
-							break;
-						}
-						continue; // invisible, exactly as the CPU pass treats it
-					}
-					has_border = true;
-					// A top-order-1 item that is not a border takes the house tint
-					// and its pulse, which changes every frame.
-					if (!item->isBorder()) {
-						border_refusal = ChunkDeferReason::Other;
-						break;
-					}
-					border_refusal = itemBakeRefusal(item.get(), item->getDefinition(), item->getSprite(), options);
-					if (border_refusal != kBakeable) {
-						break;
-					}
-				}
-
-				if (border_refusal != kBakeable) {
-					defer(CHUNK_DEFER_BORDERS, border_refusal);
+				if (selected_house) {
+					defer(CHUNK_DEFER_BORDERS, ChunkDeferReason::Marker);
 					continue;
 				}
-				if (!has_border) {
+			} else {
+				if (tileNeedsCpu(tile, loc)) {
+					defer(CHUNK_DEFER_CONTENTS, ChunkDeferReason::Marker);
 					continue;
 				}
-
-				int elevation = 0;
-				for (const auto& item : tile->items) {
-					if (!item->isAlwaysOnBottom() || item->getTopOrder() != 1) {
-						continue;
-					}
-					if (options.show_only_grounds && !item->isBorder() && !item->isOptionalBorder()) {
-						continue;
-					}
-					if (item->isInvalidOTBMItem()) {
-						continue;
-					}
-
-					const ItemDefinitionView it = item->getDefinition();
-					GameSprite* spr = item->getSprite();
-
-					const SpritePatterns patterns = PatternCalculator::Calculate(spr, it, item.get(), tile, position);
-					if (!spr->isSimpleAndLoaded()) {
-						rme::collectTileSprites(spr, patterns.x, patterns.y, patterns.z, patterns.frame);
-					}
-
-					const int alpha = applyTransparency(255, it, spr, options);
-					const auto [border_off_x, border_off_y] = spr->getDrawOffset();
-					const int screen_x = x * TILE_SIZE - elevation - border_off_x;
-					const int screen_y = y * TILE_SIZE - elevation - border_off_y;
-
-					emitSprite(spr, patterns, screen_x, screen_y, r, g, b, alpha, x, y, show_selection && item->isSelected());
-
-					elevation += spr->draw_height;
+				if (tileHasInvalidOverlay(tile)) {
+					defer(CHUNK_DEFER_CONTENTS, ChunkDeferReason::Other);
+					continue;
 				}
+			}
+
+			// A criatura nunca chega aqui: um tile com criatura desenhada vai
+			// inteiro para a CPU (tileNeedsCpu).
+			elements.clear();
+			RenderOrder::visitTileElements(tile, options, [&](const RenderOrder::TileElement& element) {
+				if (element.layer == layer && element.kind != RenderOrder::ElementKind::Creature) {
+					elements.push_back(element);
+				}
+			});
+			if (elements.empty()) {
+				continue;
+			}
+
+			ChunkDeferReason refusal = kBakeable;
+			for (const RenderOrder::TileElement& element : elements) {
+				refusal = itemBakeRefusal(element.item, element.definition, element.sprite, options);
+				if (refusal != kBakeable) {
+					break;
+				}
+			}
+			if (refusal != kBakeable) {
+				defer(refusal_mask, refusal);
+				continue;
+			}
+
+			// The house tint is stable; only its pulse is not, and a pulsing tile
+			// never gets here.
+			uint8_t house_r = 255, house_g = 255, house_b = 255;
+			const bool calculate_house_color = options.extended_house_shader && options.show_houses && tile->isHouseTile();
+			if (calculate_house_color) {
+				TileColorCalculator::GetHouseColor(tile->getHouseID(), house_r, house_g, house_b);
+			}
+
+			if (pass != 2) {
+				for (const RenderOrder::TileElement& element : elements) {
+					emitElement(tile, position, x, y, element, r, g, b, calculate_house_color, house_r, house_g, house_b);
+				}
+				continue;
+			}
+
+			// Conteudo: o comeco da pilha que fica na celula vai para o VBO; do
+			// primeiro elemento que transborda em diante, para a lista do andar.
+			size_t spill_from = SIZE_MAX;
+			for (const RenderOrder::TileElement& element : elements) {
+				const size_t element_start = bake_buffer_.size();
+				emit_spilled = false;
+				emitElement(tile, position, x, y, element, r, g, b, calculate_house_color, house_r, house_g, house_b);
+				if (emit_spilled && spill_from == SIZE_MAX) {
+					spill_from = element_start;
+				}
+			}
+			if (spill_from < bake_buffer_.size()) {
+				const size_t spilled = bake_buffer_.size() - spill_from;
+				chunk.spill_instances.insert(chunk.spill_instances.end(), bake_buffer_.begin() + static_cast<std::ptrdiff_t>(spill_from), bake_buffer_.end());
+				chunk.spill_keys.insert(chunk.spill_keys.end(), spilled, RenderOrder::tileKey(profile, x, y));
+				bake_buffer_.resize(spill_from);
 			}
 		}
 	}
 
-	// A passada de CPU de conteudo segue a ordem desta lista, e um tile deferido
-	// ja na passada de chao entrava nela antes de vizinhos a noroeste que so foram
-	// deferidos no conteudo. Coluna a coluna, como o proprio bake emite.
-	std::sort(chunk.deferred_tiles.begin(), chunk.deferred_tiles.end(), [](const DeferredTileInfo& a, const DeferredTileInfo& b) {
-		return a.rel_x != b.rel_x ? a.rel_x < b.rel_x : a.rel_y < b.rel_y;
+	// Na ordem de tiles do perfil, a mesma do bake. O MapLayerDrawer ainda junta
+	// os deferidos de todos os chunks e reordena pela chave global.
+	std::sort(chunk.deferred_tiles.begin(), chunk.deferred_tiles.end(), [profile](const DeferredTileInfo& a, const DeferredTileInfo& b) {
+		return RenderOrder::tileKey(profile, a.rel_x, a.rel_y) < RenderOrder::tileKey(profile, b.rel_x, b.rel_y);
 	});
 
 	uploadChunk(chunk, bake_buffer_);
 	chunk.contents_offset = static_cast<uint32_t>(contents_start);
 
-	if (sprite_pending && chunk.pending_bake_retries < MAX_PENDING_BAKE_RETRIES) {
+	chunk.is_dirty = false;
+	chunk.last_bake_ms = steadyNowMs();
+	if (sprite_pending) {
 		RenderProfiler::Count(RenderProfiler::Counter::ChunkBakesPending);
-		++chunk.pending_bake_retries;
-		chunk.is_dirty = true;
+		if (!chunk.waiting_for_sprites) {
+			chunk.waiting_for_sprites = true;
+			chunk.waiting_since_ms = chunk.last_bake_ms;
+		}
+		chunk.waiting_delivery = SpritePreloader::get().deliveryGeneration();
 	} else {
-		chunk.pending_bake_retries = 0;
-		chunk.is_dirty = false;
+		chunk.waiting_for_sprites = false;
 	}
 }
 
 void ChunkCacheManager::advanceFrame(int current_floor) {
 	++current_frame_;
+	frame_start_ms_ = steadyNowMs();
+	waiting_rebakes_this_frame_ = 0;
 	if (current_frame_ % PRUNE_INTERVAL_FRAMES == 0) {
 		prune(current_floor);
 	}
@@ -1049,15 +941,48 @@ void ChunkCacheManager::renderFloor(
 	bindForFloor(map_z, ctx, projection, atlas);
 
 	const bool profiling = RenderProfiler::IsEnabled();
-	const bool touch_sprites = (current_frame_ % SPRITE_TOUCH_INTERVAL_FRAMES) == 0;
-	const int64_t now = static_cast<int64_t>(ctx.gfx.getCachedTime());
+	// Uma vez por segundo de relogio, em todos os andares do mesmo frame (o
+	// primeiro andar desenhado no segundo novo marca o frame).
+	const time_t now_seconds = ctx.gfx.getCachedTime();
+	if (now_seconds != last_touch_time_) {
+		last_touch_time_ = now_seconds;
+		touch_frame_ = current_frame_;
+	}
+	const bool touch_sprites = touch_frame_ == current_frame_;
+	const int64_t now = static_cast<int64_t>(now_seconds);
+
+	const uint64_t delivery = SpritePreloader::get().deliveryGeneration();
+	const int64_t now_ms = steadyNowMs();
+	int preloader_idle = -1; // perguntado so se precisar, e uma vez por andar
 
 	// Sparse query: touches only populated chunks on map_z.
 	map.visitPopulatedChunks(min_cx, min_cy, max_cx, max_cy, map_z, [&](int cx, int cy) {
 		const ChunkCoord coord { cx, cy, map_z };
 		CachedChunk& chunk = getOrCreateChunk(coord);
-		if (chunk.is_dirty) {
-			bakeChunk(chunk, map, ctx);
+		bool bake = chunk.is_dirty;
+		bool allow_sync_loads = false;
+		if (!bake && chunk.waiting_for_sprites && waiting_rebakes_this_frame_ < MAX_WAITING_REBAKES_PER_FRAME
+			&& now_ms - chunk.last_bake_ms >= WAITING_REBAKE_INTERVAL_MS) {
+			if (chunk.waiting_delivery != delivery) {
+				// O preloader entregou sprites desde o ultimo bake.
+				bake = true;
+			} else if (now_ms - chunk.waiting_since_ms >= WAITING_SYNC_FALLBACK_MS) {
+				if (preloader_idle < 0) {
+					preloader_idle = SpritePreloader::get().isIdle() ? 1 : 0;
+				}
+				if (preloader_idle == 1) {
+					// Nada mais vem: carrega o que falta na hora (o placeholder
+					// magenta de uma leitura que falhou, como antes).
+					bake = true;
+					allow_sync_loads = true;
+				}
+			}
+		}
+		if (bake) {
+			if (!chunk.is_dirty) {
+				++waiting_rebakes_this_frame_;
+			}
+			bakeChunk(chunk, map, ctx, allow_sync_loads);
 			// Sequencias de animacao criadas por este bake tem de estar na GPU
 			// antes do draw logo abaixo.
 			flushAnimationTables();
@@ -1105,8 +1030,8 @@ void ChunkCacheManager::renderFloorContents(
 
 	bindForFloor(active_floor_, ctx, projection, atlas);
 
-	// Mesma ordem de visita do renderFloor(): linha a linha de chunks, o que mantem
-	// o que transborda para noroeste por cima dos vizinhos ja desenhados.
+	// O conteudo que ficou no VBO de cada chunk cabe na celula do proprio tile,
+	// entao nada ali se sobrepoe e a ordem dos chunks nao importa.
 	for (const CachedChunk* chunk : active_visible_chunks_) {
 		if (!chunk || chunk->is_empty || chunk->vbo == 0 || chunk->instance_count <= chunk->contents_offset) {
 			continue;
@@ -1118,8 +1043,79 @@ void ChunkCacheManager::renderFloorContents(
 		glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr, static_cast<GLsizei>(count));
 	}
 
+	// Por cima, o que transborda, na ordem global do andar.
+	drawFloorSpill(ctx.options.render_order);
+
 	glBindVertexArray(0);
 	shader_.Unuse();
+}
+
+void ChunkCacheManager::drawFloorSpill(RenderOrderProfile profile) {
+	if (active_floor_ < 0 || static_cast<size_t>(active_floor_) >= FLOOR_SPILL_SLOTS) {
+		return;
+	}
+
+	// A lista so e remontada quando muda o conjunto de chunks que tem conteudo
+	// transbordando, algum deles e re-assado ou o perfil troca.
+	uint64_t signature = 0xCBF29CE484222325ull ^ static_cast<uint64_t>(profile);
+	auto mix = [&signature](uint64_t value) {
+		signature = (signature ^ value) * 0x100000001B3ull;
+	};
+	size_t total = 0;
+	for (const CachedChunk* chunk : active_visible_chunks_) {
+		if (!chunk || chunk->spill_instances.empty()) {
+			continue;
+		}
+		mix(static_cast<uint32_t>(chunk->coord.cx));
+		mix(static_cast<uint32_t>(chunk->coord.cy));
+		mix(chunk->bake_serial);
+		total += chunk->spill_instances.size();
+	}
+	if (total == 0) {
+		return;
+	}
+
+	FloorSpill& floor = floor_spill_[static_cast<size_t>(active_floor_)];
+	if (floor.vbo == 0 || floor.signature != signature || floor.count != total) {
+		spill_refs_.clear();
+		spill_refs_.reserve(total);
+		for (const CachedChunk* chunk : active_visible_chunks_) {
+			if (!chunk || chunk->spill_instances.empty()) {
+				continue;
+			}
+			for (size_t i = 0; i < chunk->spill_instances.size(); ++i) {
+				spill_refs_.push_back(SpillRef { chunk->spill_keys[i], static_cast<uint32_t>(i), &chunk->spill_instances[i] });
+			}
+		}
+		// Instancias do mesmo tile sao todas do mesmo chunk e contiguas: a chave
+		// ordena os tiles, a posicao no chunk mantem a pilha do tile.
+		std::sort(spill_refs_.begin(), spill_refs_.end(), [](const SpillRef& a, const SpillRef& b) {
+			return a.key != b.key ? a.key < b.key : a.seq < b.seq;
+		});
+
+		spill_merge_buffer_.resize(total);
+		for (size_t i = 0; i < total; ++i) {
+			spill_merge_buffer_[i] = *spill_refs_[i].instance;
+		}
+
+		if (floor.vbo == 0) {
+			glCreateBuffers(1, &floor.vbo);
+			floor.capacity = 0;
+		}
+		const size_t required_bytes = total * sizeof(TileInstance);
+		if (required_bytes > floor.capacity) {
+			glNamedBufferData(floor.vbo, static_cast<GLsizeiptr>(required_bytes), spill_merge_buffer_.data(), GL_DYNAMIC_DRAW);
+			floor.capacity = required_bytes;
+		} else {
+			glNamedBufferSubData(floor.vbo, 0, static_cast<GLsizeiptr>(required_bytes), spill_merge_buffer_.data());
+		}
+		floor.signature = signature;
+		floor.count = static_cast<uint32_t>(total);
+	}
+
+	RenderProfiler::Count(RenderProfiler::Counter::ChunkInstances, static_cast<int64_t>(floor.count));
+	glVertexArrayVertexBuffer(vao_, 1, floor.vbo, 0, sizeof(TileInstance));
+	glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr, static_cast<GLsizei>(floor.count));
 }
 
 void ChunkCacheManager::bindForFloor(int map_z, const RenderFrameContext& ctx, const glm::mat4& projection, AtlasManager& atlas) {
@@ -1178,7 +1174,7 @@ uint32_t ChunkCacheManager::animClockSlotFor(const GameSprite* spr) {
 	return it->second;
 }
 
-uint32_t ChunkCacheManager::animSequenceFor(GameSprite* spr, int cell_x, int cell_y, int layer, const SpritePatterns& patterns, bool& pending) {
+uint32_t ChunkCacheManager::animSequenceFor(GameSprite* spr, int cell_x, int cell_y, int layer, const SpritePatterns& patterns, bool& pending, bool allow_sync_loads) {
 	const AnimSequenceKey key {
 		.client_id = spr->getId(),
 		.cell_x = static_cast<int16_t>(cell_x),
@@ -1201,16 +1197,27 @@ uint32_t ChunkCacheManager::animSequenceFor(GameSprite* spr, int cell_x, int cel
 	const int frame_count = std::max(1, static_cast<int>(spr->frames));
 	std::vector<uint32_t> frame_sprites;
 	frame_sprites.reserve(static_cast<size_t>(frame_count));
+	// O frame que falta e pedido ao preloader -- todos os que faltam de uma vez,
+	// para chegarem juntos -- e a sequencia so nasce quando estiverem todos.
+	bool missing = false;
 	for (int frame = 0; frame < frame_count; ++frame) {
-		const AtlasRegion* region = spr->getAtlasRegion(cell_x, cell_y, layer, patterns.subtype, patterns.x, patterns.y, patterns.z, frame);
+		const AtlasRegion* region = spr->peekAtlasRegion(cell_x, cell_y, layer, patterns.subtype, patterns.x, patterns.y, patterns.z, frame);
+		if (!region && syncLoadAllowed(allow_sync_loads)) {
+			region = spr->getAtlasRegion(cell_x, cell_y, layer, patterns.subtype, patterns.x, patterns.y, patterns.z, frame);
+		}
 		if (!region || region->debug_sprite_id == AtlasRegion::INVALID_SENTINEL) {
+			rme::collectTileSprites(spr, patterns.x, patterns.y, patterns.z, frame);
 			pending = true;
-			return 0;
+			missing = true;
+			continue;
 		}
 		if (region->debug_sprite_id >= SpriteAtlasLUT::MAX_SUPPORTED_SPRITES) {
 			return 0;
 		}
 		frame_sprites.push_back(region->debug_sprite_id);
+	}
+	if (missing) {
+		return 0;
 	}
 
 	AnimSequenceGpu sequence;
