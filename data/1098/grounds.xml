@@ -568,7 +568,45 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/stone earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -1163,7 +1201,45 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/stone earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -2074,7 +2150,45 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -2667,7 +2781,45 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -3262,7 +3414,45 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -3855,7 +4045,45 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -4534,16 +4762,6 @@
 		<item id="17443" chance="1500" />
 		<border align="outer" id="161" />
 		<border align="outer" to="none" id="161" />
-	</brush>
-	<brush name="mold floor" type="ground" server_lookid="17647" z-order="5800" activated="true">
-		<item id="17647" chance="500" />
-		<item id="17648" chance="500" />
-		<item id="17649" chance="1000" />
-		<item id="17650" chance="2500" />
-		<item id="17651" chance="2500" />
-		<item id="17652" chance="1500" />
-		<border align="outer" id="164" />
-		<border align="inner" to="none" id="1" />
 	</brush>
 	<brush name="salt floor" type="ground" server_lookid="18162" z-order="5500" activated="true">
 		<item id="18162" chance="2500" />
@@ -5812,11 +6030,6 @@
 		<border align="outer" id="308" />
 		<border align="outer" to="none" id="308" />
 	</brush>
-	<brush name="montanha void" type="ground" server_lookid="55637" z-order="4000">
-		<item id="55637" chance="10" />
-		<border align="outer" id="307" />
-		<border align="outer" to="none" id="307" />
-	</brush>
 	<brush name="chao roxo 2" type="ground" server_lookid="55638" z-order="3000">
 		<item id="55638" chance="10" />
 		<item id="55639" chance="10" />
@@ -6012,16 +6225,8 @@
 		<item id="56271" chance="10" />
 		<item id="56272" chance="10" />
 		<item id="56273" chance="10" />
-		<item id="56263" chance="10" />
 		<border align="outer" id="315" />
 		<border align="outer" to="none" id="315" />
-	</brush>
-	<brush name="black floor 5" type="ground" server_lookid="56006">
-		<item id="56006" chance="10" />
-		<item id="56008" chance="10" />
-		<item id="56009" chance="10" />
-		<item id="56010" chance="10" />
-		<item id="56011" chance="10" />
 	</brush>
 	<brush name="black floor 7" type="ground" server_lookid="56007">
 		<item id="56007" chance="10" />
@@ -6229,7 +6434,7 @@
 		<border align="outer" to="none" id="52" />
 		<border align="outer" id="52" />
 	</brush>
-	<brush name="sandstone mountain" type="ground" server_lookid="65535" z-order="9910">
+	<brush name="sandstone mountain" type="ground" server_lookid="21197" z-order="9910">
 		<item id="21197" chance="1" />
 		<border align="outer" to="none" id="68" />
 		<border align="outer" id="68" />
@@ -6411,5 +6616,70 @@
 		<item id="48484" chance="10" />
 		<border align="outer" id="329" />
 		<border align="outer" to="none" id="329" />
+	</brush>
+	<brush name="mold floor" type="ground" server_lookid="17647" z-order="1180">
+		<item id="17647" chance="500" />
+		<item id="17648" chance="500" />
+		<item id="17649" chance="1000" />
+		<item id="17650" chance="2500" />
+		<item id="17651" chance="2500" />
+		<item id="17652" chance="1500" />
+		<border align="outer" id="330" />
+		<border align="outer" to="none" id="330" />
+	</brush>
+	<brush name="montanha void" type="ground" server_lookid="55637" z-order="8000">
+		<item id="55637" chance="10" />
+		<border align="outer" id="307" />
+		<border align="outer" to="none" id="307" />
+	</brush>
+	<brush name="black floor 5" type="ground" server_lookid="56862" z-order="200">
+		<item id="56862" chance="10" />
+		<item id="56866" chance="10" />
+		<item id="56867" chance="10" />
+		<item id="56868" chance="10" />
+		<item id="56869" chance="10" />
+	</brush>
+	<brush name="marble floor 5" type="ground" server_lookid="54647" z-order="200">
+		<item id="54647" chance="10" />
+	</brush>
+	<brush name="toxic water" type="ground" server_lookid="57641" z-order="500">
+		<item id="57641" chance="500" />
+		<item id="57642" chance="10" />
+		<item id="57643" chance="10" />
+		<item id="57644" chance="10" />
+		<item id="57645" chance="10" />
+		<item id="57646" chance="10" />
+		<item id="57647" chance="10" />
+		<item id="57648" chance="10" />
+		<item id="57649" chance="10" />
+	</brush>
+	<brush name="swallow sea walkable" type="ground" server_lookid="38091" z-order="200">
+		<item id="38091" chance="5555" />
+		<item id="38092" chance="555" />
+		<item id="38093" chance="555" />
+		<item id="38094" chance="25" />
+		<item id="38095" chance="10" />
+		<item id="38096" chance="10" />
+		<item id="38097" chance="10" />
+		<item id="38098" chance="10" />
+		<item id="38099" chance="10" />
+		<item id="38100" chance="10" />
+	</brush>
+	<brush name="morango montanha" type="ground" server_lookid="57727" z-order="10000">
+		<item id="57727" chance="10" />
+		<border align="outer" id="331" />
+		<border align="outer" to="none" id="331" />
+	</brush>
+	<brush name="morango chao" type="ground" server_lookid="57728" z-order="2000">
+		<item id="57728" chance="10" />
+		<item id="57729" chance="10" />
+		<item id="57730" chance="10" />
+		<item id="57731" chance="10" />
+		<item id="57732" chance="10" />
+		<item id="57733" chance="10" />
+		<item id="57734" chance="10" />
+		<item id="57735" chance="10" />
+		<border align="outer" id="332" />
+		<border align="outer" to="none" id="332" />
 	</brush>
 </materials>
