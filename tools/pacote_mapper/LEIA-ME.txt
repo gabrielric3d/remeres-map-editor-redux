@@ -1,0 +1,31 @@
+RME Redux - Black Talon
+=======================
+
+Como abrir
+----------
+1. Extraia a pasta inteira do zip (não rode o editor de dentro do zip)
+   numa pasta SEM acento no caminho, por exemplo C:\RME_BlackTalon.
+   Evite "Área de Trabalho", "Documentos" do OneDrive ou pastas de usuário
+   com acento.
+2. Abra o rme.exe.
+3. Na tela inicial, abra o mapa (.otbm) que você recebeu. O cliente
+   "Black Talon 10.98" já vem configurado: sprites, items.otb e items.xml
+   já estão dentro de data\1098.
+
+Importante
+----------
+- Não mexa na pasta data\1098\sprites. O Tibia.cat procura os sprites ali.
+- Abra o editor pelo próprio rme.exe (ou por um atalho para ele). A
+  configuração (config.toml) é lida da pasta do executável.
+- Quando receber uma versão nova do pacote, extraia por cima da pasta antiga
+  e substitua tudo.
+
+Se der erro ao abrir
+--------------------
+- "Parsing failed for clients.toml: File could not be opened for reading":
+  o caminho da pasta tem acento. Mova a pasta para C:\RME_BlackTalon.
+- "MSVCP140.dll" ou "VCRUNTIME140.dll" não encontrado: instale o
+  Visual C++ Redistributable x64:
+  https://aka.ms/vs/17/release/vc_redist.x64.exe
+- Se o editor pedir a pasta dos assets, aponte para a pasta data\1098
+  que veio no pacote.

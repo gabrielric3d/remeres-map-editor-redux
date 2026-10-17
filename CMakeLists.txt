@@ -36,6 +36,13 @@ endif()
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# O projeto nao usa modulos C++20 (import / export module). Sem isto o CMake 3.28+
+# liga o scan de modulos (ScanSourceForModuleDependencies no gerador do Visual
+# Studio) e, a cada build, o MSBuild pre-processa de novo cada fonte afetada so
+# para procurar imports antes de compilar ("Scanning sources for module
+# dependencies..."): minutos a mais por build, sem ganho nenhum.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 	set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()

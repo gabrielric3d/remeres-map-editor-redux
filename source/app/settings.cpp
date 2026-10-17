@@ -35,6 +35,28 @@ toml::table& Settings::getTable() {
 	return g_settings_table;
 }
 
+void Settings::fixInvalidUtf8(toml::node& node) {
+	// Varios pontos gravam caminhos aqui por nstr()/ToStdString(), que devolvem
+	// no code page ANSI. Um caminho com acento (pasta do usuario, mapa aberto
+	// de "Area de Trabalho") virava UTF-8 invalido no arquivo e, no boot
+	// seguinte, todas as preferencias e o caminho do cliente voltavam ao
+	// padrao. So converte o que nao for UTF-8 valido; quem le usa wxstr().
+	if (auto* str = node.as_string()) {
+		std::string& value = str->get();
+		if (!value.empty() && wxString(value.c_str(), wxConvUTF8).empty()) {
+			value = wxString(value.c_str(), wxConvLibc).utf8_string();
+		}
+	} else if (auto* table = node.as_table()) {
+		for (auto&& [key, child] : *table) {
+			fixInvalidUtf8(child);
+		}
+	} else if (auto* array = node.as_array()) {
+		for (auto& child : *array) {
+			fixInvalidUtf8(child);
+		}
+	}
+}
+
 Settings g_settings;
 
 Settings::Settings() :
@@ -360,6 +382,7 @@ void Settings::IO(IOMode mode) {
 	Float(SCROLL_SPEED, 3.5f);
 	Float(PALETTE_SCROLL_SPEED, 1.0f);
 	Float(ZOOM_SPEED, 1.4f);
+	Bool(SMOOTH_ZOOM, true);
 	Bool(SWITCH_MOUSEBUTTONS, false);
 	Bool(DOUBLECLICK_PROPERTIES, true);
 	Bool(LISTBOX_EATS_ALL_EVENTS, true);
@@ -396,6 +419,8 @@ void Settings::IO(IOMode mode) {
 	String(GROUND_REPLACE_MODIFIER, "Alt");
 	String(SMART_BRUSH_MODIFIER, "Ctrl+Alt");
 	String(SMART_BRUSH_MOUSE_BUTTON, "None");
+	// Hold + right click with a carpet brush in hand: pick a single border piece.
+	String(PIECE_PICKER_MODIFIER, "Alt");
 	String(ERASE_ABOVE_HOTKEY, "C");
 	Bool(ERASE_FLOORS_ABOVE_ENABLED, false);
 	Bool(ERASE_FLOORS_BELOW_ENABLED, false);
@@ -422,6 +447,17 @@ void Settings::IO(IOMode mode) {
 	String(CLAUDE_PANEL_LAYOUT, "");
 	String(CLAUDE_BACKEND, "claude_code");
 	String(CLAUDE_CODE_PATH, "");
+	Bool(CLAUDE_LIVE_ANIMATE, true);
+	Int(CLAUDE_LIVE_MAX_MS, 12000);
+	Int(CLAUDE_LIVE_RATE, 30);
+	Bool(CLAUDE_LIVE_FOLLOW, true);
+	Bool(CLAUDE_LIVE_CURSOR, true);
+	Bool(CLAUDE_MCP_EXTERNAL, false);
+	Int(CLAUDE_MCP_PORT, 7777);
+	String(CLAUDE_MCP_TOKEN, "");
+	Int(RECORD_SPEED, 4);
+	Int(RECORD_MAX_WIDTH, 1280);
+	Bool(RECORD_SHOW_MOUSE, true);
 	Bool(MAP_PROPERTIES_REMEMBER_SAVE_LOCATION, false);
 	String(MAP_PROPERTIES_DEFAULT_SAVE_LOCATION, "");
 	UInt(ADVANCED_ITEM_FINDER_TYPE_FILTERS, 0);
@@ -477,6 +513,8 @@ void Settings::IO(IOMode mode) {
 	// 0 = tileset order, 1 = name asc, 2 = name desc, 3 = id asc, 4 = id desc
 	Int(PALETTE_TILESET_SORT_MODE, 0);
 	Bool(PALETTE_TILESET_SHOW_LABELS, false);
+	// Column next to the Terrain grid with every piece of the carpet brush in hand.
+	Bool(PALETTE_PIECE_STRIP, true);
 
 	String(LIGHT_SOURCES_DATA,
 		"29712,Horror Flicker,255,255,255;"
@@ -573,6 +611,7 @@ void Settings::IO(IOMode mode) {
 	Int(EXPERIMENTAL_FOG, 0);
 
 	if (mode == SAVE) {
+		fixInvalidUtf8(g_settings_table);
 		std::ofstream file("config.toml");
 		if (file.is_open()) {
 			file << g_settings_table;

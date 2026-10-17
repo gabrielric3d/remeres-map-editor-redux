@@ -121,7 +121,15 @@ void ActionQueue::addBatch(std::unique_ptr<BatchAction> batch, int stacking_dela
 	}
 
 	do {
-		if (!actions.empty()) {
+		if (grouping && group_batch && !actions.empty() && actions.back().get() == group_batch && current == actions.size()) {
+			BatchAction* groupAction = actions.back().get();
+			groupAction->merge(batch.get());
+			groupAction->timestamp = time(nullptr);
+			memory_size -= groupAction->memsize();
+			memory_size += groupAction->memsize(true);
+			break;
+		}
+		if (!actions.empty() && !grouping) {
 			BatchAction* lastAction = actions.back().get();
 			if (lastAction->getType() == batch->getType() && g_settings.getInteger(Config::GROUP_ACTIONS) && time(nullptr) - stacking_delay < lastAction->timestamp) {
 				lastAction->merge(batch.get());
@@ -135,8 +143,30 @@ void ActionQueue::addBatch(std::unique_ptr<BatchAction> batch, int stacking_dela
 		batch->timestamp = time(nullptr);
 		actions.push_back(std::move(batch));
 		current++;
+		if (grouping) {
+			// First batch of the group (or the group's batch is gone): it becomes the group.
+			group_batch = actions.back().get();
+		}
 	} while (false);
 	g_luaScripts.emit("actionChange");
+}
+
+void ActionQueue::beginGroup(const BatchAction* into) {
+	grouping = true;
+	group_batch = into;
+}
+
+const BatchAction* ActionQueue::endGroup() {
+	grouping = false;
+	const BatchAction* result = group_batch;
+	group_batch = nullptr;
+	// The group's batch may have been dropped meanwhile (undo memory limit).
+	for (const auto& batch : actions) {
+		if (batch.get() == result) {
+			return result;
+		}
+	}
+	return nullptr;
 }
 
 void ActionQueue::addAction(std::unique_ptr<Action> action, int stacking_delay) {

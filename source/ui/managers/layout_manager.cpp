@@ -8,6 +8,7 @@
 #include "ui/gui.h"
 #include "app/application.h"
 #include "palette/palette_window.h"
+#include "palette/controls/carpet_piece_strip.h"
 #include "palette/house/house_palette.h"
 #include "palette/managers/palette_manager.h"
 
@@ -202,6 +203,10 @@ void LayoutManager::LoadPerspective() {
 			g_gui.aui_manager->LoadPaneInfo(layout, info);
 		}
 	}
+
+	// Border piece strip: its own narrow pane on the map side of the palette, re-docked
+	// every time the palettes are rebuilt (they decide where that side is).
+	CarpetPieceStrip::DockPane();
 
 	g_gui.aui_manager->Update();
 	g_gui.root->GetAuiToolBar()->LoadPerspective();

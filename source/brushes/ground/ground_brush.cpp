@@ -69,6 +69,17 @@ bool GroundBrush::ownsBorderItem(uint16_t item_id) const {
 	return optional_border && optional_border->containsItem(item_id);
 }
 
+void GroundBrush::getBorderUses(std::vector<BorderUse>& out) const {
+	for (const auto& block : borders) {
+		if (block && block->autoborder) {
+			out.push_back({ block->autoborder, block->outer, block->to, false });
+		}
+	}
+	if (optional_border) {
+		out.push_back({ optional_border, true, 0xFFFFFFFF, true });
+	}
+}
+
 bool GroundBrush::paintsAsCarpet() const {
 	return carpet_fill && g_settings.getBoolean(Config::CARPET_FILL_BORDERS);
 }

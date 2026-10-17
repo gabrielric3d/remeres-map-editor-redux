@@ -5,6 +5,7 @@
 #ifndef RME_AI_CLAUDE_TOOLS_H_
 #define RME_AI_CLAUDE_TOOLS_H_
 
+#include <functional>
 #include <string>
 #include <nlohmann/json.hpp>
 
@@ -30,6 +31,11 @@ public:
 	// Executes one call. Unknown tools and bad arguments come back as is_error
 	// results rather than exceptions, so the model can recover.
 	static ClaudeToolResult execute(const std::string& name, const nlohmann::json& input);
+
+	// Same call, watchable: it waits for the calls queued before it, then may
+	// take a while (paint is animated, the camera glides to the work). `done`
+	// runs on the GUI thread, now or later. Call from the GUI thread.
+	static void executeAsync(const std::string& name, const nlohmann::json& input, std::function<void(ClaudeToolResult)> done);
 };
 
 #endif

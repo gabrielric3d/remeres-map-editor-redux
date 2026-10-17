@@ -3589,7 +3589,6 @@
 		<borderitem edge="dse" item="57719" />
 		<borderitem edge="dsw" item="57717" />
 	</border>
-	<!-- morango chao borda -->
 	<border id="332">
 		<borderitem edge="n" item="57738" />
 		<borderitem edge="e" item="57739" />
@@ -3603,5 +3602,122 @@
 		<borderitem edge="dne" item="57747" />
 		<borderitem edge="dse" item="57745" />
 		<borderitem edge="dsw" item="57746" />
+	</border>
+	<border id="333">
+		<borderitem edge="n" item="57750" />
+		<borderitem edge="e" item="57751" />
+		<borderitem edge="s" item="57752" />
+		<borderitem edge="w" item="57753" />
+		<borderitem edge="cnw" item="57758" />
+		<borderitem edge="cne" item="57759" />
+		<borderitem edge="cse" item="57761" />
+		<borderitem edge="csw" item="57760" />
+		<borderitem edge="dnw" item="57754" />
+		<borderitem edge="dne" item="57755" />
+		<borderitem edge="dse" item="57757" />
+		<borderitem edge="dsw" item="57756" />
+	</border>
+	<border id="334">
+		<borderitem edge="n" item="57778" />
+		<borderitem edge="e" item="57779" />
+		<borderitem edge="s" item="57780" />
+		<borderitem edge="w" item="57781" />
+		<borderitem edge="cnw" item="57786" />
+		<borderitem edge="cne" item="57787" />
+		<borderitem edge="cse" item="57789" />
+		<borderitem edge="csw" item="57788" />
+		<borderitem edge="dnw" item="57782" />
+		<borderitem edge="dne" item="57783" />
+		<borderitem edge="dse" item="57785" />
+		<borderitem edge="dsw" item="57784" />
+	</border>
+	<!-- stone paviment 2 -->
+	<border id="335">
+		<borderitem edge="n" item="57778" />
+		<borderitem edge="e" item="57779" />
+		<borderitem edge="s" item="57780" />
+		<borderitem edge="w" item="57781" />
+		<borderitem edge="cnw" item="57786" />
+		<borderitem edge="cne" item="57787" />
+		<borderitem edge="cse" item="57789" />
+		<borderitem edge="csw" item="57788" />
+		<borderitem edge="dnw" item="57782" />
+		<borderitem edge="dne" item="57783" />
+		<borderitem edge="dse" item="57785" />
+		<borderitem edge="dsw" item="57784" />
+	</border>
+	<!-- mar turquesa: falesia de terra (register_sea_shore_borders.py) -->
+	<border activated="true" id="336">
+		<borderitem edge="n" item="37957" />
+		<borderitem edge="e" item="37958" />
+		<borderitem edge="s" item="37959" />
+		<borderitem edge="w" item="37960" />
+		<borderitem edge="cnw" item="37965" />
+		<borderitem edge="cne" item="37966" />
+		<borderitem edge="cse" item="37968" />
+		<borderitem edge="csw" item="37967" />
+		<borderitem edge="dnw" item="37961" />
+		<borderitem edge="dne" item="37962" />
+		<borderitem edge="dse" item="37964" />
+		<borderitem edge="dsw" item="37963" />
+	</border>
+	<!-- agua transparente: falesia de terra (register_sea_shore_borders.py) -->
+	<border activated="true" id="337">
+		<borderitem edge="n" item="57820" />
+		<borderitem edge="e" item="57821" />
+		<borderitem edge="s" item="57822" />
+		<borderitem edge="w" item="57823" />
+		<borderitem edge="cnw" item="57828" />
+		<borderitem edge="cne" item="57829" />
+		<borderitem edge="cse" item="57831" />
+		<borderitem edge="csw" item="57830" />
+		<borderitem edge="dnw" item="57824" />
+		<borderitem edge="dne" item="57825" />
+		<borderitem edge="dse" item="57827" />
+		<borderitem edge="dsw" item="57826" />
+	</border>
+	<!-- mar turquesa: praia de areia (register_sea_shore_borders.py) -->
+	<border activated="true" id="338">
+		<borderitem edge="n" item="37945" />
+		<borderitem edge="e" item="37948" />
+		<borderitem edge="s" item="37947" />
+		<borderitem edge="w" item="37946" />
+		<borderitem edge="cnw" item="37988" />
+		<borderitem edge="cne" item="37955" />
+		<borderitem edge="cse" item="37953" />
+		<borderitem edge="csw" item="37954" />
+		<borderitem edge="dnw" item="37952" />
+		<borderitem edge="dne" item="37951" />
+		<borderitem edge="dse" item="37949" />
+		<borderitem edge="dsw" item="37950" />
+	</border>
+	<!-- agua transparente: praia de areia (register_sea_shore_borders.py) -->
+	<border activated="true" id="339">
+		<borderitem edge="n" item="57808" />
+		<borderitem edge="e" item="57811" />
+		<borderitem edge="s" item="57810" />
+		<borderitem edge="w" item="57809" />
+		<borderitem edge="cnw" item="57851" />
+		<borderitem edge="cne" item="57818" />
+		<borderitem edge="cse" item="57816" />
+		<borderitem edge="csw" item="57817" />
+		<borderitem edge="dnw" item="57815" />
+		<borderitem edge="dne" item="57814" />
+		<borderitem edge="dse" item="57812" />
+		<borderitem edge="dsw" item="57813" />
+	</border>
+	<!-- mar turquesa: pedra cinza (register_sea_shore_borders.py) -->
+	<border activated="true" id="340">
+		<borderitem edge="n" item="37985" />
+		<borderitem edge="e" item="37986" />
+		<borderitem edge="s" item="37987" />
+		<borderitem edge="w" item="37956" />
+	</border>
+	<!-- agua transparente: pedra cinza (register_sea_shore_borders.py) -->
+	<border activated="true" id="341">
+		<borderitem edge="n" item="57848" />
+		<borderitem edge="e" item="57849" />
+		<borderitem edge="s" item="57850" />
+		<borderitem edge="w" item="57819" />
 	</border>
 </materials>

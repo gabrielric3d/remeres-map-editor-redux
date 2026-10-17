@@ -161,6 +161,14 @@ int random(int high) {
 
 std::wstring string2wstring(const std::string& utf8string) {
 	wxString s(utf8string.c_str(), wxConvUTF8);
+	// Os caminhos chegam aqui quase sempre por nstr()/ToStdString(), que
+	// devolvem no code page ANSI, nao em UTF-8. Com acento no caminho (pasta
+	// "Usuario" com acento, "Area de Trabalho" do OneDrive) a decodificacao
+	// UTF-8 falha e devolve vazio, e o _wfopen do FileReadHandle abria "".
+	// Cai para a mesma conversao do ToStdString para recuperar o caminho.
+	if (s.empty() && !utf8string.empty()) {
+		s = wxString(utf8string.c_str(), wxConvLibc);
+	}
 	return s.ToStdWstring();
 }
 

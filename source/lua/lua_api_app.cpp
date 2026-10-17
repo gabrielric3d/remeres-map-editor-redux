@@ -17,6 +17,7 @@
 
 #include "app/main.h"
 #include "lua_api_app.h"
+#include "lua_deferred_edits.h"
 #include "lua_script_manager.h"
 #include "ui/gui.h"
 #include "editor/editor.h"
@@ -93,18 +94,34 @@ namespace LuaAPI {
 		}
 	}
 
+	// See beginDeferredEdits() in lua/lua_deferred_edits.h.
+	struct DeferredEdits {
+		bool active = false;
+		Editor* editor = nullptr;
+		// Each tile as it was before the first transaction touched it (null = no tile).
+		std::unordered_map<uint64_t, std::unique_ptr<Tile>> originals;
+		std::vector<uint64_t> order; // first touch
+	};
+
+	static DeferredEdits& deferredEdits() {
+		static DeferredEdits state;
+		return state;
+	}
+
 	class LuaTransaction {
 		bool active;
 		Editor* editor;
 		std::unique_ptr<BatchAction> batch;
 		std::unique_ptr<Action> action;
 		std::unordered_map<uint64_t, std::unique_ptr<Tile>> originalTiles;
+		std::vector<uint64_t> touchOrder; // keys of originalTiles, in the order first touched
 
-		uint64_t positionKey(const Position& pos) const {
+	public:
+		static uint64_t positionKey(const Position& pos) {
 			return (static_cast<uint64_t>(pos.x) << 32) | (static_cast<uint64_t>(pos.y) << 16) | static_cast<uint64_t>(pos.z);
 		}
 
-		Position positionFromKey(uint64_t key) const {
+		static Position positionFromKey(uint64_t key) {
 			Position pos;
 			pos.x = static_cast<int>(static_cast<int32_t>(key >> 32));
 			pos.y = static_cast<int>(static_cast<uint16_t>((key >> 16) & 0xFFFFu));
@@ -138,10 +155,27 @@ namespace LuaAPI {
 			}
 			action = editor->actionQueue->createAction(ACTION_LUA_SCRIPT);
 			originalTiles.clear();
+			touchOrder.clear();
 		}
 
 		void commit() {
 			if (!active) {
+				return;
+			}
+
+			DeferredEdits& deferred = deferredEdits();
+			if (deferred.active && deferred.editor == editor) {
+				// Leave the edits on the map for the caller to replay. A tile an
+				// earlier transaction already touched keeps that older snapshot.
+				for (uint64_t key : touchOrder) {
+					auto it = originalTiles.find(key);
+					if (it != originalTiles.end() && deferred.originals.try_emplace(key, std::move(it->second)).second) {
+						deferred.order.push_back(key);
+					}
+				}
+				originalTiles.clear();
+				touchOrder.clear();
+				cleanup();
 				return;
 			}
 
@@ -234,6 +268,7 @@ namespace LuaAPI {
 			if (originalTiles.find(key) == originalTiles.end()) {
 				// Preserve whether the tile originally existed so delete/create can undo cleanly
 				originalTiles[key] = originallyExisted ? tile->deepCopy() : std::unique_ptr<Tile>();
+				touchOrder.push_back(key);
 			}
 		}
 
@@ -250,6 +285,7 @@ namespace LuaAPI {
 			editor = nullptr;
 			batch.reset();
 			action.reset();
+			touchOrder.clear();
 		}
 	};
 
@@ -258,6 +294,41 @@ namespace LuaAPI {
 		if (LuaTransaction::getInstance().isActive()) {
 			LuaTransaction::getInstance().markTileModified(tile, originallyExisted);
 		}
+	}
+
+	void beginDeferredEdits(Editor* editor) {
+		DeferredEdits& deferred = deferredEdits();
+		deferred = DeferredEdits {};
+		deferred.active = editor != nullptr;
+		deferred.editor = editor;
+	}
+
+	std::vector<DeferredTileEdit> finishDeferredEdits() {
+		DeferredEdits& deferred = deferredEdits();
+		std::vector<DeferredTileEdit> edits;
+		Editor* editor = deferred.editor;
+		if (deferred.active && editor && editor->getMap()) {
+			edits.reserve(deferred.order.size());
+			for (uint64_t key : deferred.order) {
+				auto it = deferred.originals.find(key);
+				if (it == deferred.originals.end()) {
+					continue;
+				}
+				const Position pos = LuaTransaction::positionFromKey(key);
+				// The first half of a normal commit: the original goes back into the
+				// map and the script's result comes out, to be committed later.
+				std::unique_ptr<Tile> modified = it->second ? editor->getMap()->swapTile(pos, std::move(it->second)) : editor->getMap()->swapTile(pos, std::unique_ptr<Tile>());
+				if (modified) {
+					updateTileMetadata(editor, modified.get(), false);
+				}
+				if (Tile* restored = editor->getMap()->getTile(pos)) {
+					updateTileMetadata(editor, restored, true);
+				}
+				edits.push_back({ pos, std::move(modified) });
+			}
+		}
+		deferred = DeferredEdits {};
+		return edits;
 	}
 
 	// ============================================================================

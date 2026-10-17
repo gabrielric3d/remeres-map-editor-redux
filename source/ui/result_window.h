@@ -23,6 +23,8 @@
 #include <functional>
 #include <vector>
 
+class wxSearchCtrl;
+
 struct SearchResultRow {
 	uint32_t index = 0;
 	wxString name;
@@ -44,10 +46,13 @@ public:
 	void OnClickClear(wxCommandEvent& event);
 	void OnClickPreviousPage(wxCommandEvent& event);
 	void OnClickNextPage(wxCommandEvent& event);
+	void OnFilterChanged(wxCommandEvent& event);
 
 protected:
 	class ResultCanvas;
 
+	void applyFilter();
+	[[nodiscard]] bool matchesFilter(const SearchResultRow& row) const;
 	void updateSummary();
 	void focusFirstResult();
 	void activateRow(int index);
@@ -58,6 +63,9 @@ protected:
 	wxButton* next_page_button_ = nullptr;
 	wxButton* export_button_ = nullptr;
 	wxButton* clear_button_ = nullptr;
+	wxSearchCtrl* filter_ctrl_ = nullptr;
+	// all_rows_ holds the page as loaded; rows_ is what the list shows after the filter.
+	std::vector<SearchResultRow> all_rows_;
 	std::vector<SearchResultRow> rows_;
 	uint32_t total_count_ = 0;
 	uint32_t page_offset_ = 0;

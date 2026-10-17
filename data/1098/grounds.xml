@@ -214,7 +214,7 @@
 		<border align="inner" to="none" id="1" />
 	</brush>
 	<brush name="sand (thick border)" type="ground" activated="true" />
-	<brush name="sand" type="ground" server_lookid="231" z-order="2850" activated="true">
+	<brush name="sand" type="ground" server_lookid="231" z-order="8850" activated="true">
 		<item id="231" chance="1" />
 		<item id="8315" chance="0" />
 		<item id="8316" chance="0" />
@@ -224,7 +224,7 @@
 		<item id="8320" chance="0" />
 		<item id="8321" chance="0" />
 		<item id="8322" chance="0" />
-		<border align="outer" id="16,17" />
+		<border align="inner" id="339" />
 		<border align="inner" to="none" id="1" />
 	</brush>
 	<brush name="sand (thick border)" type="ground" server_lookid="231" z-order="4700" activated="true">
@@ -587,7 +587,25 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/stone earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -1220,7 +1238,25 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/stone earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -2169,7 +2205,25 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -2800,7 +2854,25 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -3433,7 +3505,25 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -4064,7 +4154,25 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			-- Handles for the 8 different specific cases which might occur with icy earth/earth borders --
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -5760,7 +5868,8 @@
 		<item id="45790" chance="25" />
 		<item id="45791" chance="25" />
 		<border align="outer" id="253" />
-		<border align="inner" to="none" id="1" />
+		<border align="inner" to="none" id="1" enabled="false" />
+		<border align="outer" to="none" id="253" />
 	</brush>
 	<brush name="grass 3" type="ground" server_lookid="45743" z-order="3200" activated="true">
 		<item id="45743" chance="200" />
@@ -5782,8 +5891,14 @@
 		<item id="37941" chance="5" />
 		<item id="37942" chance="5" />
 		<item id="37943" chance="5" />
-		<border align="outer" id="252" />
-		<border align="outer" to="none" id="252" />
+		<border align="outer" id="252" variant="1" />
+		<border align="outer" to="none" id="252" variant="1" />
+		<border align="outer" id="336" variant="2" />
+		<border align="outer" to="none" id="336" variant="2" />
+		<border align="outer" id="338" variant="3" />
+		<border align="outer" to="none" id="338" variant="3" />
+		<border align="outer" id="340" variant="4" />
+		<border align="outer" to="none" id="340" variant="4" />
 	</brush>
 	<brush name="dirt 2" type="ground" server_lookid="50374" z-order="400" activated="true">
 		<item id="50374" chance="1" />
@@ -6681,5 +6796,26 @@
 		<item id="57735" chance="10" />
 		<border align="outer" id="332" />
 		<border align="outer" to="none" id="332" />
+	</brush>
+	<brush name="new swamp crazy" type="ground" server_lookid="57762" z-order="2000">
+		<item id="57762" chance="10" />
+		<border align="outer" id="333" />
+		<border align="outer" to="none" id="333" />
+	</brush>
+	<brush name="stone paviment 2" type="ground" server_lookid="57775" z-order="2000">
+		<item id="57775" chance="10" />
+		<item id="57776" chance="10" />
+		<item id="57777" chance="10" />
+		<border align="outer" id="334" />
+		<border align="outer" to="none" id="334" />
+	</brush>
+	<brush name="clear sea" type="ground" server_lookid="57807" z-order="7601" activated="true">
+		<item id="57807" chance="1" />
+		<border align="outer" id="337" variant="2" />
+		<border align="outer" to="none" id="337" variant="2" />
+		<border align="outer" id="339" variant="3" />
+		<border align="outer" to="none" id="339" variant="3" />
+		<border align="outer" id="341" variant="4" />
+		<border align="outer" to="none" id="341" variant="4" />
 	</brush>
 </materials>

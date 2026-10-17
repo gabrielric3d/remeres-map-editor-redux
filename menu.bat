@@ -4,6 +4,7 @@ REM  rme.bat
 REM  Menu de utilidades do RME Redux:
 REM    1. Compilar (build_windows.bat)
 REM    2. Deploy Release (deploy_release.bat)
+REM    5. Pacote do mapper (gerar_pacote_mapper.bat)
 REM ============================================================
 
 setlocal
@@ -23,6 +24,7 @@ echo   [1] Compilar             (build_windows.bat)
 echo   [2] Deploy Release       (deploy_release.bat)
 echo   [3] Compilar + Deploy
 echo   [4] Compilar economico   (baixa memoria - %ECO_JOBS% jobs)
+echo   [5] Pacote do mapper     (gerar_pacote_mapper.bat)
 echo.
 echo   [0] Sair
 echo.
@@ -33,6 +35,7 @@ if "%OPC%"=="1" goto compilar
 if "%OPC%"=="2" goto deploy
 if "%OPC%"=="3" goto ambos
 if "%OPC%"=="4" goto compilar_eco
+if "%OPC%"=="5" goto pacote
 if "%OPC%"=="0" goto fim
 
 echo.
@@ -59,6 +62,13 @@ goto menu
 :deploy
 echo.
 call "%ROOT%deploy_release.bat"
+echo.
+pause
+goto menu
+
+:pacote
+echo.
+call "%ROOT%gerar_pacote_mapper.bat" /nopause
 echo.
 pause
 goto menu

@@ -162,6 +162,30 @@ HotkeysPage::HotkeysPage(wxWindow* parent) :
 	smartMouseRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "(Click this mouse button on a tile to auto-select its brush)"), 0, wxALIGN_CENTER_VERTICAL);
 	modifierBox->Add(smartMouseRow, 0, wxEXPAND | wxALL, FromDIP(4));
 
+	auto* pickerRow = new wxBoxSizer(wxHORIZONTAL);
+	pickerRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "Border Piece Picker Modifier:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+
+	wxArrayString pickerChoices;
+	pickerChoices.Add("Alt");
+	pickerChoices.Add("Ctrl+Alt");
+	pickerChoices.Add("Alt+Shift");
+	pickerChoices.Add("Ctrl+Shift");
+	pickerChoices.Add("Disabled");
+	m_piecePickerModifier = new wxChoice(modBoxWin, wxID_ANY, wxDefaultPosition, wxDefaultSize, pickerChoices);
+
+	std::string currentPicker = g_settings.getString(Config::PIECE_PICKER_MODIFIER);
+	int pickerSel = 0;
+	for (unsigned int i = 0; i < pickerChoices.GetCount(); ++i) {
+		if (pickerChoices[i] == wxString(currentPicker)) {
+			pickerSel = static_cast<int>(i);
+			break;
+		}
+	}
+	m_piecePickerModifier->SetSelection(pickerSel);
+	pickerRow->Add(m_piecePickerModifier, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+	pickerRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "(Hold + Right Click on the map with a carpet brush to pick a single border piece)"), 0, wxALIGN_CENTER_VERTICAL);
+	modifierBox->Add(pickerRow, 0, wxEXPAND | wxALL, FromDIP(4));
+
 	auto* eraseAboveRow = new wxBoxSizer(wxHORIZONTAL);
 	eraseAboveRow->Add(new wxStaticText(modBoxWin, wxID_ANY, "Erase Ground Above Key:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
 
@@ -283,6 +307,12 @@ void HotkeysPage::Apply() {
 		int sel = m_smartBrushMouseButton->GetSelection();
 		wxString choice = (sel != wxNOT_FOUND) ? m_smartBrushMouseButton->GetString(sel) : wxString("None");
 		g_settings.setString(Config::SMART_BRUSH_MOUSE_BUTTON, std::string(choice.mb_str()));
+	}
+
+	if (m_piecePickerModifier) {
+		int sel = m_piecePickerModifier->GetSelection();
+		wxString choice = (sel != wxNOT_FOUND) ? m_piecePickerModifier->GetString(sel) : wxString("Alt");
+		g_settings.setString(Config::PIECE_PICKER_MODIFIER, std::string(choice.mb_str()));
 	}
 
 	if (m_eraseAboveHotkey) {

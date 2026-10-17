@@ -766,7 +766,9 @@ void VirtualBrushGrid::OnMouseDown(wxMouseEvent& event) {
 		}
 	}
 
-	if (index != selected_index) {
+	// Also when the highlighted brush is clicked again but something else is in hand
+	// (e.g. a single carpet piece picked from the piece strip or the map): back to it.
+	if (index != selected_index || GetEffectiveBrush(static_cast<size_t>(index)) != g_gui.GetCurrentBrush()) {
 		selected_index = index;
 
 		// Notify GUI - find PaletteWindow parent

@@ -14,6 +14,7 @@
 
 #include <wx/file.h>
 #include <wx/filedlg.h>
+#include <wx/srchctrl.h>
 #include <wx/stattext.h>
 
 namespace {
@@ -22,6 +23,27 @@ namespace {
 	}
 
 	constexpr int kEmptyStateInset = 18;
+
+	// Every run of digits in the text, e.g. "AID:40013 debris" -> {40013}.
+	[[nodiscard]] std::vector<uint64_t> numberTokens(const wxString& text) {
+		std::vector<uint64_t> tokens;
+		uint64_t value = 0;
+		bool in_number = false;
+		for (const wxUniChar ch : text) {
+			if (ch >= '0' && ch <= '9') {
+				value = value * 10 + static_cast<uint64_t>(ch.GetValue() - '0');
+				in_number = true;
+			} else if (in_number) {
+				tokens.push_back(value);
+				value = 0;
+				in_number = false;
+			}
+		}
+		if (in_number) {
+			tokens.push_back(value);
+		}
+		return tokens;
+	}
 }
 
 class SearchResultWindow::ResultCanvas final : public NanoVGCanvas {
@@ -227,11 +249,12 @@ private:
 
 		nvgFontSize(vg, 14.0f);
 		nvgFillColor(vg, toColor(Theme::Get(Theme::Role::TextSubtle)));
-		nvgText(vg, static_cast<float>(FromDIP(kEmptyStateInset)), height * 0.45f, "No search results", nullptr);
+		const bool filtered_out = !owner_->all_rows_.empty();
+		nvgText(vg, static_cast<float>(FromDIP(kEmptyStateInset)), height * 0.45f, filtered_out ? "No matching results" : "No search results", nullptr);
 
 		nvgFontSize(vg, 12.0f);
 		nvgFillColor(vg, toColor(Theme::Get(Theme::Role::TextSubtle)));
-		nvgText(vg, static_cast<float>(FromDIP(kEmptyStateInset)), height * 0.54f, "Run a map search to populate this list.", nullptr);
+		nvgText(vg, static_cast<float>(FromDIP(kEmptyStateInset)), height * 0.54f, filtered_out ? "No result matches the filter." : "Run a map search to populate this list.", nullptr);
 	}
 
 	void drawRow(NVGcontext* vg, int width, const wxRect& rect, const SearchResultRow& row, bool selected, bool hovered) const {
@@ -302,6 +325,12 @@ SearchResultWindow::SearchResultWindow(wxWindow* parent) :
 	wxPanel(parent, wxID_ANY) {
 	auto* root_sizer = newd wxBoxSizer(wxVERTICAL);
 
+	filter_ctrl_ = newd wxSearchCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
+	filter_ctrl_->SetDescriptiveText("Filter (e.g. 40013, 40000-40100, door)");
+	filter_ctrl_->ShowCancelButton(true);
+	filter_ctrl_->SetToolTip("Filter the results.\nA number shows rows with exactly that number (action id, unique id...).\nA range like 40000-40100 shows rows with a number inside it.\nAny other text matches the name or the position.");
+	root_sizer->Add(filter_ctrl_, wxSizerFlags(0).Expand().Border(wxALL, FromDIP(4)));
+
 	result_list = newd ResultCanvas(this);
 	root_sizer->Add(result_list, wxSizerFlags(1).Expand());
 
@@ -338,6 +367,11 @@ SearchResultWindow::SearchResultWindow(wxWindow* parent) :
 	next_page_button_->Bind(wxEVT_BUTTON, &SearchResultWindow::OnClickNextPage, this);
 	export_button_->Bind(wxEVT_BUTTON, &SearchResultWindow::OnClickExport, this);
 	clear_button_->Bind(wxEVT_BUTTON, &SearchResultWindow::OnClickClear, this);
+	filter_ctrl_->Bind(wxEVT_TEXT, &SearchResultWindow::OnFilterChanged, this);
+	filter_ctrl_->Bind(wxEVT_SEARCHCTRL_CANCEL_BTN, [this](wxCommandEvent& event) {
+		filter_ctrl_->ChangeValue(wxEmptyString);
+		OnFilterChanged(event);
+	});
 
 	updateSummary();
 }
@@ -345,6 +379,7 @@ SearchResultWindow::SearchResultWindow(wxWindow* parent) :
 SearchResultWindow::~SearchResultWindow() = default;
 
 void SearchResultWindow::Clear() {
+	all_rows_.clear();
 	rows_.clear();
 	total_count_ = 0;
 	page_offset_ = 0;
@@ -358,11 +393,12 @@ void SearchResultWindow::Clear() {
 }
 
 void SearchResultWindow::SetResults(std::vector<SearchResultRow> rows, uint32_t total_count, uint32_t page_offset, uint32_t page_limit, std::function<void(uint32_t)> page_loader) {
-	rows_ = std::move(rows);
-	total_count_ = total_count == 0 ? static_cast<uint32_t>(rows_.size()) : total_count;
+	all_rows_ = std::move(rows);
+	total_count_ = total_count == 0 ? static_cast<uint32_t>(all_rows_.size()) : total_count;
 	page_offset_ = page_offset;
-	page_limit_ = page_limit == 0 ? static_cast<uint32_t>(rows_.size()) : page_limit;
+	page_limit_ = page_limit == 0 ? static_cast<uint32_t>(all_rows_.size()) : page_limit;
 	page_loader_ = std::move(page_loader);
+	applyFilter();
 
 	if (result_list != nullptr) {
 		result_list->RefreshContent();
@@ -425,7 +461,7 @@ void SearchResultWindow::OnClickNextPage(wxCommandEvent& WXUNUSED(event)) {
 		return;
 	}
 
-	const uint32_t current_end = page_offset_ + static_cast<uint32_t>(rows_.size());
+	const uint32_t current_end = page_offset_ + static_cast<uint32_t>(all_rows_.size());
 	if (current_end >= total_count_) {
 		return;
 	}
@@ -433,31 +469,103 @@ void SearchResultWindow::OnClickNextPage(wxCommandEvent& WXUNUSED(event)) {
 	page_loader_(page_offset_ + page_limit_);
 }
 
+void SearchResultWindow::OnFilterChanged(wxCommandEvent& WXUNUSED(event)) {
+	applyFilter();
+	if (result_list != nullptr) {
+		result_list->ClearSelection();
+	}
+	focusFirstResult();
+	updateSummary();
+}
+
+void SearchResultWindow::applyFilter() {
+	rows_.clear();
+	rows_.reserve(all_rows_.size());
+	for (const SearchResultRow& row : all_rows_) {
+		if (matchesFilter(row)) {
+			rows_.push_back(row);
+		}
+	}
+}
+
+bool SearchResultWindow::matchesFilter(const SearchResultRow& row) const {
+	if (filter_ctrl_ == nullptr) {
+		return true;
+	}
+
+	wxString filter = filter_ctrl_->GetValue();
+	filter.Trim(true).Trim(false);
+	if (filter.IsEmpty()) {
+		return true;
+	}
+
+	// "40000-40100": any number in the name inside the range.
+	const int dash = filter.Find('-');
+	if (dash > 0) {
+		wxString left = filter.Left(dash);
+		wxString right = filter.Mid(dash + 1);
+		left.Trim(true);
+		right.Trim(false);
+		unsigned long long low = 0;
+		unsigned long long high = 0;
+		if (left.ToULongLong(&low) && right.ToULongLong(&high)) {
+			if (low > high) {
+				std::swap(low, high);
+			}
+			for (const uint64_t value : numberTokens(row.name)) {
+				if (value >= low && value <= high) {
+					return true;
+				}
+			}
+			return false;
+		}
+	}
+
+	// "40013": a number in the name equal to it (40013 does not match 400130).
+	unsigned long long exact = 0;
+	if (filter.IsNumber() && filter.ToULongLong(&exact)) {
+		const std::vector<uint64_t> tokens = numberTokens(row.name);
+		return std::find(tokens.begin(), tokens.end(), static_cast<uint64_t>(exact)) != tokens.end();
+	}
+
+	// Plain text: case-insensitive match on the name or the position.
+	const wxString needle = filter.Lower();
+	if (row.name.Lower().Contains(needle)) {
+		return true;
+	}
+	const wxString coords = wxString::Format("%d, %d, %d", row.position.x, row.position.y, row.position.z);
+	return coords.Contains(needle);
+}
+
 void SearchResultWindow::updateSummary() {
 	if (summary_label == nullptr) {
 		return;
 	}
 
-	if (rows_.empty() || total_count_ == 0) {
+	if (all_rows_.empty() || total_count_ == 0) {
 		summary_label->SetLabel("Results: 0");
 	} else {
 		const uint32_t first_visible = std::min(total_count_, page_offset_ + 1);
-		const uint32_t last_visible = std::min(total_count_, page_offset_ + static_cast<uint32_t>(rows_.size()));
-		summary_label->SetLabel(wxString::Format("Results: %u | %u-%u", total_count_, first_visible, last_visible));
+		const uint32_t last_visible = std::min(total_count_, page_offset_ + static_cast<uint32_t>(all_rows_.size()));
+		wxString label = wxString::Format("Results: %u | %u-%u", total_count_, first_visible, last_visible);
+		if (rows_.size() != all_rows_.size()) {
+			label << wxString::Format(" | filtered: %zu", rows_.size());
+		}
+		summary_label->SetLabel(label);
 	}
 
 	if (previous_page_button_ != nullptr) {
 		previous_page_button_->Enable(page_loader_ && page_offset_ > 0);
 	}
 	if (next_page_button_ != nullptr) {
-		const uint32_t current_end = page_offset_ + static_cast<uint32_t>(rows_.size());
+		const uint32_t current_end = page_offset_ + static_cast<uint32_t>(all_rows_.size());
 		next_page_button_->Enable(page_loader_ && current_end < total_count_);
 	}
 	if (export_button_ != nullptr) {
 		export_button_->Enable(!rows_.empty());
 	}
 	if (clear_button_ != nullptr) {
-		clear_button_->Enable(!rows_.empty());
+		clear_button_->Enable(!all_rows_.empty());
 	}
 
 	summary_label->SetMinSize(summary_label->GetBestSize());

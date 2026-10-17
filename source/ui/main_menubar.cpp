@@ -55,6 +55,7 @@
 #include "ui/map_window.h"
 #include "rendering/ui/map_display.h"
 #include "rendering/ui/radial_wheel.h"
+#include "rendering/ui/carpet_piece_picker.h"
 #include "editor/hotkey_utils.h"
 #include "app/settings.h"
 
@@ -503,6 +504,10 @@ void MainMenuBar::OnToggleCarpetFillBorders(wxCommandEvent& event) {
 	viewSettingsHandler->OnToggleCarpetFillBorders(event);
 }
 
+void MainMenuBar::OnToggleBorderPieceStrip(wxCommandEvent& event) {
+	viewSettingsHandler->OnToggleBorderPieceStrip(event);
+}
+
 void MainMenuBar::OnToggleDisableCarpetInteraction(wxCommandEvent& event) {
 	viewSettingsHandler->OnToggleDisableCarpetInteraction(event);
 }
@@ -838,6 +843,10 @@ void MainMenuBar::OnBrushesEditor(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.ShowBrushesEditorDialog();
 }
 
+void MainMenuBar::OnCaveWarp(wxCommandEvent& WXUNUSED(event)) {
+	g_gui.ShowCaveWarpDialog();
+}
+
 void MainMenuBar::OnInstanceLayoutGenerator(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.ShowInstanceLayoutDialog();
 }
@@ -847,6 +856,9 @@ void MainMenuBar::OnRadialWheel(wxCommandEvent& WXUNUSED(event)) {
 		if (MapWindow* window = tab->GetView()) {
 			MapCanvas* canvas = window->GetCanvas();
 			if (canvas && canvas->radial_wheel && !canvas->radial_wheel->IsOpen()) {
+				if (canvas->piece_picker) {
+					canvas->piece_picker->Close();
+				}
 				wxSize sz = canvas->GetSize();
 				canvas->radial_wheel->Open(sz.x, sz.y);
 				canvas->Refresh();

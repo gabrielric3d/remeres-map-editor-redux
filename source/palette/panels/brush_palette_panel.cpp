@@ -1,4 +1,5 @@
 #include "palette/panels/brush_palette_panel.h"
+#include "palette/controls/carpet_piece_strip.h"
 #include "ui/gui.h"
 #include "ui/gui_ids.h"
 #include "ui/add_tileset_window.h"
@@ -162,6 +163,10 @@ void BrushPalettePanel::InvalidateContents() {
 	for (size_t iz = 0; iz < choicebook->GetPageCount(); ++iz) {
 		BrushPanel* panel = dynamic_cast<BrushPanel*>(choicebook->GetPage(iz));
 		panel->InvalidateContents();
+	}
+	if (palette_type == TILESET_TERRAIN) {
+		// Brushes or icons reloaded: the border piece strip (its own pane) holds brush pointers too.
+		CarpetPieceStrip::ReloadPane();
 	}
 	PalettePanel::InvalidateContents();
 }

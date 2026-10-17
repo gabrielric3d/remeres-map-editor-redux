@@ -17,6 +17,9 @@
 
 #include "app/main.h"
 
+#include "ai/assistant_live.h"
+#include "rendering/io/map_recorder.h"
+
 #include <format>
 #include <sstream>
 #include <time.h>
@@ -70,10 +73,13 @@
 #include "rendering/ui/drawing_controller.h"
 #include "rendering/ui/map_menu_handler.h"
 #include "rendering/ui/radial_wheel.h"
+#include "rendering/ui/carpet_piece_picker.h"
+#include "rendering/ui/carpet_piece_service.h"
 #include "rendering/ui/toast_renderer.h"
 #include "rendering/ui/border_variant_hud.h"
 #include "rendering/utilities/render_profiler.h"
 #include "rendering/drawers/overlays/lua_overlay_drawer.h"
+#include "editor/cave_warp_tool.h"
 
 #include "brushes/doodad/doodad_brush.h"
 #include "brushes/house/house_exit_brush.h"
@@ -92,12 +98,11 @@
 
 bool MapCanvas::processed[] = { 0 };
 
-// Matches the configured Smart Brush modifier combo (Config::SMART_BRUSH_MODIFIER)
-// against the keyboard state. The stored string is a "+"-separated list of
-// Ctrl/Alt/Shift. All listed modifiers must be held, and no others.
-static bool IsSmartBrushModifier(bool shift_down, bool ctrl_down, bool alt_down) {
-	const std::string mod = g_settings.getString(Config::SMART_BRUSH_MODIFIER);
-	if (mod.empty()) {
+// Matches a modifier combo setting against the keyboard state. The stored string is
+// a "+"-separated list of Ctrl/Alt/Shift. All listed modifiers must be held, and no
+// others. An empty string or "Disabled" never matches.
+static bool MatchesModifierSetting(const std::string& mod, bool shift_down, bool ctrl_down, bool alt_down) {
+	if (mod.empty() || mod == "Disabled") {
 		return false;
 	}
 	bool want_ctrl = false, want_alt = false, want_shift = false;
@@ -121,6 +126,16 @@ static bool IsSmartBrushModifier(bool shift_down, bool ctrl_down, bool alt_down)
 		start = end + 1;
 	}
 	return ctrl_down == want_ctrl && alt_down == want_alt && shift_down == want_shift;
+}
+
+// Config::SMART_BRUSH_MODIFIER: hold + left click picks the clicked tile's brush.
+static bool IsSmartBrushModifier(bool shift_down, bool ctrl_down, bool alt_down) {
+	return MatchesModifierSetting(g_settings.getString(Config::SMART_BRUSH_MODIFIER), shift_down, ctrl_down, alt_down);
+}
+
+// Config::PIECE_PICKER_MODIFIER: hold + right click opens the border piece picker.
+static bool IsPiecePickerModifier(bool shift_down, bool ctrl_down, bool alt_down) {
+	return MatchesModifierSetting(g_settings.getString(Config::PIECE_PICKER_MODIFIER), shift_down, ctrl_down, alt_down);
 }
 
 // Returns true if `button` matches the Smart Brush picker mouse button setting.
@@ -194,6 +209,7 @@ MapCanvas::MapCanvas(wxWindow* parent, Editor& editor, int* attriblist) :
 	drawing_controller = std::make_unique<DrawingController>(this, editor);
 	screenshot_controller = std::make_unique<ScreenshotController>(this);
 	radial_wheel = std::make_unique<RadialWheel>();
+	piece_picker = std::make_unique<CarpetPiecePicker>();
 	menu_handler = std::make_unique<MapMenuHandler>(this, editor);
 	menu_handler->BindEvents();
 	keyCode = WXK_NONE;
@@ -220,10 +236,14 @@ MapCanvas::MapCanvas(wxWindow* parent, Editor& editor, int* attriblist) :
 
 	camera_path_timer.SetOwner(this);
 	Bind(wxEVT_TIMER, &MapCanvas::OnCameraPathTimer, this, camera_path_timer.GetId());
+
+	zoom_anim_timer.SetOwner(this);
+	Bind(wxEVT_TIMER, &MapCanvas::OnZoomAnimationTimer, this, zoom_anim_timer.GetId());
 }
 
 MapCanvas::~MapCanvas() {
 	camera_path_timer.Stop();
+	zoom_anim_timer.Stop();
 
 	bool context_ok = false;
 	if (m_glContext) {
@@ -370,6 +390,17 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 		drawer->getLuaOverlayDrawer()->DrawUI(vg, drawer->getView(), options);
 	}
 
+	// Where Claude is working (chat panel or an MCP client). Left out of the
+	// screenshots Claude takes, so it does not look at its own cursor.
+	if (!screenshot_controller->IsCapturing()) {
+		AssistantLive::drawOverlay(vg, drawer->getView(), &editor);
+	}
+
+	// Cave Warp: stroke being painted, brush footprint and what the last stroke changed.
+	if (CaveWarpTool::Get().DrawOverlay(vg, drawer->getView(), &editor)) {
+		Refresh(); // the highlight is still fading
+	}
+
 	{
 		RENDER_PROFILE_SCOPE(NvgHud);
 
@@ -383,6 +414,11 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 			if (g_toast.HasActiveToasts()) {
 				Refresh();
 			}
+		}
+
+		// Border piece picker (Alt + right click with a carpet brush)
+		if (piece_picker && piece_picker->IsOpen() && !screenshot_controller->IsCapturing()) {
+			piece_picker->Draw(vg, GetSize().x, GetSize().y);
 		}
 
 		// Draw radial wheel overlay (always on top)
@@ -434,6 +470,11 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 			RENDER_PROFILE_SCOPE(OptionsUpdate);
 			if (screenshot_controller->IsCapturing()) {
 				options.SetIngame();
+				// Shift+B (show only grounds), the screen shader (e.g. Flat Colors) and the
+				// grid still apply: they are how grounds and borders are checked.
+				options.show_only_grounds = g_settings.getBoolean(Config::SHOW_ONLY_GROUNDS);
+				options.screen_shader_name = g_settings.getString(Config::SCREEN_SHADER);
+				options.show_grid = g_settings.getInteger(Config::SHOW_GRID);
 			} else {
 				options.Update();
 			}
@@ -481,6 +522,11 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 		{
 			RENDER_PROFILE_SCOPE(NanoVG);
 			DrawOverlays(m_nvg.get(), options);
+		}
+
+		// Time-lapse recording takes the finished picture, overlays included.
+		if (MapRecorder* recorder = MapRecorder::active(); recorder && !screenshot_controller->IsCapturing()) {
+			recorder->onCanvasPainted(this, drawer->getView().screensize_x, drawer->getView().screensize_y);
 		}
 
 		drawer->ClearFrameOverlays();
@@ -636,6 +682,14 @@ void MapCanvas::OnMouseMove(wxMouseEvent& event) {
 		return;
 	}
 
+	// Border piece picker: hover only, the map and the brushes stay still meanwhile.
+	if (piece_picker && piece_picker->IsOpen()) {
+		piece_picker->UpdateMouse(event.GetX(), event.GetY());
+		g_gui.SetStatusText(piece_picker->HoveredDescription());
+		Refresh();
+		return;
+	}
+
 	NavigationController::HandleMouseDrag(this, event);
 
 	cursor_x = event.GetX();
@@ -661,6 +715,29 @@ void MapCanvas::OnMouseMove(wxMouseEvent& event) {
 		UpdatePositionStatus(cursor_x, cursor_y);
 		UpdateZoomStatus();
 		Refresh();
+	}
+
+	// The Cave Warp brush owns the left button while active: no brush/selection drag.
+	CaveWarpTool& caveWarp = CaveWarpTool::Get();
+	if (cave_warp_dragging && !event.LeftIsDown()) {
+		// The release happened outside the canvas.
+		cave_warp_dragging = false;
+		caveWarp.OnRelease(editor, Position(mouse_map_x, mouse_map_y, floor));
+		g_gui.RefreshView();
+		g_gui.UpdateMinimap();
+		return;
+	}
+	if (cave_warp_dragging || caveWarp.IsActive()) {
+		if (map_update) {
+			const Position pos(mouse_map_x, mouse_map_y, floor);
+			if (cave_warp_dragging) {
+				caveWarp.OnDrag(editor, pos);
+			} else {
+				caveWarp.OnMove(editor, pos);
+			}
+			Refresh();
+		}
+		return;
 	}
 
 	// "Erase ground above": while the configured hotkey AND the left mouse button are
@@ -771,12 +848,37 @@ void MapCanvas::OnMouseActionClick(wxMouseEvent& event) {
 		return;
 	}
 
+	// Border piece picker left open by a quick tap: a click on a cell picks it, a click
+	// anywhere else closes it. Nothing is painted either way.
+	if (piece_picker && piece_picker->IsOpen()) {
+		piece_picker->UpdateMouse(event.GetX(), event.GetY());
+		if (!ConfirmPiecePicker()) {
+			piece_picker->Close();
+		}
+		swallow_left_release = true;
+		Refresh();
+		return;
+	}
+	// A release lost outside the canvas must not eat this press's release.
+	swallow_left_release = false;
+
 	int mouse_map_x, mouse_map_y;
 	ScreenToMap(event.GetX(), event.GetY(), &mouse_map_x, &mouse_map_y);
 
 	// Rectangle pick mode for area decoration dialog
 	if (g_gui.IsRectanglePicking()) {
 		g_gui.OnRectanglePickClick(Position(mouse_map_x, mouse_map_y, floor));
+		g_gui.RefreshView();
+		return;
+	}
+
+	// Cave Warp: the stroke is collected while the button is held and drawn on release.
+	if (CaveWarpTool::Get().IsActive()) {
+		cave_warp_dragging = true;
+		last_click_map_x = mouse_map_x;
+		last_click_map_y = mouse_map_y;
+		last_click_map_z = floor;
+		CaveWarpTool::Get().OnPress(editor, Position(mouse_map_x, mouse_map_y, floor));
 		g_gui.RefreshView();
 		return;
 	}
@@ -851,8 +953,24 @@ void MapCanvas::OnMouseActionClick(wxMouseEvent& event) {
 }
 
 void MapCanvas::OnMouseActionRelease(wxMouseEvent& event) {
+	// The press went to the piece picker; the brushes never saw it.
+	if (swallow_left_release) {
+		swallow_left_release = false;
+		return;
+	}
+
 	int mouse_map_x, mouse_map_y;
 	ScreenToMap(event.GetX(), event.GetY(), &mouse_map_x, &mouse_map_y);
+
+	// The press went to Cave Warp; its release does too (even if the tool was
+	// dropped meanwhile, the brushes never saw the press).
+	if (cave_warp_dragging) {
+		cave_warp_dragging = false;
+		CaveWarpTool::Get().OnRelease(editor, Position(mouse_map_x, mouse_map_y, floor));
+		g_gui.RefreshView();
+		g_gui.UpdateMinimap();
+		return;
+	}
 
 	int move_x = last_click_map_x - mouse_map_x;
 	int move_y = last_click_map_y - mouse_map_y;
@@ -880,7 +998,13 @@ void MapCanvas::OnMouseCameraClick(wxMouseEvent& event) {
 	last_mmb_click_x = event.GetX();
 	last_mmb_click_y = event.GetY();
 	if (event.ControlDown()) {
-		ZoomController::ApplyRelativeZoom(this, 1.0 - zoom);
+		// Volta ao 100% do projeto (64 px por casa no battle royale), com o ponto
+		// clicado parado.
+		if (g_settings.getBoolean(Config::SMOOTH_ZOOM)) {
+			ZoomController::ZoomTo(this, g_gui.gfx.getNormalZoom(), event.GetX(), event.GetY());
+		} else {
+			ZoomController::ApplyRelativeZoom(this, g_gui.gfx.getNormalZoom() - zoom);
+		}
 	} else {
 		NavigationController::HandleCameraClick(this, event);
 	}
@@ -890,11 +1014,74 @@ void MapCanvas::OnMouseCameraRelease(wxMouseEvent& event) {
 	NavigationController::HandleCameraRelease(this, event);
 }
 
+bool MapCanvas::TryOpenPiecePicker(const wxMouseEvent& event) {
+	if (!piece_picker || !IsPiecePickerModifier(event.ShiftDown(), event.ControlDown(), event.AltDown())) {
+		return false;
+	}
+	CarpetBrush* carpet = CarpetPieces::ResolveSource(g_gui.GetCurrentBrush());
+	if (!carpet) {
+		return false;
+	}
+	if (radial_wheel && radial_wheel->IsOpen()) {
+		radial_wheel->Close();
+	}
+	int mouse_map_x, mouse_map_y;
+	ScreenToMap(event.GetX(), event.GetY(), &mouse_map_x, &mouse_map_y);
+	piece_picker_target = Position(mouse_map_x, mouse_map_y, floor);
+	// The carpet's pieces already around the tile: the picker dims what would not continue them.
+	const CarpetPieces::NeighbourEdges neighbours = CarpetPieces::ReadNeighbourEdges(*carpet, editor.map, piece_picker_target);
+
+	const float tile_pixels = static_cast<float>(TILE_SIZE / zoom);
+	if (!piece_picker->Open(carpet, neighbours, event.GetX(), event.GetY(), GetSize().x, GetSize().y, tile_pixels)) {
+		return false;
+	}
+
+	g_gui.SetStatusText(piece_picker->HoveredDescription());
+	Refresh();
+	return true;
+}
+
+bool MapCanvas::ConfirmPiecePicker() {
+	if (!piece_picker) {
+		return false;
+	}
+	const CarpetPiecePicker::PickResult result = piece_picker->Confirm();
+	if (result == CarpetPiecePicker::PickResult::None) {
+		return false;
+	}
+	if (result == CarpetPiecePicker::PickResult::Piece) {
+		// Picking a piece also lays it where the picker was opened, as a plain click with
+		// it would (one tile whatever the brush size, one undo step): no extra click.
+		// No Alt: the Alt that opened the picker must not turn this into "stack the border".
+		PositionVector tiles;
+		tiles.push_back(piece_picker_target);
+		editor.draw(tiles, false);
+		g_gui.RefreshView();
+		g_gui.UpdateMinimap();
+	}
+	return true;
+}
+
 void MapCanvas::OnMousePropertiesClick(wxMouseEvent& event) {
 	SetFocus();
 	if (auto* map_window = GetMapWindow()) {
 		map_window->ResumeMinimapTrackingToCurrentView();
 	}
+
+	// A right click while the piece picker is open closes it; the context menu stays shut.
+	if (piece_picker && piece_picker->IsOpen()) {
+		piece_picker->Close();
+		swallow_properties_release = true;
+		Refresh();
+		return;
+	}
+	// Alt + right click with a carpet (or one of its pieces) in hand: the piece picker,
+	// instead of switching to selection mode.
+	if (TryOpenPiecePicker(event)) {
+		return;
+	}
+	// A release lost outside the canvas must not eat this press's release.
+	swallow_properties_release = false;
 
 	int mouse_map_x, mouse_map_y;
 	ScreenToMap(event.GetX(), event.GetY(), &mouse_map_x, &mouse_map_y);
@@ -921,6 +1108,22 @@ void MapCanvas::OnMousePropertiesClick(wxMouseEvent& event) {
 }
 
 void MapCanvas::OnMousePropertiesRelease(wxMouseEvent& event) {
+	// Release of the press that opened the piece picker: dragged onto a cell picks it,
+	// dragged off every cell closes it, a quick tap leaves it open for a left click.
+	if (piece_picker && piece_picker->IsOpen() && piece_picker->IsHeld()) {
+		piece_picker->EndHold();
+		piece_picker->UpdateMouse(event.GetX(), event.GetY());
+		if (piece_picker->HasMovedSinceOpen() && !ConfirmPiecePicker()) {
+			piece_picker->Close();
+		}
+		Refresh();
+		return;
+	}
+	if (swallow_properties_release) {
+		swallow_properties_release = false;
+		return;
+	}
+
 	int mouse_map_x, mouse_map_y;
 	ScreenToMap(event.GetX(), event.GetY(), &mouse_map_x, &mouse_map_y);
 
@@ -945,6 +1148,11 @@ void MapCanvas::OnMousePropertiesRelease(wxMouseEvent& event) {
 }
 
 void MapCanvas::OnWheel(wxMouseEvent& event) {
+	// No zoom or brush resize under an open piece picker: it would drift off the map spot.
+	if (piece_picker && piece_picker->IsOpen()) {
+		return;
+	}
+
 	HotkeyMouseButton wheelBtn = (event.GetWheelRotation() > 0) ? HotkeyMouseButton::WheelUp : HotkeyMouseButton::WheelDown;
 	if (auto* frame = g_gui.root) {
 		if (auto* mb = frame->GetMainMenuBar()) {
@@ -1031,6 +1239,7 @@ void MapCanvas::Reset() {
 	cursor_x = 0;
 	cursor_y = 0;
 
+	ZoomController::StopAnimation(this);
 	zoom = g_gui.gfx.getNormalZoom();
 	floor = GROUND_LAYER;
 
@@ -1075,6 +1284,10 @@ void MapCanvas::ToggleCameraPathPlayback() {
 	camera_path_playing = true;
 	camera_path_timer.Start(16); // ~60fps
 	g_gui.SetStatusText("Camera path playback started.");
+}
+
+void MapCanvas::OnZoomAnimationTimer(wxTimerEvent& WXUNUSED(event)) {
+	ZoomController::OnAnimationTick(this);
 }
 
 void MapCanvas::OnCameraPathTimer(wxTimerEvent& WXUNUSED(event)) {

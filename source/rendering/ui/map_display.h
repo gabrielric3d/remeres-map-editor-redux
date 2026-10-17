@@ -45,6 +45,7 @@ class DrawingController;
 class ScreenshotController;
 class MapMenuHandler;
 class RadialWheel;
+class CarpetPiecePicker;
 
 class MapCanvas : public wxGLCanvas {
 	std::unique_ptr<wxGLContext> m_glContext;
@@ -154,6 +155,8 @@ public:
 	bool dragging;
 	bool boundbox_selection;
 	bool screendragging;
+	// Left button went down while the Cave Warp brush was active: drag/release go to it too.
+	bool cave_warp_dragging = false;
 	bool isPasting() const;
 
 	std::unique_ptr<ScreenshotController> screenshot_controller;
@@ -188,6 +191,20 @@ public:
 	double camera_path_time = 0.0;
 	std::chrono::steady_clock::time_point camera_path_last_tick;
 
+	// Zoom suave (ZoomController::ZoomTo / OnAnimationTick): o zoom anda ate
+	// zoom_target neste timer, com o ponto zoom_anchor_x/y da tela (pixels logicos)
+	// parado. zoom_scroll_rest_* guarda a fracao de rolagem que ainda nao virou
+	// pixel inteiro.
+	wxTimer zoom_anim_timer;
+	bool zoom_anim_active = false;
+	double zoom_target = 1.0;
+	int zoom_anchor_x = 0;
+	int zoom_anchor_y = 0;
+	double zoom_scroll_rest_x = 0.0;
+	double zoom_scroll_rest_y = 0.0;
+	std::chrono::steady_clock::time_point zoom_anim_last_tick;
+	void OnZoomAnimationTimer(wxTimerEvent& event);
+
 	FramePacer frame_pacer;
 
 	friend class MapDrawer;
@@ -202,8 +219,26 @@ public:
 	std::unique_ptr<DrawingController> drawing_controller;
 	std::unique_ptr<MapMenuHandler> menu_handler;
 	std::unique_ptr<RadialWheel> radial_wheel;
+	// Alt + right click with a carpet brush (or one of its pieces) in hand: pick a
+	// single border piece (Preferences > Hotkeys > Border Piece Picker Modifier).
+	std::unique_ptr<CarpetPiecePicker> piece_picker;
 
 private:
+	// Opens the piece picker when the configured modifier is held and a carpet (or one
+	// of its pieces) is in hand. True when it opened.
+	bool TryOpenPiecePicker(const wxMouseEvent& event);
+	// Picks the hovered cell of the open piece picker. A piece is also placed on the
+	// tile the picker was opened on. False when no cell was under the cursor.
+	bool ConfirmPiecePicker();
+
+	// Tile under the cursor when the piece picker opened: where a picked piece goes.
+	Position piece_picker_target;
+
+	// The press that picked or closed the piece picker owns its release: it must not
+	// reach the brushes (left) or open the context menu (right).
+	bool swallow_left_release = false;
+	bool swallow_properties_release = false;
+
 	void EnsureNanoVG();
 	void DrawOverlays(NVGcontext* vg, const DrawingOptions& options);
 	void PerformGarbageCollection();

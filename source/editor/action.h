@@ -146,6 +146,8 @@ public:
 	bool isCommited() const {
 		return commited;
 	}
+	// Appends the position of every tile this action changes.
+	void collectTilePositions(std::vector<Position>& out) const;
 	void undo(DirtyList* dirty_list);
 	void redo(DirtyList* dirty_list) {
 		commit(dirty_list);
@@ -190,6 +192,9 @@ public:
 	const std::string& getLabel() const {
 		return label;
 	}
+
+	// Appends the position of every tile the batch changes.
+	void collectTilePositions(std::vector<Position>& out) const;
 
 protected:
 	BatchAction(Editor& editor, ActionIdentifier ident);

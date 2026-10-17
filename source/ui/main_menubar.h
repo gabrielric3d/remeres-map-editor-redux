@@ -154,6 +154,7 @@ namespace MenuBar {
 		SHOW_TOWNS,
 		ALWAYS_SHOW_ZONES,
 		EXT_HOUSE_SHADER,
+		BORDER_PIECE_STRIP,
 		WIN_MINIMAP,
 		WIN_TOOL_OPTIONS,
 		WIN_CLAUDE_ASSISTANT,
@@ -223,6 +224,7 @@ namespace MenuBar {
 		RELOAD_FORCED_LIGHT_DATA,
 		OPEN_GRAPHICS_PREFERENCES,
 		TOGGLE_SCREEN_SHADER,
+		CAVE_WARP,
 	};
 }
 
@@ -332,6 +334,7 @@ public:
 
 	void OnToggleAutomagic(wxCommandEvent& event);
 	void OnToggleCarpetFillBorders(wxCommandEvent& event);
+	void OnToggleBorderPieceStrip(wxCommandEvent& event);
 	void OnToggleFillSwapBorders(wxCommandEvent& event);
 	void OnToggleDisableCarpetInteraction(wxCommandEvent& event);
 	void OnToggleDeleteRemovesZones(wxCommandEvent& event);
@@ -417,6 +420,7 @@ public:
 	void OnStructureManager(wxCommandEvent& event);
 	void OnInstanceLayoutGenerator(wxCommandEvent& event);
 	void OnBrushesEditor(wxCommandEvent& event);
+	void OnCaveWarp(wxCommandEvent& event);
 	void OnDeployMap(wxCommandEvent& event);
 	void OnRadialWheel(wxCommandEvent& event);
 

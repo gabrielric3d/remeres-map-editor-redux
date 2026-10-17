@@ -11,6 +11,7 @@
 
 #include <map>
 #include <memory>
+#include <vector>
 #include <wx/wx.h>
 
 class wxChoice;
@@ -26,7 +27,20 @@ public:
 	// Puts the caret in the message box (used when the pane is shown).
 	void FocusInput();
 
+	// Attaches image files to the next message; returns how many were added.
+	// Public for the drop target.
+	int AttachFiles(const wxArrayString& paths);
+
 private:
+	static constexpr size_t MAX_ATTACHMENTS = 8;
+	static constexpr int MAX_IMAGE_EDGE = 1568; // the API scales bigger images down anyway
+	static constexpr size_t MAX_PNG_BASE64 = 3'500'000; // above this a JPEG goes instead
+
+	bool AttachImage(const wxImage& image, const wxString& label);
+	bool PasteImageFromClipboard();
+	void UpdateAttachments();
+	void OnAttach(wxCommandEvent& event);
+
 	void BuildUi();
 	// (Re)creates the conversation engine for the selected backend.
 	void CreateBackend();
@@ -45,6 +59,7 @@ private:
 	void onToolCall(const std::string& name, const nlohmann::json& input) override;
 	void onToolResult(const std::string& name, const ClaudeToolResult& result) override;
 	void onTurnEnd(const std::string& stop_reason) override;
+	void onWorkResumed() override;
 	void onError(const std::string& message) override;
 	void onUsage(const AssistantUsage& usage) override;
 	void onRateLimit(const AssistantRateLimit& limit) override;
@@ -59,6 +74,17 @@ private:
 	void OnEffortChanged(wxCommandEvent& event);
 	void OnShowThinkingChanged(wxCommandEvent& event);
 	void OnInputKeyDown(wxKeyEvent& event);
+	// Live view (animation / camera / cursor) and the external MCP server.
+	void OnLiveChanged(wxCommandEvent& event);
+	void OnMcpToggled(wxCommandEvent& event);
+	void OnMcpCopy(wxCommandEvent& event);
+	void OnMcpPortKey(wxKeyEvent& event);
+	void OnMcpPortKillFocus(wxFocusEvent& event);
+	void CommitMcpPort();
+	void UpdateMcpStatus();
+	// Time-lapse recording of the map view.
+	void OnRecord(wxCommandEvent& event);
+	void UpdateRecordStatus();
 
 	std::unique_ptr<AssistantBackend> backend;
 	ClaudeAgent* api_agent = nullptr; // non-null while the API backend is active
@@ -75,6 +101,24 @@ private:
 	wxButton* clear_button = nullptr;
 	wxStaticText* status = nullptr;
 	wxStaticText* plan_usage = nullptr;
+	wxCheckBox* live_animate = nullptr;
+	wxChoice* live_speed = nullptr;
+	wxCheckBox* live_follow = nullptr;
+	wxCheckBox* live_cursor = nullptr;
+	wxCheckBox* mcp_external = nullptr;
+	wxTextCtrl* mcp_port = nullptr;
+	wxButton* mcp_copy = nullptr;
+	wxStaticText* mcp_status = nullptr;
+	wxButton* record_button = nullptr;
+	wxChoice* record_speed = nullptr;
+	wxButton* record_folder_button = nullptr;
+	wxStaticText* record_status = nullptr;
+	bool was_recording = false;
+	wxButton* attach_button = nullptr;
+	wxBoxSizer* attachment_row = nullptr;
+	wxStaticText* attachment_label = nullptr;
+	wxButton* remove_attachments_button = nullptr;
+	std::vector<AssistantImage> attachments; // go with the next message
 	std::map<std::string, AssistantRateLimit> rate_limits; // by window type
 
 	bool assistant_header_written = false;

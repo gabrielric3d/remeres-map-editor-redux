@@ -43739,5 +43739,229 @@ e o newmarketitems.json vai estar em appdata
 			pt="Um token radiante que pulsa com esplendor emprestado. Use-o para escolher um cosmético da coleção: um outfit, uma aura ou um rastro de pegadas."
 		/>
 	</item>
+	<!-- a agua transparente de 32 px e as pedras em que ela bate (battleroyale scripts/paint_clearwater32.py, .blacktalon/scripts/install_clearwater32.py): a agua e uma camada onTop por cima do fundo, a pedra 2x2 em quatro pecas no, ne, so, se, posta depois da agua -->
+	<item id="57798" name="clear sea water" />
+	<item id="57799" name="sea rock" />
+	<item id="57800" name="sea rock" />
+	<item id="57801" name="sea rock" />
+	<item id="57802" name="sea rock" />
+	<item id="57803" name="sea rock" />
+	<item id="57804" name="sea rock" />
+	<item id="57805" name="sea rock" />
+	<item id="57806" name="sea rock" />
+	<!-- a agua transparente como chao e a costa da agua turquesa adaptada a ela (battleroyale scripts/paint_clearwater32_borders.py, .blacktalon/scripts/install_clearwater32_ground.py) -->
+	<item id="57807" name="clear sea" />
+	<item id="57808" name="clear sea shore" />
+	<item id="57809" name="clear sea shore" />
+	<item id="57810" name="clear sea shore" />
+	<item id="57811" name="clear sea shore" />
+	<item id="57812" name="clear sea shore" />
+	<item id="57813" name="clear sea shore" />
+	<item id="57814" name="clear sea shore" />
+	<item id="57815" name="clear sea shore" />
+	<item id="57816" name="clear sea shore" />
+	<item id="57817" name="clear sea shore" />
+	<item id="57818" name="clear sea shore" />
+	<item id="57819" name="clear sea shore" />
+	<item id="57820" name="clear sea shore" />
+	<item id="57821" name="clear sea shore" />
+	<item id="57822" name="clear sea shore" />
+	<item id="57823" name="clear sea shore" />
+	<item id="57824" name="clear sea shore" />
+	<item id="57825" name="clear sea shore" />
+	<item id="57826" name="clear sea shore" />
+	<item id="57827" name="clear sea shore" />
+	<item id="57828" name="clear sea shore" />
+	<item id="57829" name="clear sea shore" />
+	<item id="57830" name="clear sea shore" />
+	<item id="57831" name="clear sea shore" />
+	<item id="57832" name="clear sea shore" />
+	<item id="57833" name="clear sea shore" />
+	<item id="57834" name="clear sea shore" />
+	<item id="57835" name="clear sea shore" />
+	<item id="57836" name="clear sea shore" />
+	<item id="57837" name="clear sea shore" />
+	<item id="57838" name="clear sea shore" />
+	<item id="57839" name="clear sea shore" />
+	<item id="57840" name="clear sea shore" />
+	<item id="57841" name="clear sea shore" />
+	<item id="57842" name="clear sea shore" />
+	<item id="57843" name="clear sea shore" />
+	<item id="57844" name="clear sea shore" />
+	<item id="57845" name="clear sea shore" />
+	<item id="57846" name="clear sea shore" />
+	<item id="57847" name="clear sea shore" />
+	<item id="57848" name="clear sea shore" />
+	<item id="57849" name="clear sea shore" />
+	<item id="57850" name="clear sea shore" />
+	<item id="57851" name="clear sea shore" />
+	<!-- as pedras e os naufragios da agua transparente, pecas de 32 px (battleroyale scripts/paint_sea_props32.py, .blacktalon/scripts/install_sea_props32.py) -->
+	<item id="57852" name="sea rock" />
+	<item id="57853" name="sea rock" />
+	<item id="57854" name="sea rock" />
+	<item id="57855" name="sea rock" />
+	<item id="57856" name="sea rock" />
+	<item id="57857" name="sea rock" />
+	<item id="57858" name="sea rock" />
+	<item id="57859" name="sea rock" />
+	<item id="57860" name="sea rock" />
+	<item id="57861" name="sea rock" />
+	<item id="57862" name="sea rock" />
+	<item id="57863" name="sea rock" />
+	<item id="57864" name="sea rock" />
+	<item id="57865" name="sea rock" />
+	<item id="57866" name="sea rock" />
+	<item id="57867" name="sea rock" />
+	<item id="57868" name="sea rock" />
+	<item id="57869" name="sea rock" />
+	<item id="57870" name="sea rock" />
+	<item id="57871" name="sea rock" />
+	<item id="57872" name="sea rock" />
+	<item id="57873" name="sea rock" />
+	<item id="57874" name="sea rock" />
+	<item id="57875" name="sea rock" />
+	<item id="57876" name="sea rock" />
+	<item id="57877" name="sea rock" />
+	<item id="57878" name="sea rock" />
+	<item id="57879" name="sea rock" />
+	<item id="57880" name="sea rock" />
+	<item id="57881" name="sea rock" />
+	<item id="57882" name="sea rock" />
+	<item id="57883" name="sea rock" />
+	<item id="57884" name="sea rock" />
+	<item id="57885" name="sea rock" />
+	<item id="57886" name="sea rock" />
+	<item id="57887" name="sea rock" />
+	<item id="57888" name="sea rock" />
+	<item id="57889" name="sea rock" />
+	<item id="57890" name="sea rock" />
+	<item id="57891" name="sea rock" />
+	<item id="57892" name="sea rock" />
+	<item id="57893" name="sea rock" />
+	<item id="57894" name="sea rock" />
+	<item id="57895" name="sea rock" />
+	<item id="57896" name="sea rock" />
+	<item id="57897" name="sea rock" />
+	<item id="57898" name="sea rock" />
+	<item id="57899" name="sea rock" />
+	<item id="57900" name="sea rock" />
+	<item id="57901" name="sea rock" />
+	<item id="57902" name="sea rock" />
+	<item id="57903" name="sea rock" />
+	<item id="57904" name="sea rock" />
+	<item id="57905" name="sea rock" />
+	<item id="57906" name="sea rock" />
+	<item id="57907" name="sea rock" />
+	<item id="57908" name="sea rock" />
+	<item id="57909" name="wreck" />
+	<item id="57910" name="wreck" />
+	<item id="57911" name="wreck" />
+	<item id="57912" name="wreck" />
+	<item id="57913" name="wreck" />
+	<item id="57914" name="wreck" />
+	<item id="57915" name="wreck" />
+	<item id="57916" name="wreck" />
+	<item id="57917" name="wreck" />
+	<item id="57918" name="wreck" />
+	<item id="57919" name="wreck" />
+	<item id="57920" name="wreck" />
+	<item id="57921" name="wreck" />
+	<item id="57922" name="wreck" />
+	<!-- o meio-fio do calcamento de 32 px (battleroyale scripts/paint_cobble32_curb.py, .blacktalon/scripts/install_cobble32_curb.py): 57923-57934 as 12 pecas de borda (n e s w dnw dne dsw dse cnw cne csw cse), 57935-57942 as pontas (n_w n_e s_w s_e w_n w_s e_n e_s) -->
+	<item id="57923" name="stone curb" />
+	<item id="57924" name="stone curb" />
+	<item id="57925" name="stone curb" />
+	<item id="57926" name="stone curb" />
+	<item id="57927" name="stone curb" />
+	<item id="57928" name="stone curb" />
+	<item id="57929" name="stone curb" />
+	<item id="57930" name="stone curb" />
+	<item id="57931" name="stone curb" />
+	<item id="57932" name="stone curb" />
+	<item id="57933" name="stone curb" />
+	<item id="57934" name="stone curb" />
+	<item id="57935" name="stone curb" />
+	<item id="57936" name="stone curb" />
+	<item id="57937" name="stone curb" />
+	<item id="57938" name="stone curb" />
+	<item id="57939" name="stone curb" />
+	<item id="57940" name="stone curb" />
+	<item id="57941" name="stone curb" />
+	<item id="57942" name="stone curb" />
+	<!-- o meio-fio gasto do calcamento de 32 px (battleroyale scripts/paint_cobble32_curb.py, .blacktalon/scripts/install_cobble32_curb.py --look worn): 57943-57954 as 12 pecas de borda (n e s w dnw dne dsw dse cnw cne csw cse), 57955-57962 as pontas (n_w n_e s_w s_e w_n w_s e_n e_s) -->
+	<item id="57943" name="worn stone curb" />
+	<item id="57944" name="worn stone curb" />
+	<item id="57945" name="worn stone curb" />
+	<item id="57946" name="worn stone curb" />
+	<item id="57947" name="worn stone curb" />
+	<item id="57948" name="worn stone curb" />
+	<item id="57949" name="worn stone curb" />
+	<item id="57950" name="worn stone curb" />
+	<item id="57951" name="worn stone curb" />
+	<item id="57952" name="worn stone curb" />
+	<item id="57953" name="worn stone curb" />
+	<item id="57954" name="worn stone curb" />
+	<item id="57955" name="worn stone curb" />
+	<item id="57956" name="worn stone curb" />
+	<item id="57957" name="worn stone curb" />
+	<item id="57958" name="worn stone curb" />
+	<item id="57959" name="worn stone curb" />
+	<item id="57960" name="worn stone curb" />
+	<item id="57961" name="worn stone curb" />
+	<item id="57962" name="worn stone curb" />
+	<!-- as katanas da Wanderer (.blacktalon/scripts/install_wanderer_katanas.py) -->
+	<item id="57963" name="mercenary katana" />
+	<item id="57964" name="metal katana" />
+	<item id="57965" name="sapphire katana" />
+	<item id="57966" name="aragorn's katana" />
+	<item id="57967" name="lion katana" />
+	<item id="57968" name="soul katana" />
+	<item id="57969" name="magic katana" />
+	<item id="57970" name="iceforged katana" />
+	<item id="57971" name="beholder katana" />
+	<item id="57972" name="heavenly katana" />
+	<item id="57973" name="bloodrite katana" />
+	<!-- as pecas de Transmute da katana (.blacktalon/scripts/install_transmute_katanas.py) -->
+	<item id="57974" name="transmute katana t1" />
+	<item id="57975" name="transmute katana t2" />
+	<item id="57976" name="transmute katana t3" />
+	<item id="57977" name="transmute katana t4" />
+	<item id="57978" name="transmute katana t5" />
+	<item id="57979" name="transmute katana t6" />
+	<item id="57980" name="transmute katana t7" />
+	<item id="57981" name="transmute katana t8" />
+	<item id="57982" name="transmute katana t9" />
+	<item id="57983" name="transmute katana t10" />
+	<!-- Fazenda: ingredientes e pratos da Cozinha (.blacktalon/scripts/install_farm_food.py) -->
+	<item id="57984" name="turkey egg" />
+	<item id="57985" name="honey pot" />
+	<item id="57986" name="cabbage" />
+	<item id="57987" name="bottle of milk" />
+	<item id="57988" name="meat pie" />
+	<item id="57989" name="carrot bread" />
+	<item id="57990" name="mushroom omelette" />
+	<item id="57991" name="roasted fish" />
+	<item id="57992" name="homemade broth" />
+	<item id="57993" name="apple pie" />
+	<item id="57994" name="vegetable soup" />
+	<item id="57995" name="banana pancakes" />
+	<item id="57996" name="banana shake" />
+	<item id="57997" name="glazed carrot cake" />
+	<item id="57998" name="tropical juice" />
+	<item id="57999" name="vegetable frittata" />
+	<item id="58000" name="lemon pie" />
+	<item id="58001" name="fruit salad" />
+	<item id="58002" name="green juice" />
+	<item id="58003" name="cabbage salad" />
+	<item id="58004" name="tomato quiche" />
+	<item id="58005" name="desert stew" />
+	<item id="58006" name="soulshroom risotto" />
+	<item id="58007" name="frostbite tea" />
+	<item id="58008" name="smoked bony fish" />
+	<item id="58009" name="azure nectar" />
+	<item id="58010" name="wolfpack feast" />
+	<item id="58011" name="howling feast" />
+	<!-- Farm Hideout: o portal de entrada (.blacktalon/scripts/install_hideout_portal.py) -->
+	<item id="58017" name="hideout portal" />
 </items>
 

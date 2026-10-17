@@ -115,6 +115,17 @@ public:
 	// border sets, every variant, plus the optional border). Used to pick "this
 	// ground's borders" out of a tile, e.g. by the magic wand selection.
 	bool ownsBorderItem(uint16_t item_id) const;
+
+	// How this brush uses each of its border sets (shared ones from borders.xml
+	// and the ones declared inline), for tools that describe border pieces.
+	// to: 0 = none, 0xFFFFFFFF = all, otherwise the target brush id.
+	struct BorderUse {
+		const AutoBorder* border;
+		bool outer;
+		uint32_t to;
+		bool optional; // the optional (mountain-style) border
+	};
+	void getBorderUses(std::vector<BorderUse>& out) const;
 	// Declared with carpet_fill="true" in grounds.xml ("Carpet fill" in the
 	// Brushes Editor): this brush paints like a carpet brush - edge pieces go
 	// on the painted tiles themselves and the ground only fills tiles

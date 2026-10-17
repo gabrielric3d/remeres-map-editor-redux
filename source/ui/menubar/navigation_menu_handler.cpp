@@ -4,6 +4,9 @@
 #include "ui/dialogs/find_dialog.h"
 #include "ui/map_tab.h"
 #include "ui/map_window.h"
+#include "rendering/ui/map_display.h"
+#include "rendering/ui/zoom_controller.h"
+#include "app/settings.h"
 #include "ui/dialogs/goto_position_dialog.h"
 #include "ui/find_item_window.h"
 #include "ui/main_menubar.h"
@@ -115,18 +118,42 @@ NavigationMenuHandler::NavigationMenuHandler(MainFrame* frame, MainMenuBar* menu
 NavigationMenuHandler::~NavigationMenuHandler() {
 }
 
+namespace {
+	// Com "Smooth zoom" ligado, os comandos do menu animam o zoom em volta do
+	// centro da tela, um entalhe da roda por vez.
+	MapCanvas* smoothZoomCanvas() {
+		if (!g_settings.getBoolean(Config::SMOOTH_ZOOM)) {
+			return nullptr;
+		}
+		MapTab* tab = g_gui.GetCurrentMapTab();
+		return tab ? tab->GetCanvas() : nullptr;
+	}
+}
+
 void NavigationMenuHandler::OnZoomIn(wxCommandEvent& event) {
+	if (MapCanvas* canvas = smoothZoomCanvas()) {
+		ZoomController::ZoomBy(canvas, 1.0 / ZoomController::WheelStepFactor(), -1, -1);
+		return;
+	}
 	double zoom = g_gui.GetCurrentZoom();
 	g_gui.SetCurrentZoom(zoom - 0.1);
 }
 
 void NavigationMenuHandler::OnZoomOut(wxCommandEvent& event) {
+	if (MapCanvas* canvas = smoothZoomCanvas()) {
+		ZoomController::ZoomBy(canvas, ZoomController::WheelStepFactor(), -1, -1);
+		return;
+	}
 	double zoom = g_gui.GetCurrentZoom();
 	g_gui.SetCurrentZoom(zoom + 0.1);
 }
 
 void NavigationMenuHandler::OnZoomNormal(wxCommandEvent& event) {
 	// 100% do projeto: 64 px por casa na arte dobrada do battle royale.
+	if (MapCanvas* canvas = smoothZoomCanvas()) {
+		ZoomController::ZoomTo(canvas, g_gui.gfx.getNormalZoom(), -1, -1);
+		return;
+	}
 	g_gui.SetCurrentZoom(g_gui.gfx.getNormalZoom());
 }
 

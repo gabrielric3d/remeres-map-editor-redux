@@ -612,13 +612,20 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 			if (it == diagonal_map.end()) {
 				return false;
 			}
+			// Place whichever edges the set has, like the original RME: one-sided
+			// sets (mountain walls: only "e"/"s") still need their edge on the
+			// corner tile, or the wall stops one tile short of the corner.
 			uint32_t h1Id = borderCluster.border->getRandomTileId(it->h1);
 			uint32_t h2Id = borderCluster.border->getRandomTileId(it->h2);
-			if (h1Id == 0 || h2Id == 0) {
+			if (h1Id == 0 && h2Id == 0) {
 				return false;
 			}
-			TileOperations::addBorderItem(tile, Item::Create(h1Id));
-			TileOperations::addBorderItem(tile, Item::Create(h2Id));
+			if (h1Id != 0) {
+				TileOperations::addBorderItem(tile, Item::Create(h1Id));
+			}
+			if (h2Id != 0) {
+				TileOperations::addBorderItem(tile, Item::Create(h2Id));
+			}
 			return true;
 		};
 

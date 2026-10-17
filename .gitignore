@@ -12,6 +12,9 @@ build.log
 build_script.log
 build_output*.txt
 
+# Pacote do mapper (gerar_pacote_mapper.bat)
+dist/
+
 # ============================================================
 #  CMake
 # ============================================================

@@ -292,6 +292,13 @@ protected:
 	void CreateGUIControls();
 	void LoadExistingBorders();
 	void LoadExistingGroundBrushes();
+	// Every file a ground brush can live in: grounds.xml (classic data) plus
+	// whatever materials.xml includes, recursively. Modular data such as
+	// data/1310 has no grounds.xml — its grounds sit in brushes.xml.
+	wxArrayString GetGroundMaterialFiles();
+	// File a save of `name` goes to: the one that already defines it, else
+	// grounds.xml, else the file holding the most ground brushes.
+	wxString GetGroundSaveTarget(const wxString& name);
 	int FindBorderIdByItemId(uint16_t wantedId);
 	wxString FindGroundBrushNameByItemId(uint16_t wantedId);
 	bool LoadBorderById(int borderId);
@@ -371,6 +378,9 @@ public:
 
 	// Lowercased ground brush name -> server_lookid, for the name-combo previews
 	std::map<wxString, uint16_t> m_groundLookIds;
+
+	// Lowercased ground brush name -> file that defines it (see GetGroundMaterialFiles)
+	std::map<wxString, wxString> m_groundSourceFiles;
 
 	// Border grid
 	BorderGridPanel* m_gridPanel;

@@ -21,6 +21,7 @@
 #include "rendering/ui/navigation_controller.h"
 #include "rendering/ui/map_display.h"
 #include "rendering/ui/radial_wheel.h"
+#include "rendering/ui/carpet_piece_picker.h"
 #include "rendering/ui/border_variant_hud.h"
 #include "rendering/utilities/render_profiler.h"
 #include "ui/map_window.h"
@@ -31,6 +32,7 @@
 #include "ui/dialogs/structure_manager_window.h"
 #include "ui/dialogs/area_decoration_dialog.h"
 #include "app/settings.h"
+#include "editor/cave_warp_tool.h"
 
 #include <cctype>
 
@@ -41,6 +43,22 @@ void KeyboardHandler::OnKeyDown(MapCanvas* canvas, wxKeyEvent& event) {
 			canvas->radial_wheel->Close();
 			canvas->Refresh();
 		}
+		return;
+	}
+
+	// Same for the border piece picker.
+	if (canvas->piece_picker && canvas->piece_picker->IsOpen()) {
+		if (event.GetKeyCode() == WXK_ESCAPE) {
+			canvas->piece_picker->Close();
+			canvas->Refresh();
+		}
+		return;
+	}
+
+	// Escape drops the Cave Warp brush and gives the mouse back to the brushes.
+	if (event.GetKeyCode() == WXK_ESCAPE && CaveWarpTool::Get().IsActive()) {
+		CaveWarpTool::Get().Deactivate();
+		canvas->Refresh();
 		return;
 	}
 
@@ -204,8 +222,14 @@ void KeyboardHandler::HandleFloorChange(MapCanvas* canvas, int keycode) {
 }
 
 void KeyboardHandler::HandleZoomKeys(MapCanvas* canvas, int keycode) {
-	double diff = (keycode == WXK_NUMPAD_MULTIPLY) ? -0.3 : 0.3;
-	ZoomController::ApplyRelativeZoom(canvas, diff);
+	const bool zoom_in = keycode == WXK_NUMPAD_MULTIPLY;
+	if (!g_settings.getBoolean(Config::SMOOTH_ZOOM)) {
+		ZoomController::ApplyRelativeZoom(canvas, zoom_in ? -0.3 : 0.3);
+		return;
+	}
+	// O passo de 0,3 que a tecla dava a 32 px por casa, proporcional em qualquer zoom.
+	constexpr double KEY_ZOOM_FACTOR = 1.3;
+	ZoomController::ZoomBy(canvas, zoom_in ? 1.0 / KEY_ZOOM_FACTOR : KEY_ZOOM_FACTOR, canvas->cursor_x, canvas->cursor_y);
 }
 
 void KeyboardHandler::HandleArrowNavigation(MapCanvas* canvas, wxKeyEvent& event) {

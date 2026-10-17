@@ -1139,21 +1139,21 @@ transparency = true
 version = 1290
 
 [[clients]]
-configType = 'dat_otb'
+configType = 'protobuf_otb'
 datSignature = '4A10'
 dataDirectory = '1310'
 description = 'sample description'
 extended = true
 frameDurations = true
 frameGroups = true
-metadataFile = 'Tibia.dat'
+metadataFile = 'things.bin'
 name = '13.10'
-otbFile = 'items.otb'
+otbFile = 'D:\Github\battleroyale-workspace\server\data\items\items.otb'
 otbId = 65
 otbMajor = 3
 otbmVersions = [ 3 ]
 sprSignature = '59E48E02'
-spritesFile = 'Tibia.spr'
+spritesFile = 'things.bin'
 transparency = true
 version = 1310
 
@@ -1286,7 +1286,7 @@ otbId = 57
 otbMajor = 3
 otbmVersions = [ 3 ]
 sprSignature = '57BBD603'
-spritesFile = 'Tibia.spr'
+spritesFile = 'Tibia.cat'
 transparency = true
 version = 1098
 
@@ -1319,6 +1319,25 @@ frameDurations = false
 frameGroups = false
 metadataFile = 'Tibia.dat'
 name = 'New Client 1'
+otbFile = ''
+otbId = 0
+otbMajor = 1
+otbmVersions = []
+sprSignature = '0'
+spritesFile = 'Tibia.spr'
+transparency = false
+version = 0
+
+[[clients]]
+configType = 'dat_otb'
+datSignature = '0'
+dataDirectory = '1287'
+description = ''
+extended = false
+frameDurations = false
+frameGroups = false
+metadataFile = 'Tibia.dat'
+name = 'New Client 2'
 otbFile = ''
 otbId = 0
 otbMajor = 1

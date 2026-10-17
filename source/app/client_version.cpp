@@ -126,7 +126,10 @@ void ClientVersion::loadVersionsFromTOML(const std::string& configName) {
 
 	toml::table config;
 	try {
-		config = toml::parse_file(file_to_load.GetFullPath().ToStdString());
+		// No Windows o toml++ converte o caminho de UTF-8 para wide antes de
+		// abrir. ToStdString() devolve no code page ANSI: com acento no caminho
+		// o arquivo era "achado" pelo FileExists acima e nao abria.
+		config = toml::parse_file(file_to_load.GetFullPath().utf8_string());
 	} catch (const toml::parse_error& err) {
 		wxLogError("Parsing failed for %s: %s", configName, err.description());
 		return;
@@ -325,6 +328,7 @@ bool ClientVersion::saveVersions() {
 
 	// Save Database
 	db_table.insert_or_assign("clients", std::move(db_clients_array));
+	Settings::fixInvalidUtf8(db_table);
 
 	wxFileName db_file;
 	if (!loaded_file_path.empty()) {

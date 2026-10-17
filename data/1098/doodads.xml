@@ -4979,6 +4979,60 @@
 			</composite>
 		</alternate>
 	</brush>
+	<brush name="stone stairs" type="doodad" server_lookid="57797" draggable="true" on_blocking="false" one_size="true" redo_borders="true" activated="true">
+		<alternate>
+			<composite chance="10">
+				<tile x="0" y="0">
+					<item id="57796" />
+				</tile>
+				<tile x="0" y="0" z="-1">
+					<item id="459" />
+				</tile>
+				<tile x="0" y="1">
+					<item id="57797" />
+				</tile>
+			</composite>
+		</alternate>
+		<alternate>
+			<composite chance="10">
+				<tile x="0" y="0">
+					<item id="57792" />
+				</tile>
+				<tile x="0" y="0" z="-1">
+					<item id="459" />
+				</tile>
+				<tile x="1" y="0">
+					<item id="57793" />
+				</tile>
+			</composite>
+		</alternate>
+		<alternate>
+			<composite chance="10">
+				<tile x="0" y="0">
+					<item id="57794" />
+				</tile>
+				<tile x="0" y="0" z="-1">
+					<item id="459" />
+				</tile>
+				<tile x="0" y="-1">
+					<item id="57795" />
+				</tile>
+			</composite>
+		</alternate>
+		<alternate>
+			<composite chance="10">
+				<tile x="0" y="0">
+					<item id="57790" />
+				</tile>
+				<tile x="0" y="0" z="-1">
+					<item id="459" />
+				</tile>
+				<tile x="-1" y="0">
+					<item id="57791" />
+				</tile>
+			</composite>
+		</alternate>
+	</brush>
 	<brush name="earth ramp" type="doodad" server_lookid="8379" draggable="true" on_blocking="false" one_size="true" redo_borders="true" activated="true">
 		<alternate>
 			<composite chance="10">
@@ -24553,5 +24607,295 @@
 		<carpet align="dse" id="57628" />
 		<carpet align="dsw" id="57629" />
 		<carpet align="center" id="57619" />
+	</brush>
+	<brush name="clear sea water" type="carpet" server_lookid="57798" activated="true">
+		<carpet align="center" id="57798" />
+	</brush>
+	<brush name="clear sea rocks" type="doodad" server_lookid="57802" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57799" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57800" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57801" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57802" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57803" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57804" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57805" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57806" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="sea spikes 1x1" type="doodad" server_lookid="57852" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57852" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="sea blocks 1x1" type="doodad" server_lookid="57853" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57853" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="sea spikes 2x2" type="doodad" server_lookid="57856" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57854" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57855" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57856" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57857" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="sea blocks 2x2" type="doodad" server_lookid="57860" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57858" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57859" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57860" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57861" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="sea blocks 3x3" type="doodad" server_lookid="57866" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57862" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57863" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57864" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57865" />
+			</tile>
+			<tile x="2" y="1">
+				<item id="57866" />
+			</tile>
+			<tile x="0" y="2">
+				<item id="57867" />
+			</tile>
+			<tile x="1" y="2">
+				<item id="57868" />
+			</tile>
+			<tile x="2" y="2">
+				<item id="57869" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="sea spikes 3x3" type="doodad" server_lookid="57873" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="0" y="1">
+				<item id="57870" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57871" />
+			</tile>
+			<tile x="2" y="1">
+				<item id="57872" />
+			</tile>
+			<tile x="0" y="2">
+				<item id="57873" />
+			</tile>
+			<tile x="1" y="2">
+				<item id="57874" />
+			</tile>
+			<tile x="2" y="2">
+				<item id="57875" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="sea blocks 4x4" type="doodad" server_lookid="57880" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="1" y="1">
+				<item id="57876" />
+			</tile>
+			<tile x="2" y="1">
+				<item id="57877" />
+			</tile>
+			<tile x="3" y="1">
+				<item id="57878" />
+			</tile>
+			<tile x="1" y="2">
+				<item id="57879" />
+			</tile>
+			<tile x="2" y="2">
+				<item id="57880" />
+			</tile>
+			<tile x="3" y="2">
+				<item id="57881" />
+			</tile>
+			<tile x="1" y="3">
+				<item id="57882" />
+			</tile>
+			<tile x="2" y="3">
+				<item id="57883" />
+			</tile>
+			<tile x="3" y="3">
+				<item id="57884" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="sea spikes 4x4" type="doodad" server_lookid="57889" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="1" y="1">
+				<item id="57885" />
+			</tile>
+			<tile x="2" y="1">
+				<item id="57886" />
+			</tile>
+			<tile x="3" y="1">
+				<item id="57887" />
+			</tile>
+			<tile x="1" y="2">
+				<item id="57888" />
+			</tile>
+			<tile x="2" y="2">
+				<item id="57889" />
+			</tile>
+			<tile x="3" y="2">
+				<item id="57890" />
+			</tile>
+			<tile x="1" y="3">
+				<item id="57891" />
+			</tile>
+			<tile x="2" y="3">
+				<item id="57892" />
+			</tile>
+			<tile x="3" y="3">
+				<item id="57893" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="sea blocks 5x5" type="doodad" server_lookid="57901" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="1" y="1">
+				<item id="57894" />
+			</tile>
+			<tile x="2" y="1">
+				<item id="57895" />
+			</tile>
+			<tile x="3" y="1">
+				<item id="57896" />
+			</tile>
+			<tile x="1" y="2">
+				<item id="57897" />
+			</tile>
+			<tile x="2" y="2">
+				<item id="57898" />
+			</tile>
+			<tile x="3" y="2">
+				<item id="57899" />
+			</tile>
+			<tile x="4" y="2">
+				<item id="57900" />
+			</tile>
+			<tile x="1" y="3">
+				<item id="57901" />
+			</tile>
+			<tile x="2" y="3">
+				<item id="57902" />
+			</tile>
+			<tile x="3" y="3">
+				<item id="57903" />
+			</tile>
+			<tile x="4" y="3">
+				<item id="57904" />
+			</tile>
+			<tile x="1" y="4">
+				<item id="57905" />
+			</tile>
+			<tile x="2" y="4">
+				<item id="57906" />
+			</tile>
+			<tile x="3" y="4">
+				<item id="57907" />
+			</tile>
+			<tile x="4" y="4">
+				<item id="57908" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="canoe wreck" type="doodad" server_lookid="57912" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57909" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57910" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57911" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57912" />
+			</tile>
+			<tile x="0" y="2">
+				<item id="57913" />
+			</tile>
+			<tile x="1" y="2">
+				<item id="57914" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="boat wreck" type="doodad" server_lookid="57919" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="0" y="0">
+				<item id="57915" />
+			</tile>
+			<tile x="1" y="0">
+				<item id="57916" />
+			</tile>
+			<tile x="2" y="0">
+				<item id="57917" />
+			</tile>
+			<tile x="3" y="0">
+				<item id="57918" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="57919" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="57920" />
+			</tile>
+			<tile x="2" y="1">
+				<item id="57921" />
+			</tile>
+			<tile x="3" y="1">
+				<item id="57922" />
+			</tile>
+		</composite>
 	</brush>
 </materials>

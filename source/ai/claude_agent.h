@@ -10,7 +10,9 @@
 #include "ai/claude_tools.h"
 
 #include <map>
+#include <memory>
 #include <string>
+#include <vector>
 #include <nlohmann/json.hpp>
 
 // Conversation + agent loop on top of ClaudeClient: keeps the message history,
@@ -42,8 +44,10 @@ public:
 	}
 
 	bool isBusy() const override;
-	// Appends a user message and runs the agent loop for it.
-	void send(const std::string& user_text) override;
+	// Appends a user message and runs the agent loop for it. While busy the
+	// message waits and goes out with the next tool results (or as the next
+	// turn when this one ends without tools).
+	void send(const std::string& user_text, const std::vector<AssistantImage>& images) override;
 	// Aborts the current request; the partial assistant turn is discarded.
 	void cancel() override;
 	// Forgets the conversation (usage totals are kept).
@@ -81,6 +85,11 @@ private:
 	void startRequest();
 	void onEvent(const ClaudeStreamEvent& event);
 	void finishAssistantMessage();
+	// Tool calls of the last assistant turn run one at a time (they can be
+	// animated); the results go back together once the last one is done.
+	void runNextTool();
+	void onToolDone(ClaudeToolResult result);
+	void dropPendingTools();
 	nlohmann::json buildSystem();
 	nlohmann::json buildBody();
 	void fail(const std::string& message);
@@ -101,6 +110,21 @@ private:
 	bool busy = false;
 	Usage usage;
 	std::string cached_system; // rebuilt on reset() so style edits are picked up
+
+	struct PendingTool {
+		std::string id;
+		std::string name;
+		nlohmann::json input;
+	};
+	std::vector<PendingTool> pending_tools;
+	nlohmann::json pending_results = nlohmann::json::array();
+	// Content blocks the mapper sent while the turn was running.
+	nlohmann::json pending_user_content = nlohmann::json::array();
+	size_t next_tool = 0;
+	// Bumped on cancel/fail so a tool that finishes late is ignored.
+	unsigned tool_generation = 0;
+	// Expires with the agent; tool callbacks check it before touching `this`.
+	std::shared_ptr<int> alive_token = std::make_shared<int>(0);
 };
 
 #endif

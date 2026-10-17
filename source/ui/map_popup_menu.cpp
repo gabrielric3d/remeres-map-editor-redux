@@ -43,6 +43,27 @@ namespace {
 			menu.Append(MAP_POPUP_MENU_SELECT_BR_LOOT_ITEM, "Select Loot Item", "Load the loot item placed by hand on this tile into the brush (battle royale).")->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_GEM, wxSize(16, 16)));
 		}
 	}
+
+	// Entries registered by scripts with app.addContextMenu. Shown for single and
+	// multi-tile selections; the script reads app.selection to act on all of it.
+	void appendLuaScriptEntries(wxMenu& menu) {
+		if (!g_luaScripts.isInitialized()) {
+			return;
+		}
+		const auto& menuItems = g_luaScripts.getContextMenuItems();
+		if (menuItems.empty()) {
+			return;
+		}
+
+		menu.AppendSeparator();
+		for (size_t i = 0; i < menuItems.size(); ++i) {
+			int id = MAP_POPUP_MENU_SCRIPT_FIRST + i;
+			if (id > MAP_POPUP_MENU_SCRIPT_LAST) {
+				break;
+			}
+			menu.Append(id, wxString::FromUTF8(menuItems[i].label));
+		}
+	}
 } // namespace
 
 MapPopupMenu::MapPopupMenu(Editor& editor) :
@@ -269,20 +290,7 @@ void MapPopupMenu::Update() {
 			tileProps->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_LIST, wxSize(16, 16)));
 			tileProps->Enable(anything_selected);
 
-			// Add Lua Context Menu Items
-			if (g_luaScripts.isInitialized()) {
-				const auto& menuItems = g_luaScripts.getContextMenuItems();
-				if (!menuItems.empty()) {
-					AppendSeparator();
-
-					for (size_t i = 0; i < menuItems.size(); ++i) {
-						int id = MAP_POPUP_MENU_SCRIPT_FIRST + i;
-						if (id > MAP_POPUP_MENU_SCRIPT_LAST) break;
-
-						Append(id, wxString::FromUTF8(menuItems[i].label));
-					}
-				}
-			}
+			appendLuaScriptEntries(*this);
 		} else {
 			// selection.size() >= 2
 			AppendSeparator();
@@ -292,6 +300,8 @@ void MapPopupMenu::Update() {
 			rotate_menu->Append(MAP_POPUP_MENU_ROTATE_SELECTION_180, "Rotate selection 180", "Rotate the selection 180 degrees");
 			wxMenuItem* rotateSubMenu = AppendSubMenu(rotate_menu, "Rotate selection");
 			rotateSubMenu->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_ROTATE, wxSize(16, 16)));
+
+			appendLuaScriptEntries(*this);
 		}
 	}
 }

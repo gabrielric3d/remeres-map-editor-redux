@@ -407,6 +407,7 @@ public:
 	class DungeonGeneratorDialog* dungeon_generator_dialog = nullptr;
 	InstanceLayoutDialog* instance_layout_dialog = nullptr;
 	class BrushesEditorDialog* brushes_editor_dialog = nullptr;
+	class CaveWarpDialog* cave_warp_dialog = nullptr;
 
 	void ShowAreaDecorationDialog();
 	void DestroyAreaDecorationDialog();
@@ -419,6 +420,8 @@ public:
 	void DestroyInstanceLayoutDialog();
 	void ShowBrushesEditorDialog();
 	void DestroyBrushesEditorDialog();
+	void ShowCaveWarpDialog();
+	void DestroyCaveWarpDialog();
 	// Open the Brushes Editor with the border/ground brush that uses the item preloaded.
 	void OpenBrushesEditorForItem(uint16_t itemId, bool preferGround);
 

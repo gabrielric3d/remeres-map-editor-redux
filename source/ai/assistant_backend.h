@@ -8,7 +8,30 @@
 #include "ai/claude_tools.h"
 
 #include <string>
+#include <vector>
 #include <nlohmann/json.hpp>
+
+// An image the user attached to a message, already scaled down and encoded.
+struct AssistantImage {
+	std::string media_type; // image/png | image/jpeg
+	std::string data_base64;
+	std::string label; // file name or "clipboard", for the transcript
+	int width = 0;
+	int height = 0;
+};
+
+// Content blocks of a user message: images first (they read better before the
+// question about them), then the text.
+inline nlohmann::json assistantUserContent(const std::string& text, const std::vector<AssistantImage>& images) {
+	nlohmann::json content = nlohmann::json::array();
+	for (const AssistantImage& image : images) {
+		content.push_back({ { "type", "image" }, { "source", { { "type", "base64" }, { "media_type", image.media_type }, { "data", image.data_base64 } } } });
+	}
+	if (!text.empty()) {
+		content.push_back({ { "type", "text" }, { "text", text } });
+	}
+	return content;
+}
 
 struct AssistantUsage {
 	long long input_tokens = 0;
@@ -42,6 +65,9 @@ public:
 	virtual void onToolResult(const std::string& name, const ClaudeToolResult& result) = 0;
 	// A whole user turn finished (no more tool calls). stop_reason as sent by the API.
 	virtual void onTurnEnd(const std::string& stop_reason) = 0;
+	// Work started again without a new send(): a message sent while the backend
+	// was busy is being answered as a turn of its own.
+	virtual void onWorkResumed() { }
 	virtual void onError(const std::string& message) = 0;
 	// Usage/cost changed (after every request).
 	virtual void onUsage(const AssistantUsage& usage) = 0;
@@ -59,8 +85,10 @@ public:
 	virtual void setEffort(const std::string& effort) = 0;
 
 	virtual bool isBusy() const = 0;
-	// Appends a user message and runs the turn (tools included) until the model stops.
-	virtual void send(const std::string& user_text) = 0;
+	// Appends a user message (text and/or images) and runs the turn (tools
+	// included) until the model stops. Also fine while busy: the message reaches
+	// the model at its next tool step, or as the next turn if this one ends first.
+	virtual void send(const std::string& user_text, const std::vector<AssistantImage>& images) = 0;
 	// Aborts the current turn.
 	virtual void cancel() = 0;
 	// Forgets the conversation.

@@ -38,6 +38,7 @@ private:
 	wxCheckBox* switch_mousebtn_chkbox = nullptr;
 	wxCheckBox* doubleclick_properties_chkbox = nullptr;
 	wxCheckBox* inversed_scroll_chkbox = nullptr;
+	wxCheckBox* smooth_zoom_chkbox = nullptr;
 
 	wxSlider* scroll_speed_slider = nullptr;
 	wxSlider* zoom_speed_slider = nullptr;

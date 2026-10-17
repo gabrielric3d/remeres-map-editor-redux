@@ -130,6 +130,8 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_manager.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/area_decoration.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/dungeon_generator.h
+    ${CMAKE_CURRENT_LIST_DIR}/editor/cave_warp.h
+    ${CMAKE_CURRENT_LIST_DIR}/editor/cave_warp_tool.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/light_source_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/border_editor_dialog.h
@@ -138,6 +140,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/wall_brush_editor_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/wall_scan_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_generator_dialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/cave_warp_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_preset_editor_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/instance_layout_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/doodad_editor_dialog.h
@@ -200,6 +203,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/edit_house_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_window.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/controls/virtual_brush_grid.h
+    ${CMAKE_CURRENT_LIST_DIR}/palette/controls/carpet_piece_strip.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/tileset_order.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/panels/brush_palette_panel.h
     ${CMAKE_CURRENT_LIST_DIR}/palette/panels/brush_panel.h
@@ -291,9 +295,12 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/tile_renderer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/io/editor_sprite_loader.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/io/screen_capture.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/io/map_recorder.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/io/screenshot_saver.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/map_drawer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/brush_selector.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/carpet_piece_picker.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/carpet_piece_service.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/clipboard_handler.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/drawing_controller.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/keyboard_handler.h
@@ -452,6 +459,8 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ai/assistant_backend.h
     ${CMAKE_CURRENT_LIST_DIR}/ai/mcp_server.h
     ${CMAKE_CURRENT_LIST_DIR}/ai/claude_code_backend.h
+    ${CMAKE_CURRENT_LIST_DIR}/ai/assistant_live.h
+    ${CMAKE_CURRENT_LIST_DIR}/ai/external_mcp.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/tool_options_surface.h
     ${CMAKE_CURRENT_LIST_DIR}/util/common.h
     ${CMAKE_CURRENT_LIST_DIR}/util/json.h
@@ -466,6 +475,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api.h
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_algo.h
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_app.h
+    ${CMAKE_CURRENT_LIST_DIR}/lua/lua_deferred_edits.h
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_brush.h
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_camera_path.h
     ${CMAKE_CURRENT_LIST_DIR}/lua/lua_api_color.h
@@ -606,6 +616,8 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ingame_preview/ingame_preview_manager.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/area_decoration.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/dungeon_generator.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/editor/cave_warp.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/editor/cave_warp_tool.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/dungeon_generator_preset.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/area_decoration_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/light_source_dialog.cpp
@@ -615,6 +627,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/wall_brush_editor_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/wall_scan_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_generator_dialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/cave_warp_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/dungeon_preset_editor_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/instance_layout_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/doodad_editor_dialog.cpp
@@ -673,6 +686,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/palette/house/edit_house_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/palette_window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/controls/virtual_brush_grid.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/palette/controls/carpet_piece_strip.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/tileset_order.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/panels/brush_palette_panel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/palette/panels/brush_panel.cpp
@@ -757,6 +771,7 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/drawers/tiles/tile_renderer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/io/editor_sprite_loader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/io/screen_capture.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/io/map_recorder.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/io/screenshot_saver.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/map_drawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/brush_selector.cpp
@@ -771,6 +786,8 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/navigation_controller.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/popup_action_handler.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/radial_wheel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/carpet_piece_picker.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/carpet_piece_service.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/screenshot_controller.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/selection_controller.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rendering/ui/toast_renderer.cpp
@@ -927,6 +944,8 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ai/claude_agent.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ai/mcp_server.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ai/claude_code_backend.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ai/assistant_live.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ai/external_mcp.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/tool_options_surface.cpp
     ${CMAKE_CURRENT_LIST_DIR}/util/file_system.cpp
     ${CMAKE_CURRENT_LIST_DIR}/util/image_manager.cpp

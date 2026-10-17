@@ -14,6 +14,7 @@ public:
 	void OnToolbars(wxCommandEvent& event);
 	void OnToggleAutomagic(wxCommandEvent& event);
 	void OnToggleCarpetFillBorders(wxCommandEvent& event);
+	void OnToggleBorderPieceStrip(wxCommandEvent& event);
 	void OnToggleFillSwapBorders(wxCommandEvent& event);
 	void OnToggleDisableCarpetInteraction(wxCommandEvent& event);
 	void OnToggleDeleteRemovesZones(wxCommandEvent& event);

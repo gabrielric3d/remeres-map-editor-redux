@@ -24,8 +24,35 @@ namespace {
 		std::string method;
 		std::string target;
 		std::string body;
+		std::string authorization;
+		std::string origin;
 		bool valid = false;
 	};
+
+	std::string trim(const std::string& s) {
+		const size_t first = s.find_first_not_of(" \t");
+		if (first == std::string::npos) {
+			return "";
+		}
+		const size_t last = s.find_last_not_of(" \t");
+		return s.substr(first, last - first + 1);
+	}
+
+	// Browsers always send Origin; a page on some website must not be able to
+	// drive the editor through the user's browser (DNS rebinding and friends).
+	// Local tools (Claude Code, curl) send none.
+	bool originAllowed(const std::string& origin) {
+		if (origin.empty() || origin == "null") {
+			return true;
+		}
+		for (const char* allowed : { "http://127.0.0.1", "http://localhost", "https://127.0.0.1", "https://localhost" }) {
+			const std::string prefix = allowed;
+			if (origin.compare(0, prefix.size(), prefix) == 0 && (origin.size() == prefix.size() || origin[prefix.size()] == ':' || origin[prefix.size()] == '/')) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	// Reads one HTTP/1.1 request (headers + Content-Length body) from the socket.
 	HttpRequest readRequest(tcp::socket& socket) {
@@ -50,7 +77,7 @@ namespace {
 		request.method = request_line.substr(0, sp1);
 		request.target = request_line.substr(sp1 + 1, sp2 - sp1 - 1);
 
-		// Headers: only Content-Length matters here.
+		// Headers: Content-Length, plus Authorization and Origin for the checks.
 		size_t content_length = 0;
 		size_t pos = line_end + 2;
 		while (pos < head.size()) {
@@ -72,6 +99,10 @@ namespace {
 				} catch (...) {
 					content_length = 0;
 				}
+			} else if (key == "authorization") {
+				request.authorization = trim(line.substr(colon + 1));
+			} else if (key == "origin") {
+				request.origin = trim(line.substr(colon + 1));
 			}
 		}
 		if (content_length > MAX_BODY) {
@@ -96,7 +127,7 @@ namespace {
 	}
 
 	void writeResponse(tcp::socket& socket, int status, const std::string& body, const std::string& content_type, const std::string& extra_headers = "") {
-		const char* reason = status == 200 ? "OK" : status == 202 ? "Accepted" : status == 404 ? "Not Found" : status == 405 ? "Method Not Allowed" : status == 400 ? "Bad Request" : "Internal Server Error";
+		const char* reason = status == 200 ? "OK" : status == 202 ? "Accepted" : status == 401 ? "Unauthorized" : status == 403 ? "Forbidden" : status == 404 ? "Not Found" : status == 405 ? "Method Not Allowed" : status == 400 ? "Bad Request" : "Internal Server Error";
 		std::string response = "HTTP/1.1 " + std::to_string(status) + " " + reason + "\r\n";
 		if (!body.empty()) {
 			response += "Content-Type: " + content_type + "\r\n";
@@ -136,10 +167,18 @@ struct McpServer::Impl {
 	std::thread thread;
 	std::atomic<bool> running { false };
 	int port = 0;
-	std::mutex observer_mutex;
+	std::mutex observer_mutex; // guards observer, auth_token and instructions
 	ToolObserver observer;
+	std::string auth_token;
+	std::string instructions = "Tools for reading and editing the map open in Remere's Map Editor. Every edit is one undo step.";
 
-	// Runs the tool on the GUI thread and blocks the HTTP thread until it is done.
+	std::string authToken() {
+		std::lock_guard<std::mutex> lock(observer_mutex);
+		return auth_token;
+	}
+
+	// Runs the tool on the GUI thread and blocks the HTTP thread until it is
+	// done (an animated paint finishes a moment after it starts).
 	ClaudeToolResult callTool(const std::string& name, const Json& input) {
 		struct Pending {
 			std::promise<ClaudeToolResult> promise;
@@ -163,11 +202,12 @@ struct McpServer::Impl {
 			if (observer_copy) {
 				observer_copy(name, input, nullptr);
 			}
-			ClaudeToolResult result = ClaudeTools::execute(name, input);
-			if (observer_copy) {
-				observer_copy(name, input, &result);
-			}
-			pending->promise.set_value(std::move(result));
+			ClaudeTools::executeAsync(name, input, [pending, name, input, observer_copy](ClaudeToolResult result) {
+				if (observer_copy) {
+					observer_copy(name, input, &result);
+				}
+				pending->promise.set_value(std::move(result));
+			});
 		});
 
 		// Wait, but give up if the server is being stopped (the GUI may never run
@@ -198,11 +238,16 @@ struct McpServer::Impl {
 			if (version != "2024-11-05" && version != "2025-03-26" && version != "2025-06-18") {
 				version = DEFAULT_PROTOCOL;
 			}
+			std::string text;
+			{
+				std::lock_guard<std::mutex> lock(observer_mutex);
+				text = instructions;
+			}
 			return rpcResult(id, {
 				{ "protocolVersion", version },
 				{ "capabilities", { { "tools", Json::object() } } },
 				{ "serverInfo", { { "name", "RME Redux" }, { "version", "1.0" } } },
-				{ "instructions", "Tools for reading and editing the map open in Remere's Map Editor. Every edit is one undo step." },
+				{ "instructions", text },
 			});
 		}
 		if (method == "ping") {
@@ -233,6 +278,15 @@ struct McpServer::Impl {
 		}
 		if (request.target != "/mcp" && request.target != "/mcp/") {
 			writeResponse(socket, 404, "not found", "text/plain");
+			return;
+		}
+		if (!originAllowed(request.origin)) {
+			writeResponse(socket, 403, "forbidden origin", "text/plain");
+			return;
+		}
+		const std::string token = authToken();
+		if (!token.empty() && request.authorization != "Bearer " + token) {
+			writeResponse(socket, 401, "missing or wrong bearer token", "text/plain");
 			return;
 		}
 		if (request.method == "GET") {
@@ -336,15 +390,34 @@ void McpServer::setObserver(ToolObserver observer) {
 	impl->observer = std::move(observer);
 }
 
-bool McpServer::start() {
+void McpServer::setAuthToken(const std::string& token) {
+	std::lock_guard<std::mutex> lock(impl->observer_mutex);
+	impl->auth_token = token;
+}
+
+void McpServer::setInstructions(const std::string& text) {
+	std::lock_guard<std::mutex> lock(impl->observer_mutex);
+	impl->instructions = text;
+}
+
+bool McpServer::start(int port) {
 	if (impl->running) {
 		return true;
 	}
 	try {
-		impl->acceptor = std::make_unique<tcp::acceptor>(impl->io, tcp::endpoint(boost::asio::ip::make_address("127.0.0.1"), 0));
+		const tcp::endpoint endpoint(boost::asio::ip::make_address("127.0.0.1"), static_cast<unsigned short>(std::clamp(port, 0, 65535)));
+		impl->acceptor = std::make_unique<tcp::acceptor>(impl->io);
+		impl->acceptor->open(endpoint.protocol());
+#ifndef _WIN32
+		// On Windows SO_REUSEADDR would let us share a port another program
+		// already listens on; elsewhere it only skips TIME_WAIT after a restart.
+		impl->acceptor->set_option(tcp::acceptor::reuse_address(true));
+#endif
+		impl->acceptor->bind(endpoint);
+		impl->acceptor->listen();
 		impl->port = static_cast<int>(impl->acceptor->local_endpoint().port());
 	} catch (const std::exception& e) {
-		spdlog::error("McpServer: could not listen on localhost: {}", e.what());
+		spdlog::error("McpServer: could not listen on 127.0.0.1:{}: {}", port, e.what());
 		impl->acceptor.reset();
 		return false;
 	}

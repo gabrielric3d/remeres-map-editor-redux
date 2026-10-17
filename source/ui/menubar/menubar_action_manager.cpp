@@ -73,6 +73,7 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 
 	MAKE_ACTION(AUTOMAGIC, wxITEM_CHECK, OnToggleAutomagic);
 	MAKE_ACTION(CARPET_FILL_BORDERS, wxITEM_CHECK, OnToggleCarpetFillBorders);
+	MAKE_ACTION(BORDER_PIECE_STRIP, wxITEM_CHECK, OnToggleBorderPieceStrip);
 	MAKE_ACTION(DISABLE_CARPET_INTERACTION, wxITEM_CHECK, OnToggleDisableCarpetInteraction);
 	MAKE_ACTION(DELETE_REMOVES_ZONES, wxITEM_CHECK, OnToggleDeleteRemovesZones);
 	MAKE_ACTION(BORDERIZE_SELECTION, wxITEM_NORMAL, OnBorderizeSelection);
@@ -219,6 +220,7 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(STRUCTURE_MANAGER, wxITEM_NORMAL, OnStructureManager);
 	MAKE_ACTION(INSTANCE_LAYOUT_GENERATOR, wxITEM_NORMAL, OnInstanceLayoutGenerator);
 	MAKE_ACTION(BRUSHES_EDITOR, wxITEM_NORMAL, OnBrushesEditor);
+	MAKE_ACTION(CAVE_WARP, wxITEM_NORMAL, OnCaveWarp);
 	MAKE_ACTION(RADIAL_WHEEL, wxITEM_NORMAL, OnRadialWheel);
 	MAKE_ACTION(DEBUG_VIEW_DAT, wxITEM_NORMAL, OnDebugViewDat);
 	MAKE_ACTION(EXTENSIONS, wxITEM_NORMAL, OnListExtensions);
@@ -368,6 +370,7 @@ void MenuBarActionManager::UpdateState(MainMenuBar* mb) {
 
 	mb->EnableItem(AREA_DECORATION, has_map);
 	mb->EnableItem(DUNGEON_GENERATOR, has_map);
+	mb->EnableItem(CAVE_WARP, has_map);
 	mb->EnableItem(INSTANCE_LAYOUT_GENERATOR, has_map);
 	mb->EnableItem(DEBUG_VIEW_DAT, loaded);
 

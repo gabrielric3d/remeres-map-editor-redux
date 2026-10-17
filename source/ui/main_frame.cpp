@@ -5,6 +5,10 @@
 #include "app/main.h"
 #include "ui/main_frame.h"
 
+#include "ai/assistant_live.h"
+#include "ai/external_mcp.h"
+#include "rendering/io/map_recorder.h"
+
 #include "ui/dialog_util.h"
 #include "app/application.h"
 #include "util/file_system.h"
@@ -533,6 +537,12 @@ void MainFrame::OnExit(wxCloseEvent& event) {
 			}
 		}
 	}
+	// Before the palettes and editors go: no MCP client may reach them any
+	// more, and no Claude animation may keep painting (tools select brushes).
+	ExternalMcp::stop();
+	AssistantLive::shutdown();
+	MapRecorder::shutdown(); // finishes the video file if a time-lapse is running
+
 	g_layout.SavePerspective();
 	g_palettes.DestroyPalettes();
 	g_minimap.Destroy();

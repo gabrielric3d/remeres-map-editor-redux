@@ -63,11 +63,26 @@ public:
 	}
 	std::string getActionName(size_t index) const;
 
+	// Newest batch in the history (undone or not), nullptr when empty. Meant for
+	// identity checks by code that grows one undo step over several edits.
+	const BatchAction* lastBatch() const {
+		return actions.empty() ? nullptr : actions.back().get();
+	}
+	// Every batch added between beginGroup() and endGroup() lands in one undo
+	// step, whatever GROUP_ACTIONS says. `into` continues an earlier group (it
+	// must still be the newest step, with nothing undone); nullptr starts a
+	// new one. endGroup() returns the group's batch, to pass to the next
+	// beginGroup(), or nullptr when nothing was added.
+	void beginGroup(const BatchAction* into = nullptr);
+	const BatchAction* endGroup();
+
 protected:
 	size_t current;
 	size_t memory_size;
 	Editor& editor;
 	ActionList actions;
+	bool grouping = false;
+	const BatchAction* group_batch = nullptr;
 };
 
 #endif

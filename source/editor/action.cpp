@@ -157,6 +157,14 @@ size_t Action::memsize() const {
 	return mem;
 }
 
+void Action::collectTilePositions(std::vector<Position>& out) const {
+	for (const auto& c : changes) {
+		if (c && c->type == CHANGE_TILE) {
+			out.push_back(c->position);
+		}
+	}
+}
+
 void Action::commit(DirtyList* dirty_list) {
 	editor.selection.start(Selection::INTERNAL);
 	ChangeList::const_iterator it = changes.begin();
@@ -616,6 +624,12 @@ void BatchAction::undo() {
 void BatchAction::redo() {
 	for (auto& action : batch) {
 		action->redo(nullptr);
+	}
+}
+
+void BatchAction::collectTilePositions(std::vector<Position>& out) const {
+	for (const auto& action : batch) {
+		action->collectTilePositions(out);
 	}
 }
 

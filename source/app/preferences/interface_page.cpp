@@ -95,6 +95,12 @@ InterfacePage::InterfacePage(wxWindow* parent) : ScrollablePreferencesPage(paren
 	zoom_panel_sizer->Add(zoom_speed_value_label, 0, wxALIGN_CENTER_VERTICAL);
 	zoom_panel->SetSizer(zoom_panel_sizer);
 	PreferencesLayout::AddControlRow(navigation_section, "Zoom speed", "How quickly the view zooms in and out when using the mouse wheel.", zoom_panel, true);
+	smooth_zoom_chkbox = PreferencesLayout::AddCheckBoxRow(
+		navigation_section,
+		"Smooth zoom",
+		"Glide to the new zoom instead of jumping, keeping the point under the cursor in place. Each wheel step also scales the view by the same proportion at any zoom level. Turn off to get the old instant, fixed-amount steps.",
+		g_settings.getBoolean(Config::SMOOTH_ZOOM)
+	);
 
 	auto* palette_scroll_panel = new wxPanel(navigation_section, wxID_ANY);
 	palette_scroll_panel->SetBackgroundColour(navigation_section->GetBackgroundColour());
@@ -233,6 +239,7 @@ void InterfacePage::Apply() {
 	float scroll_mul = inversed_scroll_chkbox->GetValue() ? -1.0f : 1.0f;
 	g_settings.setFloat(Config::SCROLL_SPEED, scroll_mul * scroll_speed_slider->GetValue() / 10.f);
 	g_settings.setFloat(Config::ZOOM_SPEED, zoom_speed_slider->GetValue() / 10.f);
+	g_settings.setInteger(Config::SMOOTH_ZOOM, smooth_zoom_chkbox->GetValue());
 	g_settings.setFloat(Config::PALETTE_SCROLL_SPEED, palette_scroll_speed_slider->GetValue() / 10.f);
 
 	if (palette_update_needed) {

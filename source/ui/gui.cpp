@@ -47,6 +47,7 @@
 #include "ui/result_window.h"
 #include "rendering/ui/minimap_window.h"
 #include "palette/palette_window.h"
+#include "palette/controls/carpet_piece_strip.h"
 #include "palette/house/house_palette.h"
 #include "rendering/ui/map_display.h"
 #include "app/application.h"
@@ -58,6 +59,8 @@
 #include "ui/dialogs/structure_manager_window.h"
 #include "ui/dialogs/instance_layout_dialog.h"
 #include "ui/dialogs/brushes_editor_dialog.h"
+#include "ui/dialogs/cave_warp_dialog.h"
+#include "editor/cave_warp_tool.h"
 
 #include "rendering/ui/toast_renderer.h"
 #include "live/live_client.h"
@@ -84,6 +87,10 @@ void emitBrushChangeIfNeeded(GUI& gui) {
 	if (currentBrush != lastBrush || currentName != lastBrushName) {
 		lastBrush = currentBrush;
 		lastBrushName = currentName;
+		// Picking a brush gives the left button back to it.
+		CaveWarpTool::Get().Deactivate();
+		// The border piece strip follows the carpet (or carpet piece) in hand.
+		CarpetPieceStrip::SyncPane();
 		if (g_luaScripts.isInitialized()) {
 			g_luaScripts.emit("brushChange", currentName);
 		}
@@ -1046,6 +1053,30 @@ void GUI::DestroyBrushesEditorDialog() {
 	if (brushes_editor_dialog) {
 		brushes_editor_dialog->Destroy();
 		brushes_editor_dialog = nullptr;
+	}
+}
+
+//=============================================================================
+// Cave Warp Dialog management
+
+void GUI::ShowCaveWarpDialog() {
+	if (!IsEditorOpen()) {
+		return;
+	}
+
+	if (cave_warp_dialog) {
+		cave_warp_dialog->Show();
+		cave_warp_dialog->Raise();
+	} else {
+		cave_warp_dialog = newd CaveWarpDialog(root);
+		cave_warp_dialog->Show();
+	}
+}
+
+void GUI::DestroyCaveWarpDialog() {
+	if (cave_warp_dialog) {
+		cave_warp_dialog->Destroy();
+		cave_warp_dialog = nullptr;
 	}
 }
 

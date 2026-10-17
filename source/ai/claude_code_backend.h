@@ -9,6 +9,7 @@
 #include "ai/mcp_server.h"
 
 #include <map>
+#include <memory>
 #include <string>
 #include <wx/event.h>
 #include <wx/process.h>
@@ -35,7 +36,7 @@ public:
 	bool isBusy() const override {
 		return busy;
 	}
-	void send(const std::string& user_text) override;
+	void send(const std::string& user_text, const std::vector<AssistantImage>& images) override;
 	void cancel() override;
 	void reset() override;
 	const AssistantUsage& getUsage() const override {
@@ -102,6 +103,9 @@ private:
 	};
 	std::map<int, BlockState> blocks;
 	bool text_streamed = false;
+
+	// Expires with the backend; the MCP observer checks it before using `this`.
+	std::shared_ptr<int> alive_token = std::make_shared<int>(0);
 };
 
 #endif

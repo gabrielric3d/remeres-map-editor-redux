@@ -5,6 +5,7 @@
 #include "ui/tool_options_window.h"
 #include "app/preferences.h"
 #include "rendering/ui/toast_renderer.h"
+#include "palette/controls/carpet_piece_strip.h"
 #include "rendering/core/forced_light_zone.h"
 #include "rendering/core/custom_item_light.h"
 #include "rendering/postprocess/post_process_manager.h"
@@ -52,6 +53,7 @@ void ViewSettingsHandler::LoadValues() {
 
 	menuBar->CheckItem(AUTOMAGIC, g_settings.getBoolean(Config::USE_AUTOMAGIC));
 	menuBar->CheckItem(CARPET_FILL_BORDERS, g_settings.getBoolean(Config::CARPET_FILL_BORDERS));
+	menuBar->CheckItem(BORDER_PIECE_STRIP, g_settings.getBoolean(Config::PALETTE_PIECE_STRIP));
 	menuBar->CheckItem(FILL_SELECTION_SWAP_BORDERS, g_settings.getBoolean(Config::FILL_SWAP_BORDERS));
 	menuBar->CheckItem(DELETE_REMOVES_ZONES, g_settings.getBoolean(Config::DELETE_REMOVES_ZONES));
 	menuBar->CheckItem(DISABLE_CARPET_INTERACTION, g_settings.getBoolean(Config::DISABLE_CARPET_INTERACTION));
@@ -260,6 +262,14 @@ void ViewSettingsHandler::OnToggleCarpetFillBorders(wxCommandEvent& WXUNUSED(eve
 		g_gui.SetStatusText("Carpet fill borders disabled.");
 		g_toast.Show("Carpet Fill Borders: Off");
 	}
+}
+
+void ViewSettingsHandler::OnToggleBorderPieceStrip(wxCommandEvent& WXUNUSED(event)) {
+	using namespace MenuBar;
+	bool enabled = menuBar->IsItemChecked(BORDER_PIECE_STRIP);
+	g_settings.setInteger(Config::PALETTE_PIECE_STRIP, enabled ? 1 : 0);
+	CarpetPieceStrip::SetPaneVisible(enabled);
+	g_toast.Show(enabled ? "Border Piece Strip: On" : "Border Piece Strip: Off");
 }
 
 void ViewSettingsHandler::OnToggleDeleteRemovesZones(wxCommandEvent& WXUNUSED(event)) {

@@ -116,6 +116,7 @@ void TipsWindow::BuildShortcutList() {
 	all_shortcuts.push_back({"Drawing", "Z", "Previous brush variation"});
 	all_shortcuts.push_back({"Drawing", "X", "Next brush variation"});
 	all_shortcuts.push_back({"Drawing", "Q", "Select previous brush"});
+	all_shortcuts.push_back({"Drawing", "Alt + Right Click", "Pick a single border piece (carpet brush / tiny borders)"});
 	all_shortcuts.push_back({"Drawing", "[  or  +", "Increase brush size"});
 	all_shortcuts.push_back({"Drawing", "]  or  -", "Decrease brush size"});
 

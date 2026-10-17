@@ -27,6 +27,7 @@
 #include <wx/dcmemory.h>
 #include <wx/dnd.h>
 #include <wx/statline.h>
+#include <wx/filename.h>
 #include <sstream>
 #include <algorithm>
 #include <set>
@@ -366,6 +367,110 @@ wxString BorderEditorDialog::GetVersionDataDirectory() {
 	if (!version) return wxString();
 	FileName data_path = version->getDataPath();
 	return data_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
+}
+
+namespace {
+	// Adds `file` and everything it <include>s, resolved relative to the including
+	// file like Materials::loadMaterials does.
+	void CollectMaterialFiles(const wxString& file, wxArrayString& out, int depth) {
+		if (depth > 8 || !wxFileExists(file) || out.Index(file) != wxNOT_FOUND) return;
+		out.Add(file);
+
+		pugi::xml_document doc;
+		if (!doc.load_file(file.ToStdString().c_str())) return;
+		pugi::xml_node materials = doc.child("materials");
+		if (!materials) return;
+
+		const wxString dir = wxFileName(file).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
+		for (pugi::xml_node inc = materials.child("include"); inc; inc = inc.next_sibling("include")) {
+			wxString f(inc.attribute("file").as_string());
+			if (!f.IsEmpty()) CollectMaterialFiles(dir + f, out, depth + 1);
+		}
+	}
+
+	// A bare <brush name=".." type="ground"/> is only a forward declaration
+	// (modular data declares names up front and defines them further down).
+	bool IsGroundDefinition(const pugi::xml_node& brush) {
+		if (std::string(brush.attribute("type").as_string()) != "ground") return false;
+		if (!brush.attribute("name")) return false;
+		return brush.first_child() || brush.attribute("server_lookid") || brush.attribute("lookid");
+	}
+
+	uint16_t GroundLookId(const pugi::xml_node& brush) {
+		if (pugi::xml_attribute attr = brush.attribute("server_lookid")) return static_cast<uint16_t>(attr.as_uint());
+		return static_cast<uint16_t>(brush.child("item").attribute("id").as_uint());
+	}
+
+	// Calls fn(file, brushNode) for every ground definition, in file order; stops
+	// and returns true as soon as fn returns true.
+	template <typename Fn>
+	bool ForEachGroundDefinition(const wxArrayString& files, Fn&& fn) {
+		for (const wxString& file : files) {
+			pugi::xml_document doc;
+			if (!doc.load_file(file.ToStdString().c_str())) continue;
+			pugi::xml_node materials = doc.child("materials");
+			for (pugi::xml_node brush = materials.child("brush"); brush; brush = brush.next_sibling("brush")) {
+				if (IsGroundDefinition(brush) && fn(file, brush)) return true;
+			}
+		}
+		return false;
+	}
+
+	// Brush attributes/children the Ground tab edits; everything else on an
+	// existing brush (lookid, <friend>, <optional>, <specific>, inline borders...)
+	// is copied back on save so it is not lost.
+	bool IsManagedGroundAttribute(const std::string& name) {
+		return name == "name" || name == "type" || name == "server_lookid" || name == "z-order" || name == "carpet_fill";
+	}
+
+	bool IsManagedGroundChild(const pugi::xml_node& child) {
+		const std::string tag = child.name();
+		return tag == "item" || (tag == "border" && child.attribute("id"));
+	}
+}
+
+wxArrayString BorderEditorDialog::GetGroundMaterialFiles() {
+	wxArrayString files;
+	wxString dataDir = GetVersionDataDirectory();
+	if (dataDir.IsEmpty()) return files;
+
+	// grounds.xml first: classic data keeps every ground there.
+	if (wxFileExists(dataDir + "grounds.xml")) {
+		files.Add(dataDir + "grounds.xml");
+	}
+	CollectMaterialFiles(dataDir + "materials.xml", files, 0);
+	return files;
+}
+
+wxString BorderEditorDialog::GetGroundSaveTarget(const wxString& name) {
+	auto it = m_groundSourceFiles.find(name.Lower());
+	if (it != m_groundSourceFiles.end() && wxFileExists(it->second)) {
+		return it->second;
+	}
+
+	wxString dataDir = GetVersionDataDirectory();
+	if (dataDir.IsEmpty()) return wxString();
+	if (wxFileExists(dataDir + "grounds.xml")) {
+		return dataDir + "grounds.xml";
+	}
+
+	// Modular data: a new brush goes next to the other grounds (brushes.xml in data/1310).
+	wxArrayString files = GetGroundMaterialFiles();
+	std::map<wxString, int> counts;
+	ForEachGroundDefinition(files, [&](const wxString& file, pugi::xml_node) {
+		++counts[file];
+		return false;
+	});
+
+	wxString best;
+	int bestCount = 0;
+	for (const wxString& file : files) {
+		if (counts[file] > bestCount) {
+			best = file;
+			bestCount = counts[file];
+		}
+	}
+	return best;
 }
 
 void BorderEditorDialog::CreateGUIControls() {
@@ -840,34 +945,23 @@ void BorderEditorDialog::LoadExistingGroundBrushes() {
 		if (m_groundBorderToCtrl) m_groundBorderToCtrl->Thaw();
 	};
 
-	wxString dataDir = GetVersionDataDirectory();
-	if (dataDir.IsEmpty()) { cleanup(); return; }
-
-	wxString groundsFile = dataDir + "grounds.xml";
-	if (!wxFileExists(groundsFile)) { cleanup(); return; }
-
-	pugi::xml_document doc;
-	pugi::xml_parse_result result = doc.load_file(groundsFile.ToStdString().c_str());
-	if (!result) { cleanup(); return; }
-
-	pugi::xml_node materials = doc.child("materials");
-	if (!materials) { cleanup(); return; }
+	m_groundSourceFiles.clear();
 
 	// Collect first, then batch-append via wxArrayString — much faster than per-item Append.
 	wxArrayString brushNames;
 	std::vector<int> serverIds; // parallel to brushNames for client data
-	for (pugi::xml_node brushNode = materials.child("brush"); brushNode; brushNode = brushNode.next_sibling("brush")) {
-		pugi::xml_attribute nameAttr = brushNode.attribute("name");
-		pugi::xml_attribute serverLookIdAttr = brushNode.attribute("server_lookid");
-		pugi::xml_attribute typeAttr = brushNode.attribute("type");
+	ForEachGroundDefinition(GetGroundMaterialFiles(), [&](const wxString& file, pugi::xml_node brushNode) {
+		const wxString name(brushNode.attribute("name").as_string());
+		const wxString key = name.Lower();
+		if (m_groundSourceFiles.count(key)) return false; // first definition wins
+		m_groundSourceFiles[key] = file;
 
-		if (!typeAttr || std::string(typeAttr.as_string()) != "ground") continue;
-		if (!nameAttr || !serverLookIdAttr) continue;
-
-		brushNames.Add(wxString(nameAttr.as_string()));
-		serverIds.push_back(serverLookIdAttr.as_int());
-		m_groundLookIds[wxString(nameAttr.as_string()).Lower()] = static_cast<uint16_t>(serverLookIdAttr.as_uint());
-	}
+		const uint16_t lookId = GroundLookId(brushNode);
+		brushNames.Add(name);
+		serverIds.push_back(lookId);
+		m_groundLookIds[key] = lookId;
+		return false;
+	});
 
 	for (size_t i = 0; i < brushNames.GetCount(); ++i) {
 		m_existingGroundBrushesCombo->Append(brushNames[i], newd wxStringClientData(wxString::Format("%d", serverIds[i])));
@@ -1861,34 +1955,20 @@ void BorderEditorDialog::OnLoadGroundBrush(wxCommandEvent& event) {
 	}
 
 	wxString dataDir = GetVersionDataDirectory();
-	wxString groundsFile = dataDir + "grounds.xml";
-
-	if (!wxFileExists(groundsFile)) return;
-
-	pugi::xml_document doc;
-	pugi::xml_parse_result result = doc.load_file(groundsFile.ToStdString().c_str());
-	if (!result) return;
+	wxArrayString groundFiles = GetGroundMaterialFiles();
+	if (groundFiles.IsEmpty()) return;
 
 	ClearGroundItems();
 
-	bool found = false;
-	pugi::xml_node materials = doc.child("materials");
-	for (pugi::xml_node brushNode = materials.child("brush"); brushNode; brushNode = brushNode.next_sibling("brush")) {
-		pugi::xml_attribute typeAttr = brushNode.attribute("type");
-		if (!typeAttr || std::string(typeAttr.as_string()) != "ground") continue;
-
+	bool found = ForEachGroundDefinition(groundFiles, [&](const wxString&, pugi::xml_node brushNode) {
 		pugi::xml_attribute nameAttr = brushNode.attribute("name");
-		if (!nameAttr) continue;
+		if (wxString(nameAttr.as_string()).CmpNoCase(wantedName) != 0) return false;
 
-		if (wxString(nameAttr.as_string()).CmpNoCase(wantedName) != 0) continue;
-
-		found = true;
 		m_nameCtrl->SetValue(wxString(nameAttr.as_string()));
 
-		pugi::xml_attribute serverLookIdAttr = brushNode.attribute("server_lookid");
-		if (serverLookIdAttr) {
-			m_serverLookIdCtrl->SetValue(serverLookIdAttr.as_int());
-		}
+		// Brushes declared with a client lookid only fall back to their first item,
+		// so the save validation (server look id required) still passes.
+		m_serverLookIdCtrl->SetValue(GroundLookId(brushNode));
 
 		pugi::xml_attribute zOrderAttr = brushNode.attribute("z-order");
 		if (zOrderAttr) {
@@ -1929,11 +2009,11 @@ void BorderEditorDialog::OnLoadGroundBrush(wxCommandEvent& event) {
 			m_groundBorders.push_back(ref);
 		}
 
-		break;
-	}
+		return true;
+	});
 
 	if (!found) {
-		wxMessageBox(wxString::Format("Ground brush '%s' not found in grounds.xml.", wantedName),
+		wxMessageBox(wxString::Format("Ground brush '%s' not found in the ground brush files.", wantedName),
 			"Not Found", wxICON_WARNING);
 		return;
 	}
@@ -2024,39 +2104,19 @@ int BorderEditorDialog::FindBorderIdByItemId(uint16_t wantedId) {
 }
 
 wxString BorderEditorDialog::FindGroundBrushNameByItemId(uint16_t wantedId) {
-	wxString dataDir = GetVersionDataDirectory();
-	if (dataDir.IsEmpty()) return wxString();
-
-	wxString groundsFile = dataDir + "grounds.xml";
-	if (!wxFileExists(groundsFile)) return wxString();
-
-	pugi::xml_document doc;
-	pugi::xml_parse_result result = doc.load_file(groundsFile.ToStdString().c_str());
-	if (!result) return wxString();
-
-	pugi::xml_node materials = doc.child("materials");
-	for (pugi::xml_node brushNode = materials.child("brush"); brushNode; brushNode = brushNode.next_sibling("brush")) {
-		pugi::xml_attribute typeAttr = brushNode.attribute("type");
-		if (!typeAttr || std::string(typeAttr.as_string()) != "ground") continue;
-
-		pugi::xml_attribute nameAttr = brushNode.attribute("name");
-		if (!nameAttr) continue;
-
+	wxString foundName;
+	ForEachGroundDefinition(GetGroundMaterialFiles(), [&](const wxString&, pugi::xml_node brushNode) {
 		// Match against server_lookid or any <item id="..."/>
-		pugi::xml_attribute serverLookIdAttr = brushNode.attribute("server_lookid");
-		if (serverLookIdAttr && serverLookIdAttr.as_uint() == wantedId) {
-			return wxString(nameAttr.as_string());
+		bool match = brushNode.attribute("server_lookid").as_uint() == wantedId;
+		for (pugi::xml_node itemNode = brushNode.child("item"); itemNode && !match; itemNode = itemNode.next_sibling("item")) {
+			match = itemNode.attribute("id").as_uint() == wantedId;
 		}
-
-		for (pugi::xml_node itemNode = brushNode.child("item"); itemNode; itemNode = itemNode.next_sibling("item")) {
-			pugi::xml_attribute idAttr = itemNode.attribute("id");
-			if (idAttr && idAttr.as_uint() == wantedId) {
-				return wxString(nameAttr.as_string());
-			}
+		if (match) {
+			foundName = wxString(brushNode.attribute("name").as_string());
 		}
-	}
-
-	return wxString();
+		return match;
+	});
+	return foundName;
 }
 
 bool BorderEditorDialog::LoadBorderById(int borderId) {
@@ -2212,6 +2272,25 @@ bool BorderEditorDialog::ValidateGroundBrush() {
 		return false;
 	}
 
+	// An item can belong to one brush only: GroundBrushLoader rejects the whole
+	// brush otherwise ("can not be member of two brushes"), so after a reload it
+	// would sit in the palette and paint nothing.
+	const wxString name = m_nameCtrl->GetValue();
+	wxString conflicts;
+	for (const GroundItem& item : m_groundItems) {
+		const auto definition = g_item_definitions.get(item.itemId);
+		const Brush* owner = definition ? definition.editorData().brush : nullptr;
+		if (owner && wxString(owner->getName()).CmpNoCase(name) != 0) {
+			conflicts += wxString::Format("  %u  (in '%s')\n", item.itemId, wxString(owner->getName()));
+		}
+	}
+	if (!conflicts.IsEmpty()) {
+		return wxMessageBox("These items already belong to another brush:\n\n" + conflicts +
+				"\nAn item can only be in one brush, so this brush will fail to load and paint nothing. "
+				"Remove them from the other brush first.\n\nSave anyway?",
+				"Item Already In Use", wxYES_NO | wxNO_DEFAULT | wxICON_WARNING) == wxYES;
+	}
+
 	return true;
 }
 
@@ -2223,50 +2302,47 @@ void BorderEditorDialog::SaveGroundBrush() {
 	int zOrder = m_zOrderCtrl->GetValue();
 	int borderId = m_idCtrl->GetValue();
 
-	wxString dataDir = GetVersionDataDirectory();
-	wxString groundsFile = dataDir + "grounds.xml";
+	// Not always grounds.xml: modular data (data/1310) keeps grounds in brushes.xml.
+	wxString groundsFile = GetGroundSaveTarget(name);
+	const wxString groundsFileName = wxFileName(groundsFile).GetFullName();
 
-	if (!wxFileExists(groundsFile)) {
-		wxMessageBox("Cannot find grounds.xml file in the data directory.", "Error", wxICON_ERROR);
+	if (groundsFile.IsEmpty()) {
+		wxMessageBox("Cannot find a file for ground brushes in the data directory (grounds.xml, or a file included by materials.xml).", "Error", wxICON_ERROR);
 		return;
 	}
 
 	pugi::xml_document doc;
 	pugi::xml_parse_result result = doc.load_file(groundsFile.ToStdString().c_str());
 	if (!result) {
-		wxMessageBox("Failed to load grounds.xml: " + wxString(result.description()), "Error", wxICON_ERROR);
+		wxMessageBox("Failed to load " + groundsFileName + ": " + wxString(result.description()), "Error", wxICON_ERROR);
 		return;
 	}
 
 	pugi::xml_node materials = doc.child("materials");
 	if (!materials) {
-		wxMessageBox("Invalid grounds.xml file: missing 'materials' node", "Error", wxICON_ERROR);
+		wxMessageBox("Invalid " + groundsFileName + " file: missing 'materials' node", "Error", wxICON_ERROR);
 		return;
 	}
 
-	// Check if brush already exists
-	bool brushExists = false;
+	// Check if brush already exists. Only ground definitions count: the file may
+	// also hold doodads/walls, and forward declarations must stay where they are.
 	pugi::xml_node existingBrush;
-
 	for (pugi::xml_node brushNode = materials.child("brush"); brushNode; brushNode = brushNode.next_sibling("brush")) {
-		pugi::xml_attribute nameAttr = brushNode.attribute("name");
-		if (nameAttr && wxString(nameAttr.as_string()) == name) {
-			brushExists = true;
+		if (IsGroundDefinition(brushNode) && wxString(brushNode.attribute("name").as_string()).CmpNoCase(name) == 0) {
 			existingBrush = brushNode;
 			break;
 		}
 	}
 
-	if (brushExists) {
+	if (existingBrush) {
 		if (wxMessageBox("A ground brush named '" + name + "' already exists. Do you want to overwrite it?",
 				"Confirm Overwrite", wxYES_NO | wxICON_QUESTION) != wxYES) {
 			return;
 		}
-		materials.remove_child(existingBrush);
 	}
 
-	// Create the new brush node
-	pugi::xml_node brushNode = materials.append_child("brush");
+	// Create the new brush node (in place of the old one, so the file order is kept)
+	pugi::xml_node brushNode = existingBrush ? materials.insert_child_before("brush", existingBrush) : materials.append_child("brush");
 	brushNode.append_attribute("name").set_value(name.ToStdString().c_str());
 	brushNode.append_attribute("type").set_value("ground");
 	brushNode.append_attribute("server_lookid").set_value(serverId);
@@ -2316,13 +2392,29 @@ void BorderEditorDialog::SaveGroundBrush() {
 		borderRef.append_attribute("id").set_value(borderId);
 	}
 
+	// Carry over what this tab does not edit (lookid, <friend>, <optional>,
+	// <specific>, inline borders...), then drop the old node.
+	if (existingBrush) {
+		for (pugi::xml_attribute attr : existingBrush.attributes()) {
+			if (!IsManagedGroundAttribute(attr.name())) {
+				brushNode.append_attribute(attr.name()).set_value(attr.value());
+			}
+		}
+		for (pugi::xml_node child : existingBrush.children()) {
+			if (!IsManagedGroundChild(child)) {
+				brushNode.append_copy(child);
+			}
+		}
+		materials.remove_child(existingBrush);
+	}
+
 	// Save the file
 	if (!doc.save_file(groundsFile.ToStdString().c_str())) {
-		wxMessageBox("Failed to save changes to grounds.xml", "Error", wxICON_ERROR);
+		wxMessageBox("Failed to save changes to " + groundsFileName, "Error", wxICON_ERROR);
 		return;
 	}
 
-	wxMessageBox("Ground brush saved successfully.", "Success", wxICON_INFORMATION);
+	wxMessageBox("Ground brush saved successfully to " + groundsFileName + ".", "Success", wxICON_INFORMATION);
 
 	// Reload the existing ground brushes list
 	LoadExistingGroundBrushes();

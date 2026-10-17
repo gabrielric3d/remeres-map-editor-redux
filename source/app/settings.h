@@ -80,6 +80,7 @@ namespace Config {
 		SCROLL_SPEED,
 		PALETTE_SCROLL_SPEED,
 		ZOOM_SPEED,
+		SMOOTH_ZOOM, // anima o zoom (roda, teclado, menu) em vez de saltar
 		UNDO_SIZE,
 		UNDO_MEM_SIZE,
 		MERGE_PASTE,
@@ -237,6 +238,7 @@ namespace Config {
 		GROUND_REPLACE_MODIFIER,
 		SMART_BRUSH_MODIFIER,
 		SMART_BRUSH_MOUSE_BUTTON,
+		PIECE_PICKER_MODIFIER,
 		FAVORITE_FILES,
 		MAP_CLIENT_VERSIONS,
 		SHOW_TOAST_NOTIFICATIONS,
@@ -246,6 +248,7 @@ namespace Config {
 		PALETTE_GRID_ICON_SIZE,
 		PALETTE_TILESET_SORT_MODE,
 		PALETTE_TILESET_SHOW_LABELS,
+		PALETTE_PIECE_STRIP,
 
 		MAP_PROPERTIES_REMEMBER_SAVE_LOCATION,
 		MAP_PROPERTIES_DEFAULT_SAVE_LOCATION,
@@ -326,6 +329,23 @@ namespace Config {
 		CLAUDE_PANEL_LAYOUT,
 		CLAUDE_BACKEND, // "api" | "claude_code"
 		CLAUDE_CODE_PATH, // explicit path to the claude executable ("" = auto)
+		// Watching the assistant work: paint is applied a few tiles per frame, the
+		// camera glides to where it works and a "Claude" cursor marks the spot.
+		CLAUDE_LIVE_ANIMATE,
+		CLAUDE_LIVE_MAX_MS, // longest an animated edit may take; bigger edits speed up
+		CLAUDE_LIVE_RATE, // tiles per second while animating
+		CLAUDE_LIVE_FOLLOW,
+		CLAUDE_LIVE_CURSOR,
+		// The editor tools as an MCP server other programs can use (Claude Code in
+		// a terminal/IDE, Claude Desktop through a bridge). Localhost only, and
+		// every request must carry the token as a Bearer header.
+		CLAUDE_MCP_EXTERNAL,
+		CLAUDE_MCP_PORT,
+		CLAUDE_MCP_TOKEN,
+		// Time-lapse recording of the map view (Claude panel > REC).
+		RECORD_SPEED, // 1, 2, 4, 8: how many times faster than real time the video plays
+		RECORD_MAX_WIDTH, // the video is scaled down to this width (small files)
+		RECORD_SHOW_MOUSE, // draw the mouse pointer into the video
 
 		LAST,
 	};
@@ -348,6 +368,10 @@ public:
 	void setString(uint32_t key, std::string newval);
 
 	toml::table& getTable();
+	// Converte para UTF-8 as strings que chegaram no code page ANSI (via
+	// nstr()/ToStdString()); o toml++ recusa o arquivo inteiro se achar UTF-8
+	// invalido. Chamado antes de gravar o config.toml e o clients.toml.
+	static void fixInvalidUtf8(toml::node& node);
 	void setDefaults() {
 		IO(DEFAULT);
 	}

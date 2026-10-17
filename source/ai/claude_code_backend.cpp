@@ -73,8 +73,11 @@ void ClaudeCodeBackend::Process::OnTerminate(int, int status) {
 ClaudeCodeBackend::ClaudeCodeBackend() {
 	timer.SetOwner(this);
 	Bind(wxEVT_TIMER, &ClaudeCodeBackend::onTimer, this);
-	mcp.setObserver([this](const std::string& name, const Json& input, const ClaudeToolResult* result) {
-		if (!listener) {
+	// A tool result can arrive after this backend is gone (an animated paint
+	// outlives a backend switch), hence the token check before touching `this`.
+	const std::weak_ptr<int> alive = alive_token;
+	mcp.setObserver([this, alive](const std::string& name, const Json& input, const ClaudeToolResult* result) {
+		if (alive.expired() || !listener) {
 			return;
 		}
 		if (!result) {
@@ -131,7 +134,11 @@ bool ClaudeCodeBackend::writeSupportFiles() {
 
 	std::string prompt = ClaudeAgent::systemHeader();
 	prompt += "\n## This session\n";
-	prompt += "- You are running through Claude Code with the editor exposed as the MCP server \"" + std::string(McpServer::serverName()) + "\": the editor tools are " + MCP_TOOL_PREFIX + "get_editor_state, " + MCP_TOOL_PREFIX + "list_brushes, " + MCP_TOOL_PREFIX + "read_region, " + MCP_TOOL_PREFIX + "paint, " + MCP_TOOL_PREFIX + "run_lua, " + MCP_TOOL_PREFIX + "screenshot, " + MCP_TOOL_PREFIX + "set_view and " + MCP_TOOL_PREFIX + "undo. Only Read/Glob/Grep are available besides them; never try to edit files.\n";
+	std::string tool_names;
+	for (const auto& def : ClaudeTools::definitions()) {
+		tool_names += (tool_names.empty() ? "" : ", ") + MCP_TOOL_PREFIX + def["name"].get<std::string>();
+	}
+	prompt += "- You are running through Claude Code with the editor exposed as the MCP server \"" + std::string(McpServer::serverName()) + "\": the editor tools are " + tool_names + ". Only Read/Glob/Grep are available besides them; never try to edit files.\n";
 	prompt += "- The Lua scripting API reference is the file `" + ClaudeAgent::apiReferencePath() + "`. Read the relevant sections before writing run_lua code; do not guess function names.\n";
 	const std::string style_path = ClaudeAgent::stylePath();
 	if (wxFileName::FileExists(wxString::FromUTF8(style_path))) {
@@ -261,15 +268,15 @@ void ClaudeCodeBackend::fail(const std::string& message) {
 	}
 }
 
-void ClaudeCodeBackend::send(const std::string& user_text) {
-	if (busy) {
-		return;
-	}
+void ClaudeCodeBackend::send(const std::string& user_text, const std::vector<AssistantImage>& images) {
+	// While busy the line still goes in right away: Claude Code hands it to the
+	// model at the next tool step, or answers it as a new turn after this one.
+	const bool was_busy = busy;
 	busy = true;
 	if (!ensureProcess()) {
 		return;
 	}
-	Json message = { { "type", "user" }, { "message", { { "role", "user" }, { "content", Json::array({ { { "type", "text" }, { "text", user_text } } }) } } } };
+	Json message = { { "type", "user" }, { "message", { { "role", "user" }, { "content", assistantUserContent(user_text, images) } } } };
 	const std::string line = message.dump() + "\n";
 	wxOutputStream* stdin_stream = process->GetOutputStream();
 	if (!stdin_stream) {
@@ -277,8 +284,10 @@ void ClaudeCodeBackend::send(const std::string& user_text) {
 		return;
 	}
 	stdin_stream->Write(line.data(), line.size());
-	text_streamed = false;
-	blocks.clear();
+	if (!was_busy) {
+		text_streamed = false;
+		blocks.clear();
+	}
 }
 
 void ClaudeCodeBackend::cancel() {
@@ -435,6 +444,14 @@ void ClaudeCodeBackend::handleLine(const std::string& line) {
 			}
 		}
 		return;
+	}
+	if ((type == "stream_event" || type == "assistant") && !busy) {
+		// A message sent during the last turn was not picked up inside it and is
+		// being answered now, as a turn of its own.
+		busy = true;
+		if (listener) {
+			listener->onWorkResumed();
+		}
 	}
 	if (type == "stream_event") {
 		if (j.contains("event")) {
