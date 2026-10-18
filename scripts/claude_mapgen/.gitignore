@@ -1,0 +1,15 @@
+# Arquivos que os scripts geram ao rodar (dados intermediários e conferências)
+__pycache__/
+*.pyc
+shot_*.png
+shots/
+*.npy
+forest_ground.json
+weave_flip.json
+stream.json
+cave_z*.json
+sets.json
+marks*.json
+tiles_*.json
+preview_floors.json
+idtest.json
