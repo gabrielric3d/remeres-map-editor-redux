@@ -462,6 +462,34 @@ void LuaScriptManager::registerOverlayFunctions(sol::table& ctx, std::shared_ptr
 			}
 		}
 	};
+
+	// ctx.creature({ x, y, z, lookType, head, body, legs, feet, addons, direction, opacity })
+	// Desenha o outfit (looktype do .dat) em pe no tile, como o pincel de criatura: serve para
+	// marcar no mapa uma criatura que o server cria sozinho (spawn por script) sem gravar um
+	// spawn de verdade no .otbm. direction: 0 norte, 1 leste, 2 sul (padrao), 3 oeste.
+	ctx["creature"] = [out, view, getOptsTable](sol::variadic_args va) {
+		sol::table opts = getOptsTable(va);
+		if (!opts.valid()) {
+			return;
+		}
+		MapOverlayCommand cmd;
+		cmd.type = MapOverlayCommand::Type::Creature;
+		cmd.x = opts.get_or(std::string("x"), 0);
+		cmd.y = opts.get_or(std::string("y"), 0);
+		cmd.z = opts.get_or(std::string("z"), view.floor);
+		cmd.look_type = opts.get_or(std::string("lookType"), opts.get_or(std::string("looktype"), 0));
+		cmd.look_head = opts.get_or(std::string("head"), 0);
+		cmd.look_body = opts.get_or(std::string("body"), 0);
+		cmd.look_legs = opts.get_or(std::string("legs"), 0);
+		cmd.look_feet = opts.get_or(std::string("feet"), 0);
+		cmd.look_addon = opts.get_or(std::string("addons"), 0);
+		cmd.direction = std::clamp(opts.get_or(std::string("direction"), 2), 0, 3);
+		double opacity = std::clamp(opts.get_or(std::string("opacity"), 1.0), 0.0, 1.0);
+		cmd.color = wxColor(255, 255, 255, static_cast<uint8_t>(opacity * 255));
+		if (cmd.look_type > 0) {
+			out->push_back(cmd);
+		}
+	};
 }
 
 void LuaScriptManager::updateMapOverlayHover(int map_x, int map_y, int map_z, int screen_x, int screen_y, Tile* tile, Item* topItem) {

@@ -26,6 +26,7 @@ struct MapOverlayCommand {
 		Line,
 		Text,
 		Sprite,
+		Creature,
 	};
 
 	Type type = Type::Rect;
@@ -44,6 +45,16 @@ struct MapOverlayCommand {
 	int z2 = 0;
 
 	uint32_t sprite_id = 0;
+
+	// Creature: o outfit desenhado pelo CreatureDrawer (o mesmo do pincel de criatura),
+	// em pe no tile (x, y) e invadindo os tiles a noroeste como no jogo
+	int look_type = 0;
+	int look_head = 0;
+	int look_body = 0;
+	int look_legs = 0;
+	int look_feet = 0;
+	int look_addon = 0;
+	int direction = 2; // 0 norte, 1 leste, 2 sul, 3 oeste
 
 	std::string text;
 	wxColor color = wxColor(255, 255, 255, 255);

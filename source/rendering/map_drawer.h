@@ -201,6 +201,12 @@ public:
 	LuaOverlayDrawer* getLuaOverlayDrawer() {
 		return lua_overlay_drawer.get();
 	}
+	SpriteDrawer* getSpriteDrawer() {
+		return sprite_drawer.get();
+	}
+	CreatureDrawer* getCreatureDrawer() {
+		return creature_drawer.get();
+	}
 	const RenderView& getView() const {
 		return view;
 	}

@@ -532,6 +532,9 @@ app.mapView:addOverlay("light_strength", {
     ondraw = function(ctx)
         -- ctx.view: { x1, y1, x2, y2, z, zoom, screenWidth, screenHeight }
         -- ctx.rect({ x=0, y=0, z=7, w=32, h=32, color={255, 200, 50, 120}, filled=true })
+        -- ctx.creature({ x=100, y=200, z=7, lookType=2849, direction=2, opacity=0.8 })
+        --   draws the outfit standing on the tile (like the creature brush), without a spawn in the map;
+        --   optional head/body/legs/feet/addons; direction 0 north, 1 east, 2 south (default), 3 west
     end,
     onhover = function(info)
         -- info.pos, info.screen, info.tile, info.topItem
