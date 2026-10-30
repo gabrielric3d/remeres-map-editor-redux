@@ -43963,6 +43963,26 @@ e o newmarketitems.json vai estar em appdata
 	<item id="58011" name="howling feast" />
 	<!-- Farm Hideout: o portal de entrada (.blacktalon/scripts/install_hideout_portal.py) -->
 	<item id="58017" name="hideout portal" />
+	<!-- O alquimista trabalhando: o corpo do NPC de Alchemy, uma animacao por item (.blacktalon/scripts/install_alchemist_npc.py) -->
+	<item id="58165" name="alchemist at work" />
+	<item id="58166" name="alchemist at work (soot)" />
+	<item id="58167" name="alchemist at work (nap)" />
+	<!-- O alquimista trabalhando: o corpo do NPC de Alchemy, uma animacao por item (.blacktalon/scripts/install_alchemist_npc.py, modo add) -->
+	<item id="58184" name="alchemist at work (grinding)" />
+	<!-- O carpinteiro gigante trabalhando: o corpo do NPC de Woodworking, uma animacao por item (.blacktalon/scripts/install_carpenter_npc.py) -->
+	<item id="58185" name="carpenter at work" />
+	<item id="58186" name="carpenter at work (hammer)" />
+	<item id="58187" name="carpenter at work (saw)" />
+	<item id="58188" name="carpenter at work (plank)" />
+	<item id="58189" name="carpenter at work (sore thumb)" />
+	<item id="58190" name="carpenter at work (red nose)" />
+	<!-- O joalheiro gnomo trabalhando: o corpo do NPC de Jewelcrafting, uma animacao por item (.blacktalon/scripts/install_jeweler_npc.py) -->
+	<item id="58211" name="jeweler at work" />
+	<item id="58212" name="jeweler at work (slip)" />
+	<item id="58213" name="jeweler at work (flash)" />
+	<item id="58214" name="jeweler at work (sneeze)" />
+	<!-- A fornalha do joalheiro (.blacktalon/scripts/install_jeweler_furnace.py) -->
+	<item id="58215" name="goldsmith furnace" />
 	<!-- Paperdoll: Samurai (Wanderer, Ninja, Ronin) (.blacktalon/scripts/install_paperdoll_sets.py) -->
 	<item id="58216" name="wanderer topknot" />
 	<item id="58217" name="wanderer straw hat" />
