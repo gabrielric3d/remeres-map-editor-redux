@@ -43963,5 +43963,23 @@ e o newmarketitems.json vai estar em appdata
 	<item id="58011" name="howling feast" />
 	<!-- Farm Hideout: o portal de entrada (.blacktalon/scripts/install_hideout_portal.py) -->
 	<item id="58017" name="hideout portal" />
+	<!-- Paperdoll: Samurai (Wanderer, Ninja, Ronin) (.blacktalon/scripts/install_paperdoll_sets.py) -->
+	<item id="58216" name="wanderer topknot" />
+	<item id="58217" name="wanderer straw hat" />
+	<item id="58218" name="wanderer kimono" />
+	<item id="58219" name="wanderer hakama" />
+	<item id="58220" name="wanderer sandals" />
+	<item id="58221" name="wanderer katana" />
+	<item id="58222" name="ninja mask" />
+	<item id="58223" name="ninja garb" />
+	<item id="58224" name="ninja trousers" />
+	<item id="58225" name="ninja tabi" />
+	<item id="58226" name="ninja kunai" />
+	<item id="58227" name="ninja cloak" />
+	<item id="58228" name="ronin kabuto" />
+	<item id="58229" name="ronin armor" />
+	<item id="58230" name="ronin greaves" />
+	<item id="58231" name="ronin boots" />
+	<item id="58232" name="ronin katana" />
 </items>
 
