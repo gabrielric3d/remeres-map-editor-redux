@@ -21,6 +21,8 @@ public:
 	// Max sprite ID for O(1) direct lookup
 	static constexpr uint32_t DIRECT_LOOKUP_SIZE = 2000000; // Support 10.x+ sprite counts
 	static constexpr uint32_t WHITE_PIXEL_ID = 0xFFFFFFFF;
+	// Camadas alocadas de cara (16 * 16384 = 262K sprites, ~1 GiB de VRAM).
+	static constexpr int INITIAL_LAYERS = 16;
 
 	AtlasManager() = default;
 	~AtlasManager() = default;
@@ -89,6 +91,13 @@ public:
 	 */
 	bool isValid() const {
 		return atlas_.isValid();
+	}
+
+	/**
+	 * Camadas em uso no texture array (cresce, nunca diminui).
+	 */
+	int getLayerCount() const {
+		return atlas_.getLayerCount();
 	}
 
 	/**

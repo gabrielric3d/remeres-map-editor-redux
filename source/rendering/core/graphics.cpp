@@ -189,6 +189,15 @@ void GraphicManager::addSpriteToCleanup(GameSprite* spr) {
 }
 
 void GraphicManager::garbageCollection() {
+	// Despejar do atlas não devolve VRAM (o texture array é imutável; o slot só volta
+	// para a free list) e cada despejo faz o chunk cache re-assar todos os chunks
+	// (eviction_generation). Enquanto o atlas cabe na alocação inicial não há o que
+	// economizar: só vale despejar quando ele já cresceu além dela. O upstream
+	// removeu o GC inteiro (PR #1065); aqui ele fica como freio para o atlas do BR,
+	// que com sprites 64x64 pode crescer até 64 camadas (4 GiB).
+	if (!atlas_manager_ || atlas_manager_->getLayerCount() <= AtlasManager::INITIAL_LAYERS) {
+		return;
+	}
 	collector.GarbageCollect(resident_game_sprites, resident_images, cached_time_);
 }
 
