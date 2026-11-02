@@ -183,10 +183,12 @@ void TileSerializationOTBM::readTileArea(IOMapOTBM& iomap, Map& map, BinaryNode*
 				}
 				case OTBM_ATTR_ITEM: {
 					auto item = ItemSerializationOTBM::createFromStream(iomap, tileNode);
-					const auto rawItemBytes = copyRawBytes(tileNode->rawData(), attributeOffset, tileNode->getReadOffset());
 					if (hasResolvedDefinition(item)) {
-						tile->addItem(std::move(item));
+						tile->addLoadedItem(std::move(item));
 					} else {
+						// Só o item que não resolve precisa dos bytes crus (para regravar
+						// igual). Antes copiava para todo item inline, ou seja, todo chão.
+						const auto rawItemBytes = copyRawBytes(tileNode->rawData(), attributeOffset, tileNode->getReadOffset());
 						const bool treatAsGround = shouldTreatInlineItemAsGround(*tile);
 						const uint16_t serverId = item ? item->getID() : decodeServerIdFromInlineBytes(rawItemBytes);
 						if (!item) {
@@ -197,7 +199,7 @@ void TileSerializationOTBM::readTileArea(IOMapOTBM& iomap, Map& map, BinaryNode*
 								.kind = treatAsGround ? InvalidOTBMItemKind::MissingGround : InvalidOTBMItemKind::MissingItem,
 								.rawInlineBytes = rawItemBytes,
 							});
-							tile->addItem(std::move(item));
+							tile->addLoadedItem(std::move(item));
 						} else if (!rawItemBytes.empty()) {
 							tile->addOpaqueTileAttribute(OpaqueTileAttributeRecord {
 								.rawBytes = rawItemBytes,
@@ -236,7 +238,7 @@ void TileSerializationOTBM::readTileArea(IOMapOTBM& iomap, Map& map, BinaryNode*
 							.kind = InvalidOTBMItemKind::MissingItem,
 							.rawNode = std::move(rawNode),
 						});
-						tile->addItem(std::move(item));
+						tile->addLoadedItem(std::move(item));
 					} else if (!rawNode.empty()) {
 						tile->addOpaqueChildNode(std::move(rawNode));
 					}
@@ -249,9 +251,9 @@ void TileSerializationOTBM::readTileArea(IOMapOTBM& iomap, Map& map, BinaryNode*
 							.kind = InvalidOTBMItemKind::MissingItem,
 							.rawNode = capturePreservedNode(itemNode),
 						});
-						tile->addItem(std::move(item));
+						tile->addLoadedItem(std::move(item));
 					} else {
-						tile->addItem(std::move(item));
+						tile->addLoadedItem(std::move(item));
 					}
 				}
 			} else {

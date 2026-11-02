@@ -354,9 +354,18 @@ void Tile::addItem(std::unique_ptr<Item> item) {
 	if (!item) {
 		return;
 	}
+	addLoadedItem(std::move(item));
+	modify();
+}
+
+void Tile::addLoadedItem(std::unique_ptr<Item> item) {
+	if (!item) {
+		return;
+	}
 	if (item->isGroundTile()) {
 		// Generic insertion preserves literal tile identity. Terrain policy lives in brushes/ground.
-		setGround(std::move(item));
+		ground = std::move(item);
+		TileOperations::update(this);
 		return;
 	}
 	auto it = items.begin();
@@ -377,7 +386,6 @@ void Tile::addItem(std::unique_ptr<Item> item) {
 
 	items.insert(it, std::move(item));
 	TileOperations::update(this);
-	modify();
 }
 
 uint8_t Tile::getMiniMapColor() const {

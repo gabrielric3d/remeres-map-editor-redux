@@ -176,6 +176,11 @@ public: // Functions
 	Item* getItemAt(int index) const;
 	void setGround(std::unique_ptr<Item> item);
 	void addItem(std::unique_ptr<Item> item);
+	// Igual ao addItem, mas sem modify(): para loaders, onde o item vem do arquivo e
+	// não é edição. O modify() marcaria o tile como modificado ("Show only modified"
+	// mostraria o mapa inteiro) e sujaria o change tracker do editor da aba ativa,
+	// que é outro mapa enquanto este carrega.
+	void addLoadedItem(std::unique_ptr<Item> item);
 	InvalidZoneState& getOrCreateInvalidZones();
 	void clearInvalidZones();
 	void addOpaqueTileAttribute(OpaqueTileAttributeRecord record);
