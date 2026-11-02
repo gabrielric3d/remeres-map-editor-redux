@@ -115,22 +115,59 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
 #endif
 	Bind(EVT_UPDATE_MENUS, &MainFrame::OnUpdateMenus, this);
 	Bind(wxEVT_IDLE, &MainFrame::OnIdle, this);
+	ui_update_timer.SetOwner(this);
+	Bind(wxEVT_TIMER, &MainFrame::OnUiUpdateTimer, this, ui_update_timer.GetId());
 }
 
 MainFrame::~MainFrame() {
+	ui_update_timer.Stop();
 	menu_bar.reset();
 	tool_bar.reset();
 }
 
-void MainFrame::OnIdle(wxIdleEvent& event) {
+namespace {
+	constexpr auto UI_UPDATE_INTERVAL = std::chrono::milliseconds(100);
+}
+
+void MainFrame::UpdateMenuAndToolbarState() {
+	last_ui_update = std::chrono::steady_clock::now();
 	if (menu_bar) {
 		menu_bar->Update();
 	}
 	if (tool_bar) {
 		tool_bar->UpdateButtons();
 	}
-	event.RequestMore();
+}
+
+void MainFrame::OnIdle(wxIdleEvent& event) {
+	// Reavaliar o menu e a toolbar inteiros passa cada item pelo update-UI do wx e
+	// pela GDI. Fazer isso em todo idle com event.RequestMore() deixava o idle girando
+	// sem parar: ~1 núcleo de CPU com o editor parado (medido no upstream, a8b0a458).
+	// Agora é no máximo a cada 100 ms e sem RequestMore; o idle volta a disparar
+	// sozinho quando a fila de mensagens esvazia.
 	event.Skip();
+
+	if (ignore_timer_idle) {
+		// Idle gerado pela própria mensagem do timer: o estado acabou de ser
+		// atualizado no OnUiUpdateTimer. Reagendar aqui viraria um laço de 10 Hz.
+		ignore_timer_idle = false;
+		return;
+	}
+
+	const auto elapsed = std::chrono::steady_clock::now() - last_ui_update;
+	if (elapsed >= UI_UPDATE_INTERVAL) {
+		UpdateMenuAndToolbarState();
+	} else if (!ui_update_timer.IsRunning()) {
+		// Algo mudou dentro da janela de 100 ms. Sem o timer, menu e toolbar
+		// ficariam com o estado velho até a próxima mensagem (ex.: mexer o mouse).
+		const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(UI_UPDATE_INTERVAL - elapsed);
+		ui_update_timer.StartOnce(std::max<int>(1, static_cast<int>(remaining.count())));
+	}
+}
+
+void MainFrame::OnUiUpdateTimer(wxTimerEvent&) {
+	UpdateMenuAndToolbarState();
+	ignore_timer_idle = true;
 }
 
 #ifdef _USE_UPDATER_

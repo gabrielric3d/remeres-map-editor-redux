@@ -7,6 +7,9 @@
 
 #include "app/main.h"
 
+#include <chrono>
+#include <wx/timer.h>
+
 class MainMenuBar;
 class MainToolBar;
 
@@ -54,6 +57,14 @@ public:
 protected:
 	std::unique_ptr<MainMenuBar> menu_bar;
 	std::unique_ptr<MainToolBar> tool_bar;
+
+	// Atualização do estado do menu e da toolbar no idle, limitada a uma a cada
+	// 100 ms. O timer garante a última atualização quando um idle cai dentro da janela.
+	void OnUiUpdateTimer(wxTimerEvent& event);
+	void UpdateMenuAndToolbarState();
+	wxTimer ui_update_timer;
+	std::chrono::steady_clock::time_point last_ui_update {};
+	bool ignore_timer_idle = false;
 
 	friend class Application;
 	friend class GUI;
