@@ -153,6 +153,9 @@ namespace TileOperations {
 		copy->minimapColor = tile->minimapColor;
 		copy->house_id = tile->house_id;
 		copy->soundZoneId = tile->soundZoneId; // BlackTalon: keep the sound zone on tile copies
+		// BlackTalon: sem esta linha, clicar na tile (seleção), apagar a criatura ou pintar
+		// por cima trocava a tile por uma cópia sem zona e a Instance Zone sumia.
+		copy->instanceZoneId = tile->instanceZoneId;
 		// Battle Royale: every brush paints on a copy made here. Without this line, a
 		// ground or an item drawn over a loot zone would quietly take the tile out of it.
 		copy->brLootZoneId = tile->brLootZoneId;
