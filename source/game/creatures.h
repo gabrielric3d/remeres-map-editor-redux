@@ -22,6 +22,7 @@
 #include "ext/pugixml.hpp"
 #include <wx/filename.h>
 
+#include <cstdint>
 #include <string>
 #include <map>
 #include <vector>
@@ -34,6 +35,8 @@ using CreatureMap = std::map<std::string, CreatureType*>;
 class CreatureDatabase {
 protected:
 	CreatureMap creature_map;
+	// Bumped by clear(), so callers can tell when what they imported was thrown away.
+	uint64_t generation = 0;
 
 public:
 	using iterator = CreatureMap::iterator;
@@ -51,6 +54,7 @@ public:
 	bool hasMissing() const;
 	size_t countMissing() const;
 	size_t size() const { return creature_map.size(); }
+	uint64_t getGeneration() const { return generation; }
 	iterator begin() {
 		return creature_map.begin();
 	}

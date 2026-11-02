@@ -252,6 +252,7 @@ void CreatureDatabase::clear() {
 		delete creature;
 	}
 	creature_map.clear();
+	++generation;
 }
 
 CreatureType* CreatureDatabase::operator[](const std::string& name) {
@@ -395,6 +396,8 @@ bool CreatureDatabase::importXMLFromOT(const FileName& filename, wxString& error
 				if (current) {
 					CreatureType::preserve_assign_creature_fields(current, *creatureType);
 					delete creatureType;
+					// A creature the map only knew by name (missing) has no brush yet.
+					ensureCreatureBrush(current);
 				} else {
 					creature_map[as_lower_str(creatureType->name)] = creatureType;
 
@@ -410,6 +413,7 @@ bool CreatureDatabase::importXMLFromOT(const FileName& filename, wxString& error
 			if (current) {
 				CreatureType::preserve_assign_creature_fields(current, *creatureType);
 				delete creatureType;
+				ensureCreatureBrush(current);
 			} else {
 				creature_map[as_lower_str(creatureType->name)] = creatureType;
 

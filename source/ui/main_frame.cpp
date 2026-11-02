@@ -44,6 +44,7 @@
 #include "game/complexitem.h"
 #include "game/creature.h"
 #include "game/creatures.h"
+#include "game/creature_projects.h"
 
 #include <spdlog/spdlog.h>
 #include "../brushes/icon/editor_icon.xpm"
@@ -478,79 +479,19 @@ bool MainFrame::AutoLoadCreaturesFromDirectory(const wxString& directory) {
 		return false;
 	}
 
-	const size_t missing_before = g_creatures.countMissing();
-	const size_t total_before = g_creatures.size();
+	const CreatureImportResult result = CreatureProjects::ImportFiles(files, "Loading creatures from directory...");
 
-	g_gui.CreateLoadBar("Loading creatures from directory...");
+	wxMessageBox(CreatureProjects::Describe(result), "Auto-load creatures - Result", wxOK | wxICON_INFORMATION, g_gui.root);
 
-	std::vector<std::string> all_warnings;
-	std::vector<wxString> failed_files;
-	size_t processed = 0;
-
-	for (size_t i = 0; i < files.GetCount(); ++i) {
-		const wxString& path = files[i];
-		const int percent = static_cast<int>((i * 100) / files.GetCount());
-		g_gui.SetLoadDone(percent, wxString::Format("Loading %zu of %zu: %s", i + 1, (size_t)files.GetCount(), wxFileName(path).GetFullName()));
-
-		wxString error;
-		std::vector<std::string> warnings;
-		const wxString ext = wxFileName(path).GetExt().Lower();
-
-		bool ok = false;
-		if (ext == "json") {
-			ok = g_creatures.loadFromJSON(FileName(path), false, error, warnings);
-		} else if (ext == "xml") {
-			ok = g_creatures.importXMLFromOT(FileName(path), error, warnings);
-		} else {
-			continue;
-		}
-
-		if (ok) {
-			++processed;
-			for (const auto& w : warnings) {
-				all_warnings.push_back(w);
-			}
-		} else {
-			failed_files.push_back(path + ": " + error);
-		}
+	if (!result.warnings.empty()) {
+		DialogUtil::ListDialog("Monster loader warnings", result.warnings);
 	}
 
-	g_gui.SetLoadDone(100, "Done");
-	g_gui.DestroyLoadBar();
+	spdlog::info("Auto-load creatures: scanned={}, loaded={}, failed={}, added={}, missing {}->{}",
+		result.files_scanned, result.files_loaded, result.failed_files.size(), result.creatures_added,
+		result.missing_before, result.missing_after);
 
-	const size_t missing_after = g_creatures.countMissing();
-	const size_t total_after = g_creatures.size();
-	const size_t added = total_after > total_before ? total_after - total_before : 0;
-	const size_t resolved = missing_before > missing_after ? missing_before - missing_after : 0;
-
-	wxString summary;
-	summary << "Files scanned: " << files.GetCount() << "\n";
-	summary << "Files loaded successfully: " << processed << "\n";
-	summary << "Files failed: " << failed_files.size() << "\n\n";
-	summary << "New creatures added: " << added << "\n";
-	summary << "Missing creatures resolved: " << resolved << " of " << missing_before << "\n";
-	summary << "Still missing: " << missing_after;
-
-	if (!failed_files.empty()) {
-		summary << "\n\nFailed files:";
-		for (size_t i = 0; i < failed_files.size() && i < 10; ++i) {
-			summary << "\n  - " << failed_files[i];
-		}
-		if (failed_files.size() > 10) {
-			summary << wxString::Format("\n  ... and %zu more", failed_files.size() - 10);
-		}
-	}
-
-	wxMessageBox(summary, "Auto-load creatures - Result", wxOK | wxICON_INFORMATION, g_gui.root);
-
-	if (!all_warnings.empty()) {
-		DialogUtil::ListDialog("Monster loader warnings", all_warnings);
-	}
-
-	spdlog::info("Auto-load creatures: scanned={}, loaded={}, failed={}, added={}, resolved={}/{}",
-		files.GetCount(), processed, failed_files.size(), added, resolved, missing_before);
-
-	return missing_after == 0;
+	return result.missing_after == 0;
 }
 
 void MainFrame::UpdateFloorMenu() {

@@ -5,6 +5,7 @@
 #include "app/main.h"
 #include "app/preferences/preferences_layout.h"
 #include "app/settings.h"
+#include "ui/dialogs/creature_projects_dialog.h"
 #include "ui/gui.h"
 
 namespace {
@@ -181,6 +182,18 @@ GeneralPage::GeneralPage(wxWindow* parent) : ScrollablePreferencesPage(parent) {
 		"Directory scanned recursively for .xml and .json monster/npc files when auto-load is enabled.",
 		creatures_auto_load_dir_picker
 	);
+
+	auto* creature_projects_button = newd wxButton(creature_section, wxID_ANY, "Manage projects...");
+	PreferencesLayout::AddControlRow(
+		creature_section,
+		"Creature projects",
+		"Tie a map folder to its server's monster and NPC files: opening any map inside that folder loads them automatically.",
+		creature_projects_button
+	);
+	creature_projects_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+		CreatureProjectsDialog dialog(this);
+		dialog.ShowModal();
+	});
 
 	page_sizer->Add(creature_section, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
 

@@ -18,6 +18,7 @@
 #include "ui/dialogs/instance_layout_dialog.h"
 #include "app/application.h"
 #include "app/managers/version_manager.h"
+#include "game/creature_projects.h"
 #include "ui/managers/status_manager.h"
 #include "palette/managers/palette_manager.h"
 #include "brushes/managers/brush_manager.h"
@@ -527,6 +528,8 @@ bool EditorManager::LoadMap(const FileName& fileName, const MapLoadOptions& load
 	g_status.UpdateTitle();
 	spdlog::info("EditorManager::LoadMap - Showing warnings...");
 	DialogUtil::ListDialog("Map loader errors", mapTab->GetMap()->getWarnings());
+	// Creatures of the project the map folder belongs to, before asking about missing ones.
+	CreatureProjects::LoadForMap(fileName.GetFullPath());
 	spdlog::info("EditorManager::LoadMap - DoQueryImportCreatures...");
 	g_gui.root->DoQueryImportCreatures();
 
