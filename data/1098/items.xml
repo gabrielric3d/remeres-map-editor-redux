@@ -44311,5 +44311,89 @@ e o newmarketitems.json vai estar em appdata
 	<item id="58311" name="dark crow feather" />
 	<item id="58312" name="winding key" />
 	<item id="58313" name="gold-toothed dentures" />
+	<!-- O piso de madeira do templo de 32 px: o chao, os 4 detalhes avulsos (pregos, rachada, lasca, tabua levantada) e as 12 pecas da borda, padrao 8x8 (.blacktalon/pixel-art/scripts/paint_temple_wood32*.py, .blacktalon/scripts/install_temple_wood32.py) -->
+	<item id="58314" name="wooden floor" />
+	<item id="58315" name="wooden floor" />
+	<item id="58316" name="wooden floor" />
+	<item id="58317" name="wooden floor" />
+	<item id="58318" name="wooden floor" />
+	<item id="58319" name="wooden floor" />
+	<item id="58320" name="wooden floor" />
+	<item id="58321" name="wooden floor" />
+	<item id="58322" name="wooden floor" />
+	<item id="58323" name="wooden floor" />
+	<item id="58324" name="wooden floor" />
+	<item id="58325" name="wooden floor" />
+	<item id="58326" name="wooden floor" />
+	<item id="58327" name="wooden floor" />
+	<item id="58328" name="wooden floor" />
+	<item id="58329" name="wooden floor" />
+	<item id="58330" name="wooden floor" />
+	<!-- O tapete do corredor do templo de 32 px: as 9 pecas do pincel de tapete e os 3 rasgos avulsos (furo, rasgo, ponta dobrada), a peca do meio e os rasgos em padrao 1x3 (.blacktalon/pixel-art/scripts/paint_temple_carpet32.py, .blacktalon/scripts/install_temple_carpet32.py) -->
+	<item id="58331" name="temple carpet" />
+	<item id="58332" name="temple carpet" />
+	<item id="58333" name="temple carpet" />
+	<item id="58334" name="temple carpet" />
+	<item id="58335" name="temple carpet" />
+	<item id="58336" name="temple carpet" />
+	<item id="58337" name="temple carpet" />
+	<item id="58338" name="temple carpet" />
+	<item id="58339" name="temple carpet" />
+	<item id="58340" name="torn carpet" />
+	<item id="58341" name="torn carpet" />
+	<item id="58342" name="torn carpet" />
+	<!-- os pontos de venda dos NPCs, itens grandes que nao bloqueiam (.blacktalon/scripts/install_npc_stalls.py) -->
+	<item id="58343" name="task board" /> <!-- task NPC -->
+	<!-- Season dummies: Backrooms + Samurai (.blacktalon/scripts/install_season_dummies.py) -->
+	<item id="58344" name="crowhead training dummy" />
+	<item id="58345" name="jack-in-the-box training dummy" />
+	<item id="58346" name="wooden doll training dummy" />
+	<item id="58347" name="faceless mannequin training dummy" />
+	<item id="58348" name="yoroi training dummy" />
+	<item id="58349" name="hannya training dummy" />
+	<item id="58350" name="kitsune training dummy" />
+	<item id="58351" name="komainu training dummy" />
+	<!-- Backrooms Hunt: TVs-portal, em pecas 1x1 (.blacktalon/scripts/install_backrooms_tvs.py) -->
+	<item id="58352" name="old television" /> <!-- tile 1,0 -->
+	<item id="58353" name="old television" /> <!-- tile 2,0 -->
+	<item id="58354" name="old television" /> <!-- tile 3,0 -->
+	<item id="58355" name="old television" /> <!-- tile 0,1 -->
+	<item id="58356" name="old television" /> <!-- tile 1,1 -->
+	<item id="58357" name="old television" /> <!-- tile 2,1 -->
+	<item id="58358" name="old television" /> <!-- tile 3,1 -->
+	<item id="58359" name="old television" /> <!-- tile 0,2 -->
+	<item id="58360" name="old television" /> <!-- tile 1,2 -->
+	<item id="58361" name="old television" /> <!-- tile 2,2 -->
+	<item id="58362" name="old television" /> <!-- tile 3,2 -->
+	<item id="58363" name="old television" /> <!-- tile 1,3 -->
+	<item id="58364" name="old television" /> <!-- tile 2,3 -->
+	<item id="58365" name="old television" /> <!-- tile 3,3 -->
+	<item id="58366" name="old television" /> <!-- tile 0,2, animada -->
+	<item id="58367" name="old television" /> <!-- tile 1,2, animada -->
+	<item id="58368" name="old television" /> <!-- tile 2,2, animada -->
+	<item id="58369" name="white television" /> <!-- tile 1,0 -->
+	<item id="58370" name="white television" /> <!-- tile 2,0 -->
+	<item id="58371" name="white television" /> <!-- tile 3,0 -->
+	<item id="58372" name="white television" /> <!-- tile 0,1 -->
+	<item id="58373" name="white television" /> <!-- tile 1,1 -->
+	<item id="58374" name="white television" /> <!-- tile 2,1 -->
+	<item id="58375" name="white television" /> <!-- tile 3,1 -->
+	<item id="58376" name="white television" /> <!-- tile 0,2 -->
+	<item id="58377" name="white television" /> <!-- tile 1,2 -->
+	<item id="58378" name="white television" /> <!-- tile 2,2 -->
+	<item id="58379" name="white television" /> <!-- tile 3,2 -->
+	<item id="58380" name="white television" /> <!-- tile 1,3 -->
+	<item id="58381" name="white television" /> <!-- tile 2,3 -->
+	<item id="58382" name="white television" /> <!-- tile 3,3 -->
+	<item id="58383" name="white television" /> <!-- tile 0,2, animada -->
+	<item id="58384" name="white television" /> <!-- tile 1,2, animada -->
+	<item id="58385" name="white television" /> <!-- tile 2,2, animada -->
+	<!-- Hanachiri no Tamashii: runas do Wanderer (.blacktalon/scripts/install_hanachiri_runes.py) -->
+	<item id="58386" name="Silver Rune: Hanakage" />
+	<item id="58387" name="Golden Rune: Hanakage" />
+	<item id="58388" name="Platinum Rune: Hanakage" />
+	<item id="58389" name="Silver Rune: Tamashii no Kaeri" />
+	<item id="58390" name="Golden Rune: Tamashii no Kaeri" />
+	<item id="58391" name="Platinum Rune: Tamashii no Kaeri" />
 </items>
 
