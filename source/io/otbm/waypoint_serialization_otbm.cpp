@@ -22,6 +22,11 @@ void WaypointSerializationOTBM::readWaypoints(Map& map, BinaryNode* mapNode) {
 			spdlog::warn("Failed to read waypoint name");
 			continue;
 		}
+		if (wp.name.empty()) {
+			// A palette trata nome vazio como "apagar" e o loader XML já os descarta.
+			spdlog::warn("Skipping unnamed waypoint");
+			continue;
+		}
 
 		uint16_t x, y;
 		uint8_t z;

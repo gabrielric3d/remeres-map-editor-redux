@@ -216,7 +216,10 @@ void WaypointPalettePanel::OnClickWaypoint(wxListEvent& event) {
 	std::string wpname = nstr(event.GetText());
 	Waypoint* wp = map->waypoints.getWaypoint(wpname);
 	if (wp) {
-		g_gui.SetScreenCenterPosition(wp->pos);
+		// Waypoint ainda sem posição: centralizar levaria a câmera para (0,0,0).
+		if (wp->pos != Position()) {
+			g_gui.SetScreenCenterPosition(wp->pos);
+		}
 		g_brush_manager.waypoint_brush->setWaypoint(wp);
 	}
 }
@@ -238,12 +241,16 @@ void WaypointPalettePanel::OnEditWaypointLabel(wxListEvent& event) {
 
 	if (wpname == "") {
 		map->waypoints.removeWaypoint(oldwpname);
+		map->doChange();
 		g_gui.RefreshPalettes();
 	} else if (wp) {
 		if (wpname == oldwpname) {
 			; // do nothing
 		} else {
-			if (map->waypoints.getWaypoint(wpname)) {
+			// A busca ignora maiúsculas: renomear "Temple" para "temple" acha o próprio
+			// waypoint, e isso não é nome duplicado.
+			Waypoint* existing = map->waypoints.getWaypoint(wpname);
+			if (existing && existing != wp) {
 				// Already exists a waypoint with this name!
 				g_gui.SetStatusText("There already is a waypoint with this name.");
 				event.Veto();
@@ -265,6 +272,7 @@ void WaypointPalettePanel::OnEditWaypointLabel(wxListEvent& event) {
 				}
 
 				map->waypoints.addWaypoint(std::move(nwp_ptr));
+				map->doChange(); // sem isso o rename não marcava o mapa como modificado
 				g_brush_manager.waypoint_brush->setWaypoint(nwp);
 
 				// Refresh other palettes
