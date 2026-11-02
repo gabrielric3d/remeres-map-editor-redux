@@ -278,6 +278,17 @@ void GroundBorderCalculator::calculate(BaseMap* map, Tile* tile) {
 
 	ASSERT(tile);
 
+	// Chão que é peça de borda (ground_equivalent, ver TileOperations::addBorderItem):
+	// volta ao chão-base antes de recalcular, pela mesma regra que limpa as bordas
+	// da pilha mais abaixo. Sem isso, apagar o mar deixava a areia com a borda d'água.
+	if (tile->ground && tile->ground->isBorder()) {
+		const uint16_t base_ground_id = tile->ground->borderBaseGroundId();
+		const bool removable = g_settings.getBoolean(Config::PRESERVE_MANUAL_BORDERS) ? tile->ground->isAutoPlaced() : true;
+		if (base_ground_id != 0 && removable) {
+			tile->setGround(Item::Create(base_ground_id));
+		}
+	}
+
 	// Carpet Fill layer, resolved first: it may fill the tile with its brush's
 	// ground, which the traditional analysis below must see. Tiles outside any
 	// carpet region get an empty layer and run exactly the legacy pipeline.

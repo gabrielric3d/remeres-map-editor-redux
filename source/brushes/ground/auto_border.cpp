@@ -120,7 +120,12 @@ bool AutoBorder::load(pugi::xml_node node, std::vector<std::string>& warnings, G
 		}
 
 		if (ground) {
-			g_item_definitions.setGroup(itemid, ITEM_GROUP_NONE);
+			// Não rebaixar a peça para ITEM_GROUP_NONE (como fazia o RME original): o
+			// items.otb é a fonte da verdade, e no 1310 essas peças (sandstone 778-789,
+			// "inner to sea" 4632-4643) são GROUND. Sem o grupo, um tile cujo chão era
+			// uma delas carregava sem ground. A peça vira o chão do tile no
+			// TileOperations::addBorderItem e volta ao chão-base no
+			// GroundBorderCalculator::calculate (upstream dbf647fe só apagou a linha).
 			g_item_definitions.setAttribute(itemid, ItemAttributeKey::BorderBaseGroundId, border_base_ground_id);
 			g_item_definitions.mutableEditorData(itemid).brush = owner;
 		}

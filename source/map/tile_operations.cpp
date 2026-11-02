@@ -443,6 +443,17 @@ namespace TileOperations {
 			return;
 		}
 		ASSERT(item->isBorder());
+		if (item->isGroundTile()) {
+			// Borda de chão (ground_equivalent) cuja peça é GROUND no items.otb: um tile
+			// tem um chão só, então a peça substitui o chão em vez de ir para a pilha.
+			// Na pilha, salvar e reabrir a promoveria a chão e o chão-base sumiria.
+			// O GroundBorderCalculator devolve o chão-base antes de recalcular.
+			if (g_settings.getBoolean(Config::PRESERVE_MANUAL_BORDERS)) {
+				item->setAutoPlaced(true);
+			}
+			tile->setGround(std::move(item));
+			return;
+		}
 		if (g_settings.getBoolean(Config::PRESERVE_MANUAL_BORDERS)) {
 			// Tag as auto-placed so a later auto-magic pass can wipe it without touching
 			// user-placed borders. Insert right after the last user-placed border: stops
