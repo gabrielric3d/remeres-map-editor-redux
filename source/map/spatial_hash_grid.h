@@ -25,6 +25,11 @@ public:
 
 	struct GridCell {
 		std::array<std::unique_ptr<MapNode>, NODES_IN_CELL> nodes;
+		// Por andar z: o bit (ciy * 4 + cix) é 1 se o chunk 16x16 (cix, ciy) desta
+		// célula tem pelo menos um Floor alocado em z. Quem liga é MapNode::createFloor,
+		// o único lugar que aloca Floor; Floor nunca é desalocado enquanto a célula
+		// existe, então o bit nunca precisa desligar (upstream e996cf68).
+		std::array<uint16_t, MAP_LAYERS> floor_chunk_mask {};
 		GridCell();
 		~GridCell();
 	};
@@ -83,24 +88,9 @@ public:
 		return (static_cast<uint64_t>(static_cast<uint32_t>(cy) ^ 0x80000000u) << 32) | (static_cast<uint32_t>(cx) ^ 0x80000000u);
 	}
 
-	// True when any of the 4x4 nodes of chunk (chunk_ix, chunk_iy) inside this cell has a floor at map_z.
-	template <typename CellType = GridCell>
-	[[nodiscard]] static bool chunkHasFloor(const CellType& cell, int chunk_ix, int chunk_iy, int map_z) noexcept {
-		if (map_z < 0 || map_z >= MAP_LAYERS) {
-			return false;
-		}
-		const int start_lx = chunk_ix << 2; // chunk_ix * 4
-		const int start_ly = chunk_iy << 2; // chunk_iy * 4
-		for (int dy = 0; dy < 4; ++dy) {
-			const int row_base = (start_ly + dy) << NODES_PER_CELL_SHIFT; // * 16
-			for (int dx = 0; dx < 4; ++dx) {
-				const MapNode* node = cell.nodes[row_base + start_lx + dx].get();
-				if (node && node->getFloor(map_z)) {
-					return true;
-				}
-			}
-		}
-		return false;
+	// Bit do chunk (chunk_ix, chunk_iy) dentro da célula em GridCell::floor_chunk_mask.
+	[[nodiscard]] static constexpr uint16_t chunkBit(int chunk_ix, int chunk_iy) noexcept {
+		return static_cast<uint16_t>(1u << ((chunk_iy << 2) | chunk_ix));
 	}
 
 	/**
@@ -110,7 +100,7 @@ public:
 	 */
 	template <typename Func>
 	void visitPopulatedChunks(int min_cx, int min_cy, int max_cx, int max_cy, int map_z, Func&& func) const {
-		if (cells_.empty() || min_cx > max_cx || min_cy > max_cy) {
+		if (cells_.empty() || min_cx > max_cx || min_cy > max_cy || map_z < 0 || map_z >= MAP_LAYERS) {
 			return;
 		}
 
@@ -125,6 +115,12 @@ public:
 		const size_t cell_region_area = cell_region_w * cell_region_h;
 
 		auto processCell = [&](const GridCell& cell, int cell_x, int cell_y) {
+			// Um bit por chunk em vez de ler até 16 MapNode* (256 por célula), e a
+			// célula inteira sai em O(1) quando não tem nada neste andar.
+			const uint16_t mask = cell.floor_chunk_mask[map_z];
+			if (mask == 0) {
+				return;
+			}
 			const int cell_base_cx = cell_x << 2;
 			const int cell_base_cy = cell_y << 2;
 
@@ -135,7 +131,7 @@ public:
 
 			for (int ciy = local_min_cy; ciy <= local_max_cy; ++ciy) {
 				for (int cix = local_min_cx; cix <= local_max_cx; ++cix) {
-					if (chunkHasFloor(cell, cix, ciy, map_z)) {
+					if ((mask & chunkBit(cix, ciy)) != 0) {
 						func(cell_base_cx + cix, cell_base_cy + ciy);
 					}
 				}
