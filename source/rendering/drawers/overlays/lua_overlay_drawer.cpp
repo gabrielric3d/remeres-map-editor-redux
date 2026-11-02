@@ -46,6 +46,16 @@ LuaOverlayDrawer::CacheKey LuaOverlayDrawer::makeCacheKey(const RenderView& view
 	const Selection* selection = editor ? &editor->selection : nullptr;
 	const ActionQueue* actionQueue = editor && editor->actionQueue ? editor->actionQueue.get() : nullptr;
 
+	// Sem script mostrando overlay nenhum comando pode sair, então seleção e histórico
+	// não precisam invalidar nada; o hashSelection percorria a seleção inteira duas
+	// vezes por frame (Draw + DrawUI) mesmo assim. O overlay_revision muda quando um
+	// script inicializa ou adiciona um show, e isso religa a invalidação (upstream d016ae04).
+	const bool has_shows = g_luaScripts.isInitialized() && !g_luaScripts.getMapOverlayShows().empty();
+	if (!has_shows) {
+		selection = nullptr;
+		actionQueue = nullptr;
+	}
+
 	return CacheKey {
 		.start_x = view.start_x,
 		.start_y = view.start_y,
