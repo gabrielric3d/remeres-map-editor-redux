@@ -44300,5 +44300,16 @@ e o newmarketitems.json vai estar em appdata
 	<!-- Tutorial da Mainland: itens de ammo slot (.blacktalon/scripts/install_tutorial_ammo.py) -->
 	<item id="58302" name="novice's sand charm" />
 	<item id="58303" name="novice's voodoo doll" />
+	<!-- Backrooms Hunt: drops das criaturas (.blacktalon/scripts/install_backrooms_drops.py) -->
+	<item id="58304" name="ribboned hair lock" />
+	<item id="58305" name="gas mask filter" />
+	<item id="58306" name="jar of shadow goo" />
+	<item id="58307" name="smouldering bone" />
+	<item id="58308" name="bloodshot eye" />
+	<item id="58309" name="string of vertebrae" />
+	<item id="58310" name="alien egg" />
+	<item id="58311" name="dark crow feather" />
+	<item id="58312" name="winding key" />
+	<item id="58313" name="gold-toothed dentures" />
 </items>
 
