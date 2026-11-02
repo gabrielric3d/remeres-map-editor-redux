@@ -2,6 +2,7 @@
 #define RME_RENDERING_UTILITIES_PATTERN_CALCULATOR_H_
 
 #include "rendering/core/game_sprite.h"
+#include "rendering/core/repaint_hints.h"
 #include "item_definitions/core/item_definition_store.h"
 #include "game/item.h"
 #include "map/tile.h"
@@ -40,7 +41,12 @@ public:
 		patterns.y = calculatePatternOffset(pos.y, spr->pattern_y);
 		patterns.z = calculatePatternOffset(pos.z, spr->pattern_z);
 
-		patterns.frame = (spr->animator) ? spr->animator->getFrame() : 0;
+		if (spr->animator) {
+			patterns.frame = spr->animator->getFrame();
+			RepaintHints::NoteAnimation(spr->animator->getMinFrameDuration());
+		} else {
+			patterns.frame = 0;
+		}
 
 		// group() lido uma vez: isSplash e isFluidContainer sao literalmente duas
 		// comparacoes contra ele.

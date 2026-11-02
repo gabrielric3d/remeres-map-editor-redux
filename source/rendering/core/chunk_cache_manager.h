@@ -77,6 +77,9 @@ struct CachedChunk {
 	uint64_t waiting_delivery = 0;
 	int64_t waiting_since_ms = 0;
 	int64_t last_bake_ms = 0;
+	// Menor duração de frame (ms) entre os sprites animados assados no chunk, 0 se
+	// nenhum: o chunk visível pede repaint nesse ritmo (RepaintHints).
+	int anim_min_step_ms = 0;
 	std::vector<DeferredTileInfo> deferred_tiles;
 	// Distinct sprites baked into this chunk, kept so their atlas LRU stamp
 	// can be renewed while the chunk is on screen. Only valid as long as the
@@ -117,6 +120,7 @@ struct CachedChunk {
 		waiting_delivery(other.waiting_delivery),
 		waiting_since_ms(other.waiting_since_ms),
 		last_bake_ms(other.last_bake_ms),
+		anim_min_step_ms(other.anim_min_step_ms),
 		deferred_tiles(std::move(other.deferred_tiles)),
 		used_sprites(std::move(other.used_sprites)),
 		defer_reasons(other.defer_reasons),
@@ -146,6 +150,7 @@ struct CachedChunk {
 			waiting_delivery = other.waiting_delivery;
 			waiting_since_ms = other.waiting_since_ms;
 			last_bake_ms = other.last_bake_ms;
+			anim_min_step_ms = other.anim_min_step_ms;
 			deferred_tiles = std::move(other.deferred_tiles);
 			used_sprites = std::move(other.used_sprites);
 			defer_reasons = other.defer_reasons;

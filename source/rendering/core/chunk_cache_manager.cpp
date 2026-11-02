@@ -13,6 +13,7 @@
 #include "rendering/core/render_frame_context.h"
 #include "rendering/core/render_view.h"
 #include "rendering/core/render_order.h"
+#include "rendering/core/repaint_hints.h"
 #include "rendering/core/shared_geometry.h"
 #include "rendering/core/sprite_atlas_lut.h"
 #include "rendering/core/sprite_preloader.h"
@@ -489,6 +490,7 @@ void ChunkCacheManager::bakeChunk(CachedChunk& chunk, const Map& map, const Rend
 	chunk.contents_offset = 0;
 	chunk.spill_instances.clear();
 	chunk.spill_keys.clear();
+	chunk.anim_min_step_ms = 0;
 	chunk.bake_serial = ++bake_serial_counter_;
 
 	const DrawingOptions& options = ctx.options;
@@ -598,6 +600,10 @@ void ChunkCacheManager::bakeChunk(CachedChunk& chunk, const Map& map, const Rend
 				anim_seq = animSequenceFor(spr, cx, cy, cf, pat, sprite_pending, allow_sync_loads);
 				if (anim_seq == 0) {
 					return; // algum frame ainda sem regiao: sprite_pending ja diz para tentar de novo
+				}
+				const int step = spr->animator->getMinFrameDuration();
+				if (chunk.anim_min_step_ms == 0 || step < chunk.anim_min_step_ms) {
+					chunk.anim_min_step_ms = step;
 				}
 			}
 			// No tamanho do mundo: a arte de 64 px por casa ocupa a casa de 32.
@@ -988,6 +994,17 @@ void ChunkCacheManager::renderFloor(
 			flushAnimationTables();
 		}
 		chunk.last_accessed_frame = current_frame_;
+
+		// O shader troca os frames, mas só quando o canvas repinta: o chunk visível
+		// com animação pede repaint no ritmo dela. Esperando sprite, pede outro frame
+		// para o re-bake acontecer -- antes o timer de 60 Hz fazia isso por acaso, e
+		// com "Show animation" desligado o buraco ficava até o próximo input.
+		if (chunk.anim_min_step_ms > 0) {
+			RepaintHints::NoteAnimation(chunk.anim_min_step_ms);
+		}
+		if (chunk.waiting_for_sprites) {
+			RepaintHints::NotePendingWork();
+		}
 
 		// Keep the atlas LRU aware that these sprites are still on screen, even
 		// though nothing looked up their atlas region this frame.

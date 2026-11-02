@@ -9,32 +9,34 @@
 
 AnimationTimer::AnimationTimer(MapCanvas* canvas) :
 	wxTimer(),
-	map_canvas(canvas),
-	started(false) {
-		////
-	};
+	map_canvas(canvas) {
+}
 
 AnimationTimer::~AnimationTimer() {
-	////
-};
+	wxTimer::Stop();
+}
 
 void AnimationTimer::Notify() {
-	if (map_canvas->GetZoom() <= 2.0) {
-		map_canvas->Refresh();
-	}
-};
+	map_canvas->Refresh();
+}
 
-void AnimationTimer::Start() {
-	if (!started) {
-		started = true;
-		constexpr int TARGET_FPS = 60;
-		wxTimer::Start(1000 / TARGET_FPS);
+void AnimationTimer::Schedule(int delay_ms) {
+	if (delay_ms < 0) {
+		Stop();
+		return;
 	}
-};
+
+	const auto now = std::chrono::steady_clock::now();
+	const auto new_due = now + std::chrono::milliseconds(delay_ms);
+	if (IsRunning() && due <= new_due) {
+		return; // já vai repintar antes disso
+	}
+	due = new_due;
+	wxTimer::StartOnce(std::max(1, delay_ms));
+}
 
 void AnimationTimer::Stop() {
-	if (started) {
-		started = false;
+	if (IsRunning()) {
 		wxTimer::Stop();
 	}
-};
+}

@@ -238,6 +238,7 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/render_view.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/render_order.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/render_order_profile.h
+    ${CMAKE_CURRENT_LIST_DIR}/rendering/core/repaint_hints.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/ring_buffer.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/shader_program.h
     ${CMAKE_CURRENT_LIST_DIR}/rendering/core/shared_geometry.h

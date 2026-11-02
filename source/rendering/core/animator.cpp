@@ -115,8 +115,15 @@ void Animator::setFrame(int frame) {
 
 void Animator::reset() {
 	total_duration = 0;
+	min_frame_duration = 0;
 	for (int i = 0; i < frame_count; i++) {
 		total_duration += durations[i].max;
+		if (min_frame_duration == 0 || (durations[i].min > 0 && durations[i].min < min_frame_duration)) {
+			min_frame_duration = durations[i].min;
+		}
+	}
+	if (min_frame_duration <= 0) {
+		min_frame_duration = 1; // durações zeradas: repinta no ritmo máximo, como antes
 	}
 
 	is_complete = false;

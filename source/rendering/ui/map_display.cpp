@@ -61,6 +61,8 @@
 #include "ui/dialog_helper.h"
 #include "game/animation_timer.h"
 #include "rendering/core/custom_item_light.h"
+#include "rendering/core/repaint_hints.h"
+#include "rendering/core/sprite_preloader.h"
 #include "ui/map_popup_menu.h"
 #include "brushes/brush_utility.h"
 #include "rendering/ui/clipboard_handler.h"
@@ -484,17 +486,23 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 		options.boundbox_selection = selection_controller->IsBoundboxSelection();
 		options.lasso_selection = selection_controller->IsLassoSelection();
 
-		// Start animation timer for animated previews or custom item light patterns
-		bool needs_animation = options.show_preview
-			|| (options.show_lights && options.show_custom_item_lights
-				&& CustomItemLightManager::instance().hasAnimatedLights())
-			|| options.screen_shader_name == ShaderNames::NEVASCA;
+		// Relógio das animações: anda com "Show animation", luz custom animada ou o
+		// shader Nevasca. Se o canvas repinta, e em que ritmo, quem decide é o que o
+		// frame anotar em RepaintHints (ver o fim do OnPaint).
+		const bool animated_lights = options.show_lights && options.show_custom_item_lights
+			&& CustomItemLightManager::instance().hasAnimatedLights();
+		const bool nevasca = options.screen_shader_name == ShaderNames::NEVASCA;
+		const bool needs_animation = options.show_preview || animated_lights || nevasca;
 		if (needs_animation) {
-			animation_timer->Start();
 			g_gui.gfx.resumeAnimation();
 		} else {
-			animation_timer->Stop();
 			g_gui.gfx.pauseAnimation();
+		}
+		// Afastado além de 50% os sprites animados não pedem repaint (já era assim:
+		// o timer antigo só redesenhava com zoom <= 2).
+		RepaintHints::BeginFrame(options.show_preview && GetZoom() <= 2.0);
+		if (animated_lights || nevasca) {
+			RepaintHints::NoteContinuous();
 		}
 
 		// BatchRenderer calls removed - MapDrawer handles its own renderers
@@ -530,6 +538,18 @@ void MapCanvas::OnPaint(wxPaintEvent& event) {
 		}
 
 		drawer->ClearFrameOverlays();
+
+		// Pulso da casa do brush de casa: muda a cada frame. Só anima com "Show
+		// animation", como antes (era o timer de 60 Hz que o fazia andar).
+		if (options.show_preview && options.current_house_id != 0 && options.show_houses && options.extended_house_shader) {
+			RepaintHints::NoteContinuous();
+		}
+		// Sprite pedido ao preloader que ainda não chegou: o resultado só é
+		// aplicado no próximo frame (updateTime), então tem de haver um.
+		if (!SpritePreloader::get().isIdle()) {
+			RepaintHints::NotePendingWork();
+		}
+		animation_timer->Schedule(RepaintHints::NextRepaintDelayMs());
 	}
 
 	{

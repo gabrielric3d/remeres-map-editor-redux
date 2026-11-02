@@ -67,6 +67,12 @@ public:
 
 	void reset();
 
+	// Menor duração de frame (ms), calculada no reset(): o ritmo em que o canvas
+	// precisa repintar para não pular frame desta animação (RepaintHints).
+	int getMinFrameDuration() const {
+		return min_frame_duration;
+	}
+
 private:
 	int getDuration(int frame) const;
 	int getPingPongFrame();
@@ -82,6 +88,7 @@ private:
 	int current_loop;
 	int current_duration;
 	int total_duration;
+	int min_frame_duration = ITEM_FRAME_DURATION;
 	AnimationDirection direction;
 	long last_time;
 	bool is_complete;
