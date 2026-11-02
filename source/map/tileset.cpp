@@ -220,10 +220,19 @@ void TilesetCategory::loadBrush(pugi::xml_node node, std::vector<std::string>& w
 		}
 
 		fromId = attribute.as_ushort();
-		toId = std::max<uint16_t>(fromId, toId);
+		if (toId == 0) {
+			toId = fromId; // id="" ou fromid sem toid: um item só
+		} else if (toId < fromId) {
+			// Antes virava max(from, to) e carregava só o fromid, descartando o resto do
+			// range sem avisar. Mesmo tratamento do upstream (dbf647fe): inverte e avisa.
+			warnings.push_back(std::format("Tileset: {}, inverted item range fromid={} toid={}, loading {}-{}.", tileset.name, fromId, toId, toId, fromId));
+			std::swap(fromId, toId);
+		}
 
 		std::vector<Brush*> tempBrushVector;
-		for (uint16_t id = fromId; id <= toId; ++id) {
+		// Contador em 32 bits: com toid=65535 um uint16_t daria a volta e nunca sairia do laço.
+		for (uint32_t raw_id = fromId; raw_id <= toId; ++raw_id) {
+			const uint16_t id = static_cast<uint16_t>(raw_id);
 			const auto it = g_item_definitions.get(id);
 			if (!it) {
 				warnings.push_back(std::format("Tileset: {}, Brush: {}, Previous {}, From: {}, To: {}", tileset.name, brushName, tileset.previousId, fromId, toId));
