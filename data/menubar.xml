@@ -306,6 +306,8 @@
 		<separator/>
 		<item name="Show Camera Paths" hotkey="Shift+C" action="SHOW_CAMERA_PATHS" help="Show camera paths on the map."/>
 		<item name="Camera Path Palette" hotkey="" action="SELECT_CAMERA_PATH" help="Select the Camera Path palette."/>
+		<item name="Play/Pause Camera Path" hotkey="Ctrl+Shift+P" action="CAMERA_PLAY_PAUSE" help="Play or stop the active camera path."/>
+		<item name="Add Camera Keyframe" hotkey="Ctrl+Shift+K" action="CAMERA_ADD_KEYFRAME" help="Add a keyframe to the active camera path at the mouse position."/>
 	</menu>
 	<menu name="Scripts" special="SCRIPTS">
 		<item name="Script Manager..." action="SCRIPTS_MANAGER" help="Show/hide the Script Manager window."/>

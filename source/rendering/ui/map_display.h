@@ -132,6 +132,9 @@ public:
 	void ToggleCameraPathPlayback();
 	void OnCameraPathTimer(wxTimerEvent& event);
 	bool IsCameraPathPlaying() const { return camera_path_playing; }
+	// Blank mouse cursor while a camera path plays, if "Hide Preview Mouse" is on.
+	void UpdateCameraPreviewCursorVisibility();
+	bool IsCameraPreviewMouseHidden() const;
 
 	enum {
 		BLOCK_SIZE = 100

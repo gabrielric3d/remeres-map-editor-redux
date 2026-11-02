@@ -24,6 +24,8 @@
 #include "app/settings.h"
 #include "ui/map_tab.h"
 
+#include <algorithm>
+
 namespace LuaAPI {
 
 	// Helper: get the current editor or throw
@@ -101,6 +103,7 @@ namespace LuaAPI {
 			kf["y"] = path.keyframes[k].pos.y;
 			kf["z"] = path.keyframes[k].pos.z;
 			kf["duration"] = path.keyframes[k].duration;
+			kf["hold"] = path.keyframes[k].hold;
 			kf["speed"] = path.keyframes[k].speed;
 			kf["zoom"] = path.keyframes[k].zoom;
 			kf["easing"] = static_cast<int>(path.keyframes[k].easing);
@@ -130,6 +133,10 @@ namespace LuaAPI {
 				[](CameraKeyframe& kf, int v) { kf.pos.z = v; }
 			),
 			"duration", &CameraKeyframe::duration,
+			"hold", sol::property(
+				[](const CameraKeyframe& kf) { return kf.hold; },
+				[](CameraKeyframe& kf, double v) { kf.hold = std::max(0.0, v); }
+			),
 			"speed", &CameraKeyframe::speed,
 			"zoom", &CameraKeyframe::zoom,
 			"easing", sol::property(
@@ -335,6 +342,7 @@ namespace LuaAPI {
 				if (props["y"].valid()) kf.pos.y = props["y"].get<int>();
 				if (props["z"].valid()) kf.pos.z = props["z"].get<int>();
 				if (props["duration"].valid()) kf.duration = props["duration"].get<double>();
+				if (props["hold"].valid()) kf.hold = std::max(0.0, props["hold"].get<double>());
 				if (props["speed"].valid()) kf.speed = props["speed"].get<double>();
 				if (props["zoom"].valid()) kf.zoom = props["zoom"].get<double>();
 				if (props["easing"].valid()) {
@@ -438,6 +446,7 @@ namespace LuaAPI {
 				if (props["y"].valid()) kf.pos.y = props["y"].get<int>();
 				if (props["z"].valid()) kf.pos.z = props["z"].get<int>();
 				if (props["duration"].valid()) kf.duration = props["duration"].get<double>();
+				if (props["hold"].valid()) kf.hold = std::max(0.0, props["hold"].get<double>());
 				if (props["speed"].valid()) kf.speed = props["speed"].get<double>();
 				if (props["zoom"].valid()) kf.zoom = props["zoom"].get<double>();
 				if (props["easing"].valid()) {

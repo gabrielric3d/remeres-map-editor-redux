@@ -254,6 +254,14 @@ void DrawingController::HandleClick(const Position& mouse_map_pos, bool shift_do
 				} else if (brush->oneSizeFitsAll()) {
 					if (brush->is<HouseExitBrush>() || brush->is<WaypointBrush>()) {
 						editor.draw(mouse_map_pos, alt_down);
+					} else if (brush->is<CameraPathBrush>()) {
+						// Click moves the selected keyframe here, Ctrl+Click removes it. Alt+Click,
+						// which adds one, is taken by the canvas before it gets here.
+						if (ctrl_down) {
+							editor.undraw(mouse_map_pos, alt_down);
+						} else {
+							editor.draw(mouse_map_pos, alt_down);
+						}
 					} else {
 						PositionVector tilestodraw;
 						tilestodraw.push_back(mouse_map_pos);

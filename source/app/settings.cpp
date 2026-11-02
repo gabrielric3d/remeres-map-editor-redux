@@ -354,6 +354,7 @@ void Settings::IO(IOMode mode) {
 	Bool(DRAW_LOCKED_DOOR, false);
 	Bool(SHOW_AS_MINIMAP, false);
 	Bool(SHOW_CAMERA_PATHS, true);
+	Bool(HIDE_CAMERA_PREVIEW_MOUSE, false);
 	Bool(SHOW_CREATURE_NAMES, true);
 
 	section("General");

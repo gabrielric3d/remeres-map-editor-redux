@@ -501,7 +501,10 @@ void MapDrawer::Draw() {
 		br_loot_drawer->drawItemSprites(*sprite_batch, sprite_drawer.get(), item_drawer.get(), view, editor);
 	}
 
-	{
+	// Camera path preview with "Hide Preview Mouse": the brush and the cursor tile
+	// would sit in the middle of the shot.
+	const bool hide_preview_mouse = canvas && canvas->IsCameraPreviewMouseHidden();
+	if (!hide_preview_mouse) {
 		RENDER_PROFILE_SCOPE(BrushOverlay);
 		brush_overlay_drawer->draw(*sprite_batch, *primitive_renderer, this, item_drawer.get(), sprite_drawer.get(), creature_drawer.get(), view, options, editor);
 	}
@@ -524,7 +527,9 @@ void MapDrawer::Draw() {
 		DrawIngameBox(original_bounds);
 	}
 
-	DrawCursorTile();
+	if (!hide_preview_mouse) {
+		DrawCursorTile();
+	}
 
 	// Draw selection overlay (bounding box or lasso)
 	if (options.boundbox_selection && !options.ingame) {
@@ -798,6 +803,10 @@ void MapDrawer::DrawSolidInstanceZones(NVGcontext* vg) {
 
 void MapDrawer::DrawBRLootOverlay(NVGcontext* vg) {
 	br_loot_drawer->draw(vg, view, options, editor, *zone_label_drawer);
+}
+
+void MapDrawer::DrawCameraPathLabels(NVGcontext* vg) {
+	camera_path_drawer->drawLabels(vg, view, options, editor);
 }
 
 void MapDrawer::DrawWallBorders(NVGcontext* vg) {

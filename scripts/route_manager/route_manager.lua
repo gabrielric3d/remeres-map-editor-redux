@@ -97,8 +97,8 @@ local function buildKeyframeListItems()
             i, label, formatPos(kf.x, kf.y, kf.z))
         table.insert(items, {
             text = text,
-            tooltip = string.format("Position: %s\nDuration: %.1f\nZoom: %.1f",
-                formatPos(kf.x, kf.y, kf.z), kf.duration or 1.0, kf.zoom or 1.0)
+            tooltip = string.format("Position: %s\nDuration: %.1f\nHold: %.1f\nZoom: %.1f",
+                formatPos(kf.x, kf.y, kf.z), kf.duration or 1.0, kf.hold or 0.0, kf.zoom or 1.0)
         })
     end
     return items
@@ -255,6 +255,7 @@ local function onDuplicateRoute()
             app.cameraPaths.addKeyframe(newName, {
                 x = kf.x, y = kf.y, z = kf.z,
                 duration = kf.duration,
+                hold = kf.hold,
                 speed = kf.speed,
                 zoom = kf.zoom,
                 easing = kf.easing

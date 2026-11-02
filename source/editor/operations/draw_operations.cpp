@@ -21,6 +21,7 @@
 #include "brushes/spawn/spawn_brush.h"
 #include "brushes/door/door_brush.h"
 #include "brushes/camera/camera_path_brush.h"
+#include "palette/palette_camera_paths.h"
 #include "brushes/br_loot/br_loot_item_brush.h"
 #include "brushes/br_loot/br_loot_zone_brush.h"
 #include "brushes/managers/brush_manager.h"
@@ -463,33 +464,30 @@ void DrawOperations::draw(Editor& editor, Position offset, bool alt, bool dodraw
 			return;
 		}
 
-		CameraPath* path = editor.map.camera_paths.getActivePath();
-		if (!path) {
-			return;
-		}
+		CameraPaths temp = editor.map.camera_paths;
+		CameraPath* path = temp.getActivePath();
+		const int active_index = temp.getActiveKeyframe();
+		const bool has_selected = path && active_index >= 0 && active_index < static_cast<int>(path->keyframes.size());
 
-		CameraPathsSnapshot snapshot = editor.map.camera_paths.snapshot();
-		CameraPath* snap_path = nullptr;
-		for (auto& p : snapshot.paths) {
-			if (p.name == path->name) {
-				snap_path = &p;
-				break;
+		if (!dodraw) {
+			// Ctrl+Click: remove the selected keyframe and select the one that took its place.
+			if (!has_selected) {
+				return;
 			}
-		}
-		if (!snap_path) {
-			return;
+			path->keyframes.erase(path->keyframes.begin() + active_index);
+			temp.setActiveKeyframe(std::min(active_index, static_cast<int>(path->keyframes.size()) - 1));
+		} else if (has_selected && !alt) {
+			// Click: move the selected keyframe here, keeping its timing.
+			CameraKeyframe& key = path->keyframes[active_index];
+			if (key.pos == offset) {
+				return;
+			}
+			key.pos = offset;
+		} else {
+			temp.insertKeyframeAfterActive(CameraPathPalettePanel::MakeKeyframe(offset));
 		}
 
-		CameraKeyframe key;
-		key.pos = offset;
-		key.duration = 1.0;
-		key.speed = 0.0;
-		key.zoom = 1.0;
-		key.easing = CameraEasing::EaseInOut;
-		snap_path->keyframes.push_back(key);
-		snapshot.active_keyframe = static_cast<int>(snap_path->keyframes.size()) - 1;
-
-		editor.ApplyCameraPathsSnapshot(snapshot, ACTION_DRAW);
+		editor.ApplyCameraPathsSnapshot(temp.snapshot(), ACTION_DRAW);
 	} else if (brush->is<WallBrush>()) {
 		std::unique_ptr<BatchAction> batch = editor.actionQueue->createBatch(ACTION_DRAW);
 		std::unique_ptr<Action> action = editor.actionQueue->createAction(batch.get());

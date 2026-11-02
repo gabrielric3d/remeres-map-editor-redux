@@ -179,6 +179,7 @@ public:
 	void DrawWorldBossLabels(NVGcontext* vg);
 	void DrawSolidInstanceZones(NVGcontext* vg);
 	void DrawBRLootOverlay(NVGcontext* vg); // Battle Royale: loot zone outline, ids, placed items
+	void DrawCameraPathLabels(NVGcontext* vg); // keyframe numbers + hold badges
 
 	void TakeScreenshot(uint8_t* screenshot_buffer);
 

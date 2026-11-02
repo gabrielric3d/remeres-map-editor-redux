@@ -19,6 +19,7 @@
 
 #include "game/camera_paths.h"
 
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -212,6 +213,21 @@ void CameraPaths::setActiveKeyframe(int index)
 	active_keyframe = index;
 }
 
+void CameraPaths::insertKeyframeAfterActive(const CameraKeyframe& key)
+{
+	CameraPath* path = getActivePath();
+	if (!path) {
+		path = addPath("Path");
+	}
+
+	int insertIndex = static_cast<int>(path->keyframes.size());
+	if (active_keyframe >= 0 && active_keyframe < insertIndex) {
+		insertIndex = active_keyframe + 1;
+	}
+	path->keyframes.insert(path->keyframes.begin() + insertIndex, key);
+	active_keyframe = insertIndex;
+}
+
 CameraPathsSnapshot CameraPaths::snapshot() const
 {
 	CameraPathsSnapshot snap;
@@ -328,6 +344,7 @@ bool CameraPaths::loadFromFile(const FileName& mapFile, wxString* outError)
 					key.pos.y = keyNode.value("y", 0);
 					key.pos.z = keyNode.value("z", 7);
 					key.duration = keyNode.value("duration", 1.0);
+					key.hold = std::max(0.0, keyNode.value("hold", 0.0));
 					key.speed = keyNode.value("speed", 0.0);
 					key.zoom = keyNode.value("zoom", 1.0);
 					key.easing = static_cast<CameraEasing>(keyNode.value("easing", static_cast<int>(CameraEasing::EaseInOut)));
@@ -384,6 +401,7 @@ bool CameraPaths::saveToFile(const FileName& mapFile, wxString* outError) const
 			keyNode["y"] = key.pos.y;
 			keyNode["z"] = key.pos.z;
 			keyNode["duration"] = key.duration;
+			keyNode["hold"] = key.hold;
 			keyNode["speed"] = key.speed;
 			keyNode["zoom"] = key.zoom;
 			keyNode["easing"] = static_cast<int>(key.easing);
@@ -435,7 +453,12 @@ double GetCameraPathDuration(const CameraPath& path, bool loop)
 	const size_t segments = loop ? count : (count - 1);
 	for (size_t i = 0; i < segments; ++i) {
 		const size_t next = loop ? WrapIndex(static_cast<int>(i + 1), count) : (i + 1);
+		total += std::max(0.0, path.keyframes[i].hold);
 		total += GetCameraSegmentDuration(path.keyframes[i], path.keyframes[next]);
+	}
+	// Without loop the last keyframe starts no segment: its hold is the pause at the end.
+	if (!loop) {
+		total += std::max(0.0, path.keyframes.back().hold);
 	}
 	return total;
 }
@@ -479,21 +502,36 @@ CameraPathSample SampleCameraPathByTime(const CameraPath& path, double time, boo
 	const size_t segments = loop ? count : (count - 1);
 
 	for (size_t i = 0; i < segments; ++i) {
+		// Standing still on keyframe i before leaving it.
+		const double hold = std::max(0.0, path.keyframes[i].hold);
+		if (localTime < hold) {
+			return EvaluateSegment(path, i, 0.0, loop);
+		}
+		localTime -= hold;
+
 		const size_t next = loop ? WrapIndex(static_cast<int>(i + 1), count) : (i + 1);
 		double segDuration = GetCameraSegmentDuration(path.keyframes[i], path.keyframes[next]);
 		if (segDuration <= 0.0) {
 			continue;
 		}
 
-		if (localTime <= segDuration || i == segments - 1) {
-			double t = segDuration > 0.0 ? (localTime / segDuration) : 0.0;
-			return EvaluateSegment(path, i, t, loop);
+		if (localTime <= segDuration) {
+			return EvaluateSegment(path, i, localTime / segDuration, loop);
 		}
 		localTime -= segDuration;
 	}
 
-	if (finished) {
-		*finished = true;
+	// Past the last segment: the closing hold of a path without loop (or rounding at
+	// the very end of a loop). Rest at the end of the last segment.
+	return EvaluateSegment(path, segments - 1, 1.0, loop);
+}
+
+CameraPathSample SampleCameraPathSegment(const CameraPath& path, size_t segmentIndex, double t, bool loop)
+{
+	const size_t count = path.keyframes.size();
+	if (count < 2) {
+		return CameraPathSample();
 	}
-	return sample;
+	const size_t segments = loop ? count : (count - 1);
+	return EvaluateSegment(path, std::min(segmentIndex, segments - 1), std::clamp(t, 0.0, 1.0), loop);
 }

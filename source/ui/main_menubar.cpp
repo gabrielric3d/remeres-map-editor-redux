@@ -792,6 +792,14 @@ void MainMenuBar::OnSelectBRLootItemPalette(wxCommandEvent& event) {
 	paletteMenuHandler->OnSelectBRLootItemPalette(event);
 }
 
+void MainMenuBar::OnCameraPlayPause(wxCommandEvent& WXUNUSED(event)) {
+	g_gui.ToggleCameraPathPlayback();
+}
+
+void MainMenuBar::OnCameraAddKeyframe(wxCommandEvent& WXUNUSED(event)) {
+	g_gui.AddCameraPathKeyframeAtCursor();
+}
+
 void MainMenuBar::OnScriptsOpenFolder(wxCommandEvent& event) {
 	if (scriptMenuHandler) scriptMenuHandler->OnScriptsOpenFolder(event);
 }

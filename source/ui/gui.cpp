@@ -47,6 +47,7 @@
 #include "ui/result_window.h"
 #include "rendering/ui/minimap_window.h"
 #include "palette/palette_window.h"
+#include "palette/palette_camera_paths.h"
 #include "palette/controls/carpet_piece_strip.h"
 #include "palette/house/house_palette.h"
 #include "rendering/ui/map_display.h"
@@ -256,6 +257,30 @@ void GUI::ToggleCameraPathPlayback() {
 	if (canvas) {
 		canvas->ToggleCameraPathPlayback();
 	}
+}
+
+void GUI::AddCameraPathKeyframeAtCursor() {
+	MapTab* mapTab = GetCurrentMapTab();
+	if (!mapTab) {
+		return;
+	}
+	Editor* editor = mapTab->GetEditor();
+	MapCanvas* canvas = mapTab->GetCanvas();
+	if (!editor || !canvas) {
+		return;
+	}
+
+	Position pos = canvas->GetCursorPosition();
+	if (!pos.isValid()) {
+		pos = mapTab->GetScreenCenterPosition();
+	}
+	if (!pos.isValid()) {
+		return;
+	}
+
+	CameraPaths temp = editor->map.camera_paths;
+	temp.insertKeyframeAfterActive(CameraPathPalettePanel::MakeKeyframe(pos));
+	editor->ApplyCameraPathsSnapshot(temp.snapshot(), ACTION_DRAW);
 }
 
 void GUI::DoCut() {

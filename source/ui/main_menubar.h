@@ -176,6 +176,8 @@ namespace MenuBar {
 		SELECT_RAW,
 		SELECT_BR_LOOT_ZONE, // Battle Royale: the loot zone palette
 		SELECT_BR_LOOT_ITEM, // Battle Royale: the loot item palette
+		CAMERA_PLAY_PAUSE,
+		CAMERA_ADD_KEYFRAME,
 		FLOOR_0,
 		FLOOR_1,
 		FLOOR_2,
@@ -408,6 +410,8 @@ public:
 	void OnSelectRawPalette(wxCommandEvent& event);
 	void OnSelectBRLootZonePalette(wxCommandEvent& event);
 	void OnSelectBRLootItemPalette(wxCommandEvent& event);
+	void OnCameraPlayPause(wxCommandEvent& event);
+	void OnCameraAddKeyframe(wxCommandEvent& event);
 
 	void OnScriptsOpenFolder(wxCommandEvent& event);
 	void OnScriptsReload(wxCommandEvent& event);

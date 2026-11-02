@@ -164,6 +164,8 @@ void TipsWindow::BuildShortcutList() {
 	all_shortcuts.push_back({"Show", "U", "Highlight locked doors"});
 	all_shortcuts.push_back({"Show", "K", "Show wall hooks"});
 	all_shortcuts.push_back({"Show", "Shift+C", "Show camera paths"});
+	all_shortcuts.push_back({"Camera Path", "Ctrl+Shift+P", "Play/stop the active camera path"});
+	all_shortcuts.push_back({"Camera Path", "Ctrl+Shift+K", "Add camera keyframe at the mouse"});
 
 	// Hotkeys
 	all_shortcuts.push_back({"Hotkeys", "0-9", "Load saved hotkey (position or brush)"});

@@ -47,14 +47,20 @@ public:
 	void SetMap(Map* map);
 
 	double GetKeyframeDuration() const;
+	double GetKeyframeHold() const;
 	double GetKeyframeSpeed() const;
 	double GetKeyframeZoom() const;
 	int GetKeyframeZ() const;
 	int GetKeyframeEasing() const;
 
+	// Keyframe at pos (floor included) with the values typed in the palette, or the
+	// defaults when the palette is not built.
+	static CameraKeyframe MakeKeyframe(const Position& pos);
+
 protected:
 	void RefreshPathList();
 	void RefreshKeyframeList();
+	void RefreshKeyframeRows();
 	void UpdateKeyframeControls();
 	CameraPath* GetActivePath() const;
 	int GetSelectedKeyframeIndex() const;
@@ -78,9 +84,13 @@ protected:
 	void OnKeyframeDown(wxCommandEvent& event);
 	void OnApplyKeyframeProps(wxCommandEvent& event);
 	void OnToggleShowPaths(wxCommandEvent& event);
+	void OnToggleHidePreviewMouse(wxCommandEvent& event);
 	void OnGetZoom(wxCommandEvent& event);
 
 	Map* map;
+	// Set while the list is rebuilt: MSW fires the selection events for rows selected
+	// from code, and those must not move the view or the active keyframe.
+	bool updating_keyframe_list = false;
 	wxListCtrl* path_list;
 	wxListCtrl* keyframe_list;
 	wxButton* add_path_button;
@@ -88,6 +98,7 @@ protected:
 	wxButton* play_pause_button;
 	wxCheckBox* loop_checkbox;
 	wxCheckBox* show_paths_checkbox;
+	wxCheckBox* hide_preview_mouse_checkbox;
 
 	wxButton* add_keyframe_button;
 	wxButton* remove_keyframe_button;
@@ -98,6 +109,7 @@ protected:
 
 	wxStaticText* pos_label;
 	wxTextCtrl* duration_ctrl;
+	wxTextCtrl* hold_ctrl;
 	wxTextCtrl* speed_ctrl;
 	wxTextCtrl* zoom_ctrl;
 	wxButton* get_zoom_button;

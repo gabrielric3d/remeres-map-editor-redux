@@ -36,6 +36,9 @@ enum class CameraEasing {
 struct CameraKeyframe {
 	Position pos;
 	double duration = 1.0;
+	// Seconds the camera stands still on this keyframe before it leaves for the next one.
+	// On the last keyframe of a path without loop it is the pause at the end.
+	double hold = 0.0;
 	double speed = 0.0;
 	double zoom = 1.0;
 	CameraEasing easing = CameraEasing::EaseInOut;
@@ -89,6 +92,9 @@ public:
 	const std::string& getActivePathName() const { return active_path; }
 	void setActiveKeyframe(int index);
 	int getActiveKeyframe() const { return active_keyframe; }
+	// Inserts key right after the selected keyframe of the active path (at the end when
+	// none is selected), creating a path when there is none, and selects the new one.
+	void insertKeyframeAfterActive(const CameraKeyframe& key);
 
 	CameraPathsSnapshot snapshot() const;
 	void applySnapshot(const CameraPathsSnapshot& snap);
@@ -109,5 +115,8 @@ private:
 double GetCameraSegmentDuration(const CameraKeyframe& a, const CameraKeyframe& b);
 double GetCameraPathDuration(const CameraPath& path, bool loop);
 CameraPathSample SampleCameraPathByTime(const CameraPath& path, double time, bool loop, bool* finished = nullptr);
+// Point on the spline of one segment (keyframe segmentIndex -> next), t in [0, 1].
+// Independent of durations and holds, so it is what the path overlay draws.
+CameraPathSample SampleCameraPathSegment(const CameraPath& path, size_t segmentIndex, double t, bool loop);
 
 #endif

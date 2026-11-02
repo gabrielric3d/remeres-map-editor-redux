@@ -25,6 +25,8 @@
 #include <time.h>
 #include <thread>
 #include <chrono>
+#include <algorithm>
+#include <wx/image.h>
 #include <wx/wfstream.h>
 #include <spdlog/spdlog.h>
 
@@ -386,6 +388,9 @@ void MapCanvas::DrawOverlays(NVGcontext* vg, const DrawingOptions& options) {
 	if (options.show_br_loot_zones) {
 		RENDER_PROFILE_SCOPE(NvgBRLoot);
 		drawer->DrawBRLootOverlay(vg);
+	}
+	if (options.show_camera_paths) {
+		drawer->DrawCameraPathLabels(vg);
 	}
 	if (drawer->getLuaOverlayDrawer()) {
 		RENDER_PROFILE_SCOPE(NvgLuaUI);
@@ -911,36 +916,9 @@ void MapCanvas::OnMouseActionClick(wxMouseEvent& event) {
 
 	// Alt+Click: add camera path keyframe at click position (when camera path palette is active)
 	if (event.AltDown() && !event.ControlDown() && g_gui.GetCurrentBrush() && g_gui.GetCurrentBrush()->is<CameraPathBrush>()) {
-		PaletteWindow* palette = g_gui.GetPalette();
-		CameraPathPalettePanel* camPalette = palette ? palette->GetCameraPathPalette() : nullptr;
-		if (camPalette) {
-			Position clickPos(mouse_map_x, mouse_map_y, floor);
-			CameraPaths temp = editor.map.camera_paths;
-			CameraPath* path = temp.getActivePath();
-			if (!path) {
-				path = temp.addPath("Path");
-			}
-
-			CameraKeyframe key;
-			key.pos = clickPos;
-			key.duration = camPalette->GetKeyframeDuration();
-			key.speed = camPalette->GetKeyframeSpeed();
-			key.zoom = camPalette->GetKeyframeZoom();
-			key.easing = static_cast<CameraEasing>(camPalette->GetKeyframeEasing());
-
-			int insertIndex = static_cast<int>(path->keyframes.size());
-			int activeIndex = temp.getActiveKeyframe();
-			if (activeIndex >= 0 && activeIndex < static_cast<int>(path->keyframes.size())) {
-				insertIndex = activeIndex + 1;
-			}
-			path->keyframes.insert(path->keyframes.begin() + insertIndex, key);
-			temp.setActiveKeyframe(insertIndex);
-
-			Editor* ed = g_gui.GetCurrentEditor();
-			if (ed) {
-				ed->ApplyCameraPathsSnapshot(temp.snapshot(), ACTION_DRAW);
-			}
-		}
+		CameraPaths temp = editor.map.camera_paths;
+		temp.insertKeyframeAfterActive(CameraPathPalettePanel::MakeKeyframe(Position(mouse_map_x, mouse_map_y, floor)));
+		editor.ApplyCameraPathsSnapshot(temp.snapshot(), ACTION_DRAW);
 	} else if (IsSmartBrushModifier(event.ShiftDown(), event.ControlDown(), event.AltDown())) {
 		Tile* tile = editor.map.getTile(mouse_map_x, mouse_map_y, floor);
 		BrushSelector::SelectSmartBrush(editor, tile);
@@ -1255,6 +1233,7 @@ void MapCanvas::Reset() {
 		camera_path_time = 0.0;
 		camera_path_name.clear();
 	}
+	UpdateCameraPreviewCursorVisibility();
 
 	cursor_x = 0;
 	cursor_y = 0;
@@ -1287,6 +1266,8 @@ void MapCanvas::ToggleCameraPathPlayback() {
 		camera_path_playing = false;
 		camera_path_time = 0.0;
 		camera_path_name.clear();
+		UpdateCameraPreviewCursorVisibility();
+		Refresh();
 		g_gui.SetStatusText("Camera path playback stopped.");
 		return;
 	}
@@ -1302,8 +1283,26 @@ void MapCanvas::ToggleCameraPathPlayback() {
 	camera_path_time = 0.0;
 	camera_path_last_tick = std::chrono::steady_clock::now();
 	camera_path_playing = true;
+	UpdateCameraPreviewCursorVisibility();
 	camera_path_timer.Start(16); // ~60fps
 	g_gui.SetStatusText("Camera path playback started.");
+}
+
+bool MapCanvas::IsCameraPreviewMouseHidden() const {
+	return camera_path_playing && g_settings.getBoolean(Config::HIDE_CAMERA_PREVIEW_MOUSE);
+}
+
+void MapCanvas::UpdateCameraPreviewCursorVisibility() {
+	if (!IsCameraPreviewMouseHidden()) {
+		SetCursor(wxNullCursor);
+		return;
+	}
+	// Built from a transparent image: the stock wxCURSOR_BLANK lives in wx.rc, which this
+	// app does not link, and asking for it fails an assert on MSW.
+	wxImage blank(16, 16);
+	blank.InitAlpha();
+	std::fill_n(blank.GetAlpha(), 16 * 16, static_cast<unsigned char>(0));
+	SetCursor(wxCursor(blank));
 }
 
 void MapCanvas::OnZoomAnimationTimer(wxTimerEvent& WXUNUSED(event)) {

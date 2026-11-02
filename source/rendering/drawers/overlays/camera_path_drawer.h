@@ -6,6 +6,7 @@
 class PrimitiveRenderer;
 class Editor;
 struct DrawingOptions;
+struct NVGcontext;
 
 class CameraPathDrawer {
 public:
@@ -13,6 +14,8 @@ public:
 	~CameraPathDrawer();
 
 	void draw(PrimitiveRenderer& renderer, const RenderView& view, const DrawingOptions& options, Editor& editor);
+	// Keyframe numbers and the hold badge, in the NanoVG overlay pass.
+	void drawLabels(NVGcontext* vg, const RenderView& view, const DrawingOptions& options, Editor& editor);
 };
 
 #endif

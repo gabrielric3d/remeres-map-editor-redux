@@ -285,6 +285,8 @@ public:
 	void SetScreenCenterPosition(Position pos);
 	// Camera paths
 	void ToggleCameraPathPlayback();
+	// Adds a keyframe after the selected one, at the mouse (or the screen center)
+	void AddCameraPathKeyframeAtCursor();
 	// Refresh the view canvas
 	void RefreshView();
 	// Fit all/specified current map view to map dimensions

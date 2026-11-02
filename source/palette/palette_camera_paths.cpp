@@ -18,6 +18,7 @@
 #include "app/main.h"
 
 #include "palette/palette_camera_paths.h"
+#include "palette/palette_window.h"
 #include "ui/gui.h"
 #include "editor/editor.h"
 #include "map/map.h"
@@ -56,9 +57,16 @@ CameraPathPalettePanel::CameraPathPalettePanel(wxWindow* parent, wxWindowID id) 
 	play_pause_button = newd wxButton(this, PALETTE_CAMERA_PATH_PLAY, "Play/Pause");
 	pathSizer->Add(play_pause_button, 0, wxEXPAND | wxTOP, 4);
 
+	wxSizer* previewOptions = newd wxBoxSizer(wxHORIZONTAL);
 	show_paths_checkbox = newd wxCheckBox(this, PALETTE_CAMERA_SHOW_PATHS, "Show Camera Paths");
 	show_paths_checkbox->SetValue(g_settings.getBoolean(Config::SHOW_CAMERA_PATHS));
-	pathSizer->Add(show_paths_checkbox, 0, wxTOP, 4);
+	previewOptions->Add(show_paths_checkbox, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, 10);
+
+	hide_preview_mouse_checkbox = newd wxCheckBox(this, PALETTE_CAMERA_HIDE_PREVIEW_MOUSE, "Hide Preview Mouse");
+	hide_preview_mouse_checkbox->SetValue(g_settings.getBoolean(Config::HIDE_CAMERA_PREVIEW_MOUSE));
+	hide_preview_mouse_checkbox->SetToolTip("Hide the mouse cursor and the brush preview while a camera path is playing");
+	previewOptions->Add(hide_preview_mouse_checkbox, 0, wxALIGN_CENTER_VERTICAL);
+	pathSizer->Add(previewOptions, 0, wxTOP, 4);
 
 	root->Add(pathSizer, 1, wxEXPAND | wxBOTTOM, 6);
 
@@ -71,8 +79,9 @@ CameraPathPalettePanel::CameraPathPalettePanel(wxWindow* parent, wxWindowID id) 
 	keyframe_list->InsertColumn(2, "Y", wxLIST_FORMAT_LEFT, 50);
 	keyframe_list->InsertColumn(3, "Z", wxLIST_FORMAT_LEFT, 30);
 	keyframe_list->InsertColumn(4, "Dur", wxLIST_FORMAT_LEFT, 50);
-	keyframe_list->InsertColumn(5, "Speed", wxLIST_FORMAT_LEFT, 60);
-	keyframe_list->InsertColumn(6, "Zoom", wxLIST_FORMAT_LEFT, 50);
+	keyframe_list->InsertColumn(5, "Hold", wxLIST_FORMAT_LEFT, 50);
+	keyframe_list->InsertColumn(6, "Speed", wxLIST_FORMAT_LEFT, 60);
+	keyframe_list->InsertColumn(7, "Zoom", wxLIST_FORMAT_LEFT, 50);
 	keySizer->Add(keyframe_list, 1, wxEXPAND | wxBOTTOM, 4);
 
 	wxSizer* keyButtons = newd wxBoxSizer(wxHORIZONTAL);
@@ -88,7 +97,9 @@ CameraPathPalettePanel::CameraPathPalettePanel(wxWindow* parent, wxWindowID id) 
 	keyButtons->Add(keyframe_down_button, 1, wxEXPAND | wxLEFT, 4);
 	keySizer->Add(keyButtons, 0, wxEXPAND | wxBOTTOM, 4);
 
-	wxStaticText* shortcut_label = newd wxStaticText(this, wxID_ANY, "Alt + Left Click on map to add keyframe");
+	wxStaticText* shortcut_label = newd wxStaticText(this, wxID_ANY,
+		"Alt + Left Click on map to add keyframe\n"
+		"Left Click moves the selected keyframe, Ctrl + Left Click removes it");
 	shortcut_label->SetForegroundColour(wxColour(255, 160, 50));
 	keySizer->Add(shortcut_label, 0, wxBOTTOM, 4);
 
@@ -102,6 +113,11 @@ CameraPathPalettePanel::CameraPathPalettePanel(wxWindow* parent, wxWindowID id) 
 	grid->Add(newd wxStaticText(this, wxID_ANY, "Duration"), 0, wxALIGN_CENTER_VERTICAL);
 	duration_ctrl = newd wxTextCtrl(this, wxID_ANY, "1.0");
 	grid->Add(duration_ctrl, 1, wxEXPAND);
+
+	grid->Add(newd wxStaticText(this, wxID_ANY, "Hold (s)"), 0, wxALIGN_CENTER_VERTICAL);
+	hold_ctrl = newd wxTextCtrl(this, wxID_ANY, "0.0");
+	hold_ctrl->SetToolTip("Seconds the camera stays still on this keyframe before moving to the next one");
+	grid->Add(hold_ctrl, 1, wxEXPAND);
 
 	grid->Add(newd wxStaticText(this, wxID_ANY, "Speed"), 0, wxALIGN_CENTER_VERTICAL);
 	speed_ctrl = newd wxTextCtrl(this, wxID_ANY, "0.0");
@@ -158,6 +174,7 @@ CameraPathPalettePanel::CameraPathPalettePanel(wxWindow* parent, wxWindowID id) 
 	Bind(wxEVT_BUTTON, &CameraPathPalettePanel::OnKeyframeDown, this, PALETTE_CAMERA_KEYFRAME_DOWN);
 	Bind(wxEVT_BUTTON, &CameraPathPalettePanel::OnApplyKeyframeProps, this, PALETTE_CAMERA_KEYFRAME_APPLY);
 	Bind(wxEVT_CHECKBOX, &CameraPathPalettePanel::OnToggleShowPaths, this, PALETTE_CAMERA_SHOW_PATHS);
+	Bind(wxEVT_CHECKBOX, &CameraPathPalettePanel::OnToggleHidePreviewMouse, this, PALETTE_CAMERA_HIDE_PREVIEW_MOUSE);
 	Bind(wxEVT_BUTTON, &CameraPathPalettePanel::OnGetZoom, this, PALETTE_CAMERA_GET_ZOOM);
 }
 
@@ -195,6 +212,7 @@ void CameraPathPalettePanel::OnSwitchIn() {
 	PalettePanel::OnSwitchIn();
 	g_gui.ActivatePalette(GetParentPalette());
 	show_paths_checkbox->SetValue(g_settings.getBoolean(Config::SHOW_CAMERA_PATHS));
+	hide_preview_mouse_checkbox->SetValue(g_settings.getBoolean(Config::HIDE_CAMERA_PREVIEW_MOUSE));
 }
 
 void CameraPathPalettePanel::OnSwitchOut() {
@@ -209,6 +227,12 @@ void CameraPathPalettePanel::SetMap(Map* m) {
 double CameraPathPalettePanel::GetKeyframeDuration() const {
 	double value = 1.0;
 	duration_ctrl->GetValue().ToDouble(&value);
+	return std::max(0.0, value);
+}
+
+double CameraPathPalettePanel::GetKeyframeHold() const {
+	double value = 0.0;
+	hold_ctrl->GetValue().ToDouble(&value);
 	return std::max(0.0, value);
 }
 
@@ -232,6 +256,25 @@ int CameraPathPalettePanel::GetKeyframeZ() const {
 
 int CameraPathPalettePanel::GetKeyframeEasing() const {
 	return easing_ctrl->GetSelection();
+}
+
+CameraKeyframe CameraPathPalettePanel::MakeKeyframe(const Position& pos) {
+	CameraKeyframe key;
+	key.pos = pos;
+
+	PaletteWindow* palette = g_gui.GetPalette();
+	CameraPathPalettePanel* panel = palette ? palette->GetCameraPathPalette() : nullptr;
+	if (panel) {
+		key.duration = panel->GetKeyframeDuration();
+		key.hold = panel->GetKeyframeHold();
+		key.speed = panel->GetKeyframeSpeed();
+		key.zoom = panel->GetKeyframeZoom();
+		const int easing = panel->GetKeyframeEasing();
+		if (easing >= 0) {
+			key.easing = static_cast<CameraEasing>(easing);
+		}
+	}
+	return key;
 }
 
 void CameraPathPalettePanel::RefreshPathList() {
@@ -273,6 +316,12 @@ void CameraPathPalettePanel::RefreshPathList() {
 }
 
 void CameraPathPalettePanel::RefreshKeyframeList() {
+	updating_keyframe_list = true;
+	RefreshKeyframeRows();
+	updating_keyframe_list = false;
+}
+
+void CameraPathPalettePanel::RefreshKeyframeRows() {
 	keyframe_list->DeleteAllItems();
 
 	if (!map) {
@@ -312,8 +361,9 @@ void CameraPathPalettePanel::RefreshKeyframeList() {
 		keyframe_list->SetItem(idx, 2, wxString::Format("%d", key.pos.y));
 		keyframe_list->SetItem(idx, 3, wxString::Format("%d", key.pos.z));
 		keyframe_list->SetItem(idx, 4, wxString::Format("%.2f", key.duration));
-		keyframe_list->SetItem(idx, 5, wxString::Format("%.2f", key.speed));
-		keyframe_list->SetItem(idx, 6, wxString::Format("%.2f", key.zoom));
+		keyframe_list->SetItem(idx, 5, key.hold > 0.0 ? wxString::Format("%.2f", key.hold) : wxString("-"));
+		keyframe_list->SetItem(idx, 6, wxString::Format("%.2f", key.speed));
+		keyframe_list->SetItem(idx, 7, wxString::Format("%.2f", key.zoom));
 	}
 
 	int activeIndex = map->camera_paths.getActiveKeyframe();
@@ -356,6 +406,7 @@ void CameraPathPalettePanel::UpdateKeyframeControls() {
 	const CameraKeyframe& key = path->keyframes[index];
 	pos_label->SetLabel(wxString::Format("Pos: %d, %d", key.pos.x, key.pos.y));
 	duration_ctrl->ChangeValue(wxString::Format("%.2f", key.duration));
+	hold_ctrl->ChangeValue(wxString::Format("%.2f", key.hold));
 	speed_ctrl->ChangeValue(wxString::Format("%.2f", key.speed));
 	zoom_ctrl->ChangeValue(wxString::Format("%.2f", key.zoom));
 	z_ctrl->ChangeValue(wxString::Format("%d", key.pos.z));
@@ -531,7 +582,7 @@ void CameraPathPalettePanel::OnClickKeyframe(wxListEvent& event) {
 	UpdateKeyframeControls();
 
 	std::vector<int> indices = GetSelectedKeyframeIndices();
-	if (indices.size() == 1) {
+	if (indices.size() == 1 && !updating_keyframe_list) {
 		if (CameraPath* path = GetActivePath()) {
 			if (index >= 0 && index < static_cast<int>(path->keyframes.size())) {
 				g_gui.SetScreenCenterPosition(path->keyframes[index].pos);
@@ -542,6 +593,11 @@ void CameraPathPalettePanel::OnClickKeyframe(wxListEvent& event) {
 }
 
 void CameraPathPalettePanel::OnDeselectKeyframe(wxListEvent&) {
+	// Nothing selected anymore: a click on the map adds a keyframe again instead of
+	// moving the one that was selected.
+	if (map && !updating_keyframe_list && GetSelectedKeyframeIndices().empty()) {
+		map->camera_paths.setActiveKeyframe(-1);
+	}
 	UpdateKeyframeControls();
 	g_gui.RefreshView();
 }
@@ -551,47 +607,16 @@ void CameraPathPalettePanel::OnAddKeyframe(wxCommandEvent&) {
 		return;
 	}
 
-	CameraPaths temp = map->camera_paths;
-	CameraPath* path = temp.getActivePath();
-	if (!path) {
-		path = temp.addPath("Path");
-	}
-
 	Position pos = GetCursorPosition();
 	if (!pos.isValid()) {
 		return;
 	}
 
-	double duration = 1.0;
-	double speed = 0.0;
-	double zoom = 1.0;
-	long z = pos.z;
+	CameraKeyframe key = MakeKeyframe(pos);
+	key.pos.z = GetKeyframeZ();
 
-	duration_ctrl->GetValue().ToDouble(&duration);
-	speed_ctrl->GetValue().ToDouble(&speed);
-	zoom_ctrl->GetValue().ToDouble(&zoom);
-	z_ctrl->GetValue().ToLong(&z);
-
-	duration = std::max(0.0, duration);
-	speed = std::max(0.0, speed);
-	zoom = std::max(0.1, zoom);
-	z = std::max(0L, std::min<long>(MAP_MAX_LAYER, z));
-
-	CameraKeyframe key;
-	key.pos = pos;
-	key.pos.z = static_cast<int>(z);
-	key.duration = duration;
-	key.speed = speed;
-	key.zoom = zoom;
-	key.easing = static_cast<CameraEasing>(easing_ctrl->GetSelection());
-
-	int insertIndex = static_cast<int>(path->keyframes.size());
-	int activeIndex = temp.getActiveKeyframe();
-	if (activeIndex >= 0 && activeIndex < static_cast<int>(path->keyframes.size())) {
-		insertIndex = activeIndex + 1;
-	}
-	path->keyframes.insert(path->keyframes.begin() + insertIndex, key);
-	temp.setActiveKeyframe(insertIndex);
+	CameraPaths temp = map->camera_paths;
+	temp.insertKeyframeAfterActive(key);
 
 	Editor* editor = g_gui.GetCurrentEditor();
 	if (editor) {
@@ -730,11 +755,13 @@ void CameraPathPalettePanel::OnApplyKeyframeProps(wxCommandEvent&) {
 	z = std::max(0L, std::min<long>(MAP_MAX_LAYER, z));
 
 	CameraEasing easing = static_cast<CameraEasing>(easing_ctrl->GetSelection());
+	const double hold = GetKeyframeHold();
 
 	for (int index : indices) {
 		if (index >= 0 && index < static_cast<int>(path->keyframes.size())) {
 			CameraKeyframe& key = path->keyframes[index];
 			key.duration = duration;
+			key.hold = hold;
 			key.speed = speed;
 			key.zoom = zoom;
 			key.pos.z = static_cast<int>(z);
@@ -751,6 +778,19 @@ void CameraPathPalettePanel::OnApplyKeyframeProps(wxCommandEvent&) {
 void CameraPathPalettePanel::OnToggleShowPaths(wxCommandEvent&) {
 	bool show = show_paths_checkbox->GetValue();
 	g_settings.setInteger(Config::SHOW_CAMERA_PATHS, show ? 1 : 0);
+	g_gui.UpdateMenubar();
+	g_gui.RefreshView();
+}
+
+void CameraPathPalettePanel::OnToggleHidePreviewMouse(wxCommandEvent&) {
+	g_settings.setInteger(Config::HIDE_CAMERA_PREVIEW_MOUSE, hide_preview_mouse_checkbox->GetValue() ? 1 : 0);
+
+	MapTab* tab = g_gui.GetCurrentMapTab();
+	if (tab) {
+		if (MapCanvas* canvas = tab->GetCanvas()) {
+			canvas->UpdateCameraPreviewCursorVisibility();
+		}
+	}
 	g_gui.RefreshView();
 }
 

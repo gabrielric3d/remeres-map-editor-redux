@@ -196,6 +196,8 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(SELECT_RAW, wxITEM_NORMAL, OnSelectRawPalette);
 	MAKE_ACTION(SELECT_BR_LOOT_ZONE, wxITEM_NORMAL, OnSelectBRLootZonePalette);
 	MAKE_ACTION(SELECT_BR_LOOT_ITEM, wxITEM_NORMAL, OnSelectBRLootItemPalette);
+	MAKE_ACTION(CAMERA_PLAY_PAUSE, wxITEM_NORMAL, OnCameraPlayPause);
+	MAKE_ACTION(CAMERA_ADD_KEYFRAME, wxITEM_NORMAL, OnCameraAddKeyframe);
 
 	MAKE_ACTION(FLOOR_0, wxITEM_RADIO, OnChangeFloor);
 	MAKE_ACTION(FLOOR_1, wxITEM_RADIO, OnChangeFloor);
@@ -360,6 +362,8 @@ void MenuBarActionManager::UpdateState(MainMenuBar* mb) {
 	mb->EnableItem(SELECT_CREATURE, loaded);
 	mb->EnableItem(SELECT_WAYPOINT, loaded);
 	mb->EnableItem(SELECT_CAMERA_PATH, loaded);
+	mb->EnableItem(CAMERA_PLAY_PAUSE, loaded);
+	mb->EnableItem(CAMERA_ADD_KEYFRAME, loaded);
 	mb->EnableItem(SELECT_RAW, loaded);
 	mb->EnableItem(SELECT_BR_LOOT_ZONE, loaded);
 	mb->EnableItem(SELECT_BR_LOOT_ITEM, loaded);
