@@ -39,7 +39,10 @@ void EditorPersistence::loadMap(Editor& editor, const FileName& fn, const MapLoa
 
 	spdlog::info("EditorPersistence::loadMap - Opening map file...");
 	ScopedLoadingBar loadingBar("Loading OTBM map...");
-	editor.map.open(nstr(fn.GetFullPath()));
+	// Map::open espera UTF-8 (converte de volta com wxstr/FromUTF8). O nstr devolve
+	// no code page ANSI: com acento no caminho a conversão dava string vazia e o
+	// mapa não abria, embora o save já funcionasse (upstream bec7bd62).
+	editor.map.open(std::string(fn.GetFullPath().utf8_str()));
 	spdlog::info("EditorPersistence::loadMap - Map opened OK");
 
 	// Load camera paths from sidecar file
@@ -458,7 +461,7 @@ bool EditorPersistence::importMap(Editor& editor, FileName filename, int import_
 	editor.actionQueue->clear();
 
 	Map imported_map;
-	bool loaded = imported_map.open(nstr(filename.GetFullPath()));
+	bool loaded = imported_map.open(std::string(filename.GetFullPath().utf8_str())); // UTF-8: ver loadMap
 
 	if (!loaded) {
 		DialogUtil::PopupDialog("Error", "Error loading map!\n" + imported_map.getError(), wxOK | wxICON_INFORMATION);
