@@ -18,18 +18,30 @@ public:
 		return m_body_sizer;
 	}
 
-	void RegisterWrappedLabel(wxStaticText* label);
+	// reserved_width: room taken on the same row by the control beside the label.
+	void RegisterWrappedLabel(wxStaticText* label, int reserved_width = 0);
 
 private:
+	struct WrappedLabel {
+		wxStaticText* label;
+		wxString text; // unwrapped text: Wrap() bakes line breaks into the label
+		wxString wrapped_text; // label text after the last wrap, to notice SetLabel() from outside
+		int reserved_width;
+	};
+
 	void OnPaint(wxPaintEvent& event);
-	void OnSize(wxSizeEvent& event);
+	void OnParentSize(wxSizeEvent& event);
+	// Width the section gets from its parent, which does not depend on the section's
+	// own contents (a wrap width taken from the section itself only ever grows).
+	int GetAvailableWidth() const;
+	void WrapLabel(WrappedLabel& wrapped, int section_width);
 	void UpdateWrapping();
 	void RefreshScrolledParent();
 
 	wxStaticText* m_description_label = nullptr;
 	wxBoxSizer* m_body_sizer = nullptr;
-	std::vector<wxStaticText*> m_wrapped_labels;
-	int m_last_wrap_width = -1;
+	std::vector<WrappedLabel> m_wrapped_labels;
+	int m_last_section_width = -1;
 	bool m_scroll_refresh_pending = false;
 };
 
