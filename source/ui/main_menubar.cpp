@@ -298,6 +298,10 @@ void MainMenuBar::OnOpenForced(wxCommandEvent& event) {
 	fileMenuHandler->OnOpenForced(event);
 }
 
+void MainMenuBar::OnOpenMapProfile(wxCommandEvent& event) {
+	fileMenuHandler->OnOpenMapProfile(event);
+}
+
 void MainMenuBar::OnClose(wxCommandEvent& event) {
 	fileMenuHandler->OnClose(event);
 }

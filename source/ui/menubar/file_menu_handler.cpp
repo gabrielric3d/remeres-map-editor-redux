@@ -7,6 +7,8 @@
 #include "ui/map/merge_maps_minimap_window.h"
 
 #include "ui/map/import_map_window.h"
+#include "ui/dialogs/map_profiles_dialog.h"
+#include "editor/persistence/map_profiles.h"
 #include "ui/dialog_util.h"
 #include "ui/about_window.h"
 #include "ui/dat_debug_view.h"
@@ -35,6 +37,25 @@ void FileMenuHandler::OnOpen(wxCommandEvent& WXUNUSED(event)) {
 
 void FileMenuHandler::OnOpenForced(wxCommandEvent& WXUNUSED(event)) {
 	g_gui.OpenMap(true);
+}
+
+void FileMenuHandler::OnOpenMapProfile(wxCommandEvent& WXUNUSED(event)) {
+	int index = wxNOT_FOUND;
+	{
+		MapProfilesDialog dialog(frame);
+		if (dialog.ShowModal() != wxID_OPEN) {
+			return;
+		}
+		index = dialog.GetProfileToOpen();
+	}
+
+	std::vector<MapProfile> profiles = MapProfiles::Load();
+	if (index < 0 || index >= static_cast<int>(profiles.size())) {
+		return;
+	}
+	MapProfiles::Open(profiles[index]);
+	// A profile linked to a server maps.xml was re-read while opening; keep the fresh list.
+	MapProfiles::Save(profiles);
 }
 
 void FileMenuHandler::OnSave(wxCommandEvent& WXUNUSED(event)) {

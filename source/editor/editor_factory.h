@@ -14,6 +14,9 @@ public:
 	// Creates a new empty map, may prompt for version if not set
 	static std::unique_ptr<Editor> CreateEmpty(CopyBuffer& copybuffer);
 
+	// New empty map for the client that is already loaded (no version switching)
+	static std::unique_ptr<Editor> CreateEmptyForCurrentClient(CopyBuffer& copybuffer);
+
 	// Loads a map from file, handles version checking/switching
 	static std::unique_ptr<Editor> LoadFromFile(CopyBuffer& copybuffer, const FileName& fn, const MapLoadOptions& load_options = {});
 

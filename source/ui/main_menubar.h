@@ -32,6 +32,7 @@ namespace MenuBar {
 		NEW,
 		OPEN,
 		OPEN_FORCED,
+		OPEN_MAP_PROFILE,
 		SAVE,
 		SAVE_AS,
 		GENERATE_MAP,
@@ -283,6 +284,7 @@ public:
 	void OnNew(wxCommandEvent& event);
 	void OnOpen(wxCommandEvent& event);
 	void OnOpenForced(wxCommandEvent& event);
+	void OnOpenMapProfile(wxCommandEvent& event);
 	void OnSave(wxCommandEvent& event);
 	void OnSaveAs(wxCommandEvent& event);
 	void OnClose(wxCommandEvent& event);

@@ -42,6 +42,7 @@ public:
 	void SaveMap();
 	void SaveMapAs();
 	bool LoadMap(const FileName& fileName, const MapLoadOptions& load_options = {});
+	bool EnsureClientForMap(const FileName& fileName, const MapLoadOptions& load_options = {});
 
 	// Edit operations
 	void DoCut();

@@ -508,6 +508,7 @@ void Settings::IO(IOMode mode) {
 	Bool(CREATURES_AUTO_LOAD_ENABLED, false);
 	String(CREATURES_AUTO_LOAD_DIR, "");
 	String(CREATURE_PROJECTS, "");
+	String(MAP_PROFILES, "");
 	String(FAVORITE_FILES, "");
 	String(MAP_CLIENT_VERSIONS, "");
 	Bool(SHOW_TOAST_NOTIFICATIONS, true);

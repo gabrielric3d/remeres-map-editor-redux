@@ -22,6 +22,7 @@ void MenuBarActionManager::RegisterActions(MainMenuBar* mb, std::unordered_map<s
 	MAKE_ACTION(NEW, wxITEM_NORMAL, OnNew);
 	MAKE_ACTION(OPEN, wxITEM_NORMAL, OnOpen);
 	MAKE_ACTION(OPEN_FORCED, wxITEM_NORMAL, OnOpenForced);
+	MAKE_ACTION(OPEN_MAP_PROFILE, wxITEM_NORMAL, OnOpenMapProfile);
 	MAKE_ACTION(SAVE, wxITEM_NORMAL, OnSave);
 	MAKE_ACTION(SAVE_AS, wxITEM_NORMAL, OnSaveAs);
 	MAKE_ACTION(DEPLOY_MAP, wxITEM_NORMAL, OnDeployMap);

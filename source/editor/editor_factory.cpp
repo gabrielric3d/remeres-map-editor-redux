@@ -78,6 +78,16 @@ std::unique_ptr<Editor> EditorFactory::CreateEmpty(CopyBuffer& copybuffer) {
 	return editor;
 }
 
+std::unique_ptr<Editor> EditorFactory::CreateEmptyForCurrentClient(CopyBuffer& copybuffer) {
+	MapVersion mapVersion;
+	mapVersion.otbm = g_version.GetCurrentVersion().getPrefferedMapVersionID();
+	mapVersion.client = g_version.GetCurrentVersion().getProtocolID();
+
+	std::unique_ptr<Editor> editor = std::make_unique<Editor>(copybuffer, mapVersion);
+	SetupCallbacks(editor.get());
+	return editor;
+}
+
 std::unique_ptr<Editor> EditorFactory::LoadFromFile(CopyBuffer& copybuffer, const FileName& fn, const MapLoadOptions& load_options) {
 	MapVersion mapVersion;
 	mapVersion.otbm = g_version.GetCurrentVersion().getPrefferedMapVersionID();

@@ -33,6 +33,7 @@
 		<item name="New..." hotkey="Ctrl+N" action="NEW" help="Create a new map."/>
 		<item name="Open..." hotkey="Ctrl+O" action="OPEN" help="Open another map."/>
 		<item name="Open Forced Load..." action="OPEN_FORCED" help="Open a map ignoring the client/items version mismatch."/>
+		<item name="Open Map Profile..." action="OPEN_MAP_PROFILE" help="Open several maps together as one new map (e.g. every map the server loads at boot)."/>
 		<item name="Save" hotkey="Ctrl+S" action="SAVE" help="Save the current map."/>
 		<item name="Save As..." hotkey="Ctrl+Alt+S" action="SAVE_AS" help="Save the current map as a new file."/>
 		<item name="Deploy Map" action="DEPLOY_MAP" help="Deploy map to git (commit + push)."/>

@@ -457,21 +457,46 @@ void EditorPersistence::importSpawns(Editor& editor, Map& imported_map, const Po
 }
 
 bool EditorPersistence::importMap(Editor& editor, FileName filename, int import_x_offset, int import_y_offset, ImportType house_import_type, ImportType spawn_import_type) {
+	return importMapImpl(editor, filename, import_x_offset, import_y_offset, house_import_type, spawn_import_type, "Merging maps...", nullptr);
+}
+
+bool EditorPersistence::importMapQuiet(Editor& editor, const FileName& filename, int import_x_offset, int import_y_offset, ImportType house_import_type, ImportType spawn_import_type, const wxString& load_bar_title, MapImportReport& report) {
+	return importMapImpl(editor, filename, import_x_offset, import_y_offset, house_import_type, spawn_import_type, load_bar_title, &report);
+}
+
+bool EditorPersistence::importMapImpl(Editor& editor, const FileName& filename, int import_x_offset, int import_y_offset, ImportType house_import_type, ImportType spawn_import_type, const wxString& load_bar_title, MapImportReport* report) {
+	const bool quiet = report != nullptr;
 	editor.selection.clear();
 	editor.actionQueue->clear();
+
+	// Quiet imports read big maps one after another; show progress while the file loads too.
+	if (quiet) {
+		g_gui.CreateLoadBar(load_bar_title);
+	}
 
 	Map imported_map;
 	bool loaded = imported_map.open(std::string(filename.GetFullPath().utf8_str())); // UTF-8: ver loadMap
 
 	if (!loaded) {
+		if (quiet) {
+			g_gui.DestroyLoadBar();
+			report->error = imported_map.getError();
+			return false;
+		}
 		DialogUtil::PopupDialog("Error", "Error loading map!\n" + imported_map.getError(), wxOK | wxICON_INFORMATION);
 		return false;
 	}
-	DialogUtil::ListDialog("Warning", imported_map.getWarnings());
+	if (quiet) {
+		report->warnings = imported_map.getWarnings();
+	} else {
+		DialogUtil::ListDialog("Warning", imported_map.getWarnings());
+	}
 
 	Position offset(import_x_offset, import_y_offset, 0);
 
-	g_gui.CreateLoadBar("Merging maps...");
+	if (!quiet) {
+		g_gui.CreateLoadBar(load_bar_title);
+	}
 
 	std::unordered_map<uint32_t, uint32_t> town_id_map;
 	town_id_map.reserve(imported_map.towns.count());
@@ -494,7 +519,7 @@ bool EditorPersistence::importMap(Editor& editor, FileName filename, int import_
 	uint64_t tiles_merged = 0;
 	uint64_t tiles_to_import = imported_map.getTileCount();
 
-	bool resizemap = false;
+	bool resizemap = quiet; // quiet imports always grow the map instead of asking
 	bool resize_asked = false;
 	int newsize_x = editor.map.getWidth();
 	int newsize_y = editor.map.getHeight();
@@ -563,6 +588,12 @@ bool EditorPersistence::importMap(Editor& editor, FileName filename, int import_
 		Tile* old_tile = editor.map.getTile(new_pos);
 		if (old_tile) {
 			editor.map.removeSpawn(old_tile);
+			if (quiet) {
+				if (report->tiles_overlapped == 0) {
+					report->first_overlap = new_pos;
+				}
+				++report->tiles_overlapped;
+			}
 		}
 
 		import_tile->spawn.reset();
@@ -589,6 +620,12 @@ bool EditorPersistence::importMap(Editor& editor, FileName filename, int import_
 
 	editor.map.setWidth(newsize_x);
 	editor.map.setHeight(newsize_y);
+
+	if (quiet) {
+		report->tiles_imported = tiles_merged - discarded_tiles;
+		report->tiles_discarded = discarded_tiles;
+		return true;
+	}
 	DialogUtil::PopupDialog("Success", "Map imported successfully, " + i2ws(discarded_tiles) + " tiles were discarded as invalid.", wxOK);
 
 	g_gui.RefreshPalettes();

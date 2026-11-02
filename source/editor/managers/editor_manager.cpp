@@ -442,6 +442,67 @@ void EditorManager::SaveMapAs() {
 	}
 }
 
+// Picks the client the map header asks for (same rules as LoadMap) and loads it when another
+// one is loaded. Throws std::runtime_error when the file cannot be read; returns false when
+// loading the client failed (already reported) or the user kept the open maps.
+bool EditorManager::EnsureClientForMap(const FileName& fileName, const MapLoadOptions& load_options) {
+	MapVersion ver;
+	if (!IOMapOTBM::getVersionInfo(fileName, ver)) {
+		throw std::runtime_error(std::format("Could not open file \"{}\".\nThis is not a valid OTBM file or it does not exist.", nstr(fileName.GetFullPath())));
+	}
+
+	ClientVersion* target = nullptr;
+	if (load_options.hasSelectedClient()) {
+		target = ClientVersion::get(load_options.selected_client_id);
+		if (!target) {
+			throw std::runtime_error(std::format("Unsupported client selection: {}", load_options.selected_client_id));
+		}
+	} else if (load_options.force_client_mismatch && g_version.getLoadedVersion()) {
+		// Forced load: keep the client/assets that are currently loaded instead of
+		// resolving (and loading) the version the map header asks for. This is what the
+		// user wants when picking "Open Forced Load" - reuse what is already loaded and
+		// skip the version mismatch check below.
+		target = g_version.getLoadedVersion();
+	} else {
+		target = ClientVersion::getBestMatch(ver.client);
+		if (!target) {
+			throw std::runtime_error(std::format("Unsupported client version (OtbId: {})", static_cast<int>(ver.client)));
+		}
+
+		// When several client versions share the same OTB id (e.g. multiple 10.98
+		// entries), getBestMatch() returns the first one in the list, which may not be
+		// the one the user configured (its own items.otb path, signatures, etc.).
+		// Prefer the "Default client version" from preferences whenever it matches the
+		// same OTB id, so the user can decide which client is used for that id. We no
+		// longer require hasValidPaths() here: honoring the explicit default lets a
+		// client configured only with a custom items.otb win the tie-break. If that
+		// default genuinely can't load, LoadVersion() reports a clear error.
+		ClientVersion* latest = ClientVersion::getLatestVersion();
+		if (latest && latest != target && latest->getOtbId() == target->getOtbId()) {
+			target = latest;
+		}
+	}
+
+	ClientVersion* current = g_version.getLoadedVersion();
+	if (!current || current->getID() != target->getID()) {
+		wxString error;
+		std::vector<std::string> warnings;
+		if (CloseAllEditors()) {
+			if (!g_version.LoadVersion(target->getID(), error, warnings)) {
+				g_status.SetStatusText("Failed to load map.");
+				DialogUtil::PopupDialog("Error", error, wxOK);
+				return false;
+			}
+			if (!warnings.empty()) {
+				DialogUtil::ListDialog("Warnings", warnings);
+			}
+		} else {
+			return false;
+		}
+	}
+	return true;
+}
+
 bool EditorManager::LoadMap(const FileName& fileName, const MapLoadOptions& load_options) {
 	spdlog::info("EditorManager::LoadMap - Loading map: {}", nstr(fileName.GetFullPath()));
 	g_status.SetStatusText("Loading map...");
@@ -452,59 +513,8 @@ bool EditorManager::LoadMap(const FileName& fileName, const MapLoadOptions& load
 
 	std::unique_ptr<Editor> editor;
 	try {
-		MapVersion ver;
-		if (!IOMapOTBM::getVersionInfo(fileName, ver)) {
-			throw std::runtime_error(std::format("Could not open file \"{}\".\nThis is not a valid OTBM file or it does not exist.", nstr(fileName.GetFullPath())));
-		}
-
-		ClientVersion* target = nullptr;
-		if (load_options.hasSelectedClient()) {
-			target = ClientVersion::get(load_options.selected_client_id);
-			if (!target) {
-				throw std::runtime_error(std::format("Unsupported client selection: {}", load_options.selected_client_id));
-			}
-		} else if (load_options.force_client_mismatch && g_version.getLoadedVersion()) {
-			// Forced load: keep the client/assets that are currently loaded instead of
-			// resolving (and loading) the version the map header asks for. This is what the
-			// user wants when picking "Open Forced Load" - reuse what is already loaded and
-			// skip the version mismatch check below.
-			target = g_version.getLoadedVersion();
-		} else {
-			target = ClientVersion::getBestMatch(ver.client);
-			if (!target) {
-				throw std::runtime_error(std::format("Unsupported client version (OtbId: {})", static_cast<int>(ver.client)));
-			}
-
-			// When several client versions share the same OTB id (e.g. multiple 10.98
-			// entries), getBestMatch() returns the first one in the list, which may not be
-			// the one the user configured (its own items.otb path, signatures, etc.).
-			// Prefer the "Default client version" from preferences whenever it matches the
-			// same OTB id, so the user can decide which client is used for that id. We no
-			// longer require hasValidPaths() here: honoring the explicit default lets a
-			// client configured only with a custom items.otb win the tie-break. If that
-			// default genuinely can't load, LoadVersion() reports a clear error.
-			ClientVersion* latest = ClientVersion::getLatestVersion();
-			if (latest && latest != target && latest->getOtbId() == target->getOtbId()) {
-				target = latest;
-			}
-		}
-
-		ClientVersion* current = g_version.getLoadedVersion();
-		if (!current || current->getID() != target->getID()) {
-			wxString error;
-			std::vector<std::string> warnings;
-			if (CloseAllEditors()) {
-				if (!g_version.LoadVersion(target->getID(), error, warnings)) {
-					g_status.SetStatusText("Failed to load map.");
-					DialogUtil::PopupDialog("Error", error, wxOK);
-					return false;
-				}
-				if (!warnings.empty()) {
-					DialogUtil::ListDialog("Warnings", warnings);
-				}
-			} else {
-				return false;
-			}
+		if (!EnsureClientForMap(fileName, load_options)) {
+			return false;
 		}
 
 		editor = EditorFactory::LoadFromFile(g_gui.copybuffer, fileName, load_options);
