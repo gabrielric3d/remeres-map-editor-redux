@@ -122,6 +122,16 @@ set_target_properties(rme PROPERTIES CXX_STANDARD 20)
 set_target_properties(rme PROPERTIES CXX_STANDARD_REQUIRED ON)
 target_compile_definitions(rme PRIVATE WXWIN_COMPATIBILITY_3_3 NANOVG_GL3)
 
+# Header pré-compilado: app/main.h puxa wx, boost.asio, glad, pugixml e boa parte
+# da STL, e 341 dos 464 .cpp o incluem. Sem PCH cada arquivo reprocessa tudo isso.
+# No upstream (PR #1052) o clean build no VS caiu de 19 para 4,5 min (junto com
+# o /MP, que já tínhamos). Se o compilador reclamar de memória para o PCH
+# (C3859/C1076), configure com -DRME_USE_PCH=OFF.
+option(RME_USE_PCH "Precompiled header (source/app/main.h)" ON)
+if(RME_USE_PCH)
+	target_precompile_headers(rme PRIVATE source/app/main.h)
+endif()
+
 # ------------------------------------------------------------------
 # Reduz o PICO de RAM na compilacao dos poucos arquivos-fonte gigantes.
 # Estes dialogs/telas tem 2000-3600 linhas e o otimizador /O2 do MSVC
@@ -146,9 +156,10 @@ if(MSVC)
 		COMPILE_OPTIONS "$<$<NOT:$<CONFIG:Debug>>:/O1>")
 endif()
 
-# Copy assets to build directory
+# Copy assets to build directory (só os arquivos que mudaram: antes regravava a
+# pasta inteira a cada build, inclusive nos incrementais)
 add_custom_command(TARGET rme POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy_directory
+	COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
 	"${CMAKE_CURRENT_SOURCE_DIR}/source/assets"
 	"$<TARGET_FILE_DIR:rme>/assets"
 	COMMENT "Copying assets to output directory..."
