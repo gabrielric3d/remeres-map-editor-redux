@@ -2396,4 +2396,50 @@
 			<item id="57234" chance="100" />
 		</wall>
 	</brush>
+	<brush name="backrooms wall" type="wall" server_lookid="58076">
+		<wall type="horizontal">
+			<item id="58076" chance="1" />
+			<door id="58114" type="normal" open="false" />
+			<door id="58115" type="normal" open="true" />
+		</wall>
+		<wall type="vertical">
+			<item id="58077" chance="1" />
+			<door id="58116" type="normal" open="false" />
+			<door id="58117" type="normal" open="true" />
+		</wall>
+		<wall type="corner">
+			<item id="58078" chance="1" />
+		</wall>
+		<wall type="pole">
+			<item id="58079" chance="1" />
+		</wall>
+	</brush>
+	<brush name="backrooms wallpaper wall" type="wall" server_lookid="58080">
+		<wall type="horizontal">
+			<item id="58080" chance="1" />
+		</wall>
+		<wall type="vertical">
+			<item id="58081" chance="1" />
+		</wall>
+		<wall type="corner">
+			<item id="58082" chance="1" />
+		</wall>
+		<wall type="pole">
+			<item id="58083" chance="1" />
+		</wall>
+	</brush>
+	<brush name="poolrooms tiled wall" type="wall" server_lookid="58088">
+		<wall type="horizontal">
+			<item id="58088" chance="1" />
+		</wall>
+		<wall type="vertical">
+			<item id="58089" chance="1" />
+		</wall>
+		<wall type="corner">
+			<item id="58090" chance="1" />
+		</wall>
+		<wall type="pole">
+			<item id="58091" chance="1" />
+		</wall>
+	</brush>
 </materials>

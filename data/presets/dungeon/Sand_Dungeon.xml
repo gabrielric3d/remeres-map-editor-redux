@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <dungeon_preset name="Sand Dungeon" version="1.0">
 	<terrain ground="17625" patch="231" fill="21197" brush="45069" />
-	<walls north="8476" south="8476" east="8475" west="8475" nw="8479" ne="0" sw="0" se="0" pillar="8477" />
+	<walls north="8476" south="8476" east="8475" west="8475" nw="8479" pillar="8477" />
 	<borders north="4773" south="4772" east="4774" west="4775" nw="4783" ne="4782" sw="4781" se="4780" inner_nw="4779" inner_ne="4778" inner_sw="4777" inner_se="4776" />
 	<brush_borders north="51798" south="51799" east="51801" west="51800" nw="51802" ne="51803" sw="51805" se="51804" inner_nw="51806" inner_ne="51807" inner_sw="51809" inner_se="51808" />
 	<details>

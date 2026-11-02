@@ -24898,4 +24898,14 @@
 			</tile>
 		</composite>
 	</brush>
+	<brush name="backrooms pillar" type="doodad" server_lookid="58084" draggable="true" on_blocking="false" thickness="10/10" activated="true">
+		<alternate>
+			<item id="58084" chance="10" />
+		</alternate>
+	</brush>
+	<brush name="backrooms pillar (skirting)" type="doodad" server_lookid="58085" draggable="true" on_blocking="false" thickness="10/10" activated="true">
+		<alternate>
+			<item id="58085" chance="10" />
+		</alternate>
+	</brush>
 </materials>

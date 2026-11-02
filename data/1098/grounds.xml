@@ -6818,4 +6818,24 @@
 		<border align="outer" id="341" variant="4" />
 		<border align="outer" to="none" id="341" variant="4" />
 	</brush>
+	<brush name="backrooms carpet" type="ground" server_lookid="58073" z-order="2000" activated="true">
+		<item id="58073" chance="8" />
+		<item id="58074" chance="1" />
+		<item id="58075" chance="1" />
+	</brush>
+	<brush name="poolrooms tiles" type="ground" server_lookid="58086" z-order="2000" activated="true">
+		<item id="58086" chance="1" />
+	</brush>
+	<brush name="poolrooms water" type="ground" server_lookid="58087" z-order="2100" activated="true">
+		<item id="58087" chance="1" />
+	</brush>
+	<brush name="island grass" type="ground" server_lookid="58285" z-order="8900" activated="true">
+		<item id="58285" chance="40" />
+		<item id="58286" chance="5" />
+		<item id="58287" chance="5" />
+		<item id="58300" chance="3" />
+		<item id="58301" chance="3" />
+		<border align="outer" id="342" />
+		<border align="outer" to="none" id="342" />
+	</brush>
 </materials>

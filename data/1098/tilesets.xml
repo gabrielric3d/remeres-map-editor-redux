@@ -278,6 +278,8 @@
 			<item fromid="26371" toid="26376" />
 			<item fromid="57923" toid="57942" />
 			<item fromid="57943" toid="57962" />
+			<item fromid="58285" toid="58287" />
+			<item fromid="58300" toid="58301" />
 		</raw>
 		<terrain>
 			<brush name="stone paviment 2" />
@@ -327,6 +329,7 @@
 			<brush name="swallow sea walkable" />
 			<brush name="bright sea" />
 			<brush name="sea lighter" />
+			<brush name="sea lighter2" />
 			<brush name="small brook" />
 			<brush name="shallow water" />
 			<brush name="dirty water" />
@@ -504,6 +507,7 @@
 			<brush name="stone lava ground" />
 			<brush name="lava new ground" />
 			<brush name="nova borda 1" />
+			<brush name="island grass" />
 			<brush name="ground novo 2" />
 			<brush name="nova montanha 1" />
 			<brush name="purple ground 5" />
@@ -40059,6 +40063,7 @@
 			<item id="25762" />
 			<item id="25760" />
 			<item id="25761" />
+			<item fromid="58288" toid="58299" />
 		</raw>
 	</tileset>
 	<tileset name="Blank">
@@ -41775,6 +41780,48 @@
 	<tileset name="Light Bulbs">
 		<raw>
 			<item fromid="32421" toid="32432" name="light bulb" />
+		</raw>
+	</tileset>
+	<tileset name="Backrooms">
+		<terrain>
+			<brush name="backrooms carpet" />
+			<brush name="backrooms wall" />
+			<brush name="backrooms wallpaper wall" />
+			<brush name="poolrooms tiles" />
+			<brush name="poolrooms water" />
+			<brush name="poolrooms tiled wall" />
+		</terrain>
+		<doodad>
+			<brush name="backrooms pillar" />
+			<brush name="backrooms pillar (skirting)" />
+		</doodad>
+		<raw>
+			<item fromid="58073" toid="58085" />
+			<item fromid="58086" toid="58091" />
+			<item fromid="58114" toid="58117" />
+		</raw>
+	</tileset>
+	<tileset name="Tetris Rain">
+		<raw>
+			<item fromid="58098" toid="58106" />
+		</raw>
+	</tileset>
+	<tileset name="Bomberman">
+		<raw>
+			<item id="58097" />
+			<item id="55476" />
+			<item id="55477" />
+			<item fromid="58092" toid="58096" />
+			<item fromid="55478" toid="55482" />
+		</raw>
+	</tileset>
+	<tileset name="NPC Stalls">
+		<raw>
+			<item id="58257" />
+			<item id="58258" />
+			<item id="58259" />
+			<item id="58260" />
+			<item id="58261" />
 		</raw>
 	</tileset>
 </materials>

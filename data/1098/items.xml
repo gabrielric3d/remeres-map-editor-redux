@@ -43963,10 +43963,207 @@ e o newmarketitems.json vai estar em appdata
 	<item id="58011" name="howling feast" />
 	<!-- Farm Hideout: o portal de entrada (.blacktalon/scripts/install_hideout_portal.py) -->
 	<item id="58017" name="hideout portal" />
+	<item id="58012" name="stone ring portal" />
+	<item id="58013" name="runic gate portal" />
+	<item id="58014" name="arcane gyroscope portal" />
+	<item id="58015" name="abyssal rift portal" />
+	<item id="58016" name="black talon portal" />
+	<!-- Fazenda: fogao a lenha da Cozinha (.blacktalon/scripts/install_cooking_stove.py) -->
+	<item id="58018" name="wood stove" />
+	<item id="58019" name="wood stove" />
+	<item id="58020" name="wood stove" />
+	<item id="58021" name="wood stove" />
+	<item id="58022" name="wood stove" />
+	<!-- Fazenda: ingredientes e plantas novos (.blacktalon/scripts/install_farm_crops.py) -->
+	<item id="58023" name="fresh carrot" />
+	<item id="58024" name="ripe tomato" />
+	<item id="58025" name="wheat sheaf" />
+	<item id="58026" name="farm mushroom" />
+	<item id="58027" name="soul mushroom" />
+	<item id="58028" name="orchard apple" />
+	<item id="58029" name="bunch of farm bananas" />
+	<item id="58030" name="orchard orange" />
+	<item id="58031" name="orchard lemon" />
+	<item id="58032" name="prickly pear" />
+	<item id="58033" name="frost leaf" />
+	<item id="58034" name="azure flower" />
+	<item id="58035" name="carrot seeds" />
+	<item id="58036" name="wheat seeds" />
+	<item id="58037" name="tomato seeds" />
+	<item id="58038" name="cabbage seeds" />
+	<item id="58039" name="farm mushroom spores" />
+	<item id="58040" name="prickly pear seeds" />
+	<item id="58041" name="soul mushroom spores" />
+	<item id="58042" name="frost leaf seeds" />
+	<item id="58043" name="azure flower seeds" />
+	<item id="58044" name="apple sapling" />
+	<item id="58045" name="banana sapling" />
+	<item id="58046" name="orange sapling" />
+	<item id="58047" name="lemon sapling" />
+	<item id="58048" name="raw beef" />
+	<item id="58049" name="raw pork" />
+	<item id="58050" name="raw chicken" />
+	<item id="58051" name="raw mutton" />
+	<item id="58052" name="raw rabbit" />
+	<item id="58053" name="fresh egg" />
+	<item id="58054" name="raw wool" />
+	<item id="58055" name="tilapia" />
+	<item id="58056" name="catfish" />
+	<item id="58057" name="bony fish" />
+	<item id="58058" name="sprout" />
+	<item id="58059" name="carrot crop" />
+	<item id="58060" name="tomato plant" />
+	<item id="58061" name="wheat crop" />
+	<item id="58062" name="cabbage crop" />
+	<item id="58063" name="mushroom patch" />
+	<item id="58064" name="prickly pear cactus" />
+	<item id="58065" name="soul mushroom patch" />
+	<item id="58066" name="frost leaf bush" />
+	<item id="58067" name="azure flower bush" />
+	<item id="58068" name="orchard apple tree" />
+	<item id="58069" name="orchard banana tree" />
+	<item id="58070" name="orchard orange tree" />
+	<item id="58071" name="orchard lemon tree" />
+	<!-- Fazenda: ingredientes e plantas novos (.blacktalon/scripts/install_farm_crops.py) -->
+	<item id="58072" name="empty farm bottle" />
+	<!-- Backrooms de 32 px: o carpete amarelo (limpo, marcas, pelo amassado), as paredes lisa e de papel de parede (horizontal, vertical, canto, poste) e os pilares (.blacktalon/pixel-art/scripts/paint_backrooms_*.py, .blacktalon/scripts/install_backrooms32_assets.py) -->
+	<item id="58073" name="yellow carpet" />
+	<item id="58074" name="yellow carpet" />
+	<item id="58075" name="yellow carpet" />
+	<item id="58076" name="yellow wall" />
+	<item id="58077" name="yellow wall" />
+	<item id="58078" name="yellow wall" />
+	<item id="58079" name="yellow wall" />
+	<item id="58080" name="yellow wallpaper wall" />
+	<item id="58081" name="yellow wallpaper wall" />
+	<item id="58082" name="yellow wallpaper wall" />
+	<item id="58083" name="yellow wallpaper wall" />
+	<item id="58084" name="yellow pillar" />
+	<item id="58085" name="yellow pillar" />
+	<!-- Poolrooms de 32 px: o piso de azulejo, a agua da piscina (animada) e a parede de azulejo (horizontal, vertical, canto, poste) (.blacktalon/pixel-art/scripts/paint_backrooms_pool32.py, .blacktalon/scripts/install_poolrooms32_assets.py) -->
+	<item id="58086" name="pool tiles" />
+	<item id="58087" name="pool water" />
+	<item id="58088" name="tiled wall" />
+	<item id="58089" name="tiled wall" />
+	<item id="58090" name="tiled wall" />
+	<item id="58091" name="tiled wall" />
+	<!-- Bomberman (.blacktalon/scripts/install_bomberman_items.py) -->
+	<item id="55476" name="bomberman crate" />
+	<item id="55477" name="bomberman bomb" />
+	<item id="55478" name="mega bomb power-up" />
+	<item id="55479" name="chain bomb power-up" />
+	<item id="55480" name="stun bomb power-up" />
+	<item id="55481" name="drunk bomb power-up" />
+	<item id="55482" name="slow bomb power-up" />
+	<item id="58092" name="bomberman mega bomb" />
+	<item id="58093" name="bomberman chain bomb" />
+	<item id="58094" name="bomberman stun bomb" />
+	<item id="58095" name="bomberman drunk bomb" />
+	<item id="58096" name="bomberman slow bomb" />
+	<item id="58097" name="bomberman metal wall" />
+	<!-- Tetris Rain: 8 blocos (I O T S Z J L e parede/anel) e o piso da arena (.blacktalon/scripts/install_tetris_rain_assets.py) -->
+	<item id="58098" name="cyan tetris block" />
+	<item id="58099" name="yellow tetris block" />
+	<item id="58100" name="purple tetris block" />
+	<item id="58101" name="green tetris block" />
+	<item id="58102" name="red tetris block" />
+	<item id="58103" name="blue tetris block" />
+	<item id="58104" name="orange tetris block" />
+	<item id="58105" name="tetris wall block" />
+	<item id="58106" name="tetris arena floor" />
+	<!-- Bomberman VFX: as bombas acesas (o ultimo segundo do pavio) (.blacktalon/scripts/install_bomberman_vfx.py) -->
+	<item id="58107" name="bomberman lit bomb" />
+	<item id="58108" name="bomberman lit mega bomb" />
+	<item id="58109" name="bomberman lit chain bomb" />
+	<item id="58110" name="bomberman lit stun bomb" />
+	<item id="58111" name="bomberman lit drunk bomb" />
+	<item id="58112" name="bomberman lit slow bomb" />
+	<!-- Bomberman: bomba dupla (.blacktalon/scripts/install_bomberman_double_pickup.py) -->
+	<item id="58113" name="double bomb power-up" />
+	<!-- Backrooms doors de 32 px: porta horizontal e vertical, fechada e aberta, na parede lisa do Backrooms; o evento Backrooms solta as criaturas por elas (.blacktalon/pixel-art/scripts/paint_backrooms_doors32.py, .blacktalon/scripts/install_backrooms_doors32.py) -->
+	<item id="58114" name="closed backrooms door">
+		<attribute key="type" value="door" />
+		<attribute key="blockprojectile" value="1" />
+	</item>
+	<item id="58115" name="open backrooms door">
+		<attribute key="type" value="door" />
+	</item>
+	<item id="58116" name="closed backrooms door">
+		<attribute key="type" value="door" />
+		<attribute key="blockprojectile" value="1" />
+	</item>
+	<item id="58117" name="open backrooms door">
+		<attribute key="type" value="door" />
+	</item>
+	<!-- Fazenda: colmeia da apicultura (.blacktalon/scripts/install_beehive.py) -->
+	<item id="58118" name="beehive" />
+	<item id="58119" name="beehive" />
+	<item id="58120" name="beehive" />
+	<item id="58121" name="beehive" />
+	<item id="58122" name="beehive" />
+	<item id="58123" name="beehive" />
+	<item id="58124" name="beehive" />
+	<item id="58125" name="beehive" />
+	<item id="58126" name="beehive" />
+	<item id="58127" name="beehive" />
+	<item id="58128" name="beehive" />
+	<item id="58129" name="beehive" />
+	<item id="58130" name="beehive" />
+	<!-- Fazenda: apicultura (.blacktalon/scripts/install_apiculture_items.py) -->
+	<item id="58131" name="oasis flower seeds" />
+	<item id="58132" name="oasis flower bush" />
+	<item id="58133" name="wilted flower" />
+	<item id="58134" name="celestial honey pot" />
+	<!-- Fazenda: ferramentas de captura (.blacktalon/scripts/install_capture_tools.py) -->
+	<item id="58135" name="capture net" />
+	<item id="58136" name="shepherd's whistle" />
+	<!-- Fazenda: Tree Planter 3x3 (.blacktalon/scripts/install_tree_planter.py) -->
+	<item id="58137" name="tree planter" />
+	<item id="58138" name="tree planter" />
+	<item id="58139" name="tree planter" />
+	<item id="58140" name="tree planter" />
+	<item id="58141" name="tree planter" />
+	<item id="58142" name="tree planter" />
+	<item id="58143" name="tree planter" />
+	<item id="58144" name="tree planter" />
+	<item id="58145" name="tree planter" />
+	<item id="58146" name="tree planter" />
+	<!-- Fazenda: Tree Planter 2x2, 4 pecas + icone (.blacktalon/scripts/install_tree_planter.py) -->
+	<item id="58147" name="tree planter" />
+	<item id="58148" name="tree planter" />
+	<item id="58149" name="tree planter" />
+	<item id="58150" name="tree planter" />
+	<item id="58151" name="tree planter" />
+	<!-- Fazenda: Planter Box (canteiro auto-tile) e Tree Planter 1x1 legado (.blacktalon/scripts/install_planter_box.py) -->
+	<item fromid="55752" toid="55762" name="planter box" />
+	<item id="55763" name="tree planter" />
+	<item fromid="58152" toid="58160" name="planter box" />
+	<!-- Fazenda: mudas das arvores no vaso 2x2, com displacement (.blacktalon/scripts/install_tree_sprouts.py) -->
+	<item id="58161" name="apple sprout" />
+	<item id="58162" name="banana sprout" />
+	<item id="58163" name="orange sprout" />
+	<item id="58164" name="lemon sprout" />
 	<!-- O alquimista trabalhando: o corpo do NPC de Alchemy, uma animacao por item (.blacktalon/scripts/install_alchemist_npc.py) -->
 	<item id="58165" name="alchemist at work" />
 	<item id="58166" name="alchemist at work (soot)" />
 	<item id="58167" name="alchemist at work (nap)" />
+	<!-- Fazenda: estagios das arvores frutiferas no vaso 2x2 (.blacktalon/scripts/install_fruit_tree_stages.py, plano 160) -->
+	<item id="58168" name="orchard apple seedling" />
+	<item id="58169" name="orchard apple sapling plant" />
+	<item id="58170" name="young orchard apple tree" />
+	<item id="58171" name="fruiting orchard apple tree" />
+	<item id="58172" name="orchard banana seedling" />
+	<item id="58173" name="orchard banana sapling plant" />
+	<item id="58174" name="young orchard banana tree" />
+	<item id="58175" name="fruiting orchard banana tree" />
+	<item id="58176" name="orchard orange seedling" />
+	<item id="58177" name="orchard orange sapling plant" />
+	<item id="58178" name="young orchard orange tree" />
+	<item id="58179" name="fruiting orchard orange tree" />
+	<item id="58180" name="orchard lemon seedling" />
+	<item id="58181" name="orchard lemon sapling plant" />
+	<item id="58182" name="young orchard lemon tree" />
+	<item id="58183" name="fruiting orchard lemon tree" />
 	<!-- O alquimista trabalhando: o corpo do NPC de Alchemy, uma animacao por item (.blacktalon/scripts/install_alchemist_npc.py, modo add) -->
 	<item id="58184" name="alchemist at work (grinding)" />
 	<!-- O carpinteiro gigante trabalhando: o corpo do NPC de Woodworking, uma animacao por item (.blacktalon/scripts/install_carpenter_npc.py) -->
@@ -43976,6 +44173,27 @@ e o newmarketitems.json vai estar em appdata
 	<item id="58188" name="carpenter at work (plank)" />
 	<item id="58189" name="carpenter at work (sore thumb)" />
 	<item id="58190" name="carpenter at work (red nose)" />
+	<!-- Fazenda: estagios das plantas do canteiro (.blacktalon/scripts/install_farm_crop_stages.py, plano 166) -->
+	<item id="58191" name="carrot sprout" />
+	<item id="58192" name="young carrot plant" />
+	<item id="58193" name="wheat sprout" />
+	<item id="58194" name="young wheat plant" />
+	<item id="58195" name="tomato sprout" />
+	<item id="58196" name="young tomato plant" />
+	<item id="58197" name="cabbage sprout" />
+	<item id="58198" name="young cabbage plant" />
+	<item id="58199" name="mushroom sprout" />
+	<item id="58200" name="young mushroom plant" />
+	<item id="58201" name="prickly pear sprout" />
+	<item id="58202" name="young prickly pear plant" />
+	<item id="58203" name="soul mushroom sprout" />
+	<item id="58204" name="young soul mushroom plant" />
+	<item id="58205" name="frost leaf sprout" />
+	<item id="58206" name="young frost leaf plant" />
+	<item id="58207" name="azure flower sprout" />
+	<item id="58208" name="young azure flower plant" />
+	<item id="58209" name="oasis flower sprout" />
+	<item id="58210" name="young oasis flower plant" />
 	<!-- O joalheiro gnomo trabalhando: o corpo do NPC de Jewelcrafting, uma animacao por item (.blacktalon/scripts/install_jeweler_npc.py) -->
 	<item id="58211" name="jeweler at work" />
 	<item id="58212" name="jeweler at work (slip)" />
@@ -44001,5 +44219,86 @@ e o newmarketitems.json vai estar em appdata
 	<item id="58230" name="ronin greaves" />
 	<item id="58231" name="ronin boots" />
 	<item id="58232" name="ronin katana" />
+	<!-- Fazenda: contrato de ajudante e baus (.blacktalon/scripts/install_farm_chests_contracts.py, plano 174) -->
+	<item id="58233" name="farmhand contract" />
+	<item id="58234" name="farm crate" />
+	<item id="58235" name="farm crate (opening 1)" />
+	<item id="58236" name="farm crate (opening 2)" />
+	<item id="58237" name="farm crate (opening 3)" />
+	<item id="58238" name="farm crate (opening 4)" />
+	<item id="58239" name="farm crate (closing 1)" />
+	<item id="58240" name="farm crate (closing 2)" />
+	<item id="58241" name="farm crate (closing 3)" />
+	<item id="58242" name="farm crate (closing 4)" />
+	<item id="58243" name="farm chest" />
+	<item id="58244" name="farm chest (opening 1)" />
+	<item id="58245" name="farm chest (opening 2)" />
+	<item id="58246" name="farm chest (opening 3)" />
+	<item id="58247" name="farm chest (opening 4)" />
+	<item id="58248" name="farm chest (closing 1)" />
+	<item id="58249" name="farm chest (closing 2)" />
+	<item id="58250" name="farm chest (closing 3)" />
+	<item id="58251" name="farm chest (closing 4)" />
+	<!-- Fazenda: arvores frutiferas sem fruta (.blacktalon/scripts/install_fruit_tree_bare.py, plano 175) -->
+	<item id="58252" name="bare orchard apple tree" />
+	<item id="58253" name="bare orchard banana tree" />
+	<item id="58254" name="bare orchard orange tree" />
+	<item id="58255" name="bare orchard lemon tree" />
+	<!-- Roleta: a decoracao do teleporte (.blacktalon/scripts/install_roulette_portal.py) -->
+	<item id="58256" name="roulette portal" />
+	<!-- os pontos de venda dos NPCs, itens grandes que nao bloqueiam (.blacktalon/scripts/install_npc_stalls.py) -->
+	<item id="58257" name="merchant wagon" /> <!-- Juarez -->
+	<item id="58258" name="market table" /> <!-- Seasonal Shop -->
+	<!-- os pontos de venda dos NPCs, itens grandes que nao bloqueiam (.blacktalon/scripts/install_npc_stalls.py) -->
+	<item id="58259" name="merchant caravan" /> <!-- Seasonal Shop -->
+	<!-- os pontos de venda dos NPCs, itens grandes que nao bloqueiam (.blacktalon/scripts/install_npc_stalls.py) -->
+	<item id="58260" name="poporing stand" /> <!-- Poporing -->
+	<item id="58261" name="closed poporing stand" /> <!-- Poporing -->
+	<!-- O altar do Blacktalon e as garras (.blacktalon/scripts/install_blacktalon_altar.py) -->
+	<item id="58262" name="blacktalon altar" />
+	<item id="58263" name="blacktalon altar" />
+	<item id="58264" name="blacktalon altar" />
+	<item id="58265" name="blacktalon altar" />
+	<item id="58266" name="blacktalon altar" />
+	<item id="58267" name="blacktalon altar" />
+	<item id="58268" name="blacktalon altar" />
+	<item id="58269" name="blacktalon altar" />
+	<item id="58270" name="blacktalon altar" />
+	<item id="58271" name="blacktalon altar" />
+	<item id="58272" name="blacktalon altar" />
+	<item id="58273" name="blacktalon altar" />
+	<item id="58274" name="blacktalon altar" />
+	<item id="58275" name="blacktalon altar" />
+	<item id="58276" name="blacktalon altar" />
+	<item id="58277" name="blacktalon altar" />
+	<item id="58278" name="blacktalon altar" />
+	<item id="58279" name="blacktalon altar" />
+	<item id="58280" name="blacktalon altar" />
+	<item id="58281" name="blacktalon claw" />
+	<item id="58282" name="blacktalon claw" />
+	<item id="58283" name="blacktalon claw" />
+	<item id="58284" name="blacktalon claw" />
+	<!-- O gramado da ilha de 32 px: o chao em 3 visuais e as 12 pecas da borda, padrao 16x16 (.blacktalon/pixel-art/scripts/paint_island_grass32.py, .blacktalon/scripts/install_island_grass32.py) -->
+	<item id="58285" name="grass" />
+	<item id="58286" name="grass" />
+	<item id="58287" name="grass" />
+	<item id="58288" name="grass" />
+	<item id="58289" name="grass" />
+	<item id="58290" name="grass" />
+	<item id="58291" name="grass" />
+	<item id="58292" name="grass" />
+	<item id="58293" name="grass" />
+	<item id="58294" name="grass" />
+	<item id="58295" name="grass" />
+	<item id="58296" name="grass" />
+	<item id="58297" name="grass" />
+	<item id="58298" name="grass" />
+	<item id="58299" name="grass" />
+	<!-- O gramado da ilha: pedrinhas e tufos, os detalhes sorteados pelo pincel (.blacktalon/pixel-art/scripts/paint_island_grass32_details.py, .blacktalon/scripts/update_island_grass32_16x16.py) -->
+	<item id="58300" name="grass" />
+	<item id="58301" name="grass" />
+	<!-- Tutorial da Mainland: itens de ammo slot (.blacktalon/scripts/install_tutorial_ammo.py) -->
+	<item id="58302" name="novice's sand charm" />
+	<item id="58303" name="novice's voodoo doll" />
 </items>
 
