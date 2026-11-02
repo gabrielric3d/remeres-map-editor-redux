@@ -274,7 +274,11 @@ namespace {
 			if (!file.getByte(async) || !file.get32(animation.loop_count) || !file.getSByte(animation.start_frame)) {
 				return false;
 			}
-			animation.asynchronous = async == 1;
+			// animationMode do .dat: 0 = assíncrono (fase própria por tile: tochas, fogo),
+			// 1 = síncrono (relógio global: água, borda do mar). Estava invertido, como no
+			// RME original (upstream 80729b80). Hoje não muda nada na tela, porque o
+			// Animator::reset() zera o async, mas a informação passa a vir certa.
+			animation.asynchronous = async == 0;
 			animation.frame_durations.reserve(frames);
 			for (uint8_t frame_index = 0; frame_index < frames; ++frame_index) {
 				DatAnimationFrameDuration duration;

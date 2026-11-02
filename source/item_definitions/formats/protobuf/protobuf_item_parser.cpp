@@ -259,7 +259,13 @@ namespace {
 
 		DatAnimationInfo animation_info;
 		animation_info.asynchronous = !animation.synchronized();
-		animation_info.loop_count = static_cast<int>(animation.loop_count());
+		if (animation.has_loop_type() && animation.loop_type() == ANIMATION_LOOP_TYPE_PINGPONG) {
+			// O Animator trata loop_count < 0 como ping-pong (vai e volta); sem isso o
+			// loop_type era ignorado e a animação só andava para frente.
+			animation_info.loop_count = -1;
+		} else {
+			animation_info.loop_count = static_cast<int>(animation.loop_count());
+		}
 		animation_info.start_frame = static_cast<int8_t>(animation.default_start_phase());
 		animation_info.frame_durations.reserve(animation.sprite_phase_size());
 		for (const auto& phase : animation.sprite_phase()) {
