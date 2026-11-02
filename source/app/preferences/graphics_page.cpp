@@ -7,6 +7,7 @@
 #include "palette/palette_window.h"
 #include "rendering/postprocess/post_process_manager.h"
 #include "ui/gui.h"
+#include "ui/managers/gl_context_manager.h"
 
 #include <algorithm>
 
@@ -196,6 +197,13 @@ GraphicsPage::GraphicsPage(wxWindow* parent) : ScrollablePreferencesPage(parent)
 		"Keep ground and border sprites in per-chunk GPU buffers, rebuilt only where the map changes. Turn this off to walk every tile on the CPU each frame, like older versions.",
 		g_settings.getBoolean(Config::USE_CHUNK_CACHE)
 	);
+	if (g_gl_context.IsIntelGpu() && !g_settings.getBoolean(Config::CHUNK_CACHE_ON_INTEL)) {
+		PreferencesLayout::AddNotice(
+			performance_section,
+			"Intel GPU detected: the GPU terrain cache stays off, because Intel drivers draw it as white squares. Set chunk_cache_on_intel = true in config.toml to force it on.",
+			Theme::Role::Warning
+		);
+	}
 	fps_limit_spin = new wxSpinCtrl(performance_section, wxID_ANY, i2ws(g_settings.getInteger(Config::FRAME_RATE_LIMIT)), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 300);
 	PreferencesLayout::AddControlRow(
 		performance_section,

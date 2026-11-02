@@ -1,6 +1,9 @@
 #include "app/main.h"
 #include "ui/managers/gl_context_manager.h"
 #include <spdlog/spdlog.h>
+#include <algorithm>
+#include <cctype>
+#include <string>
 
 GLContextManager g_gl_context;
 
@@ -28,12 +31,42 @@ wxGLContext* GLContextManager::GetGLContext(wxGLCanvas* win) {
 					spdlog::error("GLContextManager: Failed to initialize GLAD!");
 				} else {
 					spdlog::info("GLContextManager: GLAD initialized successfully");
+					DetectGpuVendor();
 				}
 			}
 		}
 	}
 
 	return OGLContext.get();
+}
+
+bool GLContextManager::IsIntelGpu() {
+	if (!m_gpuVendorKnown) {
+		DetectGpuVendor();
+	}
+	return m_intelGpu;
+}
+
+void GLContextManager::DetectGpuVendor() {
+	if (m_gpuVendorKnown || !glad_glGetString) {
+		return; // GLAD ainda não carregado
+	}
+	const auto* vendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
+	if (!vendor) {
+		return; // sem contexto atual
+	}
+	const auto* renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+	m_gpuVendorKnown = true;
+	const std::string vendor_str = vendor;
+	const std::string renderer_str = renderer ? renderer : "";
+	spdlog::info("GLContextManager: GPU vendor '{}', renderer '{}'", vendor_str, renderer_str);
+
+	std::string probe = vendor_str + " " + renderer_str;
+	std::ranges::transform(probe, probe.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+	m_intelGpu = probe.find("intel") != std::string::npos;
+	if (m_intelGpu) {
+		spdlog::warn("GLContextManager: Intel GPU detected; the GPU terrain cache stays off unless chunk_cache_on_intel = true in config.toml");
+	}
 }
 
 void GLContextManager::RegisterCanvas(wxGLCanvas* canvas) {

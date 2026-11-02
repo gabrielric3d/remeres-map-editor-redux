@@ -149,11 +149,13 @@ void DrawingOptions::SetIngame() {
 }
 
 #include "app/settings.h"
+#include "ui/managers/gl_context_manager.h"
 
 #include <algorithm>
 
 void DrawingOptions::Update() {
-	use_chunk_cache = g_settings.getBoolean(Config::USE_CHUNK_CACHE);
+	use_chunk_cache = g_settings.getBoolean(Config::USE_CHUNK_CACHE)
+		&& (!g_gl_context.IsIntelGpu() || g_settings.getBoolean(Config::CHUNK_CACHE_ON_INTEL));
 	render_order = RenderOrder::resolveProfile(g_settings.getInteger(Config::RENDER_ORDER_PROFILE));
 	RenderOrder::syncShadowCasters();
 	transparent_floors = g_settings.getBoolean(Config::TRANSPARENT_FLOORS);

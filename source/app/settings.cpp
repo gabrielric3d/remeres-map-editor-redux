@@ -472,6 +472,9 @@ void Settings::IO(IOMode mode) {
 
 	section("Graphics");
 	Bool(USE_CHUNK_CACHE, true);
+	// Em GPU Intel o chunk cache fica desligado (terreno branco, ver
+	// GLContextManager::IsIntelGpu). true força o cache mesmo assim.
+	Bool(CHUNK_CACHE_ON_INTEL, false);
 	// Ordem de desenho: 0 = automatico pelo cliente, 1 = Black Talon, 2 = Battle Royale.
 	Int(RENDER_ORDER_PROFILE, 0);
 	Bool(TEXTURE_MANAGEMENT, true);
