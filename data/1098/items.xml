@@ -44395,5 +44395,11 @@ e o newmarketitems.json vai estar em appdata
 	<item id="58389" name="Silver Rune: Tamashii no Kaeri" />
 	<item id="58390" name="Golden Rune: Tamashii no Kaeri" />
 	<item id="58391" name="Platinum Rune: Tamashii no Kaeri" />
+	<!-- Backrooms: seringas (.blacktalon/scripts/install_backrooms_syringes.py) -->
+	<item id="58392" name="green syringe" />
+	<item id="58393" name="red syringe" />
+	<item id="58394" name="blue syringe" />
+	<item id="58395" name="purple syringe" />
+	<item id="58396" name="yellow syringe" />
 </items>
 
