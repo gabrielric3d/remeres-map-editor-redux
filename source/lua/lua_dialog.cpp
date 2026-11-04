@@ -806,13 +806,16 @@ LuaDialog* LuaDialog::input(sol::table options) {
 	std::string labelText = options.get_or(std::string("label"), ""s);
 	std::string text = options.get_or(std::string("text"), ""s);
 	bool focus = options.get_or(std::string("focus"), false);
+	// multiline: caixa de varias linhas com quebra automatica; o Enter vira "\n" no valor
+	bool multiline = options.get_or(std::string("multiline"), false);
 
 	if (!labelText.empty()) {
 		wxStaticText* label = new wxStaticText(getParentForWidget(), wxID_ANY, wxString(labelText));
-		currentRowSizer->Add(label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+		currentRowSizer->Add(label, 0, (multiline ? wxALIGN_TOP | wxTOP : wxALIGN_CENTER_VERTICAL) | wxRIGHT, 5);
 	}
 
-	wxTextCtrl* input = new wxTextCtrl(getParentForWidget(), wxID_ANY, wxString(text), wxDefaultPosition, wxSize(150, -1));
+	long style = multiline ? (wxTE_MULTILINE | wxTE_WORDWRAP) : 0;
+	wxTextCtrl* input = new wxTextCtrl(getParentForWidget(), wxID_ANY, wxString(text), wxDefaultPosition, wxSize(150, multiline ? 60 : -1), style);
 	currentRowSizer->Add(input, 1, getSizerFlags(options, wxALIGN_CENTER_VERTICAL | wxRIGHT, currentRowSizer), getSizerBorder(options));
 
 	input->Bind(wxEVT_SET_FOCUS, [this](wxFocusEvent& event) {
@@ -3237,6 +3240,9 @@ namespace LuaAPI {
 
 		lua["dialog"] = lua.create_table();
 		lua["dialog"]["is_open"] = !g_pinnedDialogs.empty();
+		// o script testa isto antes de pedir input({multiline=true}): num executavel antigo a opcao
+		// e ignorada e a caixa de uma linha perderia as quebras
+		lua["dialog"]["multilineInput"] = true;
 	}
 
 } // namespace LuaAPI

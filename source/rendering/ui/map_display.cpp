@@ -83,6 +83,7 @@
 #include "rendering/ui/border_variant_hud.h"
 #include "rendering/utilities/render_profiler.h"
 #include "rendering/drawers/overlays/lua_overlay_drawer.h"
+#include "lua/lua_script_manager.h"
 #include "editor/cave_warp_tool.h"
 
 #include "brushes/doodad/doodad_brush.h"
@@ -737,6 +738,10 @@ void MapCanvas::OnMouseMove(wxMouseEvent& event) {
 
 	if (map_update) {
 		g_gui.UpdateAutoborderPreview(Position(mouse_map_x, mouse_map_y, floor));
+		// onhover dos overlays Lua (tooltip, destaque do tile): o LuaScriptManager tinha a funcao,
+		// mas nada no canvas a chamava -- o onhover dos scripts nunca rodava
+		Tile* hoverTile = editor.map.getTile(mouse_map_x, mouse_map_y, floor);
+		g_luaScripts.updateMapOverlayHover(mouse_map_x, mouse_map_y, floor, cursor_x, cursor_y, hoverTile, hoverTile ? hoverTile->getTopItem() : nullptr);
 		UpdatePositionStatus(cursor_x, cursor_y);
 		UpdateZoomStatus();
 		Refresh();

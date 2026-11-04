@@ -484,7 +484,7 @@ Most widgets support these additional layout and styling properties:
 | Widget | Options | Description |
 | :--- | :--- | :--- |
 | `label(options)` | `{text="Text"}` | Displays static text. |
-| `input(options)` | `{id="key", label="Label", text="Default", onchange=func}` | Single-line text input. |
+| `input(options)` | `{id="key", label="Label", text="Default", onchange=func, multiline=false}` | Text input. `multiline=true` makes a word-wrapped box (Enter inserts `\n`; set its size with `width`/`height`). Builds that support it set `dialog.multilineInput = true`; older builds ignore the option and stay single-line. |
 | `number(options)` | `{id="key", label="Label", value=0, min=0, max=100, decimals=0}` | Numeric input spinner. |
 | `slider(options)` | `{id="key", label="Label", value=0, min=0, max=100}` | Horizontal slider bar. |
 | `check(options)` | `{id="key", text="Label", selected=false, onclick=func}` | Checkbox (boolean). |

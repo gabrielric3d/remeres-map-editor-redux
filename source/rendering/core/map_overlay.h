@@ -27,6 +27,7 @@ struct MapOverlayCommand {
 		Text,
 		Sprite,
 		Creature,
+		Item,
 	};
 
 	Type type = Type::Rect;
@@ -45,6 +46,14 @@ struct MapOverlayCommand {
 	int z2 = 0;
 
 	uint32_t sprite_id = 0;
+
+	// Item: o id de SERVIDOR do item, desenhado inteiro (varios tiles, deslocamento) como o
+	// fantasma do pincel RAW, ancorado no tile (x, y)
+	uint32_t item_id = 0;
+	// Item: draw offset em px (+x direita, +y baixo); so vale com item_has_offset, senao o padrao do tipo
+	bool item_has_offset = false;
+	int item_dx = 0;
+	int item_dy = 0;
 
 	// Creature: o outfit desenhado pelo CreatureDrawer (o mesmo do pincel de criatura),
 	// em pe no tile (x, y) e invadindo os tiles a noroeste como no jogo

@@ -490,6 +490,35 @@ void LuaScriptManager::registerOverlayFunctions(sol::table& ctx, std::shared_ptr
 			out->push_back(cmd);
 		}
 	};
+
+	// ctx.item({ x, y, z, id, opacity, dx, dy })
+	// dx/dy: draw offset em px; com qualquer um presente, vale no lugar do padrao do tipo.
+	// Desenha o item INTEIRO (id de servidor) ancorado no tile, como o fantasma do pincel RAW:
+	// respeita sprite de varios tiles (arvore cresce a noroeste) e o deslocamento do .dat.
+	// Id que nao existe nao desenha nada. Diferente de ctx.image, que so cobre UM tile.
+	ctx["item"] = [out, view, getOptsTable](sol::variadic_args va) {
+		sol::table opts = getOptsTable(va);
+		if (!opts.valid()) {
+			return;
+		}
+		MapOverlayCommand cmd;
+		cmd.type = MapOverlayCommand::Type::Item;
+		cmd.x = opts.get_or(std::string("x"), 0);
+		cmd.y = opts.get_or(std::string("y"), 0);
+		cmd.z = opts.get_or(std::string("z"), view.floor);
+		const int itemId = opts.get_or(std::string("id"), 0);
+		double opacity = std::clamp(opts.get_or(std::string("opacity"), 1.0), 0.0, 1.0);
+		cmd.color = wxColor(255, 255, 255, static_cast<uint8_t>(opacity * 255));
+		if (opts["dx"].valid() || opts["dy"].valid()) {
+			cmd.item_has_offset = true;
+			cmd.item_dx = opts.get_or(std::string("dx"), 0);
+			cmd.item_dy = opts.get_or(std::string("dy"), 0);
+		}
+		if (itemId > 0) {
+			cmd.item_id = static_cast<uint32_t>(itemId);
+			out->push_back(cmd);
+		}
+	};
 }
 
 void LuaScriptManager::updateMapOverlayHover(int map_x, int map_y, int map_z, int screen_x, int screen_y, Tile* tile, Item* topItem) {

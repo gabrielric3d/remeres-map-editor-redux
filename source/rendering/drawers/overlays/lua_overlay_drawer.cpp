@@ -11,10 +11,12 @@
 #include "lua/lua_script_manager.h"
 #include "ui/gui.h"
 #include "rendering/drawers/entities/creature_drawer.h"
+#include "rendering/drawers/entities/item_drawer.h"
 #include "game/outfit.h"
 #include "game/creature.h"
 
 #include <functional>
+#include <nanovg.h>
 
 namespace {
 	static std::size_t hashSelection(const Selection& selection) {
@@ -122,7 +124,7 @@ void LuaOverlayDrawer::Draw(const RenderView& view, const DrawingOptions& option
 
 	refreshCache(view);
 
-	for (const auto& cmd : cachedCommands) {
+	auto drawCommand = [&](const MapOverlayCommand& cmd) {
 		glm::vec4 color(cmd.color.Red() / 255.0f, cmd.color.Green() / 255.0f, cmd.color.Blue() / 255.0f, cmd.color.Alpha() / 255.0f);
 
 		// Este passo desenha na projecao do mapa, glOrtho(0, largura * zoom, ...): pixels LOGICOS,
@@ -139,7 +141,7 @@ void LuaOverlayDrawer::Draw(const RenderView& view, const DrawingOptions& option
 			screenX = cmd.x * zoom;
 			screenY = cmd.y * zoom;
 		} else {
-			if (cmd.z != view.floor) continue; // Only draw on current floor if world space
+			if (cmd.z != view.floor) return; // Only draw on current floor if world space
 			int mapped_x, mapped_y;
 			view.getScreenPosition(cmd.x, cmd.y, cmd.z, mapped_x, mapped_y);
 			screenX = static_cast<float>(mapped_x);
@@ -163,7 +165,7 @@ void LuaOverlayDrawer::Draw(const RenderView& view, const DrawingOptions& option
 					screenX2 = cmd.x2 * zoom;
 					screenY2 = cmd.y2 * zoom;
 				} else {
-					if (cmd.z2 != view.floor) continue;
+					if (cmd.z2 != view.floor) return;
 					int mapped_x2, mapped_y2;
 					view.getScreenPosition(cmd.x2, cmd.y2, cmd.z2, mapped_x2, mapped_y2);
 					screenX2 = static_cast<float>(mapped_x2);
@@ -202,8 +204,34 @@ void LuaOverlayDrawer::Draw(const RenderView& view, const DrawingOptions& option
 					CreatureDrawOptions { .color = DrawColor(255, 255, 255, cmd.color.Alpha()) });
 				break;
 			}
+			case MapOverlayCommand::Type::Item: {
+				auto* itemDrawer = mapDrawer->getItemDrawer();
+				auto* spriteDrawer = mapDrawer->getSpriteDrawer();
+				if (!itemDrawer || !spriteDrawer || cmd.screen_space || cmd.item_id == 0) break;
+				// o mesmo caminho do fantasma do pincel RAW: o tile do item em pixels logicos; o
+				// BlitSprite aplica o deslocamento do .dat e cresce a noroeste nos sprites largos.
+				// DrawRawBrush nao desenha nada se o id nao existe ou nao tem sprite.
+				// dx/dy do Lua entram como override; sem eles vale o padrao do tipo.
+				const std::pair<int, int> itemOffset { cmd.item_dx, cmd.item_dy };
+				itemDrawer->DrawRawBrush(*spriteBatch, spriteDrawer, static_cast<int>(screenX), static_cast<int>(screenY),
+					static_cast<ServerItemId>(cmd.item_id), 255, 255, 255, cmd.color.Alpha(),
+					cmd.item_has_offset ? &itemOffset : nullptr);
+				break;
+			}
 			default:
 				break;
+		}
+	};
+
+	for (const auto& cmd : cachedCommands) {
+		drawCommand(cmd);
+	}
+
+	// o destaque que o onhover devolveu para o tile do mouse (fora do cache: muda a cada tile)
+	const auto& hover = g_luaScripts.getMapOverlayHover();
+	if (hover.valid) {
+		for (const auto& cmd : hover.commands) {
+			drawCommand(cmd);
 		}
 	}
 }
@@ -234,5 +262,32 @@ void LuaOverlayDrawer::DrawUI(NVGcontext* vg, const RenderView& view, const Draw
 		}
 
 		TextRenderer::DrawText(vg, static_cast<int>(screenX), static_cast<int>(screenY), cmd.text, color, 14.0f);
+	}
+
+	// o tooltip do onhover: caixa escura ao lado do tile, com quebra de linha (\n) e largura maxima
+	const auto& hover = g_luaScripts.getMapOverlayHover();
+	if (!hover.valid) {
+		return;
+	}
+	constexpr float TOOLTIP_FONT = 14.0f;
+	constexpr float TOOLTIP_MAX_WIDTH = 420.0f;
+	for (const auto& tip : hover.tooltips) {
+		if (tip.text.empty() || tip.z != view.floor) {
+			continue;
+		}
+		int mapped_x, mapped_y;
+		view.getScreenPosition(tip.x, tip.y, tip.z, mapped_x, mapped_y);
+		const float x = (mapped_x + TILE_SIZE) / view.zoom + 6.0f;
+		const float y = mapped_y / view.zoom;
+
+		float bounds[4];
+		nvgFontSize(vg, TOOLTIP_FONT);
+		nvgFontFace(vg, "sans");
+		nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_TOP);
+		nvgTextBoxBounds(vg, x, y, TOOLTIP_MAX_WIDTH, tip.text.c_str(), nullptr, bounds);
+		TextRenderer::DrawRect(vg, static_cast<int>(bounds[0] - 5), static_cast<int>(bounds[1] - 4),
+			static_cast<int>(bounds[2] - bounds[0] + 10), static_cast<int>(bounds[3] - bounds[1] + 8), glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+		glm::vec4 color(tip.color.Red() / 255.0f, tip.color.Green() / 255.0f, tip.color.Blue() / 255.0f, tip.color.Alpha() / 255.0f);
+		TextRenderer::DrawTextBox(vg, static_cast<int>(x), static_cast<int>(y), static_cast<int>(TOOLTIP_MAX_WIDTH), tip.text, color, TOOLTIP_FONT);
 	}
 }
