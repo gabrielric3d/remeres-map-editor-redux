@@ -1,0 +1,5 @@
+# Hard links do server (node .blacktalon/scripts/link_herbalist_nodes.cjs no blacktalon-workspace):
+# a fonte e o server, nao este repo. live.json ainda e regravado pelo server em runtime.
+nodes.json
+live.json
+pool.json
