@@ -10,7 +10,7 @@
 #include "rendering/drawers/entities/creature_name_drawer.h"
 #include "rendering/drawers/entities/sprite_drawer.h"
 #include "game/outfit.h"
-#include "map/basemap.h"
+#include "map/map_stack.h"
 #include "map/tile.h"
 #include "game/creature.h"
 #include "ui/gui.h"
@@ -61,7 +61,7 @@ namespace IngamePreview {
 		}
 	}
 
-	void IngamePreviewRenderer::Render(NVGcontext* vg, const BaseMap& map, int viewport_x, int viewport_y, int viewport_width, int viewport_height, const Position& camera_pos, float zoom, bool lighting_enabled, uint8_t ambient_light, const Outfit& preview_outfit, Direction preview_direction, int animation_phase, int offset_x, int offset_y) {
+	void IngamePreviewRenderer::Render(NVGcontext* vg, const MapStack& map, int viewport_x, int viewport_y, int viewport_width, int viewport_height, const Position& camera_pos, float zoom, bool lighting_enabled, uint8_t ambient_light, const Outfit& preview_outfit, Direction preview_direction, int animation_phase, int offset_x, int offset_y) {
 		// CRITICAL: Update animation time for all sprite animations to work
 		g_gui.gfx.updateTime();
 		// Este renderer tem SpriteBatch proprio: sem zerar aqui, os contadores por
@@ -174,7 +174,9 @@ namespace IngamePreview {
 			// Lights no longer ride along with DrawTile; they are gathered on a
 			// walk of their own.
 			if (lighting_enabled) {
-				LightGatherer::GatherFloor(map, view, options, z, *light_buffer);
+				for (const BaseMap* layer_map : map.maps()) {
+					LightGatherer::GatherFloor(*layer_map, view, options, z, *light_buffer);
+				}
 			}
 
 			for (int x = view.start_x; x <= view.end_x; ++x) {

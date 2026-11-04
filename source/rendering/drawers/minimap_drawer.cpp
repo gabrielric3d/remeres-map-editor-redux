@@ -2,6 +2,7 @@
 #include "rendering/drawers/minimap_drawer.h"
 
 #include "editor/editor.h"
+#include "editor/map_layers.h"
 #include "map/map.h"
 #include "rendering/core/map_view_math.h"
 #include "rendering/core/primitive_renderer.h"
@@ -156,6 +157,18 @@ void MinimapDrawer::Draw(const wxSize& size, Editor& editor, MapCanvas& canvas, 
 	const double start_x = visible_rect.start_x;
 	const double start_y = visible_rect.start_y;
 
+	// Map layers: the minimap shows every layer drawn around the edited map, merged, over the
+	// size of the whole group. The cache identity covers which maps go in and in what order,
+	// so showing, hiding or reordering a layer rebuilds it; switching layers does not.
+	MapLayers::CollectDrawnMaps(editor, drawn_maps_);
+	int map_width = editor.map.getWidth();
+	int map_height = editor.map.getHeight();
+	MapLayers::GetGroupExtent(editor, map_width, map_height);
+	uint64_t maps_identity = 0xCBF29CE484222325ull;
+	for (const Map* map : drawn_maps_) {
+		maps_identity = (maps_identity ^ map->getGeneration()) * 0x100000001B3ull;
+	}
+
 	last_viewport_ = {
 		.start_x = start_x,
 		.start_y = start_y,
@@ -163,20 +176,23 @@ void MinimapDrawer::Draw(const wxSize& size, Editor& editor, MapCanvas& canvas, 
 		.map_height = visible_rect.height,
 		.screen_width = window_width,
 		.screen_height = window_height,
-		.map_limit_x = editor.map.getWidth(),
-		.map_limit_y = editor.map.getHeight(),
+		.map_limit_x = map_width,
+		.map_limit_y = map_height,
 		.valid = true
 	};
 
-	renderer->bindMap(editor.map.getGeneration(), editor.map.getWidth(), editor.map.getHeight());
+	renderer->bindMap(maps_identity, map_width, map_height);
 
-	const PendingMinimapInvalidation pending = g_minimap.TakePendingInvalidation(editor.map);
-	if (pending.invalidate_all) {
-		renderer->invalidateAll();
-	}
-	for (int floor = 0; floor < MAP_LAYERS; ++floor) {
-		for (const auto& rect : pending.floor_rects[floor]) {
-			renderer->markDirty(floor, rect);
+	// Edits are queued per map; a layer's are taken here as well (made while it was in front).
+	for (const Map* map : drawn_maps_) {
+		const PendingMinimapInvalidation pending = g_minimap.TakePendingInvalidation(*map);
+		if (pending.invalidate_all) {
+			renderer->invalidateAll();
+		}
+		for (int floor = 0; floor < MAP_LAYERS; ++floor) {
+			for (const auto& rect : pending.floor_rects[floor]) {
+				renderer->markDirty(floor, rect);
+			}
 		}
 	}
 
@@ -193,7 +209,7 @@ void MinimapDrawer::Draw(const wxSize& size, Editor& editor, MapCanvas& canvas, 
 	};
 
 	for (int floor = floor_range.start_floor; floor > floor_range.current_floor; --floor) {
-		renderer->flushVisible(editor.map, floor, visible_rect_pixels);
+		renderer->flushVisible(drawn_maps_, floor, visible_rect_pixels);
 		renderer->renderVisible(projection, 0, 0, window_width, window_height, floor, visible_rect_pixels);
 	}
 
@@ -201,7 +217,7 @@ void MinimapDrawer::Draw(const wxSize& size, Editor& editor, MapCanvas& canvas, 
 		DrawFloorShade(projection, size);
 	}
 
-	renderer->flushVisible(editor.map, floor_range.current_floor, visible_rect_pixels);
+	renderer->flushVisible(drawn_maps_, floor_range.current_floor, visible_rect_pixels);
 	renderer->renderVisible(projection, 0, 0, window_width, window_height, floor_range.current_floor, visible_rect_pixels);
 	DrawMainCameraBox(projection, size, canvas, visible_rect);
 }

@@ -30,6 +30,10 @@ public:
 
 	// Wrapper functions
 	void AddTab(EditorTab* tab, bool select);
+	// Map layers: a group shows one page at a time. InsertTab puts back a tab that DetachTab
+	// took out; a detached tab stays alive (hidden) and keeps its editor.
+	void InsertTab(int idx, EditorTab* tab, bool select);
+	void DetachTab(int idx);
 	void SetTabLabel(int idx, wxString label);
 	void SetFocusedTab(int idx);
 	void DeleteTab(int idx);

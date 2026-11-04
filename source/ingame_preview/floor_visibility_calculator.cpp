@@ -1,5 +1,5 @@
 #include "ingame_preview/floor_visibility_calculator.h"
-#include "map/basemap.h"
+#include "map/map_stack.h"
 #include "map/tile.h"
 #include <algorithm>
 
@@ -48,7 +48,7 @@ namespace IngamePreview {
 		});
 	}
 
-	int FloorVisibilityCalculator::CalcFirstVisibleFloor(const BaseMap& map, int camera_x, int camera_y, int camera_z) const {
+	int FloorVisibilityCalculator::CalcFirstVisibleFloor(const MapStack& map, int camera_x, int camera_y, int camera_z) const {
 		int first_floor = 0;
 
 		if (camera_z > GROUND_LAYER) {

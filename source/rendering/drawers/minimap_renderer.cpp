@@ -79,8 +79,8 @@ void MinimapRenderer::markDirty(int floor, const MinimapDirtyRect& rect) {
 	cache_.markDirty(floor, rect);
 }
 
-void MinimapRenderer::flushVisible(const Map& map, int floor, const MinimapDirtyRect& visible_rect) {
-	cache_.flushVisible(map, floor, visible_rect);
+void MinimapRenderer::flushVisible(const std::vector<const Map*>& maps, int floor, const MinimapDirtyRect& visible_rect) {
+	cache_.flushVisible(maps, floor, visible_rect);
 }
 
 void MinimapRenderer::renderVisible(const glm::mat4& projection, int x, int y, int w, int h, int floor, const MinimapDirtyRect& visible_rect) {

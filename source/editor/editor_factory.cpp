@@ -2,6 +2,7 @@
 #include "ui/dialog_util.h"
 #include "editor/editor_factory.h"
 #include "editor/editor.h"
+#include "editor/map_layers.h"
 #include "editor/persistence/editor_persistence.h"
 #include "app/managers/version_manager.h"
 #include "ui/gui.h"
@@ -25,6 +26,11 @@ void SetupCallbacks(Editor* editor) {
 
 		if (g_gui.tile_properties_panel) {
 			g_gui.tile_properties_panel->UpdateFromEditor(editor);
+		}
+
+		// The layers panel marks the layers with unsaved changes.
+		if (MapLayers::IsLayer(editor)) {
+			MapLayers::NotifyListener();
 		}
 	};
 

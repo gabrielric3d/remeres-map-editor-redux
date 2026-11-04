@@ -161,6 +161,7 @@ namespace MenuBar {
 		WIN_CLAUDE_ASSISTANT,
 		WIN_INGAME_PREVIEW,
 		WIN_TILE_PROPERTIES,
+		WIN_MAP_LAYERS,
 		NEW_PALETTE,
 		TAKE_SCREENSHOT,
 		LIVE_START,
@@ -395,6 +396,7 @@ public:
 	void OnClaudeAssistantWindow(wxCommandEvent& event);
 	void OnIngamePreviewWindow(wxCommandEvent& event);
 	void OnTilePropertiesWindow(wxCommandEvent& event);
+	void OnMapLayersWindow(wxCommandEvent& event);
 	void OnNewPalette(wxCommandEvent& event);
 
 	void OnStartLive(wxCommandEvent& event);

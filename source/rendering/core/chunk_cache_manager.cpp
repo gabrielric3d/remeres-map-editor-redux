@@ -683,7 +683,7 @@ void ChunkCacheManager::bakeChunk(CachedChunk& chunk, const Map& map, const Rend
 	// The alpha BlitItem gives a ground: the two transparency options and the
 	// mountain overlay ghost.
 	auto groundAlpha = [&](const Tile* tile, const ItemDefinitionView& ground_it, const GameSprite* ground_sprite) {
-		int alpha = applyTransparency(255, ground_it, ground_sprite, options);
+		int alpha = applyTransparency(options.layer_alpha, ground_it, ground_sprite, options);
 		if (!options.ingame && options.show_mountain_overlay && ground_it.isGroundTile()) {
 			const GroundBrush* gb = tile->ground->getGroundBrush();
 			if (gb && gb->getZ() >= MountainOverlayDrawer::Z_ORDER_THRESHOLD) {
@@ -721,7 +721,7 @@ void ChunkCacheManager::bakeChunk(CachedChunk& chunk, const Map& map, const Rend
 				ig = house_g;
 				ib = house_b;
 			}
-			alpha = applyTransparency(255, element.definition, spr, options);
+			alpha = applyTransparency(options.layer_alpha, element.definition, spr, options);
 		}
 
 		const auto [off_x, off_y] = spr->getDrawOffset();

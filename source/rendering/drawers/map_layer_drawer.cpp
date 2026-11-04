@@ -49,6 +49,14 @@ MapLayerDrawer::~MapLayerDrawer() {
 }
 
 void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client, const RenderView& view, const DrawingOptions& options, LightBuffer& light_buffer, ChunkCacheManager* chunk_cache, const RenderFrameContext* ctx) {
+	DrawFloor(sprite_batch, editor->map, map_z, live_client, view, options, &light_buffer, chunk_cache, ctx);
+}
+
+void MapLayerDrawer::DrawReference(SpriteBatch& sprite_batch, Map& map, int map_z, const RenderView& view, const DrawingOptions& options, ChunkCacheManager* chunk_cache, const RenderFrameContext* ctx) {
+	DrawFloor(sprite_batch, map, map_z, false, view, options, nullptr, chunk_cache, ctx);
+}
+
+void MapLayerDrawer::DrawFloor(SpriteBatch& sprite_batch, Map& map, int map_z, bool live_client, const RenderView& view, const DrawingOptions& options, LightBuffer* light_buffer, ChunkCacheManager* chunk_cache, const RenderFrameContext* ctx) {
 	int nd_start_x = view.start_x & ~3;
 	int nd_start_y = view.start_y & ~3;
 	int nd_end_x = (view.end_x & ~3) + 4;
@@ -69,9 +77,9 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 	// With the chunk cache that walk skips most tiles, so the lights come from
 	// a dedicated pass that runs whether or not the cache is on -- one code
 	// path, one behaviour.
-	{
+	if (light_buffer) {
 		RENDER_PROFILE_SCOPE(LightGather);
-		LightGatherer::GatherFloor(editor->map, view, options, map_z, light_buffer);
+		LightGatherer::GatherFloor(map, view, options, map_z, *light_buffer);
 	}
 
 	// Common lambda to collect the tiles of a node
@@ -151,9 +159,9 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 		if (live_client) {
 			for (int nd_map_x = nd_start_x; nd_map_x <= nd_end_x; nd_map_x += 4) {
 				for (int nd_map_y = nd_start_y; nd_map_y <= nd_end_y; nd_map_y += 4) {
-					MapNode* nd = editor->map.getLeaf(nd_map_x, nd_map_y);
+					MapNode* nd = map.getLeaf(nd_map_x, nd_map_y);
 					if (!nd) {
-						nd = editor->map.createLeaf(nd_map_x, nd_map_y);
+						nd = map.createLeaf(nd_map_x, nd_map_y);
 						nd->setVisible(false, false);
 					}
 					gatherNode(nd, nd_map_x, nd_map_y, true);
@@ -167,7 +175,7 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 			int safe_end_x = nd_end_x + PAINTERS_ALGORITHM_SAFETY_MARGIN_PIXELS / TILE_SIZE;
 			int safe_end_y = nd_end_y + PAINTERS_ALGORITHM_SAFETY_MARGIN_PIXELS / TILE_SIZE;
 
-			editor->map.visitLeaves(safe_start_x, safe_start_y, safe_end_x, safe_end_y, [&](MapNode* nd, int nd_map_x, int nd_map_y) {
+			map.visitLeaves(safe_start_x, safe_start_y, safe_end_x, safe_end_y, [&](MapNode* nd, int nd_map_x, int nd_map_y) {
 				gatherNode(nd, nd_map_x, nd_map_y, false);
 			});
 		}
@@ -189,7 +197,7 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 	}
 	{
 		RENDER_PROFILE_SCOPE(ChunkRender);
-		chunk_cache->renderFloor(map_z, editor->map, *ctx, view.projectionMatrix, ctx->atlas);
+		chunk_cache->renderFloor(map_z, map, *ctx, view.projectionMatrix, ctx->atlas);
 	}
 
 	// Tiles the bake had to skip -- animated grounds, selected borders,
@@ -207,7 +215,7 @@ void MapLayerDrawer::Draw(SpriteBatch& sprite_batch, int map_z, bool live_client
 		});
 
 		for (const DeferredTile& deferred : deferred_tiles_) {
-			TileLocation* location = editor->map.getTileL(deferred.map_x, deferred.map_y, map_z);
+			TileLocation* location = map.getTileL(deferred.map_x, deferred.map_y, map_z);
 			if (!location || !location->get()) {
 				continue;
 			}

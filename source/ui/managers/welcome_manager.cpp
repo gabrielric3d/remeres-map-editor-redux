@@ -2,6 +2,8 @@
 #include "ui/gui.h"
 #include "ui/welcome_dialog.h"
 #include "ui/main_menubar.h"
+#include "ui/dialogs/map_profiles_dialog.h"
+#include "ui/main_frame.h"
 #include "app/main.h"
 
 WelcomeManager g_welcome;
@@ -52,5 +54,14 @@ void WelcomeManager::OnWelcomeDialogAction(wxCommandEvent& event) {
 			}
 		}
 		g_gui.LoadMap(FileName(event.GetString()));
+	} else if (event.GetId() == WELCOME_ACTION_MAP_PROFILE) {
+		// Opening a profile closes the start screen (FinishWelcomeDialog); cancelling keeps it.
+		MapLoadOptions load_options;
+		load_options.selected_client_id = event.GetString().ToStdString(wxConvUTF8);
+		wxWindow* parent = welcomeDialog;
+		if (!parent) {
+			parent = g_gui.root;
+		}
+		MapProfilesDialog::ShowAndOpen(parent, load_options);
 	}
 }

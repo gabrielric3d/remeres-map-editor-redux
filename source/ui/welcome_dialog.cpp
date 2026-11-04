@@ -201,7 +201,13 @@ void WelcomeDialog::BuildInterface(const wxString& title_text, const wxString& v
 	auto* browse_map_button = new StartupButton(actions_card, wxID_OPEN, "Browse Map", StartupButtonVariant::Secondary);
 	browse_map_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_OPEN, FromDIP(wxSize(18, 18))));
 	browse_map_button->Bind(wxEVT_BUTTON, &WelcomeDialog::OnBrowseMap, this);
-	actions_card->GetBodySizer()->Add(browse_map_button, 0, wxEXPAND);
+	actions_card->GetBodySizer()->Add(browse_map_button, 0, wxEXPAND | wxBOTTOM, FromDIP(10));
+
+	auto* map_profile_button = new StartupButton(actions_card, wxID_ANY, "Map Profile", StartupButtonVariant::Secondary);
+	map_profile_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_LAYER_GROUP, FromDIP(wxSize(18, 18))));
+	map_profile_button->SetToolTip("Open several maps at once (e.g. every map the server loads at boot), as layers or merged.");
+	map_profile_button->Bind(wxEVT_BUTTON, &WelcomeDialog::OnOpenMapProfile, this);
+	actions_card->GetBodySizer()->Add(map_profile_button, 0, wxEXPAND);
 	content_sizer->Add(actions_card, 0, wxEXPAND | wxALL, FromDIP(10));
 
 	auto* favorite_card = new StartupCardPanel(content_panel, "Favorite Maps");
@@ -298,6 +304,14 @@ void WelcomeDialog::OnBrowseMap(wxCommandEvent& WXUNUSED(event)) {
 	if (file_dialog.ShowModal() == wxID_OK) {
 		AddBrowsedMap(file_dialog.GetPath());
 	}
+}
+
+void WelcomeDialog::OnOpenMapProfile(wxCommandEvent& WXUNUSED(event)) {
+	auto* profile_event = new wxCommandEvent(WELCOME_DIALOG_ACTION, WELCOME_ACTION_MAP_PROFILE);
+	if (const ClientVersion* client = GetSelectedClient()) {
+		profile_event->SetString(wxString::FromUTF8(client->getID()));
+	}
+	QueueEvent(profile_event);
 }
 
 void WelcomeDialog::OnExit(wxCommandEvent& WXUNUSED(event)) {

@@ -4,7 +4,7 @@
 #include "app/main.h"
 #include "map/position.h"
 
-class BaseMap;
+class MapStack;
 class Tile;
 class Item;
 
@@ -25,7 +25,7 @@ namespace IngamePreview {
 		/**
 		 * Calculate first (topmost) visible floor from camera position.
 		 */
-		[[nodiscard]] int CalcFirstVisibleFloor(const BaseMap& map, int camera_x, int camera_y, int camera_z) const;
+		[[nodiscard]] int CalcFirstVisibleFloor(const MapStack& map, int camera_x, int camera_y, int camera_z) const;
 
 		/**
 		 * Calculate last (deepest) visible floor from camera position.

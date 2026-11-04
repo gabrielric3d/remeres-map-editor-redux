@@ -114,7 +114,7 @@ void MinimapCache::ensurePageTexture(FloorCachePage& page) {
 	glTextureParameteri(page.texture->GetID(), GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
-void MinimapCache::uploadRect(const Map& map, int floor, FloorCachePage& page, const MinimapDirtyRect& rect) {
+void MinimapCache::uploadRect(const std::vector<const Map*>& maps, int floor, FloorCachePage& page, const MinimapDirtyRect& rect) {
 	ensurePageTexture(page);
 
 	const MinimapDirtyRect clamped_rect = clampRect(rect, PageSize, PageSize);
@@ -130,37 +130,40 @@ void MinimapCache::uploadRect(const Map& map, int floor, FloorCachePage& page, c
 	const int origin_y = page.page_y * PageSize + clamped_rect.y;
 	const int rect_end_x = origin_x + clamped_rect.width - 1;
 	const int rect_end_y = origin_y + clamped_rect.height - 1;
-	map.visitLeaves(origin_x, origin_y, rect_end_x, rect_end_y, [&](const MapNode* node, int node_map_x, int node_map_y) {
-		const Floor* node_floor = node->getFloor(floor);
-		if (!node_floor) {
-			return;
-		}
-
-		for (int local_node_x = 0; local_node_x < 4; ++local_node_x) {
-			const int map_x = node_map_x + local_node_x;
-			if (map_x < origin_x || map_x > rect_end_x) {
-				continue;
+	// Map layers: every map in drawing order, so a later map covers an earlier one.
+	for (const Map* map : maps) {
+		map->visitLeaves(origin_x, origin_y, rect_end_x, rect_end_y, [&](const MapNode* node, int node_map_x, int node_map_y) {
+			const Floor* node_floor = node->getFloor(floor);
+			if (!node_floor) {
+				return;
 			}
 
-			for (int local_node_y = 0; local_node_y < 4; ++local_node_y) {
-				const int map_y = node_map_y + local_node_y;
-				if (map_y < origin_y || map_y > rect_end_y) {
+			for (int local_node_x = 0; local_node_x < 4; ++local_node_x) {
+				const int map_x = node_map_x + local_node_x;
+				if (map_x < origin_x || map_x > rect_end_x) {
 					continue;
 				}
 
-				const int floor_index = local_node_x * 4 + local_node_y;
-				const TileLocation& location = node_floor->locs[static_cast<size_t>(floor_index)];
-				const Tile* tile = location.get();
-				if (!tile) {
-					continue;
-				}
+				for (int local_node_y = 0; local_node_y < 4; ++local_node_y) {
+					const int map_y = node_map_y + local_node_y;
+					if (map_y < origin_y || map_y > rect_end_y) {
+						continue;
+					}
 
-				const int buffer_x = map_x - origin_x;
-				const int buffer_y = map_y - origin_y;
-				upload_buffer_[static_cast<size_t>(buffer_y) * clamped_rect.width + buffer_x] = tile->getMiniMapColor();
+					const int floor_index = local_node_x * 4 + local_node_y;
+					const TileLocation& location = node_floor->locs[static_cast<size_t>(floor_index)];
+					const Tile* tile = location.get();
+					if (!tile) {
+						continue;
+					}
+
+					const int buffer_x = map_x - origin_x;
+					const int buffer_y = map_y - origin_y;
+					upload_buffer_[static_cast<size_t>(buffer_y) * clamped_rect.width + buffer_x] = tile->getMiniMapColor();
+				}
 			}
-		}
-	});
+		});
+	}
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTextureSubImage2D(
@@ -176,7 +179,7 @@ void MinimapCache::uploadRect(const Map& map, int floor, FloorCachePage& page, c
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 }
 
-void MinimapCache::flushVisible(const Map& map, int floor, const MinimapDirtyRect& visible_rect) {
+void MinimapCache::flushVisible(const std::vector<const Map*>& maps, int floor, const MinimapDirtyRect& visible_rect) {
 	if (floor < 0 || floor >= MAP_LAYERS || width_ <= 0 || height_ <= 0) {
 		return;
 	}
@@ -198,7 +201,7 @@ void MinimapCache::flushVisible(const Map& map, int floor, const MinimapDirtyRec
 				continue;
 			}
 
-			uploadRect(map, floor, page, *page.dirty_rect);
+			uploadRect(maps, floor, page, *page.dirty_rect);
 			page.dirty_rect.reset();
 		}
 	}

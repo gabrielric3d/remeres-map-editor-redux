@@ -69,6 +69,7 @@
 
 #include "editor/operations/search_operations.h"
 #include "editor/operations/clean_operations.h"
+#include "ui/map_layers_panel.h"
 
 MainMenuBar::MainMenuBar(MainFrame* frame) :
 	frame(frame) {
@@ -746,6 +747,10 @@ void MainMenuBar::OnTilePropertiesWindow(wxCommandEvent& event) {
 		}
 		g_gui.aui_manager->Update();
 	}
+}
+
+void MainMenuBar::OnMapLayersWindow(wxCommandEvent& WXUNUSED(event)) {
+	MapLayersPanel::TogglePane();
 }
 
 void MainMenuBar::OnNewPalette(wxCommandEvent& event) {

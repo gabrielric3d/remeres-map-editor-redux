@@ -23,6 +23,7 @@
 #include <vector>
 
 class Editor;
+class Map;
 class TileRenderer;
 class GridDrawer;
 class ChunkCacheManager;
@@ -44,7 +45,14 @@ public:
 	// being walked tile by tile. The contents pass always runs on the CPU.
 	void Draw(SpriteBatch& sprite_batch, int map_z, bool live_client, const RenderView& view, const DrawingOptions& options, LightBuffer& light_buffer, ChunkCacheManager* chunk_cache = nullptr, const RenderFrameContext* ctx = nullptr);
 
+	// One floor of another map layer (MapLayers), drawn around the edited map: no live
+	// client and no lights. chunk_cache has to be that map's own cache.
+	void DrawReference(SpriteBatch& sprite_batch, Map& map, int map_z, const RenderView& view, const DrawingOptions& options, ChunkCacheManager* chunk_cache, const RenderFrameContext* ctx);
+
 private:
+	// light_buffer == nullptr skips gathering the floor's lights.
+	void DrawFloor(SpriteBatch& sprite_batch, Map& map, int map_z, bool live_client, const RenderView& view, const DrawingOptions& options, LightBuffer* light_buffer, ChunkCacheManager* chunk_cache, const RenderFrameContext* ctx);
+
 	// Um tile visivel do andar, na ordem de desenho do perfil do cliente
 	// (RenderOrder::tileKey). Reusados entre frames para nao alocar.
 	struct OrderedTile {

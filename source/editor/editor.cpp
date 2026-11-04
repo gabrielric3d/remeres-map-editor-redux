@@ -19,6 +19,7 @@
 
 #include "editor/editor.h"
 #include "editor/action_queue.h"
+#include "editor/map_layers.h"
 #include "game/materials.h"
 #include "map/map.h"
 #include "game/complexitem.h"
@@ -77,6 +78,7 @@ Editor::Editor(CopyBuffer& copybuffer, const MapVersion& version, std::unique_pt
 
 Editor::~Editor() {
 	spdlog::info("Editor destroying [Editor={}]", (void*)this);
+	MapLayers::OnEditorDestroyed(this);
 	if (live_manager.IsLive()) {
 		live_manager.CloseServer();
 	}

@@ -9,8 +9,10 @@
 #include "rendering/drawers/minimap_renderer.h"
 
 #include <memory>
+#include <vector>
 
 class Editor;
+class Map;
 class MapCanvas;
 class PrimitiveRenderer;
 
@@ -51,6 +53,8 @@ private:
 	std::unique_ptr<MinimapRenderer> renderer;
 	std::unique_ptr<PrimitiveRenderer> primitive_renderer;
 	LastViewportMetrics last_viewport_;
+	// Maps merged into the minimap this frame (map layers), kept to reuse the allocation.
+	std::vector<const Map*> drawn_maps_;
 	bool initialized_ = false;
 };
 

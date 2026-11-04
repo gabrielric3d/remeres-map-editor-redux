@@ -8,7 +8,6 @@
 
 #include "ui/map/import_map_window.h"
 #include "ui/dialogs/map_profiles_dialog.h"
-#include "editor/persistence/map_profiles.h"
 #include "ui/dialog_util.h"
 #include "ui/about_window.h"
 #include "ui/dat_debug_view.h"
@@ -40,22 +39,7 @@ void FileMenuHandler::OnOpenForced(wxCommandEvent& WXUNUSED(event)) {
 }
 
 void FileMenuHandler::OnOpenMapProfile(wxCommandEvent& WXUNUSED(event)) {
-	int index = wxNOT_FOUND;
-	{
-		MapProfilesDialog dialog(frame);
-		if (dialog.ShowModal() != wxID_OPEN) {
-			return;
-		}
-		index = dialog.GetProfileToOpen();
-	}
-
-	std::vector<MapProfile> profiles = MapProfiles::Load();
-	if (index < 0 || index >= static_cast<int>(profiles.size())) {
-		return;
-	}
-	MapProfiles::Open(profiles[index]);
-	// A profile linked to a server maps.xml was re-read while opening; keep the fresh list.
-	MapProfiles::Save(profiles);
+	MapProfilesDialog::ShowAndOpen(frame);
 }
 
 void FileMenuHandler::OnSave(wxCommandEvent& WXUNUSED(event)) {

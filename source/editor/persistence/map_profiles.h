@@ -5,14 +5,16 @@
 #ifndef RME_EDITOR_MAP_PROFILES_H_
 #define RME_EDITOR_MAP_PROFILES_H_
 
+#include "editor/persistence/map_load_options.h"
+
 #include <wx/string.h>
 
 #include <vector>
 
 /**
- * A map profile opens several .otbm files as one map, the way a server that splits its world
- * into many files loads them at boot (e.g. data/world/maps.xml). The result is a new unsaved map
- * (Save asks for a file), so the source maps are never overwritten by accident.
+ * A map profile opens several .otbm files together, the way a server that splits its world into
+ * many files loads them at boot (e.g. data/world/maps.xml): either as map layers (one tab and one
+ * file per map, drawn together; see MapLayers) or as one merged unsaved copy.
  * Profiles are kept in Config::MAP_PROFILES as JSON.
  */
 struct MapProfileEntry {
@@ -48,9 +50,15 @@ namespace MapProfiles {
 	// maps.xml of the server a map belongs to (searched upwards from the map folder), or "".
 	wxString FindServerMapsXml(const wxString& map_path);
 
-	// Imports every enabled map of the profile, in order, into a new map tab and reports the result.
-	// A linked profile is re-read first, so profile.maps may change (the caller saves it).
-	bool Open(MapProfile& profile);
+	// Both open the enabled maps in profile order. A linked profile is re-read first, so
+	// profile.maps may change (the caller saves it). load_options.selected_client_id (the
+	// start screen's client) is used when that client reads the first map; otherwise the
+	// client is picked from the map like File > Open does.
+
+	// Every map as a layer of a new layer group: its own file, undo and Save, one shared tab.
+	bool OpenAsLayers(MapProfile& profile, const MapLoadOptions& load_options = {});
+	// Every map imported into one new unsaved map (Save asks for a file; sources untouched).
+	bool OpenMerged(MapProfile& profile, const MapLoadOptions& load_options = {});
 }
 
 #endif // RME_EDITOR_MAP_PROFILES_H_

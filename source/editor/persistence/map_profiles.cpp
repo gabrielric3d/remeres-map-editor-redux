@@ -5,15 +5,19 @@
 #include "app/main.h"
 #include "editor/persistence/map_profiles.h"
 
+#include "app/client_version.h"
 #include "app/settings.h"
 #include "editor/editor.h"
 #include "editor/editor_factory.h"
 #include "editor/managers/editor_manager.h"
+#include "editor/map_layers.h"
 #include "editor/persistence/editor_persistence.h"
 #include "game/creature_projects.h"
+#include "io/iomap_otbm.h"
 #include "ui/dialog_util.h"
 #include "ui/gui.h"
 #include "ui/main_frame.h"
+#include "ui/map_layers_panel.h"
 #include "ui/managers/minimap_manager.h"
 #include "ui/managers/status_manager.h"
 #include "ui/map_tab.h"
@@ -223,49 +227,205 @@ wxString FindServerMapsXml(const wxString& map_path) {
 	return "";
 }
 
-bool Open(MapProfile& profile) {
-	g_gui.FinishWelcomeDialog();
+}
 
-	std::vector<std::string> summary;
-	if (!profile.maps_xml.empty()) {
-		wxString error;
-		if (!SyncFromServer(profile, error)) {
-			summary.push_back("Could not re-read the server maps.xml, using the last known list:");
-			summary.push_back("  " + ToUTF8(error));
-			summary.push_back("");
+namespace {
+	// Re-reads a linked profile and lists the enabled maps that exist; reports and returns
+	// false when there is none. The first map decides the client, like opening it alone would;
+	// a client given in load_options (start screen) wins only when it reads that map, and is
+	// dropped from load_options otherwise -- it may have been picked for another map.
+	bool PrepareOpen(MapProfile& profile, MapLoadOptions& load_options, std::vector<const MapProfileEntry*>& to_load, std::vector<std::string>& missing, std::vector<std::string>& summary) {
+		g_gui.FinishWelcomeDialog();
+
+		if (!profile.maps_xml.empty()) {
+			wxString error;
+			if (!MapProfiles::SyncFromServer(profile, error)) {
+				summary.push_back("Could not re-read the server maps.xml, using the last known list:");
+				summary.push_back("  " + ToUTF8(error));
+				summary.push_back("");
+			}
 		}
+
+		for (const MapProfileEntry& entry : profile.maps) {
+			if (!entry.enabled) {
+				continue;
+			}
+			if (wxFileName::FileExists(entry.file)) {
+				to_load.push_back(&entry);
+			} else {
+				missing.push_back("  " + ToUTF8(entry.name) + ": " + ToUTF8(entry.file));
+			}
+		}
+		if (to_load.empty()) {
+			wxString message = "None of the enabled maps of \"" + profile.name + "\" could be found.";
+			for (const std::string& line : missing) {
+				message += "\n" + wxString::FromUTF8(line);
+			}
+			DialogUtil::PopupDialog("Map profile", message, wxOK | wxICON_WARNING);
+			return false;
+		}
+
+		if (load_options.hasSelectedClient()) {
+			const ClientVersion* client = ClientVersion::get(load_options.selected_client_id);
+			MapVersion version;
+			// Same test the map loader makes (EditorPersistence::loadMap).
+			if (!client || !IOMapOTBM::getVersionInfo(FileName(to_load.front()->file), version) || client->getProtocolID() != version.client) {
+				load_options.selected_client_id.clear();
+			}
+		}
+
+		g_status.SetStatusText("Loading map profile...");
+		try {
+			if (!g_editors.EnsureClientForMap(FileName(to_load.front()->file), load_options)) {
+				return false;
+			}
+		} catch (std::runtime_error& e) {
+			g_status.SetStatusText("Failed to load map profile.");
+			DialogUtil::PopupDialog(g_gui.root, "Error!", wxString(e.what(), wxConvUTF8), wxOK);
+			return false;
+		}
+		return true;
 	}
 
+	// A tab that already has that file open (and is not a layer yet).
+	MapTab* FindOpenMapTab(const wxString& file) {
+		const FileName wanted(file);
+		for (int index = 0; index < g_gui.tabbook->GetTabCount(); ++index) {
+			auto* tab = dynamic_cast<MapTab*>(g_gui.tabbook->GetTab(index));
+			if (!tab || MapLayers::IsLayer(tab->GetEditor()) || !tab->GetMap()->hasFile()) {
+				continue;
+			}
+			if (FileName(wxstr(tab->GetMap()->getFilename())).SameAs(wanted)) {
+				return tab;
+			}
+		}
+		return nullptr;
+	}
+
+	void AppendSection(std::vector<std::string>& summary, const char* title, const std::vector<std::string>& lines) {
+		if (lines.empty()) {
+			return;
+		}
+		summary.push_back("");
+		summary.push_back(title);
+		summary.insert(summary.end(), lines.begin(), lines.end());
+	}
+}
+
+namespace MapProfiles {
+
+bool OpenAsLayers(MapProfile& profile, const MapLoadOptions& requested_options) {
+	MapLoadOptions load_options = requested_options;
 	std::vector<const MapProfileEntry*> to_load;
 	std::vector<std::string> missing;
-	for (const MapProfileEntry& entry : profile.maps) {
-		if (!entry.enabled) {
-			continue;
-		}
-		if (wxFileName::FileExists(entry.file)) {
-			to_load.push_back(&entry);
-		} else {
-			missing.push_back("  " + ToUTF8(entry.name) + ": " + ToUTF8(entry.file));
-		}
-	}
-	if (to_load.empty()) {
-		wxString message = "None of the enabled maps of \"" + profile.name + "\" could be found.";
-		for (const std::string& line : missing) {
-			message += "\n" + wxString::FromUTF8(line);
-		}
-		DialogUtil::PopupDialog("Map profile", message, wxOK | wxICON_WARNING);
+	std::vector<std::string> summary;
+	if (!PrepareOpen(profile, load_options, to_load, missing, summary)) {
 		return false;
 	}
 
-	g_status.SetStatusText("Loading map profile...");
-	// The first map decides the client, like opening it on its own would.
-	try {
-		if (!g_editors.EnsureClientForMap(FileName(to_load.front()->file))) {
-			return false;
+	MapLayerGroup& group = MapLayers::CreateGroup(profile.name);
+	std::vector<MapTab*> tabs;
+	std::vector<std::string> failed;
+	std::vector<std::string> warnings;
+	for (size_t i = 0; i < to_load.size(); ++i) {
+		const MapProfileEntry& entry = *to_load[i];
+		g_status.SetStatusText(wxString::Format("Opening layer %s (%zu/%zu)...", entry.name, i + 1, to_load.size()));
+
+		// Already open on its own: that editor becomes the layer. A second copy of the file
+		// would be a trap -- saving one would overwrite the other's changes.
+		if (MapTab* open_tab = FindOpenMapTab(entry.file)) {
+			MapLayer layer;
+			layer.editor = open_tab->GetEditor();
+			layer.tab = open_tab;
+			layer.name = entry.name;
+			layer.offset_x = entry.offset_x;
+			layer.offset_y = entry.offset_y;
+			group.layers.push_back(layer);
+			tabs.push_back(open_tab);
+			continue;
 		}
-	} catch (std::runtime_error& e) {
+
+		std::unique_ptr<Editor> editor;
+		try {
+			editor = EditorFactory::LoadFromFile(g_gui.copybuffer, FileName(entry.file), load_options);
+		} catch (std::runtime_error& e) {
+			failed.push_back("  " + ToUTF8(entry.name) + ": " + e.what());
+			spdlog::warn("Map profile \"{}\": failed to open layer {}: {}", ToUTF8(profile.name), ToUTF8(entry.file), e.what());
+			continue;
+		}
+		for (const std::string& warning : editor->map.getWarnings()) {
+			warnings.push_back(ToUTF8(entry.name) + ": " + warning);
+		}
+		editor->map.clearChanges();
+
+		// Into the group before the tab exists: the tab title and scroll range come from it.
+		MapLayer layer;
+		layer.editor = editor.get();
+		layer.name = entry.name;
+		layer.offset_x = entry.offset_x;
+		layer.offset_y = entry.offset_y;
+		group.layers.push_back(layer);
+
+		auto* tab = newd MapTab(g_gui.tabbook, editor.release());
+		tab->OnSwitchEditorMode(SELECTION_MODE);
+		group.layers.back().tab = tab;
+		tabs.push_back(tab);
+	}
+
+	if (tabs.empty()) {
+		MapLayers::DiscardEmptyGroups();
 		g_status.SetStatusText("Failed to load map profile.");
-		DialogUtil::PopupDialog(g_gui.root, "Error!", wxString(e.what(), wxConvUTF8), wxOK);
+		failed.insert(failed.begin(), "No map of \"" + ToUTF8(profile.name) + "\" could be opened:");
+		DialogUtil::ListDialog("Map profile", failed);
+		return false;
+	}
+
+	// Every layer now scrolls over the size of the biggest map.
+	for (MapTab* tab : tabs) {
+		tab->FitToMap();
+	}
+
+	// The first layer starts as the active one, and the group keeps that single page: the
+	// other layers leave the tab bar (alive, hidden) and come back through the layers panel.
+	MapTab* first = tabs.front();
+	MapLayers::Activate(first->GetEditor());
+	for (size_t i = 1; i < tabs.size(); ++i) {
+		const int page = g_gui.tabbook->GetTabIndex(tabs[i]->GetWindow());
+		if (page != wxNOT_FOUND) {
+			g_gui.tabbook->DetachTab(page);
+		}
+	}
+	g_gui.FitViewToMap(first);
+	first->GetView()->ResetMinimapViewportToCurrentView();
+	g_status.UpdateTitle();
+
+	CreatureProjects::LoadForMap(wxstr(first->GetMap()->getFilename()));
+	g_gui.root->DoQueryImportCreatures();
+	g_gui.RefreshPalettes(first->GetMap());
+	g_gui.root->UpdateMenubar();
+	g_minimap.InvalidateAll(*first->GetMap());
+	g_gui.UpdateMinimap(true);
+	MapLayersPanel::ShowPane();
+
+	g_status.SetStatusText(wxString::Format("Map profile \"%s\": %zu layer(s) open. The tab in front is the layer you edit.", profile.name, tabs.size()));
+	if (!missing.empty() || !failed.empty() || !summary.empty()) {
+		summary.push_back(wxString::Format("\"%s\": %zu of %zu map(s) opened as layers.", profile.name, tabs.size(), to_load.size() + missing.size()).ToStdString(wxConvUTF8));
+		AppendSection(summary, "Not found (skipped):", missing);
+		AppendSection(summary, "Failed to open:", failed);
+		DialogUtil::ListDialog("Map profile", summary);
+	}
+	if (!warnings.empty()) {
+		DialogUtil::ListDialog("Map loader warnings", warnings);
+	}
+	return true;
+}
+
+bool OpenMerged(MapProfile& profile, const MapLoadOptions& requested_options) {
+	MapLoadOptions load_options = requested_options;
+	std::vector<const MapProfileEntry*> to_load;
+	std::vector<std::string> missing;
+	std::vector<std::string> summary;
+	if (!PrepareOpen(profile, load_options, to_load, missing, summary)) {
 		return false;
 	}
 
@@ -340,16 +500,8 @@ bool Open(MapProfile& profile) {
 	summary.push_back("This is a new unsaved map: Save asks for a file, the source maps are left alone.");
 	summary.push_back("");
 	summary.insert(summary.end(), loaded_lines.begin(), loaded_lines.end());
-	if (!missing.empty()) {
-		summary.push_back("");
-		summary.push_back("Not found (skipped):");
-		summary.insert(summary.end(), missing.begin(), missing.end());
-	}
-	if (!failed.empty()) {
-		summary.push_back("");
-		summary.push_back("Failed to load:");
-		summary.insert(summary.end(), failed.begin(), failed.end());
-	}
+	AppendSection(summary, "Not found (skipped):", missing);
+	AppendSection(summary, "Failed to load:", failed);
 
 	g_status.SetStatusText(wxString::Format("Map profile \"%s\" loaded: %zu map(s).", profile.name, loaded_lines.size()));
 	DialogUtil::ListDialog("Map profile loaded", summary);

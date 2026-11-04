@@ -41,6 +41,9 @@ struct DrawingOptions {
 	int ghost_floors_below;
 	int ghost_floors_alpha; // 0..255
 	bool ghost_floors_fade; // farther floors get fainter
+	// Starting alpha of every sprite (0..255). MapDrawer lowers it only while it draws
+	// another map layer translucent (MapLayers) and puts it back right after.
+	int layer_alpha = 255;
 	bool transparent_items;
 	bool transparent_grounds;
 	bool show_ingame_box;

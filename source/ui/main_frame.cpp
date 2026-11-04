@@ -32,6 +32,7 @@
 #include "app/updater.h"
 #include "ui/map/export_tilesets_window.h"
 #include "ui/tile_properties/tile_properties_panel.h"
+#include "ui/map_layers_panel.h"
 #include <wx/stattext.h>
 #include <wx/slider.h>
 #include <wx/dir.h>
@@ -88,6 +89,10 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
 
 	g_gui.tile_properties_panel = newd TilePropertiesPanel(this);
 	g_gui.aui_manager->AddPane(g_gui.tile_properties_panel, wxAuiPaneInfo().Name("TileProperties").Caption("Tile Properties").Right().Layer(1).Position(1).CloseButton(true).MaximizeButton(true).Hide());
+
+	// Map layers of a profile opened "as layers" (File > Open Map Profile); shown when one opens.
+	MapLayersPanel* map_layers_panel = newd MapLayersPanel(this);
+	g_gui.aui_manager->AddPane(map_layers_panel, wxAuiPaneInfo().Name("MapLayers").Caption("Map Layers").Right().Layer(1).Position(2).CloseButton(true).BestSize(FromDIP(wxSize(260, 380))).MinSize(FromDIP(wxSize(200, 220))).Hide());
 
 	// Create Script Manager panel (dockable)
 	LuaScriptsWindow* scriptsWindow = newd LuaScriptsWindow(this);

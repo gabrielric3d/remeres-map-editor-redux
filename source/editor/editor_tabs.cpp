@@ -19,12 +19,16 @@
 
 #include "editor/editor_tabs.h"
 #include "editor/editor.h"
+#include "editor/map_layers.h"
 #include "live/live_tab.h"
 #include "ui/map_tab.h"
 #include "ui/theme.h"
 
 #include <wx/aui/tabart.h>
 #include <wx/datetime.h>
+
+#include <algorithm>
+#include <vector>
 
 namespace {
 
@@ -114,6 +118,13 @@ MapTabbook::MapTabbook(wxWindow* parent, wxWindowID id) :
 
 	notebook->Bind(wxEVT_AUINOTEBOOK_PAGE_CLOSE, &MapTabbook::OnNotebookPageClose, this);
 	notebook->Bind(wxEVT_AUINOTEBOOK_PAGE_CHANGED, &MapTabbook::OnNotebookPageChanged, this);
+	// Map layers: the camera of the tab being left goes to the next layer of its group.
+	notebook->Bind(wxEVT_AUINOTEBOOK_PAGE_CHANGING, [this](wxAuiNotebookEvent& evt) {
+		if (auto* map_tab = dynamic_cast<MapTab*>(GetCurrentTab())) {
+			MapLayers::RememberCamera(*map_tab);
+		}
+		evt.Skip();
+	});
 	Bind(wxEVT_TIMER, &MapTabbook::OnPulseTimer, this);
 }
 
@@ -142,6 +153,17 @@ void MapTabbook::OnNotebookPageClose(wxAuiNotebookEvent& evt) {
 	EditorTab* editorTab = GetTab(evt.GetInt());
 
 	MapTab* mapTab = dynamic_cast<MapTab*>(editorTab);
+	// The page of a layer group stands for every layer: its close button closes them all,
+	// asking about each one with unsaved changes (after this event, not inside it).
+	if (mapTab && MapLayers::IsLayer(mapTab->GetEditor())) {
+		evt.Veto();
+		const Editor* editor = mapTab->GetEditor();
+		CallAfter([editor]() {
+			MapLayers::CloseGroup(editor);
+		});
+		return;
+	}
+
 	if (mapTab && mapTab->IsUniqueReference() && mapTab->GetMap()) {
 		bool needRefresh = true;
 		if (mapTab->GetEditor()->live_manager.IsLive()) {
@@ -188,6 +210,10 @@ void MapTabbook::OnNotebookPageChanged(wxAuiNotebookEvent& evt) {
 		newMapTab = nullptr;
 	}
 
+	if (newMapTab) {
+		MapLayers::ApplyCamera(*newMapTab);
+	}
+
 	if (!newMapTab) {
 		g_gui.RefreshPalettes(nullptr);
 	} else if (!oldMapTab || !oldMapTab->HasSameReference(newMapTab)) {
@@ -201,6 +227,7 @@ void MapTabbook::OnNotebookPageChanged(wxAuiNotebookEvent& evt) {
 	if (newMapTab) {
 		newMapTab->VisibilityCheck();
 	}
+	MapLayers::NotifyListener();
 }
 
 void MapTabbook::OnAllowNotebookDND(wxAuiNotebookEvent& evt) {
@@ -213,6 +240,22 @@ void MapTabbook::AddTab(EditorTab* tab, bool select) {
 	tab->GetWindow()->Reparent(notebook);
 	notebook->AddPage(tab->GetWindow(), tab->GetTitle(), select);
 	conv[tab->GetWindow()] = tab;
+}
+
+void MapTabbook::InsertTab(int idx, EditorTab* tab, bool select) {
+	wxWindow* window = tab->GetWindow();
+	if (window->GetParent() != notebook) {
+		window->Reparent(notebook);
+	}
+	conv[window] = tab;
+	notebook->InsertPage(std::clamp(idx, 0, static_cast<int>(notebook->GetPageCount())), window, tab->GetTitle(), select);
+}
+
+void MapTabbook::DetachTab(int idx) {
+	wxWindow* window = notebook->GetPage(idx);
+	notebook->RemovePage(idx);
+	// Still a child of the notebook (and destroyed with it), just not shown as a page.
+	window->Hide();
 }
 
 void MapTabbook::SetFocusedTab(int idx) {
@@ -258,7 +301,12 @@ void MapTabbook::SetTabLabel(int idx, wxString label) {
 
 void MapTabbook::DeleteTab(int idx) {
 	if (notebook) {
+		// Map layers: when the page of a group closes, the next hidden layer takes its place,
+		// so closing everything (or quitting) still asks about each layer with changes.
+		auto* map_tab = dynamic_cast<MapTab*>(GetTab(idx));
+		const std::vector<const Editor*> group_mates = MapLayers::GroupMates(map_tab ? map_tab->GetEditor() : nullptr);
 		notebook->DeletePage(idx);
+		MapLayers::KeepGroupShown(group_mates, idx);
 	}
 }
 

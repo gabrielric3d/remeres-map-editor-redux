@@ -25,9 +25,10 @@ MapProfilesDialog::MapProfilesDialog(wxWindow* parent) :
 	wxSizer* sizer = newd wxBoxSizer(wxVERTICAL);
 
 	wxStaticText* intro = newd wxStaticText(this, wxID_ANY,
-		"Opens several maps at once as a single new map, in the listed order (a later map replaces the\n"
-		"tiles of an earlier one where they overlap). Point a profile at the server maps.xml to load the\n"
-		"same maps the server loads at boot. The combined map is unsaved: the source maps are never touched.");
+		"Opens several maps at once. \"Open as layers\" shows them all together in one tab while every map\n"
+		"stays its own file: pick the layer to edit in the Map Layers panel, and Save writes that map only.\n"
+		"\"Open merged copy\" imports them into one new unsaved map instead (for a look or an export).\n"
+		"Point a profile at the server maps.xml to get the same maps the server loads at boot.");
 	sizer->Add(intro, 0, wxALL, 12);
 
 	wxSizer* body_sizer = newd wxBoxSizer(wxHORIZONTAL);
@@ -118,10 +119,16 @@ MapProfilesDialog::MapProfilesDialog(wxWindow* parent) :
 
 	// ---- Open/OK/Cancel ----
 	wxSizer* button_sizer = newd wxBoxSizer(wxHORIZONTAL);
-	open_button = newd wxButton(this, wxID_ANY, "Open profile");
-	open_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_FOLDER_OPEN, wxSize(16, 16)));
-	open_button->SetToolTip("Save the profiles and open the selected one as a new map.");
-	button_sizer->Add(open_button, wxSizerFlags(1).Center().Border(wxRIGHT, 12));
+	open_button = newd wxButton(this, wxID_ANY, "Open as layers");
+	open_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_LAYER_GROUP, wxSize(16, 16)));
+	open_button->SetToolTip("Save the profiles and open every checked map as a layer: all drawn together in one tab,\n"
+		"one file per map. Edits and Save go to the layer picked in the Map Layers panel.");
+	button_sizer->Add(open_button, wxSizerFlags(1).Center().Border(wxRIGHT, 4));
+	open_merged_button = newd wxButton(this, wxID_ANY, "Open merged copy");
+	open_merged_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_FOLDER_OPEN, wxSize(16, 16)));
+	open_merged_button->SetToolTip("Save the profiles and import every checked map into one new unsaved map.\n"
+		"Nothing is written back to the source maps.");
+	button_sizer->Add(open_merged_button, wxSizerFlags(1).Center().Border(wxRIGHT, 12));
 	wxButton* ok_button = newd wxButton(this, wxID_OK, "OK");
 	ok_button->SetBitmap(IMAGE_MANAGER.GetBitmap(ICON_CHECK, wxSize(16, 16)));
 	button_sizer->Add(ok_button, wxSizerFlags(1).Center());
@@ -143,7 +150,7 @@ MapProfilesDialog::MapProfilesDialog(wxWindow* parent) :
 	ShowCurrent();
 
 	profile_list->Bind(wxEVT_LISTBOX, &MapProfilesDialog::OnSelectProfile, this);
-	profile_list->Bind(wxEVT_LISTBOX_DCLICK, &MapProfilesDialog::OnOpenProfile, this);
+	profile_list->Bind(wxEVT_LISTBOX_DCLICK, [this](wxCommandEvent&) { OnOpenProfile(false); });
 	add_profile_button->Bind(wxEVT_BUTTON, &MapProfilesDialog::OnAddProfile, this);
 	remove_profile_button->Bind(wxEVT_BUTTON, &MapProfilesDialog::OnRemoveProfile, this);
 	name_text->Bind(wxEVT_TEXT, &MapProfilesDialog::OnNameChanged, this);
@@ -162,7 +169,8 @@ MapProfilesDialog::MapProfilesDialog(wxWindow* parent) :
 	offset_y_spin->Bind(wxEVT_SPINCTRL, [this](wxSpinEvent&) { OnMapFieldChanged(); });
 	offset_y_spin->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { OnMapFieldChanged(); });
 	houses_check->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { OnMapFieldChanged(); });
-	open_button->Bind(wxEVT_BUTTON, &MapProfilesDialog::OnOpenProfile, this);
+	open_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { OnOpenProfile(false); });
+	open_merged_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { OnOpenProfile(true); });
 	ok_button->Bind(wxEVT_BUTTON, &MapProfilesDialog::OnClickOK, this);
 
 	wxIcon icon;
@@ -271,6 +279,7 @@ void MapProfilesDialog::UpdateEnabledState() {
 	offset_y_spin->Enable(editable && has_map);
 	houses_check->Enable(editable && has_map);
 	open_button->Enable(has_profile && count > 0);
+	open_merged_button->Enable(has_profile && count > 0);
 	Layout();
 }
 
@@ -463,13 +472,39 @@ void MapProfilesDialog::StoreAndSave() {
 	MapProfiles::Save(profiles);
 }
 
-void MapProfilesDialog::OnOpenProfile(wxCommandEvent&) {
+void MapProfilesDialog::OnOpenProfile(bool merged) {
 	if (current == wxNOT_FOUND || profiles[current].maps.empty()) {
 		return;
 	}
 	StoreAndSave();
 	profile_to_open = current;
+	open_merged = merged;
 	EndModal(wxID_OPEN);
+}
+
+void MapProfilesDialog::ShowAndOpen(wxWindow* parent, const MapLoadOptions& load_options) {
+	int index = wxNOT_FOUND;
+	bool merged = false;
+	{
+		MapProfilesDialog dialog(parent);
+		if (dialog.ShowModal() != wxID_OPEN) {
+			return;
+		}
+		index = dialog.GetProfileToOpen();
+		merged = dialog.OpenMerged();
+	}
+
+	std::vector<MapProfile> profiles = MapProfiles::Load();
+	if (index < 0 || index >= static_cast<int>(profiles.size())) {
+		return;
+	}
+	if (merged) {
+		MapProfiles::OpenMerged(profiles[index], load_options);
+	} else {
+		MapProfiles::OpenAsLayers(profiles[index], load_options);
+	}
+	// A profile linked to a server maps.xml was re-read while opening; keep the fresh list.
+	MapProfiles::Save(profiles);
 }
 
 void MapProfilesDialog::OnClickOK(wxCommandEvent&) {

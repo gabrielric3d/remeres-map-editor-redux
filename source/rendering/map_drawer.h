@@ -39,8 +39,13 @@ class LightIndicatorDrawer;
 #include "rendering/core/gl_resources.h"
 #include "rendering/core/chunk_cache_manager.h"
 #include "rendering/core/shader_program.h"
+#include "editor/map_layers.h"
+
+#include <vector>
 
 class GridDrawer;
+class AtlasManager;
+class Map;
 
 class MapCanvas;
 class LightDrawer;
@@ -132,6 +137,21 @@ class MapDrawer {
 	std::unique_ptr<GLBuffer> pp_ebo;
 	double pp_start_time_ms = 0.0;
 
+	// The other layers of the edited map's layer group (MapLayers), drawn around it.
+	// Each map gets its own chunk cache: a cache holds the tiles of one map only.
+	struct ReferenceLayerCache {
+		const Map* map = nullptr;
+		uint64_t map_generation = 0; // tells a map apart from a freed one at the same address
+		uint64_t tracker_generation = 0; // edits made while that layer was the active one
+		int alpha = 255; // baked into the vertices
+		std::unique_ptr<ChunkCacheManager> cache;
+		bool used = false;
+	};
+	std::vector<ReferenceLayerCache> reference_caches_;
+	std::vector<MapLayerReference> reference_layers_;
+	void PrepareReferenceLayers(AtlasManager* atlas);
+	void DrawReferenceLayers(int map_z, bool above);
+
 	void InitPostProcess();
 	void DrawPostProcess(const RenderView& view, const DrawingOptions& options);
 	void UpdateFBO(const RenderView& view, const DrawingOptions& options);
@@ -207,6 +227,9 @@ public:
 	}
 	CreatureDrawer* getCreatureDrawer() {
 		return creature_drawer.get();
+	}
+	ItemDrawer* getItemDrawer() {
+		return item_drawer.get();
 	}
 	const RenderView& getView() const {
 		return view;

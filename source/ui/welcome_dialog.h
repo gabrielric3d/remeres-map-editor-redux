@@ -16,6 +16,9 @@ class StartupCardPanel;
 class StartupListBox;
 
 wxDECLARE_EVENT(WELCOME_DIALOG_ACTION, wxCommandEvent);
+// WELCOME_DIALOG_ACTION id of the "Map Profile" button (the others use wxID_NEW / wxID_OPEN).
+// The event string carries the client selected on the start screen.
+inline constexpr int WELCOME_ACTION_MAP_PROFILE = wxID_HIGHEST + 900;
 
 class WelcomeDialog : public wxDialog {
 public:
@@ -31,6 +34,7 @@ private:
 	void OnPreferences(wxCommandEvent& event);
 	void OnNewMap(wxCommandEvent& event);
 	void OnBrowseMap(wxCommandEvent& event);
+	void OnOpenMapProfile(wxCommandEvent& event);
 	void OnExit(wxCommandEvent& event);
 	void OnLoadRequested(wxCommandEvent& event);
 	void OnInfoRequested(wxCommandEvent& event);

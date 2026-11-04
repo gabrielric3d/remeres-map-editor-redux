@@ -6,6 +6,7 @@
 #define RME_MAP_PROFILES_DIALOG_H_
 
 #include "app/main.h"
+#include "editor/persistence/map_load_options.h"
 #include "editor/persistence/map_profiles.h"
 
 #include <vector>
@@ -16,8 +17,9 @@ class wxFileDirPickerEvent;
 class wxSpinCtrl;
 
 /**
- * Edits the map profiles (several .otbm files opened together as one map, optionally read from
- * a server maps.xml). Closing it with "Open" returns wxID_OPEN; GetProfileToOpen() tells which one.
+ * Edits the map profiles (several .otbm files opened together, optionally read from a server
+ * maps.xml). Closing it with one of the open buttons returns wxID_OPEN; GetProfileToOpen() tells
+ * which profile and OpenMerged() how.
  */
 class MapProfilesDialog : public wxDialog {
 public:
@@ -27,6 +29,14 @@ public:
 	int GetProfileToOpen() const {
 		return profile_to_open;
 	}
+	// true: one merged unsaved copy; false: one layer per map (MapLayers).
+	bool OpenMerged() const {
+		return open_merged;
+	}
+
+	// File > Open Map Profile / start screen: shows the dialog and opens the profile picked there.
+	// load_options carries the client picked on the start screen, if any.
+	static void ShowAndOpen(wxWindow* parent, const MapLoadOptions& load_options = {});
 
 private:
 	void OnSelectProfile(wxCommandEvent&);
@@ -42,7 +52,7 @@ private:
 	void OnRemoveMap(wxCommandEvent&);
 	void OnMoveMap(int direction);
 	void OnMapFieldChanged();
-	void OnOpenProfile(wxCommandEvent&);
+	void OnOpenProfile(bool merged);
 	void OnClickOK(wxCommandEvent&);
 
 	// Re-reads the linked maps.xml of the current profile; reports errors when asked to.
@@ -59,6 +69,7 @@ private:
 	std::vector<MapProfile> profiles;
 	int current = wxNOT_FOUND;
 	int profile_to_open = wxNOT_FOUND;
+	bool open_merged = false;
 	bool updating_controls = false;
 
 	wxListBox* profile_list;
@@ -79,6 +90,7 @@ private:
 	wxCheckBox* houses_check;
 	wxStaticText* linked_hint;
 	wxButton* open_button;
+	wxButton* open_merged_button;
 };
 
 #endif // RME_MAP_PROFILES_DIALOG_H_

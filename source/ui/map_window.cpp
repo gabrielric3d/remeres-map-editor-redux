@@ -23,6 +23,7 @@
 #include "ui/gui.h"
 #include "game/sprites.h"
 #include "editor/editor.h"
+#include "editor/map_layers.h"
 #include "rendering/core/map_view_math.h"
 #include "ui/replace_tool/replace_tool_window.h"
 
@@ -199,7 +200,11 @@ void MapWindow::GetViewSize(int* x, int* y) {
 }
 
 void MapWindow::FitToMap() {
-	SetSize(editor.map.getWidth() * TILE_SIZE, editor.map.getHeight() * TILE_SIZE, true);
+	int width = editor.map.getWidth();
+	int height = editor.map.getHeight();
+	// The layers of a group share one scroll range, so the camera can move between them.
+	MapLayers::GetGroupExtent(editor, width, height);
+	SetSize(width * TILE_SIZE, height * TILE_SIZE, true);
 }
 
 Position MapWindow::GetScreenCenterPosition() {

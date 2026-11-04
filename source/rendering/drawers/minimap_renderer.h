@@ -24,7 +24,7 @@ public:
 	void bindMap(uint64_t map_generation, int width, int height);
 	void invalidateAll();
 	void markDirty(int floor, const MinimapDirtyRect& rect);
-	void flushVisible(const Map& map, int floor, const MinimapDirtyRect& visible_rect);
+	void flushVisible(const std::vector<const Map*>& maps, int floor, const MinimapDirtyRect& visible_rect);
 	void renderVisible(const glm::mat4& projection, int x, int y, int w, int h, int floor, const MinimapDirtyRect& visible_rect);
 	void releaseGL();
 

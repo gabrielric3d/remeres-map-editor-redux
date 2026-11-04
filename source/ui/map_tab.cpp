@@ -19,6 +19,7 @@
 
 #include "ui/gui.h"
 #include "editor/editor.h"
+#include "editor/map_layers.h"
 #include "map/map.h"
 #include "game/sprites.h"
 #include "ui/map_tab.h"
@@ -56,6 +57,7 @@ MapTab::MapTab(const MapTab* other) :
 
 MapTab::~MapTab() {
 	spdlog::info("MapTab destroying [Tab={}] (Owner count: {})", (void*)this, iref->owner_count);
+	MapLayers::OnTabDestroyed(this);
 	iref->owner_count--;
 	if (iref->owner_count <= 0) {
 		spdlog::info("MapTab destroying editor [Editor={}]", (void*)iref->session.editor);
@@ -82,7 +84,16 @@ MapWindow* MapTab::GetView() const {
 
 wxString MapTab::GetTitle() const {
 	wxString ss;
-	ss << wxstr(iref->session.editor->map.getName()) << (iref->session.editor->map.hasChanged() ? "*" : "");
+	// A layer group has a single page: "<profile> - <active layer>". Layers go by their profile
+	// name, since several of them may share a file name (inferno.otbm).
+	const MapLayer* layer = MapLayers::FindLayer(iref->session.editor);
+	const MapLayerGroup* group = MapLayers::FindGroup(iref->session.editor);
+	if (layer && group) {
+		ss << group->name << " - " << layer->name;
+	} else {
+		ss << wxstr(iref->session.editor->map.getName());
+	}
+	ss << (iref->session.editor->map.hasChanged() ? "*" : "");
 	return ss;
 }
 

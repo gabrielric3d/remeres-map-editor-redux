@@ -342,6 +342,8 @@ set(rme_H
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/creature_projects_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/map_profiles_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/editor/persistence/map_profiles.h
+    ${CMAKE_CURRENT_LIST_DIR}/editor/map_layers.h
+    ${CMAKE_CURRENT_LIST_DIR}/ui/map_layers_panel.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/ghost_floors_dialog.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/object_properties_base.h
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/property_validator.h
@@ -828,6 +830,8 @@ set(rme_SRC
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/creature_projects_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/map_profiles_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/editor/persistence/map_profiles.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/editor/map_layers.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ui/map_layers_panel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/dialogs/ghost_floors_dialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/object_properties_base.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ui/properties/property_validator.cpp

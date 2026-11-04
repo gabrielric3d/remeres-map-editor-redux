@@ -423,6 +423,8 @@ void MapDrawer::Draw() {
 		// Frame corrente de cada sprite animado que ja esta no cache (o shader
 		// troca o sprite; a CPU so publica o frame).
 		chunk_cache_manager.updateAnimationClock(g_gui.gfx);
+		// The other map layers drawn around this one, each with its own cache.
+		PrepareReferenceLayers(atlas);
 	}
 
 	// Begin Batches
@@ -579,7 +581,10 @@ void MapDrawer::DrawMap() {
 
 		if (map_z >= view.end_z) {
 			RenderProfiler::Count(RenderProfiler::Counter::FloorsDrawn);
+			// Map layers: the ones before the edited map go under it, the rest over it.
+			DrawReferenceLayers(map_z, false);
 			DrawMapLayer(map_z, live_client);
+			DrawReferenceLayers(map_z, true);
 		}
 
 		{
@@ -639,6 +644,88 @@ void MapDrawer::DrawMapLayer(int map_z, bool live_client) {
 	};
 
 	map_layer_drawer->Draw(*sprite_batch, map_z, live_client, view, options, light_buffer, &chunk_cache_manager, &ctx);
+}
+
+void MapDrawer::PrepareReferenceLayers(AtlasManager* atlas) {
+	MapLayers::CollectReferences(editor, reference_layers_);
+	for (ReferenceLayerCache& entry : reference_caches_) {
+		entry.used = false;
+	}
+
+	for (const MapLayerReference& reference : reference_layers_) {
+		auto it = std::find_if(reference_caches_.begin(), reference_caches_.end(), [&](const ReferenceLayerCache& entry) {
+			return entry.map == reference.map && entry.map_generation == reference.map->getGeneration();
+		});
+		if (it == reference_caches_.end()) {
+			ReferenceLayerCache entry;
+			entry.map = reference.map;
+			entry.map_generation = reference.map->getGeneration();
+			entry.tracker_generation = reference.map->getChangeTracker().getGeneration();
+			entry.alpha = reference.alpha;
+			entry.cache = std::make_unique<ChunkCacheManager>();
+			entry.cache->initialize();
+			reference_caches_.push_back(std::move(entry));
+			it = std::prev(reference_caches_.end());
+		}
+		it->used = true;
+
+		ChunkCacheManager& cache = *it->cache;
+		cache.advanceFrame(view.floor);
+		cache.updateAtlasState(atlas);
+		// That map is only edited while it is the active layer, in its own tab, whose cache
+		// takes the dirty chunks. Here a changed generation just means "bake it again".
+		const uint64_t tracker_generation = reference.map->getChangeTracker().getGeneration();
+		if (tracker_generation != it->tracker_generation || reference.alpha != it->alpha) {
+			cache.invalidateAll();
+			it->tracker_generation = tracker_generation;
+			it->alpha = reference.alpha;
+		}
+		cache.updateOptionsState(options.chunkBakeSignature());
+		cache.updateAnimationClock(g_gui.gfx);
+	}
+
+	std::erase_if(reference_caches_, [](const ReferenceLayerCache& entry) {
+		return !entry.used;
+	});
+}
+
+void MapDrawer::DrawReferenceLayers(int map_z, bool above) {
+	if (reference_layers_.empty()) {
+		return;
+	}
+	AtlasManager* atlas = g_gui.gfx.getAtlasManager();
+
+	for (const MapLayerReference& reference : reference_layers_) {
+		if (reference.above != above) {
+			continue;
+		}
+
+		ChunkCacheManager* cache = nullptr;
+		for (ReferenceLayerCache& entry : reference_caches_) {
+			if (entry.map == reference.map) {
+				cache = entry.cache.get();
+				break;
+			}
+		}
+
+		// Every sprite of that layer starts from its alpha, on the CPU and in the bake alike.
+		options.layer_alpha = reference.alpha;
+		if (atlas && cache) {
+			const RenderFrameContext ctx {
+				.atlas = *atlas,
+				.gfx = g_gui.gfx,
+				.item_definitions = g_item_definitions,
+				.options = options,
+				.view = view,
+				.elapsed_time = g_gui.gfx.getElapsedTime(),
+				.current_house_id = options.current_house_id,
+			};
+			map_layer_drawer->DrawReference(*sprite_batch, *reference.map, map_z, view, options, cache, &ctx);
+		} else {
+			map_layer_drawer->DrawReference(*sprite_batch, *reference.map, map_z, view, options, nullptr, nullptr);
+		}
+		options.layer_alpha = 255;
+	}
 }
 
 void MapDrawer::DrawLight() {

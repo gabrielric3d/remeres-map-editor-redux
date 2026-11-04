@@ -10,6 +10,7 @@
 #include <memory>
 #include <optional>
 #include <unordered_map>
+#include <vector>
 
 class Map;
 
@@ -33,7 +34,8 @@ public:
 	void bindMap(uint64_t map_generation, int width, int height);
 	void invalidateAll();
 	void markDirty(int floor, const MinimapDirtyRect& rect);
-	void flushVisible(const Map& map, int floor, const MinimapDirtyRect& visible_rect);
+	// maps: every map shown, in drawing order (map layers); a later map covers an earlier one.
+	void flushVisible(const std::vector<const Map*>& maps, int floor, const MinimapDirtyRect& visible_rect);
 	std::vector<VisiblePage> collectVisiblePages(int floor, const MinimapDirtyRect& visible_rect);
 	void releaseGL();
 
@@ -55,7 +57,7 @@ private:
 
 	FloorCachePage& getOrCreatePage(int floor, int page_x, int page_y);
 	void ensurePageTexture(FloorCachePage& page);
-	void uploadRect(const Map& map, int floor, FloorCachePage& page, const MinimapDirtyRect& rect);
+	void uploadRect(const std::vector<const Map*>& maps, int floor, FloorCachePage& page, const MinimapDirtyRect& rect);
 
 	std::array<FloorCache, MAP_LAYERS> floors_;
 	std::vector<uint8_t> upload_buffer_;

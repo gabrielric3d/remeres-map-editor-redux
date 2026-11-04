@@ -2,6 +2,9 @@
 #include "ingame_preview/ingame_preview_renderer.h"
 #include "ingame_preview/ingame_preview_window.h"
 #include "editor/editor.h"
+#include "editor/map_layers.h"
+#include "map/map.h"
+#include "map/map_stack.h"
 #include "ui/gui.h"
 #include "rendering/map_drawer.h"
 #include "rendering/ui/map_display.h"
@@ -467,7 +470,14 @@ namespace IngamePreview {
 		NVGcontext* vg = m_nvg.get();
 		renderer->SetLightIntensity(light_intensity);
 		renderer->SetName(preview_name_str);
-		renderer->Render(vg, current_editor->map, view_x, view_y, view_w, view_h, camera_pos, calculated_zoom, lighting_enabled, ambient_light, preview_outfit, preview_direction, animation_phase, walk_offset_x, walk_offset_y);
+		// Map layers: the other layers around the edited one show up here too, as in the map view.
+		std::vector<const Map*> drawn_maps;
+		MapLayers::CollectDrawnMaps(*current_editor, drawn_maps);
+		MapStack map_stack;
+		for (const Map* drawn_map : drawn_maps) {
+			map_stack.add(*drawn_map);
+		}
+		renderer->Render(vg, map_stack, view_x, view_y, view_w, view_h, camera_pos, calculated_zoom, lighting_enabled, ambient_light, preview_outfit, preview_direction, animation_phase, walk_offset_x, walk_offset_y);
 
 		SwapBuffers();
 	}
