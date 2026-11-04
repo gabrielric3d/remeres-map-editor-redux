@@ -87,6 +87,8 @@ public:
 	inline static const std::string ATTR_TEXT = "text";
 	inline static const std::string ATTR_DESC = "desc";
 	inline static const std::string ATTR_TIER = "tier";
+	inline static const std::string ATTR_DRAW_OFFSET_X = "drawoffsetx";
+	inline static const std::string ATTR_DRAW_OFFSET_Y = "drawoffsety";
 
 	// Factory member to create item of right type based on type
 	static std::unique_ptr<Item> Create(uint16_t _type, uint16_t _subtype = 0xFFFF);
@@ -466,6 +468,21 @@ public:
 	// Tier (12.81)
 	void setTier(uint16_t n);
 	uint16_t getTier() const;
+
+	// BlackTalon: draw offset da INSTANCIA (-64..64). Nao confundir com getDrawOffset()
+	// (displacement do sprite). O padrao do tipo vem do items.xml.
+	bool hasInstanceDrawOffset() const;
+	std::pair<int, int> getInstanceDrawOffset() const;
+	void setInstanceDrawOffset(int x, int y);
+	void clearInstanceDrawOffset();
+	std::pair<int, int> getEffectiveDrawOffset() const;
+
+	// BlackTalon: preview ao vivo do draw offset enquanto o dialogo de propriedades esta aberto.
+	// O dialogo edita uma COPIA da tile; o override vale so para o item ORIGINAL do mapa
+	// (comparado por ponteiro) e nunca entra nos atributos. Um item por vez (dialogo modal).
+	static void setDrawOffsetPreview(const Item* original, int x, int y);
+	static void clearDrawOffsetPreview();
+	static const Item* getDrawOffsetPreviewItem();
 
 	// Text
 	void setText(const std::string& str);

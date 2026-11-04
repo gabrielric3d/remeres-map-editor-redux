@@ -144,6 +144,14 @@ bool ItemSerializationOTBM::readAttribute(const IOMap& maphandle, OTBM_ItemAttri
 			item.setTier(static_cast<uint16_t>(tier));
 			break;
 		}
+		case OTBM_ATTR_DRAW_OFFSET: {
+			uint8_t rawX, rawY;
+			if (!stream->getU8(rawX) || !stream->getU8(rawY)) {
+				return false;
+			}
+			item.setInstanceDrawOffset(static_cast<int8_t>(rawX), static_cast<int8_t>(rawY));
+			break;
+		}
 		case OTBM_ATTR_TELE_DEST: {
 			if (auto tele = item.asTeleport()) {
 				uint16_t x, y;
@@ -358,5 +366,13 @@ void ItemSerializationOTBM::serializeItemAttributes(const IOMap& maphandle, Node
 		f.addU8(outfit.lookMountBody);
 		f.addU8(outfit.lookMountLegs);
 		f.addU8(outfit.lookMountFeet);
+	}
+
+	// BlackTalon: draw offset da instancia, sempre o ultimo atributo. Em v4 o attribute map ja leva as chaves.
+	if (maphandle.version.otbm < MAP_OTBM_4 && item.hasInstanceDrawOffset()) {
+		const auto offset = item.getInstanceDrawOffset();
+		f.addU8(OTBM_ATTR_DRAW_OFFSET);
+		f.addU8(static_cast<uint8_t>(static_cast<int8_t>(offset.first)));
+		f.addU8(static_cast<uint8_t>(static_cast<int8_t>(offset.second)));
 	}
 }

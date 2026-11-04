@@ -67,6 +67,7 @@ OldPropertiesWindow::OldPropertiesWindow(wxWindow* win_parent, const Map* map, c
 	createClassificationFields(subsizer, static_box);
 	createDoorFields(subsizer, static_box);
 	createTeleportFields(subsizer, static_box);
+	addDrawOffsetFields(subsizer, static_box);
 
 	boxsizer->Add(subsizer, wxSizerFlags(1).Expand());
 	topsizer->Add(boxsizer, wxSizerFlags(0).Expand().Border(wxLEFT | wxRIGHT, 20));
@@ -222,6 +223,7 @@ void OldPropertiesWindow::OnClickOK(wxCommandEvent& WXUNUSED(event)) {
 
 		// Done validating, set the values.
 		PropertyApplier::applyItemProperties(edit_item, new_count, new_uid, new_aid, new_tier);
+		applyDrawOffsetFields();
 		if (door) {
 			PropertyApplier::applyDoorProperties(door, new_door_id);
 		}

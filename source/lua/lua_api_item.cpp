@@ -89,7 +89,39 @@ namespace LuaAPI {
 				}
 				item.setTier(static_cast<uint16_t>(tier));
 			}),
-			"text", sol::property(&Item::getText, &Item::setText),
+			"drawOffset", sol::property([](const Item& item, sol::this_state ts) -> sol::object {
+					if (!item.hasInstanceDrawOffset()) {
+						return sol::make_object(ts, sol::lua_nil);
+					}
+					const auto offset = item.getInstanceDrawOffset();
+					sol::table t = sol::state_view(ts).create_table();
+					t["x"] = offset.first;
+					t["y"] = offset.second;
+					return sol::make_object(ts, t);
+				}, [](Item& item, sol::object value) {
+					if (!value.valid() || value.is<sol::lua_nil_t>()) {
+						item.clearInstanceDrawOffset();
+						return;
+					}
+					if (!value.is<sol::table>()) {
+						throw sol::error("item.drawOffset: expected a table {x=, y=} or nil.");
+					}
+					sol::table t = value.as<sol::table>();
+					const int x = t.get_or("x", 0);
+					const int y = t.get_or("y", 0);
+					if (x < -64 || x > 64 || y < -64 || y > 64) {
+						throw sol::error("item.drawOffset: x and y must be between -64 and 64.");
+					}
+					item.setInstanceDrawOffset(x, y);
+				}),
+				"effectiveDrawOffset", sol::property([](const Item& item, sol::this_state ts) -> sol::object {
+					const auto offset = item.getEffectiveDrawOffset();
+					sol::table t = sol::state_view(ts).create_table();
+					t["x"] = offset.first;
+					t["y"] = offset.second;
+					return sol::make_object(ts, t);
+				}),
+				"text", sol::property(&Item::getText, &Item::setText),
 			"description", sol::property(&Item::getDescription, &Item::setDescription),
 
 			// Selection

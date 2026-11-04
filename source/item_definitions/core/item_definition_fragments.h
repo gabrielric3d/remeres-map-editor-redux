@@ -73,6 +73,8 @@ struct XmlItemFragment {
 	std::optional<uint32_t> charges;
 	std::optional<uint16_t> rotate_to;
 	std::optional<uint16_t> way_speed;
+	std::optional<int8_t> draw_offset_x;
+	std::optional<int8_t> draw_offset_y;
 };
 
 struct ResolvedItemDefinitionRow {
@@ -97,6 +99,8 @@ struct ResolvedItemDefinitionRow {
 	uint16_t way_speed = 100;
 	int always_on_top_order = 0;
 	BorderType border_alignment = BORDER_NONE;
+	int8_t draw_offset_x = 0;
+	int8_t draw_offset_y = 0;
 	std::string name;
 	std::string editor_suffix;
 	std::string description;

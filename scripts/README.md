@@ -289,6 +289,8 @@ Represents an item on a tile or in a container.
 | `name` | The item name. |
 | `count` | Stack count (or subtype). |
 | `actionId`, `uniqueId` | Properties for scripting. |
+| `drawOffset` | Per-instance draw offset `{x=, y=}` (-64..64), or `nil` when unset. Assign `nil` to clear. |
+| `effectiveDrawOffset` | Read-only `{x=, y=}`: the instance offset, else the type default from items.xml. |
 | `text`, `description` | Text properties (e.g., for signs). |
 | `isStackable`, `isMoveable` | Type checks. |
 | `clone()` | Returns a copy of the item. |

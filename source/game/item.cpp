@@ -32,8 +32,10 @@
 #include "brushes/carpet/carpet_brush.h"
 #include "brushes/table/table_brush.h"
 #include "brushes/wall/wall_brush.h"
+#include <algorithm>
 #include <array>
 #include <string_view>
+#include <utility>
 
 std::unique_ptr<Item> Item::Create(uint16_t _type, uint16_t _subtype /*= 0xFFFF*/) {
 	if (_type == 0) {
@@ -283,6 +285,59 @@ void Item::setDescription(const std::string& str) {
 
 void Item::setTier(unsigned short n) {
 	setAttribute(ATTR_TIER, n);
+}
+
+bool Item::hasInstanceDrawOffset() const {
+	return getIntegerAttribute(ATTR_DRAW_OFFSET_X) != nullptr && getIntegerAttribute(ATTR_DRAW_OFFSET_Y) != nullptr;
+}
+
+std::pair<int, int> Item::getInstanceDrawOffset() const {
+	const int32_t* x = getIntegerAttribute(ATTR_DRAW_OFFSET_X);
+	const int32_t* y = getIntegerAttribute(ATTR_DRAW_OFFSET_Y);
+	return { x ? *x : 0, y ? *y : 0 };
+}
+
+void Item::setInstanceDrawOffset(int x, int y) {
+	setAttribute(ATTR_DRAW_OFFSET_X, static_cast<int32_t>(std::clamp(x, -64, 64)));
+	setAttribute(ATTR_DRAW_OFFSET_Y, static_cast<int32_t>(std::clamp(y, -64, 64)));
+}
+
+void Item::clearInstanceDrawOffset() {
+	eraseAttribute(ATTR_DRAW_OFFSET_X);
+	eraseAttribute(ATTR_DRAW_OFFSET_Y);
+}
+
+namespace {
+	// Estado do preview ao vivo. Ponteiro nulo = caminho normal, so uma comparacao.
+	const Item* g_draw_offset_preview_item = nullptr;
+	int g_draw_offset_preview_x = 0;
+	int g_draw_offset_preview_y = 0;
+}
+
+void Item::setDrawOffsetPreview(const Item* original, int x, int y) {
+	g_draw_offset_preview_item = original;
+	g_draw_offset_preview_x = std::clamp(x, -64, 64);
+	g_draw_offset_preview_y = std::clamp(y, -64, 64);
+}
+
+void Item::clearDrawOffsetPreview() {
+	g_draw_offset_preview_item = nullptr;
+}
+
+const Item* Item::getDrawOffsetPreviewItem() {
+	return g_draw_offset_preview_item;
+}
+
+std::pair<int, int> Item::getEffectiveDrawOffset() const {
+	// Preview (override > instancia > tipo). Usado por BlitItem e pelo bake do chunk.
+	if (g_draw_offset_preview_item == this) {
+		return { g_draw_offset_preview_x, g_draw_offset_preview_y };
+	}
+	if (hasInstanceDrawOffset()) {
+		return getInstanceDrawOffset();
+	}
+	const ItemDefinitionView def = getDefinition();
+	return { static_cast<int>(def.attribute(ItemAttributeKey::DrawOffsetX)), static_cast<int>(def.attribute(ItemAttributeKey::DrawOffsetY)) };
 }
 
 double Item::getWeight() {

@@ -30,6 +30,8 @@
 ---@field count number
 ---@field actionId number
 ---@field uniqueId number
+---@field drawOffset {x: number, y: number}|nil
+---@field effectiveDrawOffset {x: number, y: number}
 ---@field description string
 ---@field isStackable boolean
 ---@field isMoveable boolean

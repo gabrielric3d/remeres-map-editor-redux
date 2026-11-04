@@ -226,4 +226,10 @@ void ItemDefinitionResolver::applyXmlOverrides(const XmlItemFragment& xml, Resol
 	if (xml.way_speed.has_value()) {
 		row.way_speed = *xml.way_speed;
 	}
+	if (xml.draw_offset_x.has_value()) {
+		row.draw_offset_x = *xml.draw_offset_x;
+	}
+	if (xml.draw_offset_y.has_value()) {
+		row.draw_offset_y = *xml.draw_offset_y;
+	}
 }

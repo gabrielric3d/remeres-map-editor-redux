@@ -188,6 +188,17 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 	int screenx = draw_x - offset_x;
 	int screeny = draw_y - offset_y;
 
+	// BlackTalon: draw offset do item (instancia > tipo), somado depois do deslocamento do sprite.
+	// Nao mexe em draw_x/draw_y: o indicador e a elevacao dos itens de cima ficam na casa.
+	if (item) {
+		const std::pair<int, int> effective = item->getEffectiveDrawOffset();
+		screenx += effective.first;
+		screeny += effective.second;
+	} else if (it) {
+		screenx += static_cast<int>(it.attribute(ItemAttributeKey::DrawOffsetX));
+		screeny += static_cast<int>(it.attribute(ItemAttributeKey::DrawOffsetY));
+	}
+
 	// Set the newd drawing height accordingly
 	draw_x -= spr->draw_height;
 	draw_y -= spr->draw_height;
@@ -333,7 +344,7 @@ void ItemDrawer::BlitItem(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer
 	}
 }
 
-void ItemDrawer::DrawRawBrush(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer, int screenx, int screeny, ServerItemId item_id, uint8_t r, uint8_t g, uint8_t b, uint8_t alpha) {
+void ItemDrawer::DrawRawBrush(SpriteBatch& sprite_batch, SpriteDrawer* sprite_drawer, int screenx, int screeny, ServerItemId item_id, uint8_t r, uint8_t g, uint8_t b, uint8_t alpha, const std::pair<int, int>* offset_override) {
 	const auto definition = g_item_definitions.get(item_id);
 	GameSprite* spr = resolveSprite(definition);
 	uint16_t cid = definition ? definition.clientId() : 0;
@@ -379,6 +390,14 @@ void ItemDrawer::DrawRawBrush(SpriteBatch& sprite_batch, SpriteDrawer* sprite_dr
 	}
 
 	if (spr) {
+		// BlackTalon: sem override, o fantasma sai com o padrao do tipo.
+		if (offset_override) {
+			screenx += offset_override->first;
+			screeny += offset_override->second;
+		} else if (definition) {
+			screenx += static_cast<int>(definition.attribute(ItemAttributeKey::DrawOffsetX));
+			screeny += static_cast<int>(definition.attribute(ItemAttributeKey::DrawOffsetY));
+		}
 		sprite_drawer->BlitSprite(sprite_batch, screenx, screeny, spr, DrawColor(r, g, b, alpha));
 	}
 }

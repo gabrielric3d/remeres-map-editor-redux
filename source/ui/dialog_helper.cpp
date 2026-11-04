@@ -29,6 +29,8 @@ void DialogHelper::OpenProperties(Editor& editor, Tile* tile) {
 
 	std::unique_ptr<Tile> new_tile = TileOperations::deepCopy(tile, editor.map);
 	wxDialog* w = nullptr;
+	// BlackTalon: item ORIGINAL do mapa que corresponde ao item da copia (preview ao vivo do draw offset).
+	const Item* original_item = nullptr;
 
 	if (new_tile->spawn && g_settings.getInteger(Config::SHOW_SPAWNS)) {
 		w = newd SpawnPropertiesWindow(g_gui.root, &editor.map, new_tile.get(), new_tile->spawn.get());
@@ -67,11 +69,32 @@ void DialogHelper::OpenProperties(Editor& editor, Tile* tile) {
 			} else {
 				w = newd PropertiesWindow(g_gui.root, &editor.map, new_tile.get(), item);
 			}
+
+			// A copia preserva a ordem: mesmo ground / mesmo indice em items.
+			if (item == new_tile->ground.get()) {
+				original_item = tile->ground.get();
+			} else {
+				for (size_t i = 0; i < new_tile->items.size() && i < tile->items.size(); ++i) {
+					if (new_tile->items[i].get() == item) {
+						original_item = tile->items[i].get();
+						break;
+					}
+				}
+			}
 		}
+	}
+
+	auto* properties_base = dynamic_cast<ObjectPropertiesWindowBase*>(w);
+	if (properties_base && original_item) {
+		properties_base->setDrawOffsetPreviewSource(original_item, tile->getPosition());
 	}
 
 	if (w) {
 		int ret = w->ShowModal();
+		// Cancel / Esc / X: devolve o item ao lugar original antes de qualquer commit.
+		if (properties_base) {
+			properties_base->endDrawOffsetPreview();
+		}
 		if (ret != 0) {
 			std::unique_ptr<Action> action = editor.actionQueue->createAction(ACTION_CHANGE_PROPERTIES);
 			action->addChange(std::make_unique<Change>(std::move(new_tile)));

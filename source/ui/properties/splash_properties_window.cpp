@@ -65,6 +65,8 @@ SplashPropertiesWindow::SplashPropertiesWindow(wxWindow* parent, const Map* map,
 	unique_id_field = newd wxSpinCtrl(this, wxID_ANY, i2ws(edit_item->getUniqueID()), wxDefaultPosition, FromDIP(wxSize(-1, 20)), wxSP_ARROW_KEYS, 0, 0xFFFF, edit_item->getUniqueID());
 	subsizer->Add(unique_id_field, wxSizerFlags(1).Expand());
 
+	addDrawOffsetFields(subsizer, this);
+
 	boxsizer->Add(subsizer, wxSizerFlags(1).Expand());
 
 	topsizer->Add(boxsizer, wxSizerFlags(0).Expand().Border(wxALL, 20));
@@ -105,6 +107,7 @@ void SplashPropertiesWindow::OnClickOK(wxCommandEvent& WXUNUSED(event)) {
 		}
 		edit_item->setUniqueID(new_uid);
 		edit_item->setActionID(new_aid);
+		applyDrawOffsetFields();
 	}
 	EndModal(1);
 }

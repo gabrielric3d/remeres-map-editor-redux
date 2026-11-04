@@ -64,6 +64,8 @@ DepotPropertiesWindow::DepotPropertiesWindow(wxWindow* parent, const Map* map, c
 
 	subsizer->Add(depot_id_field, wxSizerFlags(1).Expand());
 
+	addDrawOffsetFields(subsizer, this);
+
 	boxsizer->Add(subsizer, wxSizerFlags(5).Expand());
 	topsizer->Add(boxsizer, wxSizerFlags(0).Expand().Border(wxALL, 20));
 
@@ -92,6 +94,7 @@ void DepotPropertiesWindow::OnClickOK(wxCommandEvent& WXUNUSED(event)) {
 	if (Depot* depot = dynamic_cast<Depot*>(edit_item)) {
 		int new_depotid = static_cast<int>(reinterpret_cast<intptr_t>(depot_id_field->GetClientData(depot_id_field->GetSelection())));
 		depot->setDepotID(new_depotid);
+		applyDrawOffsetFields();
 	}
 	EndModal(1);
 }

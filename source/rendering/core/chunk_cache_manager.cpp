@@ -725,7 +725,19 @@ void ChunkCacheManager::bakeChunk(CachedChunk& chunk, const Map& map, const Rend
 		}
 
 		const auto [off_x, off_y] = spr->getDrawOffset();
-		emitSprite(spr, patterns, x * TILE_SIZE - element.elevation - off_x, y * TILE_SIZE - element.elevation - off_y, ir, ig, ib, alpha, x, y, show_selection && element.item->isSelected());
+		// BlackTalon: draw offset do item (instancia > tipo), somado depois do deslocamento do sprite.
+		// Um sprite que sai da celula cai em emit_spilled, como qualquer outro que transborda.
+		int draw_off_x = 0;
+		int draw_off_y = 0;
+		if (element.item) {
+			const std::pair<int, int> effective = element.item->getEffectiveDrawOffset();
+			draw_off_x = effective.first;
+			draw_off_y = effective.second;
+		} else if (element.definition) {
+			draw_off_x = static_cast<int>(element.definition.attribute(ItemAttributeKey::DrawOffsetX));
+			draw_off_y = static_cast<int>(element.definition.attribute(ItemAttributeKey::DrawOffsetY));
+		}
+		emitSprite(spr, patterns, x * TILE_SIZE - element.elevation - off_x + draw_off_x, y * TILE_SIZE - element.elevation - off_y + draw_off_y, ir, ig, ib, alpha, x, y, show_selection && element.item->isSelected());
 	};
 
 	// Os elementos de uma camada de um tile, juntados antes de decidir o bake.

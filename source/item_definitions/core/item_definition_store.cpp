@@ -75,6 +75,8 @@ void ItemDefinitionStore::reserve(size_t count) {
 	attributes_.way_speeds.reserve(count);
 	attributes_.always_on_top_orders.reserve(count);
 	attributes_.border_alignments.reserve(count);
+	attributes_.draw_offset_xs.reserve(count);
+	attributes_.draw_offset_ys.reserve(count);
 	text_.names.reserve(count);
 	text_.editor_suffixes.reserve(count);
 	text_.descriptions.reserve(count);
@@ -104,6 +106,8 @@ void ItemDefinitionStore::append(ResolvedItemDefinitionRow row) {
 	attributes_.way_speeds.push_back(row.way_speed);
 	attributes_.always_on_top_orders.push_back(row.always_on_top_order);
 	attributes_.border_alignments.push_back(row.border_alignment);
+	attributes_.draw_offset_xs.push_back(row.draw_offset_x);
+	attributes_.draw_offset_ys.push_back(row.draw_offset_y);
 	text_.names.push_back(std::move(row.name));
 	text_.editor_suffixes.push_back(std::move(row.editor_suffix));
 	text_.descriptions.push_back(std::move(row.description));
@@ -235,5 +239,7 @@ void ItemDefinitionStore::setAttributeAtIndex(DefinitionId index, ItemAttributeK
 		case ItemAttributeKey::WaySpeed: attributes_.way_speeds[index] = static_cast<uint16_t>(value); break;
 		case ItemAttributeKey::AlwaysOnTopOrder: attributes_.always_on_top_orders[index] = static_cast<int>(value); break;
 		case ItemAttributeKey::BorderAlignment: attributes_.border_alignments[index] = static_cast<BorderType>(value); break;
+		case ItemAttributeKey::DrawOffsetX: attributes_.draw_offset_xs[index] = static_cast<int8_t>(value); break;
+		case ItemAttributeKey::DrawOffsetY: attributes_.draw_offset_ys[index] = static_cast<int8_t>(value); break;
 	}
 }

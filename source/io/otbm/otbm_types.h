@@ -56,6 +56,10 @@ enum OTBM_ItemAttribute : uint8_t {
 
 	OTBM_ATTR_PODIUMOUTFIT = 40,
 	OTBM_ATTR_TIER = 41,
+
+	// BlackTalon: draw offset da instancia do item (int8 x + int8 y).
+	// Sempre o ULTIMO atributo do item gravado.
+	OTBM_ATTR_DRAW_OFFSET = 60,
 	OTBM_ATTR_ATTRIBUTE_MAP = 128
 };
 

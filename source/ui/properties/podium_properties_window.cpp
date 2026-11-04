@@ -68,6 +68,8 @@ PodiumPropertiesWindow::PodiumPropertiesWindow(wxWindow* win_parent, const Map* 
 	direction_field->SetSelection(static_cast<Direction>(podium->getDirection()));
 	subsizer->Add(direction_field, wxSizerFlags(1).Expand());
 
+	addDrawOffsetFields(subsizer, this);
+
 	show_outfit = newd wxCheckBox(this, wxID_ANY, "Show outfit");
 	show_outfit->SetValue(podium->hasShowOutfit());
 	show_outfit->SetToolTip("Display outfit on the podium.");
@@ -213,6 +215,7 @@ void PodiumPropertiesWindow::OnClickOK(wxCommandEvent& WXUNUSED(event)) {
 	edit_item->setUniqueID(new_uid);
 	edit_item->setActionID(new_aid);
 	edit_item->setTier(new_tier);
+	applyDrawOffsetFields();
 
 	EndModal(1);
 }

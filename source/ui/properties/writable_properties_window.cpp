@@ -42,6 +42,8 @@ WritablePropertiesWindow::WritablePropertiesWindow(wxWindow* parent, const Map* 
 	unique_id_field = newd wxSpinCtrl(boxsizer->GetStaticBox(), wxID_ANY, i2ws(edit_item->getUniqueID()), wxDefaultPosition, FromDIP(wxSize(-1, 20)), wxSP_ARROW_KEYS, 0, 0xFFFF, edit_item->getUniqueID());
 	subsizer->Add(unique_id_field, wxSizerFlags(1).Expand());
 
+	addDrawOffsetFields(subsizer, boxsizer->GetStaticBox());
+
 	boxsizer->Add(subsizer, wxSizerFlags(1).Expand());
 
 	wxSizer* textsizer = newd wxBoxSizer(wxVERTICAL);
@@ -90,6 +92,7 @@ void WritablePropertiesWindow::OnClickOK(wxCommandEvent& WXUNUSED(event)) {
 		edit_item->setUniqueID(new_uid);
 		edit_item->setActionID(new_aid);
 		edit_item->setText(text);
+		applyDrawOffsetFields();
 	}
 	EndModal(1);
 }

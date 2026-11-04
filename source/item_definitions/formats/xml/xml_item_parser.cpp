@@ -3,6 +3,8 @@
 #include "ext/pugixml.hpp"
 #include "util/common.h"
 
+#include <algorithm>
+#include <sstream>
 #include <string_view>
 #include <unordered_map>
 
@@ -64,6 +66,24 @@ namespace {
 		else if (value == "east") fragment.flags |= flagMask(ItemFlag::FloorChangeEast);
 	}
 
+	// BlackTalon: "x y" ou "x,y" (-64..64); formato invalido ou fora da faixa e ignorado
+	void parseDrawOffset(XmlItemFragment& fragment, const std::string& value) {
+		std::string text = value;
+		std::replace(text.begin(), text.end(), ',', ' ');
+		std::istringstream stream(text);
+		int x = 0;
+		int y = 0;
+		std::string extra;
+		if (!(stream >> x >> y) || (stream >> extra)) {
+			return;
+		}
+		if (x < -64 || x > 64 || y < -64 || y > 64) {
+			return;
+		}
+		fragment.draw_offset_x = static_cast<int8_t>(x);
+		fragment.draw_offset_y = static_cast<int8_t>(y);
+	}
+
 	void applyAttribute(XmlItemFragment& fragment, pugi::xml_node attribute_node) {
 		const std::string key = as_lower_str(attribute_node.attribute("key").as_string());
 		const std::string value = attribute_node.attribute("value").as_string();
@@ -91,6 +111,7 @@ namespace {
 		else if (key == "charges") { fragment.charges = attribute_node.attribute("value").as_uint(); fragment.flags |= flagMask(ItemFlag::ExtraChargeable); }
 		else if ((key == "decayto" || key == "decaytime" || key == "decay") && !value.empty()) fragment.flags |= flagMask(ItemFlag::Decays);
 		else if (key == "floorchange") parseFloorChange(fragment, value);
+		else if (key == "drawoffset") parseDrawOffset(fragment, value);
 	}
 }
 

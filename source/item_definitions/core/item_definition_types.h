@@ -211,6 +211,8 @@ enum class ItemAttributeKey : uint8_t {
 	WaySpeed,
 	AlwaysOnTopOrder,
 	BorderAlignment,
+	DrawOffsetX,
+	DrawOffsetY,
 };
 
 struct ItemEditorData {

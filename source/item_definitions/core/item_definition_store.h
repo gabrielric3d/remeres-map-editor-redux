@@ -39,6 +39,8 @@ struct ItemAttributeTable {
 	std::vector<uint16_t> way_speeds;
 	std::vector<int> always_on_top_orders;
 	std::vector<BorderType> border_alignments;
+	std::vector<int8_t> draw_offset_xs;
+	std::vector<int8_t> draw_offset_ys;
 };
 
 struct ItemTextTable {
@@ -207,6 +209,8 @@ inline int64_t ItemDefinitionStore::attributeValue(DefinitionId index, ItemAttri
 		case ItemAttributeKey::WaySpeed: return attributes_.way_speeds[index];
 		case ItemAttributeKey::AlwaysOnTopOrder: return attributes_.always_on_top_orders[index];
 		case ItemAttributeKey::BorderAlignment: return static_cast<int64_t>(attributes_.border_alignments[index]);
+		case ItemAttributeKey::DrawOffsetX: return attributes_.draw_offset_xs[index];
+		case ItemAttributeKey::DrawOffsetY: return attributes_.draw_offset_ys[index];
 	}
 	return 0;
 }
