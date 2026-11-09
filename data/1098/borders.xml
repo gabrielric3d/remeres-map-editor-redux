@@ -3734,4 +3734,18 @@
 		<borderitem edge="dse" item="58295" />
 		<borderitem edge="dsw" item="58294" />
 	</border>
+	<border id="343">
+		<borderitem edge="n" item="58319" />
+		<borderitem edge="e" item="58320" />
+		<borderitem edge="s" item="58321" />
+		<borderitem edge="w" item="58322" />
+		<borderitem edge="cnw" item="58327" />
+		<borderitem edge="cne" item="58328" />
+		<borderitem edge="cse" item="58330" />
+		<borderitem edge="csw" item="58329" />
+		<borderitem edge="dnw" item="58323" />
+		<borderitem edge="dne" item="58324" />
+		<borderitem edge="dse" item="58326" />
+		<borderitem edge="dsw" item="58325" />
+	</border>
 </materials>

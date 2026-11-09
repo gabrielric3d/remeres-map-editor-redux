@@ -2442,4 +2442,57 @@
 			<item id="58091" chance="1" />
 		</wall>
 	</brush>
+	<brush name="foundry jade wall" type="wall" server_lookid="58540">
+		<wall type="horizontal">
+			<item id="58540" />
+			<item id="58541" chance="0" />
+			<item id="58635" chance="0" />
+			<item id="58636" chance="0" />
+			<item id="58637" chance="0" />
+		</wall>
+		<wall type="vertical">
+			<item id="58542" />
+			<item id="58543" chance="0" />
+			<item id="58638" chance="0" />
+			<item id="58639" chance="0" />
+			<item id="58640" chance="0" />
+		</wall>
+		<wall type="corner">
+			<item id="58544" />
+		</wall>
+		<wall type="pole">
+			<item id="58545" />
+			<item id="58641" chance="0" />
+		</wall>
+		<wall type="west end">
+			<item id="58548" />
+			<item id="58642" chance="0" />
+		</wall>
+		<wall type="north end">
+			<item id="58549" />
+			<item id="58643" chance="0" />
+		</wall>
+		<wall type="southwest diagonal">
+			<item id="58546" />
+		</wall>
+		<wall type="northeast diagonal">
+			<item id="58547" />
+		</wall>
+	</brush>
+	<brush name="foundry jade low wall" type="wall" server_lookid="58568">
+		<wall type="horizontal">
+			<item id="58568" chance="3" />
+			<item id="58569" chance="1" />
+		</wall>
+		<wall type="vertical">
+			<item id="58570" chance="3" />
+			<item id="58571" chance="1" />
+		</wall>
+		<wall type="corner">
+			<item id="58572" chance="3" />
+		</wall>
+		<wall type="pole">
+			<item id="58573" chance="3" />
+		</wall>
+	</brush>
 </materials>

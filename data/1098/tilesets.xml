@@ -280,6 +280,7 @@
 			<item fromid="57943" toid="57962" />
 			<item fromid="58285" toid="58287" />
 			<item fromid="58300" toid="58301" />
+			<item fromid="58314" toid="58318" />
 		</raw>
 		<terrain>
 			<brush name="stone paviment 2" />
@@ -1571,6 +1572,7 @@
 			<brush name="carlin wooden floor" />
 			<brush name="dark wooden floor" />
 			<brush name="darkest wooden floor" />
+			<brush name="temple wooden floor" />
 			<brush name="timber floor" />
 			<brush name="light wooden floor" />
 			<brush name="grimy wooden plank horizontal" />
@@ -5653,6 +5655,7 @@
 			<brush name="white bear skin rug" />
 			<brush name="badger fur" />
 			<brush name="red carpet" />
+			<brush name="temple carpet" />
 			<brush name="blue carpet" />
 			<brush name="green carpet" />
 			<brush name="brown carpet" />
@@ -6507,6 +6510,7 @@
 			<item fromid="10144" toid="10149" />
 			<item fromid="15441" toid="15450" />
 			<item fromid="19652" toid="19653" />
+			<item fromid="58331" toid="58342" />
 		</raw>
 	</tileset>
 	<tileset name="Statues">
@@ -40064,6 +40068,7 @@
 			<item id="25760" />
 			<item id="25761" />
 			<item fromid="58288" toid="58299" />
+			<item fromid="58319" toid="58330" />
 		</raw>
 	</tileset>
 	<tileset name="Blank">
@@ -41794,11 +41799,17 @@
 		<doodad>
 			<brush name="backrooms pillar" />
 			<brush name="backrooms pillar (skirting)" />
+			<brush name="old television" />
+			<brush name="old television (animated)" />
+			<brush name="white television" />
+			<brush name="white television (animated)" />
 		</doodad>
 		<raw>
 			<item fromid="58073" toid="58085" />
 			<item fromid="58086" toid="58091" />
 			<item fromid="58114" toid="58117" />
+			<item fromid="58352" toid="58368" />
+			<item fromid="58369" toid="58385" />
 		</raw>
 	</tileset>
 	<tileset name="Tetris Rain">
@@ -41822,6 +41833,103 @@
 			<item id="58259" />
 			<item id="58260" />
 			<item id="58261" />
+			<item id="58343" />
+		</raw>
+	</tileset>
+	<tileset name="Gathering - Herbalist">
+		<raw>
+			<item id="58398" />
+			<item id="58400" />
+			<item id="58402" />
+			<item id="58404" />
+			<item id="58406" />
+			<item id="58408" />
+			<item id="58410" />
+			<item id="58412" />
+		</raw>
+	</tileset>
+	<tileset name="Gathering - Herbalist (sprouts)">
+		<raw>
+			<item id="58414" />
+			<item id="58415" />
+			<item id="58416" />
+			<item id="58417" />
+			<item id="58418" />
+			<item id="58419" />
+			<item id="58420" />
+			<item id="58421" />
+			<item id="58422" />
+			<item id="58423" />
+			<item id="58424" />
+			<item id="58425" />
+			<item id="58426" />
+			<item id="58427" />
+			<item id="58428" />
+			<item id="58429" />
+			<item id="58430" />
+			<item id="58431" />
+			<item id="58432" />
+			<item id="58433" />
+		</raw>
+	</tileset>
+	<tileset name="Colossus Clash">
+		<terrain>
+			<brush name="foundry flagstone" />
+			<brush name="foundry base tiles" />
+			<brush name="foundry jade wall" />
+			<brush name="foundry jade low wall" />
+		</terrain>
+		<doodad>
+			<brush name="foundry rail" />
+			<brush name="foundry rail mid a" />
+			<brush name="foundry rail mid b" />
+			<brush name="foundry rail mid c" />
+			<brush name="foundry rail end west" />
+			<brush name="foundry rail end east" />
+			<brush name="foundry rail loss line" />
+			<brush name="foundry rail center" />
+			<brush name="foundry rail open end west" />
+			<brush name="foundry rail open end east" />
+			<brush name="foundry void crack 1x1" />
+			<brush name="foundry void crack 2x2" />
+			<brush name="foundry void crack 3x3" />
+			<brush name="foundry colossus arm" />
+			<brush name="foundry colossus hand" />
+			<brush name="foundry colossus head" />
+			<brush name="foundry gear" />
+			<brush name="foundry gears pair" />
+			<brush name="foundry void crystal a" />
+			<brush name="foundry void crystal b" />
+			<brush name="foundry void crystal large" />
+			<brush name="foundry scrap heap a" />
+			<brush name="foundry scrap heap b" />
+			<brush name="foundry jade big pillar" />
+			<brush name="foundry jade turret" />
+			<brush name="foundry jade low pillar" />
+			<brush name="foundry brazier red" />
+			<brush name="foundry brazier blue" />
+			<brush name="foundry banner red north" />
+			<brush name="foundry banner red west" />
+			<brush name="foundry banner blue north" />
+			<brush name="foundry banner blue west" />
+			<brush name="foundry carpet red" />
+			<brush name="foundry carpet blue" />
+		</doodad>
+		<raw>
+			<item fromid="58438" toid="58604" />
+			<item fromid="58605" toid="58614" />
+			<item fromid="58635" toid="58643" />
+		</raw>
+	</tileset>
+	<tileset name="Start Zone">
+		<terrain>
+			<brush name="start zone ocean" />
+			<brush name="start zone storm ocean" />
+		</terrain>
+		<raw>
+			<item fromid="58700" toid="58701" />
+			<item fromid="58733" toid="59156" />
+			<item fromid="59158" toid="59169" />
 		</raw>
 	</tileset>
 </materials>

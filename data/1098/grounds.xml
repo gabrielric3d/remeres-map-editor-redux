@@ -6838,4 +6838,29 @@
 		<border align="outer" id="342" />
 		<border align="outer" to="none" id="342" />
 	</brush>
+	<brush name="temple wooden floor" type="ground" server_lookid="58314" z-order="8950" activated="true">
+		<item id="58314" chance="100" />
+		<item id="58315" chance="0" />
+		<item id="58316" chance="0" />
+		<item id="58317" chance="0" />
+		<item id="58318" chance="0" />
+		<border align="outer" id="343" />
+		<border align="outer" to="none" id="343" />
+	</brush>
+	<brush name="foundry flagstone" type="ground" server_lookid="58438" z-order="2010" activated="true">
+		<item id="58438" chance="6" />
+		<item id="58439" chance="2" />
+		<item id="58440" chance="2" />
+	</brush>
+	<brush name="foundry base tiles" type="ground" server_lookid="58441" z-order="2011" activated="true">
+		<item id="58441" chance="6" />
+		<item id="58442" chance="2" />
+		<item id="58443" chance="2" />
+	</brush>
+	<brush name="start zone ocean" type="ground" server_lookid="58700" z-order="8610" activated="true">
+		<item id="58700" chance="1" />
+	</brush>
+	<brush name="start zone storm ocean" type="ground" server_lookid="58701" z-order="8611" activated="true">
+		<item id="58701" chance="1" />
+	</brush>
 </materials>

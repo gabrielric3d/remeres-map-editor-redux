@@ -24908,4 +24908,806 @@
 			<item id="58085" chance="10" />
 		</alternate>
 	</brush>
+	<brush name="temple carpet" type="carpet" server_lookid="58335" activated="true">
+		<carpet align="n" id="58338" />
+		<carpet align="e" id="58334" />
+		<carpet align="s" id="58332" />
+		<carpet align="w" id="58336" />
+		<carpet align="cnw" id="58339" />
+		<carpet align="cne" id="58337" />
+		<carpet align="cse" id="58331" />
+		<carpet align="csw" id="58333" />
+		<carpet align="center" id="58335" />
+	</brush>
+	<brush name="old television" type="doodad" server_lookid="58360" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="1" y="0">
+				<item id="58352" />
+			</tile>
+			<tile x="2" y="0">
+				<item id="58353" />
+			</tile>
+			<tile x="3" y="0">
+				<item id="58354" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="58355" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="58356" />
+			</tile>
+			<tile x="2" y="1">
+				<item id="58357" />
+			</tile>
+			<tile x="3" y="1">
+				<item id="58358" />
+			</tile>
+			<tile x="0" y="2">
+				<item id="58359" />
+			</tile>
+			<tile x="1" y="2">
+				<item id="58360" />
+			</tile>
+			<tile x="2" y="2">
+				<item id="58361" />
+			</tile>
+			<tile x="3" y="2">
+				<item id="58362" />
+			</tile>
+			<tile x="1" y="3">
+				<item id="58363" />
+			</tile>
+			<tile x="2" y="3">
+				<item id="58364" />
+			</tile>
+			<tile x="3" y="3">
+				<item id="58365" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="old television (animated)" type="doodad" server_lookid="58367" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="1" y="0">
+				<item id="58352" />
+			</tile>
+			<tile x="2" y="0">
+				<item id="58353" />
+			</tile>
+			<tile x="3" y="0">
+				<item id="58354" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="58355" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="58356" />
+			</tile>
+			<tile x="2" y="1">
+				<item id="58357" />
+			</tile>
+			<tile x="3" y="1">
+				<item id="58358" />
+			</tile>
+			<tile x="0" y="2">
+				<item id="58366" />
+			</tile>
+			<tile x="1" y="2">
+				<item id="58367" />
+			</tile>
+			<tile x="2" y="2">
+				<item id="58368" />
+			</tile>
+			<tile x="3" y="2">
+				<item id="58362" />
+			</tile>
+			<tile x="1" y="3">
+				<item id="58363" />
+			</tile>
+			<tile x="2" y="3">
+				<item id="58364" />
+			</tile>
+			<tile x="3" y="3">
+				<item id="58365" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="white television" type="doodad" server_lookid="58377" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="1" y="0">
+				<item id="58369" />
+			</tile>
+			<tile x="2" y="0">
+				<item id="58370" />
+			</tile>
+			<tile x="3" y="0">
+				<item id="58371" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="58372" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="58373" />
+			</tile>
+			<tile x="2" y="1">
+				<item id="58374" />
+			</tile>
+			<tile x="3" y="1">
+				<item id="58375" />
+			</tile>
+			<tile x="0" y="2">
+				<item id="58376" />
+			</tile>
+			<tile x="1" y="2">
+				<item id="58377" />
+			</tile>
+			<tile x="2" y="2">
+				<item id="58378" />
+			</tile>
+			<tile x="3" y="2">
+				<item id="58379" />
+			</tile>
+			<tile x="1" y="3">
+				<item id="58380" />
+			</tile>
+			<tile x="2" y="3">
+				<item id="58381" />
+			</tile>
+			<tile x="3" y="3">
+				<item id="58382" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="white television (animated)" type="doodad" server_lookid="58384" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="1" y="0">
+				<item id="58369" />
+			</tile>
+			<tile x="2" y="0">
+				<item id="58370" />
+			</tile>
+			<tile x="3" y="0">
+				<item id="58371" />
+			</tile>
+			<tile x="0" y="1">
+				<item id="58372" />
+			</tile>
+			<tile x="1" y="1">
+				<item id="58373" />
+			</tile>
+			<tile x="2" y="1">
+				<item id="58374" />
+			</tile>
+			<tile x="3" y="1">
+				<item id="58375" />
+			</tile>
+			<tile x="0" y="2">
+				<item id="58383" />
+			</tile>
+			<tile x="1" y="2">
+				<item id="58384" />
+			</tile>
+			<tile x="2" y="2">
+				<item id="58385" />
+			</tile>
+			<tile x="3" y="2">
+				<item id="58379" />
+			</tile>
+			<tile x="1" y="3">
+				<item id="58380" />
+			</tile>
+			<tile x="2" y="3">
+				<item id="58381" />
+			</tile>
+			<tile x="3" y="3">
+				<item id="58382" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry rail" type="doodad" server_lookid="58445" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="0" y="-1">
+				<item id="58444" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58445" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="-1">
+				<item id="58446" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58447" />
+			</tile>
+		</composite>
+		<composite chance="10">
+			<tile x="0" y="-1">
+				<item id="58448" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58449" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry rail mid a" type="doodad" server_lookid="58445" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="0" y="-1">
+				<item id="58444" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58445" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry rail mid b" type="doodad" server_lookid="58447" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="0" y="-1">
+				<item id="58446" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58447" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry rail mid c" type="doodad" server_lookid="58449" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="0" y="-1">
+				<item id="58448" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58449" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry rail end west" type="doodad" server_lookid="58451" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="0" y="-1">
+				<item id="58450" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58451" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry rail end east" type="doodad" server_lookid="58453" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="0" y="-1">
+				<item id="58452" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58453" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry rail loss line" type="doodad" server_lookid="58455" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="0" y="-1">
+				<item id="58454" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58455" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry rail center" type="doodad" server_lookid="58457" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="0" y="-1">
+				<item id="58456" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58457" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry rail open end west" type="doodad" server_lookid="58459" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="0" y="-1">
+				<item id="58458" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58459" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry rail open end east" type="doodad" server_lookid="58461" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="0" y="-1">
+				<item id="58460" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58461" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry void crack 1x1" type="doodad" server_lookid="58462" draggable="true" on_blocking="false" thickness="10/10" activated="true">
+		<alternate>
+			<item id="58462" chance="10" />
+			<item id="58463" chance="10" />
+			<item id="58464" chance="10" />
+		</alternate>
+	</brush>
+	<brush name="foundry void crack 2x2" type="doodad" server_lookid="58465" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="-1" y="-1">
+				<item id="58465" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58466" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58467" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58468" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry void crack 3x3" type="doodad" server_lookid="58473" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="-2" y="-2">
+				<item id="58469" />
+			</tile>
+			<tile x="-1" y="-2">
+				<item id="58470" />
+			</tile>
+			<tile x="0" y="-2">
+				<item id="58471" />
+			</tile>
+			<tile x="-2" y="-1">
+				<item id="58472" />
+			</tile>
+			<tile x="-1" y="-1">
+				<item id="58473" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58474" />
+			</tile>
+			<tile x="-2" y="0">
+				<item id="58475" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58476" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58477" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry colossus arm" type="doodad" server_lookid="58481" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="-1" y="-2">
+				<item id="58478" />
+			</tile>
+			<tile x="0" y="-2">
+				<item id="58479" />
+			</tile>
+			<tile x="-2" y="-1">
+				<item id="58480" />
+			</tile>
+			<tile x="-1" y="-1">
+				<item id="58481" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58482" />
+			</tile>
+			<tile x="-2" y="0">
+				<item id="58483" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58484" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry colossus hand" type="doodad" server_lookid="58488" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="-1" y="-2">
+				<item id="58485" />
+			</tile>
+			<tile x="0" y="-2">
+				<item id="58486" />
+			</tile>
+			<tile x="-2" y="-1">
+				<item id="58487" />
+			</tile>
+			<tile x="-1" y="-1">
+				<item id="58488" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58489" />
+			</tile>
+			<tile x="-2" y="0">
+				<item id="58490" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58491" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58492" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry colossus head" type="doodad" server_lookid="58497" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="-2" y="-2">
+				<item id="58493" />
+			</tile>
+			<tile x="-1" y="-2">
+				<item id="58494" />
+			</tile>
+			<tile x="0" y="-2">
+				<item id="58495" />
+			</tile>
+			<tile x="-2" y="-1">
+				<item id="58496" />
+			</tile>
+			<tile x="-1" y="-1">
+				<item id="58497" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58498" />
+			</tile>
+			<tile x="-2" y="0">
+				<item id="58499" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58500" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58501" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry gear" type="doodad" server_lookid="58502" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="-1" y="-1">
+				<item id="58502" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58503" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58504" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58505" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry gears pair" type="doodad" server_lookid="58510" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="-2" y="-2">
+				<item id="58506" />
+			</tile>
+			<tile x="-1" y="-2">
+				<item id="58507" />
+			</tile>
+			<tile x="0" y="-2">
+				<item id="58508" />
+			</tile>
+			<tile x="-2" y="-1">
+				<item id="58509" />
+			</tile>
+			<tile x="-1" y="-1">
+				<item id="58510" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58511" />
+			</tile>
+			<tile x="-2" y="0">
+				<item id="58512" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58513" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58514" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry void crystal a" type="doodad" server_lookid="58518" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="-1" y="-1">
+				<item id="58515" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58516" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58517" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58518" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry void crystal b" type="doodad" server_lookid="58522" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="-1" y="-1">
+				<item id="58519" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58520" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58521" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58522" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry void crystal large" type="doodad" server_lookid="58527" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="-2" y="-2">
+				<item id="58523" />
+			</tile>
+			<tile x="-1" y="-2">
+				<item id="58524" />
+			</tile>
+			<tile x="0" y="-2">
+				<item id="58525" />
+			</tile>
+			<tile x="-2" y="-1">
+				<item id="58526" />
+			</tile>
+			<tile x="-1" y="-1">
+				<item id="58527" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58528" />
+			</tile>
+			<tile x="-2" y="0">
+				<item id="58529" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58530" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58531" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry scrap heap a" type="doodad" server_lookid="58535" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="-1" y="-1">
+				<item id="58532" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58533" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58534" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58535" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry scrap heap b" type="doodad" server_lookid="58539" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="-1" y="-1">
+				<item id="58536" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58537" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58538" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58539" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry jade big pillar" type="doodad" server_lookid="58550" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="-3" y="-3">
+				<item id="58605" />
+			</tile>
+			<tile x="-2" y="-3">
+				<item id="58606" />
+			</tile>
+			<tile x="-1" y="-3">
+				<item id="58607" />
+			</tile>
+			<tile x="-3" y="-2">
+				<item id="58608" />
+			</tile>
+			<tile x="-2" y="-2">
+				<item id="58550" />
+			</tile>
+			<tile x="-1" y="-2">
+				<item id="58551" />
+			</tile>
+			<tile x="0" y="-2">
+				<item id="58552" />
+			</tile>
+			<tile x="-3" y="-1">
+				<item id="58609" />
+			</tile>
+			<tile x="-2" y="-1">
+				<item id="58553" />
+			</tile>
+			<tile x="-1" y="-1">
+				<item id="58554" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58555" />
+			</tile>
+			<tile x="-2" y="0">
+				<item id="58556" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58557" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58558" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry jade turret" type="doodad" server_lookid="58559" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="-3" y="-3">
+				<item id="58610" />
+			</tile>
+			<tile x="-2" y="-3">
+				<item id="58611" />
+			</tile>
+			<tile x="-1" y="-3">
+				<item id="58612" />
+			</tile>
+			<tile x="-3" y="-2">
+				<item id="58613" />
+			</tile>
+			<tile x="-2" y="-2">
+				<item id="58559" />
+			</tile>
+			<tile x="-1" y="-2">
+				<item id="58560" />
+			</tile>
+			<tile x="0" y="-2">
+				<item id="58561" />
+			</tile>
+			<tile x="-3" y="-1">
+				<item id="58614" />
+			</tile>
+			<tile x="-2" y="-1">
+				<item id="58562" />
+			</tile>
+			<tile x="-1" y="-1">
+				<item id="58563" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58564" />
+			</tile>
+			<tile x="-2" y="0">
+				<item id="58565" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58566" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58567" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry jade low pillar" type="doodad" server_lookid="58574" draggable="true" on_blocking="false" thickness="10/10" activated="true">
+		<alternate>
+			<item id="58574" chance="10" />
+		</alternate>
+	</brush>
+	<brush name="foundry brazier red" type="doodad" server_lookid="58578" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="-1" y="-1">
+				<item id="58575" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58576" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58577" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58578" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry brazier blue" type="doodad" server_lookid="58582" draggable="false" on_blocking="true" activated="true">
+		<composite chance="10">
+			<tile x="-1" y="-1">
+				<item id="58579" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58580" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58581" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58582" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry banner red north" type="doodad" server_lookid="58583" draggable="false" on_blocking="true" activated="true">
+		<alternate>
+			<item id="58583" chance="10" />
+		</alternate>
+	</brush>
+	<brush name="foundry banner red west" type="doodad" server_lookid="58584" draggable="false" on_blocking="true" activated="true">
+		<alternate>
+			<item id="58584" chance="10" />
+		</alternate>
+	</brush>
+	<brush name="foundry banner blue north" type="doodad" server_lookid="58585" draggable="false" on_blocking="true" activated="true">
+		<alternate>
+			<item id="58585" chance="10" />
+		</alternate>
+	</brush>
+	<brush name="foundry banner blue west" type="doodad" server_lookid="58586" draggable="false" on_blocking="true" activated="true">
+		<alternate>
+			<item id="58586" chance="10" />
+		</alternate>
+	</brush>
+	<brush name="foundry carpet red" type="doodad" server_lookid="58591" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="-2" y="-2">
+				<item id="58587" />
+			</tile>
+			<tile x="-1" y="-2">
+				<item id="58588" />
+			</tile>
+			<tile x="0" y="-2">
+				<item id="58589" />
+			</tile>
+			<tile x="-2" y="-1">
+				<item id="58590" />
+			</tile>
+			<tile x="-1" y="-1">
+				<item id="58591" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58592" />
+			</tile>
+			<tile x="-2" y="0">
+				<item id="58593" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58594" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58595" />
+			</tile>
+		</composite>
+	</brush>
+	<brush name="foundry carpet blue" type="doodad" server_lookid="58600" draggable="false" on_blocking="false" activated="true">
+		<composite chance="10">
+			<tile x="-2" y="-2">
+				<item id="58596" />
+			</tile>
+			<tile x="-1" y="-2">
+				<item id="58597" />
+			</tile>
+			<tile x="0" y="-2">
+				<item id="58598" />
+			</tile>
+			<tile x="-2" y="-1">
+				<item id="58599" />
+			</tile>
+			<tile x="-1" y="-1">
+				<item id="58600" />
+			</tile>
+			<tile x="0" y="-1">
+				<item id="58601" />
+			</tile>
+			<tile x="-2" y="0">
+				<item id="58602" />
+			</tile>
+			<tile x="-1" y="0">
+				<item id="58603" />
+			</tile>
+			<tile x="0" y="0">
+				<item id="58604" />
+			</tile>
+		</composite>
+	</brush>
 </materials>
