@@ -41810,11 +41810,13 @@
 			<item fromid="58114" toid="58117" />
 			<item fromid="58352" toid="58368" />
 			<item fromid="58369" toid="58385" />
+			<item id="59194" />
 		</raw>
 	</tileset>
 	<tileset name="Tetris Rain">
 		<raw>
 			<item fromid="58098" toid="58106" />
+			<item id="59193" />
 		</raw>
 	</tileset>
 	<tileset name="Bomberman">

@@ -46289,5 +46289,8 @@ e o newmarketitems.json vai estar em appdata
 	<item id="59167" name="bed" />
 	<item id="59168" name="bed" />
 	<item id="59169" name="bed" />
+	<!-- Entradas dos eventos: os itens do basin (.blacktalon/scripts/install_event_entrance32.py) -->
+	<item id="59193" name="tetris block pile" />
+	<item id="59194" name="small backrooms door" />
 </items>
 
