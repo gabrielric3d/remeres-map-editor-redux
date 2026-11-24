@@ -46289,5 +46289,45 @@ e o newmarketitems.json vai estar em appdata
 	<item id="59167" name="bed" />
 	<item id="59168" name="bed" />
 	<item id="59169" name="bed" />
+	<!-- Entradas dos eventos: os itens do basin (.blacktalon/scripts/install_event_entrance32.py) -->
+	<item id="59193" name="tetris block pile" />
+	<item id="59194" name="small backrooms door" />
+	<!-- Fazenda: animais engaiolados (.blacktalon/scripts/install_caged_animals.py) -->
+	<item id="59229" name="caged cow" />
+	<item id="59230" name="caged golden cow" />
+	<item id="59231" name="caged diamond cow" />
+	<item id="59232" name="caged pig" />
+	<item id="59233" name="caged golden pig" />
+	<item id="59234" name="caged diamond pig" />
+	<item id="59235" name="caged sheep" />
+	<item id="59236" name="caged golden sheep" />
+	<item id="59237" name="caged diamond sheep" />
+	<item id="59238" name="caged chicken" />
+	<item id="59239" name="caged golden chicken" />
+	<item id="59240" name="caged diamond chicken" />
+	<item id="59241" name="caged rabbit" />
+	<item id="59242" name="caged golden rabbit" />
+	<item id="59243" name="caged diamond rabbit" />
+	<item id="59244" name="caged corrupted chicken" />
+	<item id="59245" name="caged golden corrupted chicken" />
+	<item id="59246" name="caged diamond corrupted chicken" />
+	<item id="59247" name="caged celestial chicken" />
+	<item id="59248" name="caged golden celestial chicken" />
+	<item id="59249" name="caged diamond celestial chicken" />
+	<item id="59250" name="caged turkey" />
+	<item id="59251" name="caged golden turkey" />
+	<item id="59252" name="caged diamond turkey" />
+	<item id="59253" name="caged corrupted turkey" />
+	<item id="59254" name="caged golden corrupted turkey" />
+	<item id="59255" name="caged diamond corrupted turkey" />
+	<item id="59256" name="caged yak" />
+	<item id="59257" name="caged golden yak" />
+	<item id="59258" name="caged diamond yak" />
+	<item id="59259" name="caged wild swarm" />
+	<item id="59260" name="caged golden wild swarm" />
+	<item id="59261" name="caged diamond wild swarm" />
+	<item id="59262" name="caged celestial swarm" />
+	<item id="59263" name="caged golden celestial swarm" />
+	<item id="59264" name="caged diamond celestial swarm" />
 </items>
 
