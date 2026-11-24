@@ -494,7 +494,7 @@ bool EditorManager::EnsureClientForMap(const FileName& fileName, const MapLoadOp
 				return false;
 			}
 			if (!warnings.empty()) {
-				DialogUtil::ListDialog("Warnings", warnings);
+				DialogUtil::LogWarnings("Data warnings", warnings);
 			}
 		} else {
 			return false;

@@ -56,8 +56,12 @@ void SetupCallbacks(Editor* editor) {
 
 std::unique_ptr<Editor> EditorFactory::CreateEmpty(CopyBuffer& copybuffer) {
 	ClientVersionID defaultVersion = CLIENT_VERSION_NONE;
-	ClientVersion* latest = ClientVersion::getLatestVersion();
-	if (latest) {
+	// The client already loaded (the one the open maps use) wins: switching to
+	// the "default" one would close every map and, when that client has no files
+	// on this PC (the stock 7.4 entry), fail with "could not locate metadata".
+	if (ClientVersion* loaded = g_version.getLoadedVersion()) {
+		defaultVersion = loaded->getID();
+	} else if (ClientVersion* latest = ClientVersion::getLatestVersion()) {
 		defaultVersion = latest->getID();
 	}
 
@@ -127,7 +131,7 @@ bool EditorFactory::EnsureVersion(ClientVersionID version) {
 	std::vector<std::string> warnings;
 	if (g_version.LoadVersion(version, error, warnings)) {
 		if (!warnings.empty()) {
-			DialogUtil::ListDialog("Warnings", warnings);
+			DialogUtil::LogWarnings("Data warnings", warnings);
 		}
 		return true;
 	} else {

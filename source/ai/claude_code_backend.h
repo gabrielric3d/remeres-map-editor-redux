@@ -49,9 +49,14 @@ public:
 		return "Claude Code";
 	}
 
-	// Path of the claude executable: the CLAUDE_CODE_PATH setting, else the usual
-	// install locations, else plain "claude" (PATH lookup). Empty when nothing found.
+	// Path of the claude executable: the CLAUDE_CODE_PATH setting, else the native
+	// installer's place (~/.local/bin), npm, every PATH folder and, last, the copy
+	// bundled with the newest Claude Code extension of VS Code / Cursor (its folder
+	// name changes with every update, so it is searched, never stored).
+	// Empty when nothing was found.
 	static std::string resolveExecutable();
+	// Message shown when resolveExecutable() comes back empty.
+	static std::string notInstalledMessage();
 
 private:
 	class Process : public wxProcess {
@@ -69,6 +74,9 @@ private:
 	void onProcessExited(int status);
 	void onTimer(wxTimerEvent& event);
 	void pumpOutput();
+	// Feeds stdin_pending to the child. The pipe is non-blocking on Windows, so a
+	// big line (a message with images) only goes in a piece at a time.
+	void flushStdin();
 	void handleLine(const std::string& line);
 	void handleStreamEvent(const nlohmann::json& event);
 	bool writeSupportFiles();
@@ -91,6 +99,7 @@ private:
 	double reported_cost = 0.0;
 
 	std::string stdout_buffer;
+	std::string stdin_pending; // bytes written by send() the pipe did not take yet
 	std::string stderr_buffer;
 	std::string system_prompt_path;
 	std::string mcp_config_path;

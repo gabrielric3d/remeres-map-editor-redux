@@ -9,6 +9,8 @@
 #include "util/image_manager.h"
 
 #include "app/application.h"
+#include "ui/managers/status_manager.h"
+#include <spdlog/spdlog.h>
 
 long DialogUtil::PopupDialog(wxWindow* parent, wxString title, wxString text, long style, wxString configsavename, uint32_t configsavevalue) {
 	if (text.empty()) {
@@ -22,6 +24,17 @@ long DialogUtil::PopupDialog(wxWindow* parent, wxString title, wxString text, lo
 long DialogUtil::PopupDialog(wxString title, wxString text, long style, wxString configsavename, uint32_t configsavevalue) {
 	// Need access to main frame for parent.
 	return PopupDialog(static_cast<wxApp*>(wxTheApp)->GetTopWindow(), title, text, style, configsavename, configsavevalue);
+}
+
+void DialogUtil::LogWarnings(const wxString& title, const std::vector<std::string>& items) {
+	if (items.empty()) {
+		return;
+	}
+	spdlog::warn("{} ({}):", title.ToStdString(), items.size());
+	for (const std::string& item : items) {
+		spdlog::warn("  {}", item);
+	}
+	g_status.SetStatusText(wxString::Format("%s: %d warning(s), see rme_debug.log", title, static_cast<int>(items.size())));
 }
 
 void DialogUtil::ListDialog(wxWindow* parent, wxString title, const std::vector<std::string>& param_items) {

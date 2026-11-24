@@ -90,6 +90,10 @@ public:
 
 	bool unserializeBorder(pugi::xml_node node, std::vector<std::string>& warnings);
 	bool unserializeBrush(pugi::xml_node node, std::vector<std::string>& warnings);
+	// Registers the <brush> children of `parent` by name (empty) so forward
+	// references inside the same file resolve; call before unserializing them.
+	void declareBrushes(pugi::xml_node parent);
+	static std::unique_ptr<Brush> createBrushOfType(std::string_view type);
 
 	const BrushMap& getMap() const {
 		return brushes;

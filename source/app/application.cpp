@@ -153,7 +153,12 @@ void Application::InstallCrashDiagnostics() {
 	_set_purecall_handler(&RmePurecallHandler);
 	_set_invalid_parameter_handler(&RmeInvalidParameterHandler);
 #endif
-	spdlog::info("Crash diagnostics installed (terminate/purecall/invalid-parameter handlers).");
+	// wx debug checks ("A debugging check in this application has failed") go to the
+	// log instead of a modal box the mapper has to click through every time.
+	wxSetAssertHandler([](const wxString& file, int line, const wxString& func, const wxString& cond, const wxString& msg) {
+		spdlog::warn("wx assert {}:{} {}(): \"{}\" {}", file.ToStdString(), line, func.ToStdString(), cond.ToStdString(), msg.ToStdString());
+	});
+	spdlog::info("Crash diagnostics installed (terminate/purecall/invalid-parameter/wx-assert handlers).");
 }
 
 Application::~Application() {

@@ -14,7 +14,11 @@
 #include <fstream>
 #include <random>
 #include <spdlog/spdlog.h>
+#include <vector>
+#include <wx/datetime.h>
+#include <wx/dir.h>
 #include <wx/filename.h>
+#include <wx/log.h>
 #include <wx/stdpaths.h>
 #include <wx/txtstrm.h>
 #include <wx/utils.h>
@@ -100,20 +104,72 @@ std::string ClaudeCodeBackend::resolveExecutable() {
 	if (!configured.empty() && wxFileName::FileExists(wxString::FromUTF8(configured))) {
 		return configured;
 	}
+	const wxString sep = wxFILE_SEP_PATH;
 	const wxString home = wxGetHomeDir();
 	wxString appdata;
 	wxGetEnv("APPDATA", &appdata);
-	const wxString candidates[] = {
-		home + wxFILE_SEP_PATH + ".local" + wxFILE_SEP_PATH + "bin" + wxFILE_SEP_PATH + "claude.exe",
-		home + wxFILE_SEP_PATH + ".local" + wxFILE_SEP_PATH + "bin" + wxFILE_SEP_PATH + "claude",
-		appdata + wxFILE_SEP_PATH + "npm" + wxFILE_SEP_PATH + "claude.cmd",
+	wxString local_appdata;
+	wxGetEnv("LOCALAPPDATA", &local_appdata);
+
+	// 1. Fixed install places (the native installer keeps itself updated here).
+	std::vector<wxString> candidates = {
+		home + sep + ".local" + sep + "bin" + sep + "claude.exe",
+		home + sep + ".local" + sep + "bin" + sep + "claude",
+		home + sep + ".claude" + sep + "local" + sep + "claude.exe",
+		home + sep + ".claude" + sep + "local" + sep + "claude",
+		appdata + sep + "npm" + sep + "claude.cmd",
+		local_appdata + sep + "Programs" + sep + "claude" + sep + "claude.exe",
 	};
+	// 2. Every folder on PATH.
+	wxString path_env;
+	if (wxGetEnv("PATH", &path_env)) {
+		for (const wxString& dir : wxSplit(path_env, wxPATH_SEP[0], 0)) {
+			if (dir.empty()) {
+				continue;
+			}
+			for (const char* name : { "claude.exe", "claude.cmd", "claude" }) {
+				candidates.push_back(dir + sep + name);
+			}
+		}
+	}
 	for (const wxString& candidate : candidates) {
-		if (wxFileName::FileExists(candidate)) {
+		if (!candidate.empty() && wxFileName::FileExists(candidate)) {
 			return std::string(candidate.ToUTF8());
 		}
 	}
-	return "claude";
+
+	// 3. The binary bundled with the IDE extension; newest one wins.
+	wxString best;
+	wxDateTime best_time;
+	for (const char* ide : { ".vscode", ".vscode-insiders", ".cursor", ".windsurf" }) {
+		const wxString extensions = home + sep + ide + sep + "extensions";
+		wxDir dir;
+		if (!wxDir::Exists(extensions) || !dir.Open(extensions)) {
+			continue;
+		}
+		wxString name;
+		for (bool more = dir.GetFirst(&name, "anthropic.claude-code-*", wxDIR_DIRS); more; more = dir.GetNext(&name)) {
+			for (const char* exe : { "claude.exe", "claude" }) {
+				const wxString candidate = extensions + sep + name + sep + "resources" + sep + "native-binary" + sep + exe;
+				if (!wxFileName::FileExists(candidate)) {
+					continue;
+				}
+				const wxDateTime modified = wxFileName(candidate).GetModificationTime();
+				if (best.empty() || (modified.IsValid() && best_time.IsValid() && modified.IsLaterThan(best_time))) {
+					best = candidate;
+					best_time = modified;
+				}
+			}
+		}
+	}
+	return std::string(best.ToUTF8());
+}
+
+std::string ClaudeCodeBackend::notInstalledMessage() {
+	return "Claude Code was not found on this PC. Install it once (it keeps itself updated): open PowerShell and run\n"
+		   "    irm https://claude.ai/install.ps1 | iex\n"
+		   "then run `claude` once to log in, and send the message again. "
+		   "(Or set the path to claude.exe in Preferences.)";
 }
 
 bool ClaudeCodeBackend::writeSupportFiles() {
@@ -138,12 +194,22 @@ bool ClaudeCodeBackend::writeSupportFiles() {
 	for (const auto& def : ClaudeTools::definitions()) {
 		tool_names += (tool_names.empty() ? "" : ", ") + MCP_TOOL_PREFIX + def["name"].get<std::string>();
 	}
-	prompt += "- You are running through Claude Code with the editor exposed as the MCP server \"" + std::string(McpServer::serverName()) + "\": the editor tools are " + tool_names + ". Only Read/Glob/Grep are available besides them; never try to edit files.\n";
+	prompt += "- You are running through Claude Code with the editor exposed as the MCP server \"" + std::string(McpServer::serverName()) + "\": the editor tools are " + tool_names + ". Besides them you have Read/Glob/Grep, and Edit/Write ONLY inside your knowledge (`claude_style.md` and the folder `claude_style/` next to it). Any other file is blocked; never try.\n";
 	prompt += "- The Lua scripting API reference is the file `" + ClaudeAgent::apiReferencePath() + "`. Read the relevant sections before writing run_lua code; do not guess function names.\n";
 	const std::string style_path = ClaudeAgent::stylePath();
 	if (wxFileName::FileExists(wxString::FromUTF8(style_path))) {
 		prompt += "- The mapper's style guide is `" + style_path + "`. Read it at the start of a task and follow it.\n";
 	}
+	prompt +=
+		"\n## Your knowledge (the only memory you keep between conversations)\n"
+		"Every conversation starts from zero: what is not written in `claude_style.md` or `claude_style/` is lost. "
+		"The mapper spends hours teaching you; losing it is the worst failure you can have.\n"
+		"- At the start of a conversation read `claude_style/diario.md` (where the studies stopped, what comes next) and the guide of the theme you will work on.\n"
+		"- Save AS YOU LEARN: when the mapper corrects you or approves a rule, write it into the guide of that theme (borders in `claude_style/piso-e-bordas.md`, structure in `estrutura.md`, details in `detalhes.md`) in the same turn. Do not wait for the end of the day.\n"
+		"- Write the rule itself, concrete and checkable (item ids, coordinates of the mapper's example, what is forbidden and why), in Portuguese, in the mapper's own words where you can. Edit the section that already covers it instead of adding a duplicate; if a new rule contradicts an old one, replace the old one.\n"
+		"- When the mapper ends the day (\"vamos parar\", \"continuamos amanha\", \"salve seu conhecimento\", \"boa noite\"...), or the conversation is wrapping up: 1) make sure every lesson of this conversation is in the guides; 2) rewrite `claude_style/diario.md`: date, what was studied, where it is on the map (coordinates), what the mapper approved, what is still wrong, the next step; 3) tell the mapper in two lines what you saved and in which files.\n"
+		"- Never mark something as \"perfect\" or \"solved\" unless the mapper said so.\n"
+		"- A new guide file (`claude_style/<tema>.md`) is fine for a new theme; add a line for it in the list in `claude_style.md`.\n";
 	{
 		std::ofstream out(system_prompt_path, std::ios::binary | std::ios::trunc);
 		if (!out) {
@@ -169,8 +235,10 @@ std::string ClaudeCodeBackend::buildCommand() const {
 	}
 	cmd += " -p --output-format stream-json --input-format stream-json --verbose --include-partial-messages";
 	cmd += " --permission-mode dontAsk";
-	cmd += " --tools Read,Glob,Grep";
-	cmd += " --allowedTools mcp__" + std::string(McpServer::serverName()) + ",Read,Glob,Grep";
+	cmd += " --tools Read,Glob,Grep,Edit,Write";
+	// Edit/Write only on the knowledge files (paths relative to the cwd, the scripts
+	// folder); dontAsk denies every other write. An Edit(...) rule also covers Write.
+	cmd += " --allowedTools mcp__" + std::string(McpServer::serverName()) + ",Read,Glob,Grep \"Edit(./claude_style/**)\" \"Edit(./claude_style.md)\"";
 	cmd += " --strict-mcp-config --mcp-config " + quoteArg(mcp_config_path);
 	cmd += " --append-system-prompt-file " + quoteArg(system_prompt_path);
 	if (!model.empty()) {
@@ -200,9 +268,15 @@ bool ClaudeCodeBackend::ensureProcess() {
 		resume_next = false;
 	}
 
+	if (resolveExecutable().empty()) {
+		fail(notInstalledMessage());
+		return false;
+	}
+
 	init_seen = false;
 	stdout_buffer.clear();
 	stderr_buffer.clear();
+	stdin_pending.clear();
 	blocks.clear();
 
 	process = new Process(this);
@@ -210,12 +284,15 @@ bool ClaudeCodeBackend::ensureProcess() {
 	env.cwd = wxString::FromUTF8(g_luaScripts.getScriptsDirectory());
 	const std::string cmd = buildCommand();
 	spdlog::info("ClaudeCodeBackend: {}", cmd);
-	pid = wxExecute(wxString::FromUTF8(cmd), wxEXEC_ASYNC | wxEXEC_HIDE_CONSOLE, process, &env);
+	{
+		wxLogNull quiet; // a failed launch is reported in the chat, not in a popup
+		pid = wxExecute(wxString::FromUTF8(cmd), wxEXEC_ASYNC | wxEXEC_HIDE_CONSOLE, process, &env);
+	}
 	if (pid <= 0) {
 		delete process;
 		process = nullptr;
 		pid = 0;
-		fail("Could not launch Claude Code. Is it installed? Set the path in Preferences (or PATH) and check `claude --version` in a terminal.");
+		fail("Could not launch Claude Code (" + resolveExecutable() + "). Check `claude --version` in a terminal.\n" + notInstalledMessage());
 		return false;
 	}
 	resume_next = false;
@@ -233,6 +310,7 @@ void ClaudeCodeBackend::killProcess(bool keep_session) {
 		process = nullptr;
 		pid = 0;
 	}
+	stdin_pending.clear();
 	if (keep_session && !session_id.empty()) {
 		resume_next = true;
 	} else {
@@ -246,6 +324,7 @@ void ClaudeCodeBackend::onProcessExited(int status) {
 	timer.Stop();
 	process = nullptr;
 	pid = 0;
+	stdin_pending.clear();
 	if (!session_id.empty()) {
 		resume_next = true; // the conversation lives in Claude Code's session file
 	}
@@ -277,13 +356,16 @@ void ClaudeCodeBackend::send(const std::string& user_text, const std::vector<Ass
 		return;
 	}
 	Json message = { { "type", "user" }, { "message", { { "role", "user" }, { "content", assistantUserContent(user_text, images) } } } };
-	const std::string line = message.dump() + "\n";
-	wxOutputStream* stdin_stream = process->GetOutputStream();
-	if (!stdin_stream) {
+	if (!process->GetOutputStream()) {
 		fail("Claude Code's stdin is not available.");
 		return;
 	}
-	stdin_stream->Write(line.data(), line.size());
+	// Queued, not written in one go: the pipe takes a few KB per write, and a
+	// line cut short (an image is hundreds of KB of base64) left Claude Code
+	// waiting forever for the rest of the message.
+	stdin_pending += message.dump();
+	stdin_pending += '\n';
+	flushStdin();
 	if (!was_busy) {
 		text_streamed = false;
 		blocks.clear();
@@ -313,7 +395,35 @@ void ClaudeCodeBackend::reset() {
 }
 
 void ClaudeCodeBackend::onTimer(wxTimerEvent&) {
+	flushStdin();
 	pumpOutput();
+}
+
+void ClaudeCodeBackend::flushStdin() {
+	if (!process || stdin_pending.empty()) {
+		return;
+	}
+	wxOutputStream* in = process->GetOutputStream();
+	if (!in) {
+		return;
+	}
+	constexpr size_t CHUNK = 4096;
+	size_t sent = 0;
+	// Keep going while the child keeps reading; stop at the first write the pipe
+	// refuses (full) and try again on the next timer tick.
+	while (sent < stdin_pending.size()) {
+		const size_t len = std::min(CHUNK, stdin_pending.size() - sent);
+		in->Write(stdin_pending.data() + sent, len);
+		const size_t n = in->LastWrite();
+		if (in->GetLastError() != wxSTREAM_NO_ERROR) {
+			in->Reset(); // a full non-blocking pipe reads as an error; not fatal
+		}
+		if (n == 0) {
+			break;
+		}
+		sent += n;
+	}
+	stdin_pending.erase(0, sent);
 }
 
 void ClaudeCodeBackend::pumpOutput() {

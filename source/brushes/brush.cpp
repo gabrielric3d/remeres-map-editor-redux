@@ -120,6 +120,40 @@ void Brushes::init() {
 	CarpetBrush::init();
 }
 
+std::unique_ptr<Brush> Brushes::createBrushOfType(std::string_view type) {
+	static const std::unordered_map<std::string_view, std::function<std::unique_ptr<Brush>()>> typeMap = {
+		{ "border", [] { return std::make_unique<GroundBrush>(); } },
+		{ "ground", [] { return std::make_unique<GroundBrush>(); } },
+		{ "wall", [] { return std::make_unique<WallBrush>(); } },
+		{ "wall decoration", [] { return std::make_unique<WallDecorationBrush>(); } },
+		{ "carpet", [] { return std::make_unique<CarpetBrush>(); } },
+		{ "table", [] { return std::make_unique<TableBrush>(); } },
+		{ "doodad", [] { return std::make_unique<DoodadBrush>(); } }
+	};
+	if (auto it = typeMap.find(type); it != typeMap.end()) {
+		return it->second();
+	}
+	return nullptr;
+}
+
+void Brushes::declareBrushes(pugi::xml_node parent) {
+	// Registers every <brush> of the file by name before any is loaded, so a
+	// <friend>/<enemy>/border "to" can name a brush defined further down the same
+	// file (custom brushes are added at the top of grounds.xml, the stock "grass"
+	// and "sea" live thousands of lines below). unserializeBrush then fills the
+	// already registered object in.
+	for (pugi::xml_node node = parent.child("brush"); node; node = node.next_sibling("brush")) {
+		const std::string name = node.attribute("name").as_string();
+		if (name.empty() || name == "all" || name == "none" || getBrush(name)) {
+			continue;
+		}
+		if (std::unique_ptr<Brush> brush = createBrushOfType(node.attribute("type").as_string())) {
+			brush->setName(name);
+			brushes.emplace(brush->getName(), std::move(brush));
+		}
+	}
+}
+
 bool Brushes::unserializeBrush(pugi::xml_node node, std::vector<std::string>& warnings) {
 	pugi::xml_attribute attribute;
 	if (!(attribute = node.attribute("name"))) {
@@ -145,18 +179,7 @@ bool Brushes::unserializeBrush(pugi::xml_node node, std::vector<std::string>& wa
 
 		const std::string_view brushType = attribute.as_string();
 
-		static const std::unordered_map<std::string_view, std::function<std::unique_ptr<Brush>()>> typeMap = {
-			{ "border", [] { return std::make_unique<GroundBrush>(); } },
-			{ "ground", [] { return std::make_unique<GroundBrush>(); } },
-			{ "wall", [] { return std::make_unique<WallBrush>(); } },
-			{ "wall decoration", [] { return std::make_unique<WallDecorationBrush>(); } },
-			{ "carpet", [] { return std::make_unique<CarpetBrush>(); } },
-			{ "table", [] { return std::make_unique<TableBrush>(); } },
-			{ "doodad", [] { return std::make_unique<DoodadBrush>(); } }
-		};
-
-		if (auto it = typeMap.find(brushType); it != typeMap.end()) {
-			newBrush = it->second();
+		if ((newBrush = createBrushOfType(brushType))) {
 			brush = newBrush.get();
 		} else {
 			warnings.push_back(std::format("Unknown brush type {}", brushType));
