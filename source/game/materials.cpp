@@ -195,6 +195,7 @@ bool Materials::loadExtensions(FileName directoryName, wxString& error, std::vec
 bool Materials::unserializeMaterials(const FileName& filename, pugi::xml_node node, wxString& error, std::vector<std::string>& warnings) {
 	wxString warning;
 	pugi::xml_attribute attribute;
+	g_brushes.declareBrushes(node);
 	for (pugi::xml_node childNode = node.first_child(); childNode; childNode = childNode.next_sibling()) {
 		const std::string& childName = as_lower_str(childNode.name());
 		if (childName == "include") {

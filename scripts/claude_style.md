@@ -5,13 +5,27 @@ que uma conversa começa (ou depois de "Clear"). Escreva aqui como o seu mapa de
 feito: brushes por papel, regras estruturais, o que evitar. Pode ser em português.
 Quanto mais concreto (nomes exatos de brushes, tamanhos, densidades), melhor.
 
+## OBRIGATÓRIO antes de qualquer borda
+**LEIA `claude_style/bordas-regras.md` INTEIRO ANTES DE ENCOSTAR NUMA BORDA.**
+É a especificação fechada com o mapper (regras R1..R8, receita do pico, método, mapa de
+referência com flag [MAPPER]/[CLAUDE], e a lista dos meus erros). Sem ler isso, você vai
+repetir erros que já custaram um dia inteiro de correção dele.
+Depois, se precisar de contexto ou histórico, `claude_style/piso-e-bordas.md`.
+Tudo que o mapper ensinar vai para estes guias na hora (você pode editar `claude_style.md`
+e `claude_style/`); no fim do dia, atualize também `claude_style/diario.md`.
+
 ## Guias por tema (LEIA o que a tarefa pedir antes de construir)
+- `claude_style/bordas_lib.lua` — **O MOTOR DE BORDAS EM CÓDIGO** (verificador, solver,
+  conserto de chão). Carregar no começo da sessão, não reescrever:
+  `load(app.readFile("claude_style/bordas_lib.lua"), "b", "t", _ENV)()`
+- `claude_style/bordas-regras.md` — **A ESPECIFICAÇÃO DE BORDAS. Ler primeiro, sempre.**
 Tirados da análise de 773 capturas dos mapas do mapper; cada regra aponta exemplos.
 - `claude_style/estrutura.md` — montanha, rocha, altura/profundidade, água/lava, arquitetura,
   ruína, composição da cena, cidade.
 - `claude_style/piso-e-bordas.md` — manchas, transições, variação tonal, chão sob objetos,
   caminhos, piso construído, e a técnica de borda (um dono por trecho).
 - `claude_style/detalhes.md` — onde vai cada coisa, densidade, grupos/kits, luz, cidade, ruína.
+- `claude_style/diario.md` — onde os estudos pararam e o próximo passo. LEIA no começo da conversa.
 - `claude_style/analise/` — as notas imagem por imagem (para procurar exemplos).
 
 ## Regras estruturais

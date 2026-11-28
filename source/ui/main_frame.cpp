@@ -426,36 +426,19 @@ bool MainFrame::DoQueryImportCreatures() {
 	if (g_creatures.hasMissing()) {
 		// Try auto-load from configured directory first
 		if (g_settings.getBoolean(Config::CREATURES_AUTO_LOAD_ENABLED)) {
-			wxString auto_dir = wxstr(g_settings.getString(Config::CREATURES_AUTO_LOAD_DIR));
-			if (!auto_dir.IsEmpty() && wxFileName::DirExists(auto_dir)) {
-				AutoLoadCreaturesFromDirectory(auto_dir);
+			// Several folders may be given, separated by ';' (e.g. monster;npc).
+			for (wxString auto_dir : wxSplit(wxstr(g_settings.getString(Config::CREATURES_AUTO_LOAD_DIR)), ';', 0)) {
+				auto_dir.Trim(true).Trim(false);
+				if (!auto_dir.IsEmpty() && wxFileName::DirExists(auto_dir) && g_creatures.hasMissing()) {
+					AutoLoadCreaturesFromDirectory(auto_dir);
+				}
 			}
 		}
 
-		// If still missing (auto-load disabled, dir invalid, or didn't resolve all), prompt
+		// Whatever is still missing just shows as a placeholder: no prompt on every
+		// map load (the import stays in File > Import > Monsters/NPC).
 		if (g_creatures.hasMissing()) {
-			long ret = DialogUtil::PopupDialog("Missing creatures", "There are missing creatures and/or NPC in the editor, do you want to load them from an OT monster/npc file?", wxYES | wxNO);
-			if (ret == wxID_YES) {
-				do {
-					wxFileDialog dlg(g_gui.root, "Import monster/npc file", "", "", "*.xml", wxFD_OPEN | wxFD_MULTIPLE | wxFD_FILE_MUST_EXIST);
-					if (dlg.ShowModal() == wxID_OK) {
-						wxArrayString paths;
-						dlg.GetPaths(paths);
-						for (uint32_t i = 0; i < paths.GetCount(); ++i) {
-							wxString error;
-							std::vector<std::string> warnings;
-							bool ok = g_creatures.importXMLFromOT(FileName(paths[i]), error, warnings);
-							if (ok) {
-								DialogUtil::ListDialog("Monster loader errors", warnings);
-							} else {
-								wxMessageBox("Error OT data file \"" + paths[i] + "\".\n" + error, "Error", wxOK | wxICON_INFORMATION, g_gui.root);
-							}
-						}
-					} else {
-						break;
-					}
-				} while (g_creatures.hasMissing());
-			}
+			spdlog::warn("Some creatures/NPCs of this map are not in the editor's list; they show as placeholders.");
 		}
 	}
 	g_gui.RefreshPalettes();
@@ -474,22 +457,21 @@ bool MainFrame::AutoLoadCreaturesFromDirectory(const wxString& directory) {
 	wxDir::GetAllFiles(directory, &files, "*.xml", wxDIR_FILES | wxDIR_DIRS);
 	wxDir::GetAllFiles(directory, &files, "*.json", wxDIR_FILES | wxDIR_DIRS);
 
+	// Runs on every map load: the outcome goes to rme_debug.log, never a popup.
 	if (files.IsEmpty()) {
-		wxMessageBox(
-			wxString::Format("No .xml or .json files found in:\n%s", directory),
-			"Auto-load creatures",
-			wxOK | wxICON_INFORMATION,
-			g_gui.root
-		);
+		spdlog::warn("Auto-load creatures: no .xml or .json files in '{}'", directory.ToStdString());
 		return false;
 	}
 
 	const CreatureImportResult result = CreatureProjects::ImportFiles(files, "Loading creatures from directory...");
 
-	wxMessageBox(CreatureProjects::Describe(result), "Auto-load creatures - Result", wxOK | wxICON_INFORMATION, g_gui.root);
-
-	if (!result.warnings.empty()) {
-		DialogUtil::ListDialog("Monster loader warnings", result.warnings);
+	for (const wxString& line : wxSplit(CreatureProjects::Describe(result), '\n')) {
+		if (!line.IsEmpty()) {
+			spdlog::info("Auto-load creatures: {}", line.ToStdString());
+		}
+	}
+	for (const std::string& warning : result.warnings) {
+		spdlog::warn("Auto-load creatures: {}", warning);
 	}
 
 	spdlog::info("Auto-load creatures: scanned={}, loaded={}, failed={}, added={}, missing {}->{}",

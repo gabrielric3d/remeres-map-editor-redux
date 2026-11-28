@@ -8,6 +8,7 @@
 
 #include <wx/filedlg.h>
 #include <wx/filename.h>
+#include <wx/log.h>
 #include <wx/statline.h>
 
 #include "app/client_version.h"
@@ -834,7 +835,13 @@ int WelcomeDialog::FindRecentMapIndex(const wxString& path) const {
 
 wxString WelcomeDialog::FormatModifiedLabel(const wxString& path) {
 	wxFileName filename(path);
+	// A favorite on a drive/folder this PC does not have would make GetTimes pop an
+	// error box on every start; say it in the card instead.
+	if (!filename.FileExists()) {
+		return "File not found on this PC";
+	}
 	wxDateTime modified_time;
+	wxLogNull quiet;
 	return filename.GetTimes(nullptr, &modified_time, nullptr) ? modified_time.Format("%Y-%m-%d %H:%M") : wxString("Modified time unavailable");
 }
 

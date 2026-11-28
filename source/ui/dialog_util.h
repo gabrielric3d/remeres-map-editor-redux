@@ -17,6 +17,10 @@ public:
 		ListDialog(nullptr, title, vec);
 	}
 
+	// Data-loading warnings: written to rme_debug.log and summed up in the status
+	// bar instead of a modal list on every start.
+	static void LogWarnings(const wxString& title, const std::vector<std::string>& vec);
+
 	static void ShowTextBox(wxWindow* parent, wxString title, wxString contents);
 	static void ShowTextBox(const wxString& title, const wxString& contents) {
 		ShowTextBox(nullptr, title, contents);

@@ -15,6 +15,8 @@
 #include <wx/wx.h>
 
 class wxChoice;
+class wxTreeCtrl;
+class wxWrapSizer;
 
 // Dockable chat with Claude (Window > Claude Assistant). The assistant sees and
 // edits the open map through ClaudeAgent's tools; this panel only renders the
@@ -34,14 +36,46 @@ public:
 private:
 	static constexpr size_t MAX_ATTACHMENTS = 8;
 	static constexpr int MAX_IMAGE_EDGE = 1568; // the API scales bigger images down anyway
-	static constexpr size_t MAX_PNG_BASE64 = 3'500'000; // above this a JPEG goes instead
+	static constexpr size_t MAX_PNG_BASE64 = 1'500'000; // above this a JPEG goes instead
+	static constexpr int THUMB_EDGE = 56; // DIP, attachment previews above the message box
+	static constexpr int INPUT_MIN_LINES = 3;
+	static constexpr int INPUT_MAX_LINES = 10;
 
 	bool AttachImage(const wxImage& image, const wxString& label);
 	bool PasteImageFromClipboard();
 	void UpdateAttachments();
+	void RemoveAttachment(size_t index);
 	void OnAttach(wxCommandEvent& event);
 
 	void BuildUi();
+	// Shows/hides the settings block (backend, live view, MCP, recording).
+	void ShowSettings(bool show);
+	// Message box grows with its text, between INPUT_MIN_LINES and INPUT_MAX_LINES.
+	void FitInputHeight();
+
+	// ---- Knowledge: the guides Claude works from, shown as a tree ----------
+	// Guide files (scripts/claude_style.md, scripts/claude_style/*.md, the Lua API
+	// reference, the per-image analyses) with their "## " sections as children;
+	// selecting one previews its text, double-click opens the file. A guide Claude
+	// has opened (Read) in this conversation gets a check mark.
+	struct KnowledgeSection {
+		wxString title;
+		wxString body;
+	};
+	struct KnowledgeFile {
+		wxString path;
+		wxString title; // the file's "# " heading, else its name
+		wxString intro; // text before the first section
+		std::vector<KnowledgeSection> sections;
+		bool analysis = false; // one of the per-image notes (grouped, no sections)
+		bool read = false;
+	};
+	void BuildKnowledgeBlock(wxSizer* parent_sizer);
+	void LoadKnowledge();
+	void ShowKnowledge(bool show);
+	void UpdateKnowledgeLabels();
+	void OnKnowledgeSelected();
+	void MarkKnowledgeRead(const wxString& path);
 	// (Re)creates the conversation engine for the selected backend.
 	void CreateBackend();
 	void ApplySettingsToAgent();
@@ -115,10 +149,20 @@ private:
 	wxStaticText* record_status = nullptr;
 	bool was_recording = false;
 	wxButton* attach_button = nullptr;
+	wxButton* settings_button = nullptr;
+	wxBoxSizer* settings_box = nullptr;
+	wxButton* knowledge_button = nullptr;
+	wxBoxSizer* knowledge_box = nullptr;
+	wxTreeCtrl* knowledge_tree = nullptr;
+	wxTextCtrl* knowledge_preview = nullptr;
+	std::vector<KnowledgeFile> knowledge;
 	wxBoxSizer* attachment_row = nullptr;
+	wxWrapSizer* attachment_strip = nullptr;
 	wxStaticText* attachment_label = nullptr;
 	wxButton* remove_attachments_button = nullptr;
 	std::vector<AssistantImage> attachments; // go with the next message
+	std::vector<wxBitmap> attachment_thumbs; // same order as attachments
+	int input_lines = 0; // height the message box was last sized for
 	std::map<std::string, AssistantRateLimit> rate_limits; // by window type
 
 	bool assistant_header_written = false;
